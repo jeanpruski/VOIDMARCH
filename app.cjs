@@ -35,5 +35,6 @@ async function start() {
 
 start().catch((error) => {
   trace(`Échec du démarrage : ${error?.stack || error}`);
-  process.exitCode = 1;
+  // A failed import may already have started timers; do not leave Passenger waiting.
+  process.exit(1);
 });

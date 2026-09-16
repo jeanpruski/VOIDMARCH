@@ -1,5 +1,7 @@
 generator client {
   provider = "prisma-client-js"
+  // N0C Passenger can detect a different OpenSSL version than the SSH shell.
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
 }
 datasource db {
   provider = "postgresql"
