@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: voidmarch
+      POSTGRES_PASSWORD: voidmarch
+      POSTGRES_DB: voidmarch
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voidmarch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:56379:6379"]
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  game:
+    profiles: ["full"]
+    build: .
+    ports: ["127.0.0.1:3001:3001"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://voidmarch:voidmarch@postgres:5432/voidmarch?schema=public
+      REDIS_URL: redis://redis:6379
+      HOST: 0.0.0.0
+      WEB_ORIGIN: http://localhost:3001,http://127.0.0.1:3001
+      NODE_ENV: development
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+volumes:
+  postgres_data:
+  redis_data:

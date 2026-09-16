@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+model User {
+  id String @id @default(uuid())
+  username String
+  usernameNormalized String @unique
+  email String? @unique
+  passwordHash String?
+  faction String @default("ASH")
+  settings Json @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLoginAt DateTime @default(now())
+  status String @default("ACTIVE")
+  sessions Session[]
+  snapshots PlayerRealmSnapshot[]
+  actions ActionReceipt[]
+}
+model Session {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@index([expiresAt])
+}
+model WorldState {
+  id String @id @default("main")
+  revision Int @default(0)
+  data Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model PlayerRealmSnapshot {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version Int @default(1)
+  realmValue Int
+  data Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, createdAt])
+}
+model ActionReceipt {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionId String
+  requestHash String
+  result Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, actionId])
+  @@index([createdAt])
+}
+model AuditEvent {
+  id String @id @default(uuid())
+  userId String?
+  type String
+  data Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, createdAt])
+}

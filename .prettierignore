@@ -1,0 +1,8 @@
+node_modules
+.data
+apps/web/dist
+apps/web/public/assets
+test-results
+docs/conception-originale.md
+docs/direction-artistique.md
+package-lock.json

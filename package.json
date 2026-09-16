@@ -1,0 +1,40 @@
+{
+  "name": "voidmarch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:local": "node scripts/dev-local.mjs",
+    "dev": "concurrently -k -n server,web -c yellow,cyan \"npm run dev -w @voidmarch/server\" \"npm run dev -w @voidmarch/web\"",
+    "build": "npm run typecheck && npm run build -w @voidmarch/web",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:generate": "prisma generate --schema apps/server/prisma/schema.prisma",
+    "db:migrate": "prisma migrate deploy --schema apps/server/prisma/schema.prisma",
+    "db:seed": "tsx --env-file=.env apps/server/src/seed.ts",
+    "setup": "node scripts/setup.mjs",
+    "start": "tsx --env-file=.env apps/server/src/index.ts",
+    "test:db": "TEST_DATABASE=true node --env-file=.env node_modules/vitest/vitest.mjs run tests/database.test.ts",
+    "format": "prettier --write apps packages tests scripts *.ts *.json README.md docs/*.md"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "concurrently": "^9.2.0",
+    "prettier": "^3.9.7",
+    "prisma": "6.12.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.2",
+    "vitest": "5.0.1"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}

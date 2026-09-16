@@ -1,0 +1,28 @@
+{
+  "name": "@voidmarch/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@voidmarch/config": "*",
+    "@voidmarch/game-rules": "*",
+    "@voidmarch/protocol": "*",
+    "@voidmarch/shared": "*",
+    "lucide-react": "^0.468.0",
+    "phaser": "^3.90.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "socket.io-client": "^4.8.1",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^8.3.0"
+  }
+}
