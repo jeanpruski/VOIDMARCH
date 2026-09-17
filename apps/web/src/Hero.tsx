@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
   HERO_LABELS,
-  HERO_PARTS,
   HERO_PALETTE,
   HERO_POWERS,
   heroAura,
   heroLevel,
   randomHeroAppearance,
   type HeroAppearance,
-  type HeroPart,
   type HeroPower,
 } from '@voidmarch/config';
-import { heroCanvas, loadHeroArt } from './hero-art';
+import { heroCanvas, loadHeroArt, HERO_VISIBLE_PARTS, type HeroVisualPart } from './hero-art';
 import { canAfford } from '@voidmarch/game-rules';
 import { useGame, send, focusHero } from './store';
 export function HeroPortrait({
@@ -43,11 +41,10 @@ export function HeroPortrait({
     />
   );
 }
-const labels: Record<HeroPart, string> = {
+const labels: Record<HeroVisualPart, string> = {
   head: 'Tête',
   armor: 'Tenue et armure',
   boots: 'Bottes',
-  weapon: 'Arme et accessoire',
 };
 export function HeroCreator({
   value,
@@ -58,7 +55,7 @@ export function HeroCreator({
   onChange: (a: HeroAppearance) => void;
   name: string;
 }) {
-  const [part, setPart] = useState<HeroPart>('head');
+  const [part, setPart] = useState<HeroVisualPart>('head');
   return (
     <section className="hero-creator" aria-label="Personnaliser votre héros">
       <div className="hero-preview">
@@ -73,7 +70,7 @@ export function HeroCreator({
           ont les mêmes capacités.
         </p>
         <div className="catalog-tabs" role="tablist" aria-label="Éléments du héros">
-          {HERO_PARTS.map((p) => (
+          {HERO_VISIBLE_PARTS.map((p) => (
             <button
               type="button"
               role="tab"

@@ -1,5 +1,11 @@
-import { HERO_SHEETS, loadHeroSheet, heroArtKey, heroCanvas, heroStarPoints } from './hero-art';
-import type { HeroPart } from '@voidmarch/config';
+import {
+  HERO_SHEETS,
+  loadHeroSheet,
+  heroArtKey,
+  heroCanvas,
+  heroStarPoints,
+  type HeroVisualPart,
+} from './hero-art';
 import { unitStats, turretStats, attackStats } from '@voidmarch/game-rules';
 import { worldEffects, type WorldEffect } from './world-effects';
 import { useEffect, useRef } from 'react';
@@ -122,7 +128,10 @@ class WorldScene extends Phaser.Scene {
     this.events.once('shutdown', cleanup);
     this.events.once('destroy', cleanup);
     for (const [part, name] of Object.entries(HERO_SHEETS))
-      loadHeroSheet(part as HeroPart, this.textures.get(name).getSourceImage() as HTMLImageElement);
+      loadHeroSheet(
+        part as HeroVisualPart,
+        this.textures.get(name).getSourceImage() as HTMLImageElement,
+      );
     setWallMaterials(this.textures.get('wall-materials').getSourceImage() as HTMLImageElement);
     for (const name of Object.keys(SPRITE_ATLASES)) {
       const source = this.textures.get(`${name}-source`).getSourceImage() as HTMLImageElement;
@@ -902,7 +911,7 @@ class WorldScene extends Phaser.Scene {
       parts.push({ object: marker, x: 0, y: -20, layer: 6400 });
       const heroTexture = u.hero ? `${heroArtKey(u.hero.appearance)}:map` : undefined;
       if (heroTexture && !this.textures.exists(heroTexture))
-        this.textures.addCanvas(heroTexture, heroCanvas(u.hero!.appearance, false));
+        this.textures.addCanvas(heroTexture, heroCanvas(u.hero!.appearance));
       const sprite = this.add
         .image(
           origin.x,

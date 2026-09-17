@@ -1,16 +1,17 @@
-import { HERO_PARTS, type HeroAppearance, type HeroPart } from '@voidmarch/config';
+import { type HeroAppearance } from '@voidmarch/config';
 import { isolateSprites } from './sprite-atlas';
-const sheets: Record<HeroPart, string> = {
+export const HERO_VISIBLE_PARTS = ['head', 'armor', 'boots'] as const;
+export type HeroVisualPart = (typeof HERO_VISIBLE_PARTS)[number];
+const sheets: Record<HeroVisualPart, string> = {
   head: 'hero-heads',
   armor: 'hero-armors',
   boots: 'hero-boots',
-  weapon: 'hero-weapons',
 };
-const pieces = new Map<HeroPart, HTMLCanvasElement[]>();
+const pieces = new Map<HeroVisualPart, HTMLCanvasElement[]>();
 const portraits = new Map<string, HTMLCanvasElement>();
 export const heroArtKey = (a: HeroAppearance) =>
-  `hero:${HERO_PARTS.map((p) => `${a[p]}${a.colors[p]}`).join(':')}`;
-export function loadHeroSheet(part: HeroPart, source: HTMLImageElement) {
+  `hero:unarmed:${HERO_VISIBLE_PARTS.map((p) => `${a[p]}${a.colors[p]}`).join(':')}`;
+export function loadHeroSheet(part: HeroVisualPart, source: HTMLImageElement) {
   if (pieces.has(part)) return;
   const c = document.createElement('canvas');
   c.width = source.naturalWidth;
@@ -42,7 +43,7 @@ export const HERO_SHEETS = sheets;
 let loading: Promise<void> | undefined;
 export function loadHeroArt() {
   return (loading ??= Promise.all(
-    HERO_PARTS.map(async (p) => {
+    HERO_VISIBLE_PARTS.map(async (p) => {
       if (pieces.has(p)) return;
       const i = new Image();
       i.src = `/assets/${sheets[p]}.png`;
@@ -86,41 +87,52 @@ export function heroStarPoints(x: number, y: number, width: number, height: numb
     };
   });
 }
-export function heroCanvas(a: HeroAppearance, withBase = true): HTMLCanvasElement {
-  const key = `${heroArtKey(a)}:${withBase ? 'portrait' : 'map'}`;
+export function heroCanvas(a: HeroAppearance): HTMLCanvasElement {
+  const key = heroArtKey(a);
   const old = portraits.get(key);
   if (old) return old;
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const ctx = c.getContext('2d')!;
-  if (withBase) {
-    ctx.fillStyle = '#27291c';
+  // Solid tabletop base; the separate faction star remains on the map beneath it.
+  ctx.fillStyle = '#141713';
+  ctx.beginPath();
+  ctx.ellipse(128, 240, 67, 13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const earth = ctx.createLinearGradient(0, 216, 0, 247);
+  earth.addColorStop(0, '#777666');
+  earth.addColorStop(0.5, '#535647');
+  earth.addColorStop(1, '#33382d');
+  ctx.fillStyle = earth;
+  ctx.beginPath();
+  ctx.ellipse(128, 231, 67, 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#99907a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Deterministic gravel, confined to the top of the base.
+  for (let i = 0; i < 28; i++) {
+    const angle = i * 2.399963;
+    const radius = Math.sqrt((i + 1) / 29);
+    ctx.fillStyle = i % 3 === 0 ? '#8d8b75' : '#343c30';
     ctx.beginPath();
-    heroStarPoints(128, 231, 158, 42).forEach((p, i) => {
-      if (i === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    });
-    ctx.closePath();
+    ctx.ellipse(
+      128 + Math.cos(angle) * radius * 61,
+      231 + Math.sin(angle) * radius * 12,
+      2.5,
+      1.3,
+      angle,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
-    ctx.strokeStyle = '#dcc780';
-    ctx.lineWidth = 4;
-    ctx.stroke();
   }
-  const draw = (part: HeroPart, x: number, y: number, w: number, h: number) => {
+  const draw = (part: HeroVisualPart, x: number, y: number, w: number, h: number) => {
     const src = pieces.get(part)?.[a[part]];
     if (!src) return;
     ctx.drawImage(recolor(src, a.colors[part], part === 'head'), x, y, w, h);
   };
   draw('boots', 91, 138, 78, 96);
-  const compact = [1, 7, 10, 11, 14].includes(a.weapon);
-  const tall = a.weapon === 2;
-  draw(
-    'weapon',
-    166,
-    compact ? 155 : tall ? 99 : 152,
-    compact ? 36 : tall ? 33 : 35,
-    compact ? 53 : tall ? 134 : 91,
-  );
   draw('armor', 68, 65, 120, 112);
   draw('head', 102, 21, 54, 57);
   portraits.set(key, c);

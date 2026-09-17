@@ -21,6 +21,8 @@ test('héros : personnalisation, couleurs et apparence envoyée à l’inscripti
   await page.getByLabel('Nom de votre souverain').fill('JeanHeros');
   await page.getByLabel('Mot de passe', { exact: true }).fill('MotDePasseDeTest42');
   const creator = page.getByRole('region', { name: 'Personnaliser votre héros' });
+  await expect(creator.getByRole('tab')).toHaveCount(3);
+  await expect(creator.getByRole('tab', { name: 'Arme et accessoire' })).toHaveCount(0);
   await expect(creator.locator('img')).toHaveAttribute('src', /^data:image/);
   await page.getByRole('tab', { name: 'Tenue et armure', exact: true }).click();
   await page.getByRole('combobox', { name: 'Tenue et armure', exact: true }).selectOption('14');
