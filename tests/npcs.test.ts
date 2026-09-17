@@ -152,12 +152,12 @@ describe('rencontres neutres', () => {
   });
 });
 describe('apparition rare et bornée', () => {
-  it('ne fait rien hors ligne, tente une fois par période avec un seuil de 20 %', () => {
+  it('ne fait rien hors ligne, tente une fois par période avec un seuil de 10 %', () => {
     const { s, npc } = fixture();
     delete s.units[npc.id];
     tickNpcs(s, now, new Set(), () => 0);
     expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(0);
-    tickNpcs(s, now, new Set(['a']), () => 0.2);
+    tickNpcs(s, now, new Set(['a']), () => 0.1);
     expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(0);
     tickNpcs(s, now + 1000, new Set(['a']), () => 0);
     expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(0);

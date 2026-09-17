@@ -43,6 +43,8 @@ function fixture() {
   const buildings = (Object.keys(BUILDINGS) as BuildingKind[]).map((kind, i) =>
     addBuilding(s, r, positions[i], kind, now),
   );
+  // Recruitment tests need traversable spawn terrain, independently of catalog order.
+  for (const b of buildings) writeTile(s, b, { terrain: 'PLAIN' });
   buildings.find((b) => b.kind === 'VILLAGE')!.population = 1000;
   return { s, r, buildings };
 }

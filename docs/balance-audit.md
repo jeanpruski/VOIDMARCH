@@ -113,6 +113,12 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 | Bâtiment | PV de base | Coût initial | Production brute / minute niveau 1 | Production brute / minute niveau 3 | Terrains | Prérequis |
 | --- | --- | --- | --- | --- | --- | --- |
+| Scierie à vapeur | 130 | 120 or, 80 bois, 40 pierre, 35 fer | 16 bois | 38.4 bois | FOREST | Scierie, Atelier |
+| Carrière mécanisée | 160 | 140 or, 90 bois, 50 pierre, 45 fer | 12 pierre | 28.8 pierre | HILL, MOUNTAIN | Carrière de pierre, Atelier |
+| Mine industrielle | 150 | 160 or, 90 bois, 70 pierre, 50 fer | 10 fer | 24 fer | HILL | Mine, Forge |
+| Scierie des ombres | 240 | 420 or, 180 bois, 120 pierre, 140 fer | 28 bois | 67.2 bois | FOREST | Scierie à vapeur, Laboratoire des cendres |
+| Carrière runique | 280 | 460 or, 180 bois, 160 pierre, 160 fer | 21 pierre | 50.4 pierre | HILL, MOUNTAIN | Carrière mécanisée, Laboratoire des cendres |
+| Mine des abysses | 260 | 500 or, 180 bois, 200 pierre, 180 fer | 18 fer | 43.2 fer | HILL | Mine industrielle, Laboratoire des cendres |
 | Complexe des cloches | 750 | 2200 or, 500 bois, 700 pierre, 1200 fer | — | — | PLAIN, RUINS | Réacteur noir, Fonderie atomique, Observatoire noir |
 | Laboratoire des isotopes | 385 | 440 or, 160 bois, 200 pierre, 300 fer | — | — | PLAIN, HILL, RUINS | Laboratoire des cendres, Manufacture de munitions |
 | Réacteur noir | 630 | 800 or, 200 bois, 400 pierre, 560 fer | 16 or | 38.4 or | PLAIN, HILL, RUINS | Laboratoire des isotopes, Raffinerie |

@@ -9,10 +9,20 @@ const sheets: Record<HeroVisualPart, string> = {
 };
 const pieces = new Map<HeroVisualPart, HTMLCanvasElement[]>();
 const portraits = new Map<string, HTMLCanvasElement>();
+export const HERO_BASE_SPRITE = 'hero-base-v2';
+let base: HTMLCanvasElement | undefined;
 export const heroArtKey = (a: HeroAppearance) =>
-  `hero:unarmed:${HERO_VISIBLE_PARTS.map((p) => `${a[p]}${a.colors[p]}`).join(':')}`;
+  `hero:unarmed:base-v2:${HERO_VISIBLE_PARTS.map((p) => `${a[p]}${a.colors[p]}`).join(':')}`;
 export function loadHeroSheet(part: HeroVisualPart, source: HTMLImageElement) {
   if (pieces.has(part)) return;
+  pieces.set(part, isolatedCanvases(source, 5, 3));
+}
+export function loadHeroBase(source: HTMLImageElement) {
+  if (base) return;
+  base = isolatedCanvases(source, 1, 1)[0];
+  portraits.clear();
+}
+function isolatedCanvases(source: HTMLImageElement, columns: number, rows: number) {
   const c = document.createElement('canvas');
   c.width = source.naturalWidth;
   c.height = source.naturalHeight;
@@ -22,35 +32,39 @@ export function loadHeroSheet(part: HeroVisualPart, source: HTMLImageElement) {
     ctx.getImageData(0, 0, c.width, c.height).data,
     c.width,
     c.height,
-    5,
-    3,
+    columns,
+    rows,
   );
-  pieces.set(
-    part,
-    frames.map((f) => {
-      const c = document.createElement('canvas');
-      c.width = f.width;
-      c.height = f.height;
-      const ctx = c.getContext('2d')!;
-      const data = ctx.createImageData(f.width, f.height);
-      data.data.set(f.pixels);
-      ctx.putImageData(data, 0, 0);
-      return c;
-    }),
-  );
+  return frames.map((f) => {
+    const c = document.createElement('canvas');
+    c.width = f.width;
+    c.height = f.height;
+    const ctx = c.getContext('2d')!;
+    const data = ctx.createImageData(f.width, f.height);
+    data.data.set(f.pixels);
+    ctx.putImageData(data, 0, 0);
+    return c;
+  });
 }
 export const HERO_SHEETS = sheets;
 let loading: Promise<void> | undefined;
 export function loadHeroArt() {
-  return (loading ??= Promise.all(
-    HERO_VISIBLE_PARTS.map(async (p) => {
+  return (loading ??= Promise.all([
+    ...HERO_VISIBLE_PARTS.map(async (p) => {
       if (pieces.has(p)) return;
       const i = new Image();
       i.src = `/assets/${sheets[p]}.png`;
       await i.decode();
       loadHeroSheet(p, i);
     }),
-  )
+    (async () => {
+      if (base) return;
+      const i = new Image();
+      i.src = `/assets/${HERO_BASE_SPRITE}.png`;
+      await i.decode();
+      loadHeroBase(i);
+    })(),
+  ])
     .then(() => {})
     .catch((e) => {
       loading = undefined;
@@ -77,16 +91,6 @@ function recolor(source: HTMLCanvasElement, color: string, head = false) {
   ctx.putImageData(data, 0, 0);
   return c;
 }
-export function heroStarPoints(x: number, y: number, width: number, height: number) {
-  return Array.from({ length: 10 }, (_, i) => {
-    const angle = -Math.PI / 2 + (i * Math.PI) / 5;
-    const radius = i % 2 ? 0.46 : 1;
-    return {
-      x: x + (Math.cos(angle) * radius * width) / 2,
-      y: y + (Math.sin(angle) * radius * height) / 2,
-    };
-  });
-}
 export function heroCanvas(a: HeroAppearance): HTMLCanvasElement {
   const key = heroArtKey(a);
   const old = portraits.get(key);
@@ -94,39 +98,9 @@ export function heroCanvas(a: HeroAppearance): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const ctx = c.getContext('2d')!;
-  // Solid tabletop base; the separate faction star remains on the map beneath it.
-  ctx.fillStyle = '#141713';
-  ctx.beginPath();
-  ctx.ellipse(128, 240, 67, 13, 0, 0, Math.PI * 2);
-  ctx.fill();
-  const earth = ctx.createLinearGradient(0, 216, 0, 247);
-  earth.addColorStop(0, '#777666');
-  earth.addColorStop(0.5, '#535647');
-  earth.addColorStop(1, '#33382d');
-  ctx.fillStyle = earth;
-  ctx.beginPath();
-  ctx.ellipse(128, 231, 67, 16, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#99907a';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  // Deterministic gravel, confined to the top of the base.
-  for (let i = 0; i < 28; i++) {
-    const angle = i * 2.399963;
-    const radius = Math.sqrt((i + 1) / 29);
-    ctx.fillStyle = i % 3 === 0 ? '#8d8b75' : '#343c30';
-    ctx.beginPath();
-    ctx.ellipse(
-      128 + Math.cos(angle) * radius * 61,
-      231 + Math.sin(angle) * radius * 12,
-      2.5,
-      1.3,
-      angle,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-  }
+  // Painted rubble base uses the same miniature rendering as the ground troops.
+  // Transparent atlas padding is removed when loaded, not stretched into the sprite.
+  if (base) ctx.drawImage(base, 58, 202, 140, 53);
   const draw = (part: HeroVisualPart, x: number, y: number, w: number, h: number) => {
     const src = pieces.get(part)?.[a[part]];
     if (!src) return;

@@ -1045,7 +1045,28 @@ input[type='color'] {
   background: #c5a45b1a;
   border: 1px solid #c5a45b70;
 }
+.map-tools .map-layer-button {
+  width: auto;
+  padding: 0 9px;
+  gap: 5px;
+  font-size: 11px;
+}
+.map-tools .map-layer-button.layer-hidden {
+  color: #89928a;
+  background: #101913;
+}
+.map-layer-button.layer-hidden span {
+  text-decoration: line-through;
+}
 @media (max-width: 760px) {
+  .map-tools .map-layer-button {
+    flex-direction: column;
+    height: 44px;
+    width: 56px;
+    padding: 4px 2px;
+    gap: 3px;
+    font-size: 9px;
+  }
   .map-tools .hero-map-button {
     flex-direction: column;
     height: 48px;

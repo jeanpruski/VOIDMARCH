@@ -4,8 +4,8 @@ Les PNJ sont des rencontres PvE facultatives. Ils restent sur place et ne décle
 
 ## Apparition
 
-- Une tentative avec **20 % de réussite toutes les 5 minutes**, par zone de 32 × 32 hexagones occupée par la capitale ou une unité d’un joueur connecté. Premier tirage à l’activation de la zone ; aucun rattrapage des périodes hors ligne.
-- Maximum **2 PNJ par zone**, **60 dans le monde**, durée de présence **45 minutes**. En l’absence de plafond ou d’obstacle, cela correspond à environ une apparition toutes les 25 minutes par zone active.
+- Une tentative avec **10 % de réussite toutes les 5 minutes**, par zone de 32 × 32 hexagones occupée par la capitale ou une unité d’un joueur connecté. Premier tirage à l’activation de la zone ; aucun rattrapage des périodes hors ligne.
+- Maximum **2 PNJ par zone**, **60 dans le monde**, durée de présence **45 minutes**. En l’absence de plafond ou d’obstacle, cela correspond à environ une apparition toutes les 50 minutes par zone active.
 - Seulement sur une plaine, forêt ou colline neutre, sans bâtiment, route ni lieu remarquable. Au moins 6 cases des capitales, 2 des unités, 5 des autres PNJ ; pas sur un événement disponible ou juste à côté.
 - Chaque profil a la même probabilité. Le brouillard de guerre masque les rencontres non découvertes.
 

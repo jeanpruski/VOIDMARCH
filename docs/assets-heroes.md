@@ -1,5 +1,21 @@
 # Figurines modulaires des héros
 
+## Socle peint — version 2
+
+Fichier final : `apps/web/public/assets/hero-base-v2.png`.
+
+Généré avec l’outil imagegen intégré à partir des planches `units-industrial.png` et `units-medieval.png` comme références de style. Socle vide avec tranche noire biseautée et gravats peints, pour obtenir le même rendu que les unités au sol. La transparence RGBA générée est conservée ; aucune retouche locale de l’image. Le rendu isole la silhouette comme pour les autres figurines, puis assemble le héros par-dessus. Ce socle remplace les ellipses et le gravier dessinés en Canvas. L’ovale lumineux de bannière reste un marqueur séparé, animé comme celui des PNJ et teinté avec la couleur du joueur.
+
+Source : `/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-042ffeb7-f29a-4b86-acbf-fd72916b71c8.png`.
+
+Prompt final :
+
+```text
+Use case: stylized-concept. Asset type: single transparent tabletop miniature base sprite for VOIDMARCH. Reference images are STYLE REFERENCES ONLY: match exactly the small black-rimmed rubble bases under the standing foot soldiers in units-industrial.png and units-medieval.png, with the same richly painted miniature quality, dark palette, tiny chipped stones and natural shading. Generate ONE EMPTY BASE ONLY, no character, no boots, no equipment, no skulls, no scenery above ankle height. Low round miniature base viewed at the same shallow three-quarter camera angle, projected as a horizontal oval, width approximately 3 times total height. Thin matte charcoal black beveled vertical rim, realistic finely detailed brown-grey earth, scattered angular gravel and a few slightly larger flat stones. Keep center clear and level so a standing character can be composited onto it. Top-left soft studio light, subtle shadows inside the stones. No gold border, no glowing outline, no star, no lettering, no green flat vector surface. True RGBA transparent background, no painted checkerboard, no ground plane, no backdrop, no external cast shadow. Entire oval contained in frame, centered, with generous transparent margin. Only one base, not an atlas. Production quality raster miniature asset, consistent with the reference ground units.
+```
+
+## Planches d’origine
+
 Génération avec l’outil imagegen intégré, le 17 septembre 2026. Quatre planches de 15 pièces, toutes générées séparément, grille 5 × 3. La transparence RGBA est conservée. Aucun détourage local ni appel API externe. Les couleurs sont appliquées dans le rendu Canvas aux matières neutres ; les tons de peau, laiton et lumières sont préservés autant que possible. Les éléments sont isolés par silhouettes, puis assemblés dans les mêmes points d’ancrage pour le créateur et la carte. Socle dessiné par le rendu du jeu.
 
 ## hero-heads

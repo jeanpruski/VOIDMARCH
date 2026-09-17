@@ -2,7 +2,7 @@ import type { UnitKind, Wallet } from './index';
 export const NPC_RULES = {
   ownerId: 'neutral-encounters',
   interval: 300_000,
-  chance: 0.2,
+  chance: 0.1,
   perZone: 2,
   globalCap: 60,
   lifetime: 45 * 60_000,

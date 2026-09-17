@@ -1,0 +1,51 @@
+/** Additional extractors, in sprite-atlas order: industrial row, occult row. */
+export const RESOURCE_BUILDINGS = {
+  STEAM_SAWMILL: {
+    name: 'Scierie à vapeur',
+    hp: 130,
+    capture: 3,
+    cost: { GOLD: 120, WOOD: 80, STONE: 40, IRON: 35, FOOD: 0 },
+    production: { WOOD: 16 },
+    terrains: ['FOREST'],
+  },
+  MECHANIZED_QUARRY: {
+    name: 'Carrière mécanisée',
+    hp: 160,
+    capture: 3,
+    cost: { GOLD: 140, WOOD: 90, STONE: 50, IRON: 45, FOOD: 0 },
+    production: { STONE: 12 },
+    terrains: ['HILL', 'MOUNTAIN'],
+  },
+  INDUSTRIAL_MINE: {
+    name: 'Mine industrielle',
+    hp: 150,
+    capture: 3,
+    cost: { GOLD: 160, WOOD: 90, STONE: 70, IRON: 50, FOOD: 0 },
+    production: { IRON: 10 },
+    terrains: ['HILL'],
+  },
+  OCCULT_SAWMILL: {
+    name: 'Scierie des ombres',
+    hp: 240,
+    capture: 4,
+    cost: { GOLD: 420, WOOD: 180, STONE: 120, IRON: 140, FOOD: 0 },
+    production: { WOOD: 28 },
+    terrains: ['FOREST'],
+  },
+  RUNIC_QUARRY: {
+    name: 'Carrière runique',
+    hp: 280,
+    capture: 4,
+    cost: { GOLD: 460, WOOD: 180, STONE: 160, IRON: 160, FOOD: 0 },
+    production: { STONE: 21 },
+    terrains: ['HILL', 'MOUNTAIN'],
+  },
+  ABYSSAL_MINE: {
+    name: 'Mine des abysses',
+    hp: 260,
+    capture: 4,
+    cost: { GOLD: 500, WOOD: 180, STONE: 200, IRON: 180, FOOD: 0 },
+    production: { IRON: 18 },
+    terrains: ['HILL'],
+  },
+};

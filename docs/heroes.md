@@ -12,7 +12,7 @@ L’apparence est définitive après inscription. Les invités et les royaumes e
 
 Le bouton **★ Héros**, toujours disponible dans les commandes de carte à côté de la capitale, centre la caméra sur le héros et ouvre sa sélection. Il reste accessible sur mobile et lorsque les panneaux latéraux sont repliés. Pendant une convalescence ou en l’absence de place pour apparaître, il ouvre le panneau Royaume avec une explication.
 
-Le héros a 80 PV, 6 de défense, 4 de mouvement et 5 de vision. Il se déplace selon les règles ordinaires, y compris les routes et territoires. Il ne peut ni attaquer directement, ni capturer, ni construire. Il est représenté sans arme sur un socle ovale en relief, avec une surface de terre et de gravier. Sur la carte, l’étoile aux couleurs de sa bannière reste visible autour du socle.
+Le héros a 80 PV, 6 de défense, 4 de mouvement et 5 de vision. Il se déplace selon les règles ordinaires, y compris les routes et territoires. Il ne peut ni attaquer directement, ni capturer, ni construire. Il est représenté sans arme sur un socle ovale en relief, avec une surface de terre et de gravier. Sur la carte, un ovale lumineux identique à celui des PNJ, mais aux couleurs de la bannière du propriétaire, entoure le socle. Son opacité oscille entre 100 % et 60 % en 1,2 seconde par sens ; il suit le héros pendant ses déplacements et reste fixe si les animations sont réduites.
 
 Les troupes alliées situées à 2 hexagones reçoivent un bonus automatique d’attaque et de défense : 8 % au grade 1, 10 % au grade 2, 12 % au grade 3. Le bonus ne s’applique ni aux bâtiments, ni au héros lui-même. Il cesse hors de portée ou pendant sa convalescence. Plusieurs auras ne se cumulent pas.
 

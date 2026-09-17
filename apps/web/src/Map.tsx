@@ -1,9 +1,10 @@
 import {
   HERO_SHEETS,
+  HERO_BASE_SPRITE,
+  loadHeroBase,
   loadHeroSheet,
   heroArtKey,
   heroCanvas,
-  heroStarPoints,
   type HeroVisualPart,
 } from './hero-art';
 import { unitStats, turretStats, attackStats } from '@voidmarch/game-rules';
@@ -52,6 +53,12 @@ import { movementPosition } from './movement-animation';
 import { projectileProfile, type ProjectileProfile } from './projectile-profile';
 import { animateProjectile } from './projectile-animation';
 import { drawPending } from './pending-art';
+import {
+  strategicAtZoom,
+  strategicTiles,
+  STRATEGIC_ZOOM,
+  type StrategicTile,
+} from './strategic-map';
 const points = (p: { x: number; y: number }, size = SIZE) =>
   Array.from(
     { length: 6 },
@@ -97,6 +104,10 @@ class WorldScene extends Phaser.Scene {
   >();
   private panKey?: Phaser.Types.Input.Keyboard.CursorKeys;
   private centerSet = false;
+  private strategic = false;
+  private strategicWorld?: WorldView;
+  private strategicTiles: StrategicTile[] = [];
+  private impactGroups = new Set<Phaser.GameObjects.Container>();
   private viewportWidth = 0;
   private viewportHeight = 0;
   private cameraSave?: ReturnType<typeof setTimeout>;
@@ -110,6 +121,7 @@ class WorldScene extends Phaser.Scene {
     super('World');
   }
   preload() {
+    this.load.image(HERO_BASE_SPRITE, `/assets/${HERO_BASE_SPRITE}.png`);
     for (const name of Object.values(HERO_SHEETS)) this.load.image(name, `/assets/${name}.png`);
     this.load.image('wall-materials', '/assets/wall-materials.png');
     for (const name of Object.keys(SPRITE_ATLASES))
@@ -127,6 +139,7 @@ class WorldScene extends Phaser.Scene {
     };
     this.events.once('shutdown', cleanup);
     this.events.once('destroy', cleanup);
+    loadHeroBase(this.textures.get(HERO_BASE_SPRITE).getSourceImage() as HTMLImageElement);
     for (const [part, name] of Object.entries(HERO_SHEETS))
       loadHeroSheet(
         part as HeroVisualPart,
@@ -213,8 +226,18 @@ class WorldScene extends Phaser.Scene {
               this.playEffect(effect);
       } else if (
         s.movements !== previous.movements ||
-        s.pendingMovement !== previous.pendingMovement
+        s.pendingMovement !== previous.pendingMovement ||
+        s.showUnits !== previous.showUnits ||
+        s.showBuildings !== previous.showBuildings
       ) {
+        if (s.showUnits !== previous.showUnits || s.showBuildings !== previous.showBuildings) {
+          for (const cancel of [...this.projectiles.values()]) cancel();
+          for (const group of this.impactGroups) {
+            this.tweens.killTweensOf(group.list);
+            group.destroy(true);
+          }
+          this.impactGroups.clear();
+        }
         this.renderMap();
       }
       if (
@@ -323,6 +346,8 @@ class WorldScene extends Phaser.Scene {
   private activeEffects = 0;
   private projectiles = new Map<string, () => void>();
   private playEffect(effect: WorldEffect) {
+    if (this.strategic || !useGame.getState().showUnits || !useGame.getState().showBuildings)
+      return;
     const shot = effect.shot;
     const profile = shot && projectileProfile(shot.unitKind, shot.targetAirborne);
     if (effect.kind !== 'combat' || !shot || !profile || key(shot.from) === key(effect)) {
@@ -356,11 +381,18 @@ class WorldScene extends Phaser.Scene {
     });
   }
   private playImpact(effect: WorldEffect, projectile?: ProjectileProfile) {
-    if (this.activeEffects >= 24) return;
+    if (
+      this.strategic ||
+      !useGame.getState().showUnits ||
+      !useGame.getState().showBuildings ||
+      this.activeEffects >= 24
+    )
+      return;
     const p = hexToPixel(effect);
     if (!this.cameras.main.worldView.contains(p.x, p.y)) return;
     this.activeEffects++;
     const group = this.add.container(p.x, p.y).setDepth(14500).setName(`effect:${effect.kind}`);
+    this.impactGroups.add(group);
     const combat = effect.kind === 'combat',
       dust = effect.kind === 'build' || effect.kind === 'demolish';
     const ink =
@@ -397,6 +429,7 @@ class WorldScene extends Phaser.Scene {
       });
     }
     this.time.delayedCall(1250, () => {
+      this.impactGroups.delete(group);
       group.destroy(true);
       this.activeEffects--;
     });
@@ -418,14 +451,16 @@ class WorldScene extends Phaser.Scene {
     }
   }
   private getUnit() {
-    const selection = useGame.getState().selection;
+    const { selection, showUnits } = useGame.getState();
+    if (!showUnits) return undefined;
     return selection?.id ? this.view?.units.find((u) => u.id === selection.id) : undefined;
   }
   private getAttacker() {
-    const selection = useGame.getState().selection;
-    const building = selection?.id
-      ? this.view?.tiles.find((t) => t.building?.id === selection.id)?.building
-      : undefined;
+    const { selection, showBuildings } = useGame.getState();
+    const building =
+      showBuildings && selection?.id
+        ? this.view?.tiles.find((t) => t.building?.id === selection.id)?.building
+        : undefined;
     return this.getUnit() ?? (building && turretStats(building) ? building : undefined);
   }
   private visualPosition(u: Unit, now = Date.now()) {
@@ -488,10 +523,18 @@ class WorldScene extends Phaser.Scene {
   }
   private click(p: Hex) {
     if (!this.view) return;
+    if (this.strategic) {
+      const target = hexToPixel(p);
+      this.cameras.main.setZoom(STRATEGIC_ZOOM.detail).centerOn(target.x, target.y);
+      useGame.setState({ mode: 'inspect', combatTarget: null, hover: null });
+      this.renderMap();
+      this.subscribeVisible();
+      return;
+    }
     const state = useGame.getState(),
       tile = this.tileMap.get(key(p)),
       own = this.getUnit(),
-      unit = this.view.units.find((u) => key(u) === key(p));
+      unit = state.showUnits ? this.view.units.find((u) => key(u) === key(p)) : undefined;
     if (state.mode === 'terraform') {
       if (state.pending || state.terraformTarget) return;
       const reason = terraformOrderReason(this.view, tile, own);
@@ -537,7 +580,11 @@ class WorldScene extends Phaser.Scene {
         return;
       }
       const target =
-        unit?.ownerId !== this.view.player.id ? (unit ?? tile?.building) : tile?.building;
+        unit?.ownerId !== this.view.player.id
+          ? (unit ?? (state.showBuildings ? tile?.building : undefined))
+          : state.showBuildings
+            ? tile?.building
+            : undefined;
       if (target && target.ownerId !== this.view.player.id)
         useGame.setState({ combatTarget: target.id });
       else notify('Sélectionnez une cible ennemie visible.', true);
@@ -547,21 +594,177 @@ class WorldScene extends Phaser.Scene {
       useGame.setState({ selection: { kind: 'tile', ...p }, mode: 'inspect' });
       return;
     }
-    if (unit && tile.building && isWall(tile.building.kind) && state.selection?.id === unit.id)
+    if (
+      unit &&
+      state.showBuildings &&
+      tile.building &&
+      isWall(tile.building.kind) &&
+      state.selection?.id === unit.id
+    )
       select({ kind: 'building', id: tile.building.id, ...p });
     else if (unit) select({ kind: 'unit', id: unit.id, ...p });
-    else if (tile.building) select({ kind: 'building', id: tile.building.id, ...p });
+    else if (state.showBuildings && tile.building)
+      select({ kind: 'building', id: tile.building.id, ...p });
     else select({ kind: 'tile', ...p });
+  }
+  private renderStrategicMap(world: WorldView) {
+    if (this.strategicWorld !== world) {
+      this.strategicWorld = world;
+      this.strategicTiles = strategicTiles(world);
+    }
+    const c = this.cameras.main;
+    const view = cameraViewport(c.scrollX, c.scrollY, c.width, c.height, c.zoom);
+    const colors = new Map(world.realms.map((r) => [r.id, color(r.color)]));
+    colors.set(world.player.id, color(world.player.settings.bannerColor));
+    const names = new Map(world.realms.map((r) => [r.id, r.name]));
+    names.set(world.player.id, world.player.name);
+    const territories = new Map<string, { x: number; y: number }[]>();
+    const fills = new Map<number, { x: number; y: number }[]>();
+    const onScreen = (p: { x: number; y: number }, margin = 0) =>
+      p.x >= view.x - margin &&
+      p.x <= view.x + view.width + margin &&
+      p.y >= view.y - margin &&
+      p.y <= view.y + view.height + margin;
+    for (const tile of this.strategicTiles) {
+      const p = hexToPixel(tile);
+      if (!onScreen(p, SIZE)) continue;
+      const ink = tile.ownerId ? (colors.get(tile.ownerId) ?? 0x877d63) : 0x29382f;
+      const fill = fills.get(ink) ?? [];
+      fill.push(p);
+      fills.set(ink, fill);
+      if (!tile.ownerId) continue;
+      const group = territories.get(tile.ownerId) ?? [];
+      group.push(p);
+      territories.set(tile.ownerId, group);
+      const vertices = points(p);
+      this.territories.lineStyle(1.5 / c.zoom, 0x111b17, 1);
+      for (const edge of tile.borders) {
+        const a = vertices[edge],
+          b = vertices[(edge + 1) % 6];
+        this.territories.lineBetween(a.x, a.y, b.x, b.y);
+      }
+    }
+    // Fill a union of hexagons in one operation per color: no internal seams,
+    // even during the opacity transition, and fewer Canvas fill calls.
+    for (const [ink, positions] of fills) {
+      this.ground.fillStyle(ink, 1);
+      this.ground.beginPath();
+      for (const p of positions) {
+        const vertices = points(p, SIZE + 0.35 / c.zoom);
+        this.ground.moveTo(vertices[0].x, vertices[0].y);
+        for (const v of vertices.slice(1)) this.ground.lineTo(v.x, v.y);
+        this.ground.closePath();
+      }
+      this.ground.fillPath();
+    }
+    // Label only discovered territories. PublicRealm intentionally has no enemy
+    // capital coordinates: never infer a capital or expose the secret radar here.
+    const occupied: Phaser.Geom.Rectangle[] = [];
+    const groups = [...territories].sort(([a, aa], [b, bb]) =>
+      a === world.player.id ? -1 : b === world.player.id ? 1 : bb.length - aa.length,
+    );
+    for (const [id, positions] of groups) {
+      const own = id === world.player.id;
+      const capital = hexToPixel(world.player.capital);
+      const showCapital = own && onScreen(capital);
+      if (positions.length < 6 && !showCapital) continue;
+      const center = positions.reduce((sum, p) => ({ x: sum.x + p.x, y: sum.y + p.y }), {
+        x: 0,
+        y: 0,
+      });
+      center.x /= positions.length;
+      center.y /= positions.length;
+      const nearest = positions.reduce((best, p) =>
+        Phaser.Math.Distance.Between(p.x, p.y, center.x, center.y) <
+        Phaser.Math.Distance.Between(best.x, best.y, center.x, center.y)
+          ? p
+          : best,
+      );
+      const anchor = showCapital ? capital : nearest;
+      if (showCapital) {
+        const radius = 5 / c.zoom;
+        this.banners.fillStyle(0xf5efd7, 1);
+        this.banners.lineStyle(2 / c.zoom, 0x111b17, 1);
+        const diamond = [
+          { x: anchor.x, y: anchor.y - radius },
+          { x: anchor.x + radius, y: anchor.y },
+          { x: anchor.x, y: anchor.y + radius },
+          { x: anchor.x - radius, y: anchor.y },
+        ];
+        this.banners.fillPoints(diamond, true);
+        this.banners.strokePoints(diamond, true);
+      }
+      const label = this.add
+        .text(
+          anchor.x,
+          anchor.y + (showCapital ? 16 / c.zoom : 0),
+          (names.get(id) ?? 'Territoire').slice(0, 32),
+          {
+            fontFamily: 'Georgia',
+            fontSize: '12px',
+            resolution: 2,
+            color: '#f2edd9',
+            backgroundColor: '#152019',
+            padding: { x: 7, y: 4 },
+          },
+        )
+        .setOrigin(0.5)
+        .setScale(1 / c.zoom)
+        .setDepth(13001)
+        .setName(`strategic-label:${id}`);
+      const bounds = label.getBounds();
+      if (occupied.some((rect) => Phaser.Geom.Intersects.RectangleToRectangle(rect, bounds)))
+        label.destroy();
+      else {
+        occupied.push(bounds);
+        this.pieces.push(label);
+      }
+    }
+    // Camera matrices update on the next frame; derive the screen anchor directly
+    // so wheel events and resizes do not leave this hint displaced.
+    const p = { x: view.x + 24 / c.zoom, y: view.y + 76 / c.zoom };
+    const hint = this.add
+      .text(p.x, p.y, 'VUE STRATÉGIQUE\nCliquez pour vous rapprocher', {
+        fontFamily: 'sans-serif',
+        fontSize: '11px',
+        resolution: 2,
+        color: '#d5dfce',
+        backgroundColor: '#152019',
+        padding: { x: 10, y: 8 },
+        lineSpacing: 5,
+      })
+      .setScale(1 / c.zoom)
+      .setDepth(15000)
+      .setName('strategic-hint');
+    this.pieces.push(hint);
   }
   private renderMap() {
     if (!this.view || !this.cameras.main) return;
+    const previousStrategic = this.strategic;
+    this.strategic = strategicAtZoom(this.cameras.main.zoom, this.strategic);
+    if (this.strategic && !previousStrategic) {
+      for (const cancel of [...this.projectiles.values()]) cancel();
+      for (const group of this.impactGroups) {
+        this.tweens.killTweensOf(group.list);
+        group.destroy(true);
+      }
+      this.impactGroups.clear();
+    }
+    if (this.strategic !== previousStrategic) {
+      this.tweens.killTweensOf(this.ground);
+      this.ground.setAlpha(1);
+      if (!this.view.player.settings.reducedMotion)
+        this.tweens.add({ targets: this.ground, alpha: { from: 0.65, to: 1 }, duration: 160 });
+    }
+    this.game.canvas.dataset.mapView = this.strategic ? 'strategic' : 'detailed';
     const world = this.view,
+      { showUnits, showBuildings } = useGame.getState(),
       g = this.ground,
       d = this.details;
     g.clear();
     d.clear();
     this.grid.clear();
-    this.grid.setVisible(world.player.settings.grid);
+    this.grid.setVisible(!this.strategic && world.player.settings.grid);
     this.territories.clear();
     this.banners.clear();
     for (const piece of this.pieces) {
@@ -570,6 +773,11 @@ class WorldScene extends Phaser.Scene {
     }
     this.pieces = [];
     this.unitVisuals.clear();
+    if (this.strategic) {
+      this.renderStrategicMap(world);
+      this.highlight();
+      return;
+    }
     const c = this.cameras.main,
       topLeft = c.getWorldPoint(-160, -160),
       bottomRight = c.getWorldPoint(this.scale.width + 160, this.scale.height + 160),
@@ -747,7 +955,7 @@ class WorldScene extends Phaser.Scene {
           ink = factionColor(t.ownerId),
           opacity = t.visibility === 'EXPLORED' ? 0.35 : 1,
           borders = this.territories;
-        if (t.building) drawBanner(t.ownerId, p.x - 25, p.y + 4, opacity);
+        if (showBuildings && t.building) drawBanner(t.ownerId, p.x - 25, p.y + 4, opacity);
         // Outline the territory as a whole. Full-size vertices join adjacent
         // boundary segments without drawing seams between the realm's cells.
         neighbors(t).forEach((n, i) => {
@@ -771,7 +979,7 @@ class WorldScene extends Phaser.Scene {
           }
         });
       }
-      if (t.building) {
+      if (showBuildings && t.building) {
         const b = t.building,
           frame = b.kind === 'VILLAGE' ? Math.min(9, 6 + b.level) : BUILDING_FRAMES[b.kind],
           size = b.kind === 'VILLAGE' ? 105 : 78;
@@ -795,7 +1003,8 @@ class WorldScene extends Phaser.Scene {
         const sprite = this.add
           .image(p.x, p.y - 17, miniatureTexture(frame), miniatureFrame(frame))
           .setDisplaySize(size, size)
-          .setDepth(depth(5000, p.y));
+          .setDepth(depth(5000, p.y))
+          .setName(`building-sprite:${b.id}`);
         if (t.visibility === 'EXPLORED') sprite.setTint(0x777f75).setAlpha(0.7);
         this.pieces.push(sprite);
         if (t.visibility === 'VISIBLE')
@@ -836,7 +1045,7 @@ class WorldScene extends Phaser.Scene {
         this.pieces.push(txt);
       }
     }
-    for (const u of world.units) {
+    for (const u of showUnits ? world.units : []) {
       const p = this.visualPosition(u);
       if (
         !useGame.getState().movements[u.id] &&
@@ -844,21 +1053,29 @@ class WorldScene extends Phaser.Scene {
       )
         continue;
       const origin = p;
-      if (u.npc) {
-        // A warm beacon distinguishes encounters from faction rings and rare-unit auras.
+      const parts: {
+        object: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | Phaser.GameObjects.Text;
+        x: number;
+        y: number;
+        layer: number;
+      }[] = [];
+      if (u.npc || u.kind === 'HERO') {
+        // Same pulsing oval for encounters and heroes; heroes use their owner's banner.
+        const ink = factionColor(u.ownerId);
         const halo = this.add
           .graphics({ x: p.x, y: p.y + 9 })
           .setDepth(depth(6600, p.y))
-          .setName(`npc-halo:${u.id}`);
-        halo.fillStyle(0xffb642, 0.08);
+          .setName(`${u.npc ? 'npc' : 'hero'}-halo:${u.id}`);
+        halo.fillStyle(u.npc ? 0xffb642 : ink, 0.08);
         halo.fillEllipse(0, 0, 86, 43);
-        halo.fillStyle(0xffc65c, 0.18);
+        halo.fillStyle(u.npc ? 0xffc65c : ink, 0.18);
         halo.fillEllipse(0, 0, 70, 34);
-        halo.lineStyle(6, 0xffb642, 0.18);
+        halo.lineStyle(6, u.npc ? 0xffb642 : ink, 0.18);
         halo.strokeEllipse(0, 0, 63, 30);
-        halo.lineStyle(2.4 / Math.min(1, this.cameras.main.zoom), 0xffd47b, 0.95);
+        halo.lineStyle(2.4 / Math.min(1, this.cameras.main.zoom), u.npc ? 0xffd47b : ink, 0.95);
         halo.strokeEllipse(0, 0, 63, 30);
         this.pieces.push(halo);
+        parts.push({ object: halo, x: 0, y: 9, layer: 6600 });
         if (!world.player.settings.reducedMotion)
           this.tweens.add({
             targets: halo,
@@ -869,12 +1086,6 @@ class WorldScene extends Phaser.Scene {
             repeat: -1,
           });
       }
-      const parts: {
-        object: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | Phaser.GameObjects.Text;
-        x: number;
-        y: number;
-        layer: number;
-      }[] = [];
       const large =
         UNIT_PROFILES[u.kind].siege ||
         UNIT_PROFILES[u.kind].mechanical ||
@@ -887,26 +1098,12 @@ class WorldScene extends Phaser.Scene {
         .graphics({ x: origin.x, y: origin.y - 20 })
         .setDepth(depth(6400, p.y))
         .setName(`unit-owner:${u.id}`);
-      if (u.kind === 'HERO') {
-        const star = heroStarPoints(0, 30, 72, 38);
-        marker.fillStyle(0x080b08, 0.85);
-        marker.fillPoints(star, true);
-        marker.lineStyle(9, factionColor(u.ownerId), 0.22);
-        marker.strokePoints(star, true);
-        marker.lineStyle(6, 0x080b08, 0.95);
-        marker.strokePoints(star, true);
-        marker.fillStyle(factionColor(u.ownerId), 0.3);
-        marker.fillPoints(star, true);
-        marker.lineStyle(3, factionColor(u.ownerId), 1);
-        marker.strokePoints(star, true);
-      } else {
-        marker.fillStyle(0x080b08, 0.45);
-        marker.fillEllipse(0, 30, markerWidth, markerHeight);
-        marker.lineStyle(4, 0x080b08, 0.85);
-        marker.strokeEllipse(0, 30, markerWidth, markerHeight);
-        marker.lineStyle(2, factionColor(u.ownerId), 1);
-        marker.strokeEllipse(0, 30, markerWidth, markerHeight);
-      }
+      marker.fillStyle(0x080b08, 0.45);
+      marker.fillEllipse(0, 30, markerWidth, markerHeight);
+      marker.lineStyle(4, 0x080b08, 0.85);
+      marker.strokeEllipse(0, 30, markerWidth, markerHeight);
+      marker.lineStyle(2, factionColor(u.ownerId), 1);
+      marker.strokeEllipse(0, 30, markerWidth, markerHeight);
       this.pieces.push(marker);
       parts.push({ object: marker, x: 0, y: -20, layer: 6400 });
       const heroTexture = u.hero ? `${heroArtKey(u.hero.appearance)}:map` : undefined;
@@ -1051,7 +1248,7 @@ class WorldScene extends Phaser.Scene {
         .setDepth(depth(9500, p.y));
       this.pieces.push(label);
     }
-    for (const caravan of world.caravans) {
+    for (const caravan of showUnits ? world.caravans : []) {
       const p = hexToPixel(caravan),
         sprite = this.add
           .image(p.x, p.y - 10, 'miniatures', 22)
@@ -1078,6 +1275,7 @@ class WorldScene extends Phaser.Scene {
     if (!this.highlights || !this.view) return;
     const g = this.highlights;
     g.clear();
+    if (this.strategic) return;
     const state = useGame.getState(),
       selection = state.selection,
       u = this.getUnit();
@@ -1240,7 +1438,7 @@ class WorldScene extends Phaser.Scene {
   private updatePendingSite() {
     const state = useGame.getState(),
       action = state.pendingAction;
-    const visible = !!(state.pending && action?.position);
+    const visible = !this.strategic && !!(state.pending && action?.position);
     this.pendingMarker.setVisible(visible);
     this.pendingLabel.setVisible(visible);
     if (!visible || !action?.position) return;
@@ -1256,7 +1454,7 @@ class WorldScene extends Phaser.Scene {
     this.pendingLabel.setText(`${action.label}…`);
   }
   update(_time: number, delta: number) {
-    this.updateUnitVisuals();
+    if (!this.strategic) this.updateUnitVisuals();
     this.updatePendingSite();
     const c = this.cameras.main,
       keys = this.panKey;

@@ -284,6 +284,12 @@ export const UNIT_FRAMES: Record<string, number> = {
   SIEGE: 5,
 };
 export const BUILDING_FRAMES: Record<string, number> = {
+  STEAM_SAWMILL: 528,
+  MECHANIZED_QUARRY: 529,
+  INDUSTRIAL_MINE: 530,
+  OCCULT_SAWMILL: 531,
+  RUNIC_QUARRY: 532,
+  ABYSSAL_MINE: 533,
   GLOCKE_COMPLEX: 504,
   ISOTOPE_LAB: 288,
   NUCLEAR_REACTOR: 289,
@@ -344,39 +350,41 @@ const npcTextures = ['npc-deserter', 'npc-marauder', 'npc-cultist', 'npc-mutant'
 export const unitFrame = (unit: Unit) =>
   unit.npc ? 312 + npcTextures.indexOf(`npc-${unit.npc.kind}`) * 24 : UNIT_FRAMES[unit.kind];
 export const miniatureTexture = (frame: number) =>
-  frame >= 432
-    ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
-        Math.floor((frame - 432) / 24)
-      ]
-    : frame >= 312
-      ? npcTextures[Math.floor((frame - 312) / 24)]
-      : frame >= 144
-        ? [
-            'rad-infantry',
-            'rad-cavalry',
-            'rad-motorcycles',
-            'rad-vehicles',
-            'rad-planes',
-            'rad-helicopters',
-            'rad-buildings',
-          ][Math.floor((frame - 144) / 24)]
-        : frame >= 120
-          ? 'terraformer'
-          : frame >= 96
-            ? 'aviation'
-            : frame < 6
-              ? 'units-medieval'
-              : frame >= 24 && frame < 36
-                ? 'units-civil'
-                : frame >= 48 && frame < 60
-                  ? 'units-industrial'
-                  : frame >= 72
-                    ? 'occult'
-                    : frame >= 48
-                      ? 'industrial'
-                      : frame >= 24
-                        ? 'expansion'
-                        : 'miniatures';
+  frame >= 528
+    ? 'resource-buildings'
+    : frame >= 432
+      ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
+          Math.floor((frame - 432) / 24)
+        ]
+      : frame >= 312
+        ? npcTextures[Math.floor((frame - 312) / 24)]
+        : frame >= 144
+          ? [
+              'rad-infantry',
+              'rad-cavalry',
+              'rad-motorcycles',
+              'rad-vehicles',
+              'rad-planes',
+              'rad-helicopters',
+              'rad-buildings',
+            ][Math.floor((frame - 144) / 24)]
+          : frame >= 120
+            ? 'terraformer'
+            : frame >= 96
+              ? 'aviation'
+              : frame < 6
+                ? 'units-medieval'
+                : frame >= 24 && frame < 36
+                  ? 'units-civil'
+                  : frame >= 48 && frame < 60
+                    ? 'units-industrial'
+                    : frame >= 72
+                      ? 'occult'
+                      : frame >= 48
+                        ? 'industrial'
+                        : frame >= 24
+                          ? 'expansion'
+                          : 'miniatures';
 export const miniatureFrame = (frame: number) => frame % 24;
 export function Miniature({
   heroAppearance,

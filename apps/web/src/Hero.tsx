@@ -130,7 +130,7 @@ export function HeroCreator({
     </section>
   );
 }
-export function HeroControls() {
+export function HeroControls({ inSelection = false }: { inSelection?: boolean }) {
   const world = useGame((s) => s.world),
     pending = useGame((s) => s.pending);
   const [now, setNow] = useState(Date.now());
@@ -145,7 +145,7 @@ export function HeroControls() {
   return (
     <section className="hero-controls">
       <div className="hero-summary">
-        <HeroPortrait appearance={h.appearance} size={76} />
+        {!inSelection && <HeroPortrait appearance={h.appearance} size={76} />}
         <div>
           <strong>{world.player.name} · Héros</strong>
           <p>
@@ -167,9 +167,11 @@ export function HeroControls() {
         </p>
       ) : (
         <>
-          <button className="secondary" onClick={focusHero}>
-            Retrouver mon héros
-          </button>
+          {!inSelection && (
+            <button className="secondary" onClick={focusHero}>
+              Retrouver mon héros
+            </button>
+          )}
           <div className="hero-powers">
             {(Object.keys(HERO_POWERS) as HeroPower[]).map((power) => {
               const p = HERO_POWERS[power],

@@ -19,6 +19,7 @@ import {
   Compass,
   Crown,
   Eye,
+  EyeOff,
   Flag,
   Globe2,
   Handshake,
@@ -81,6 +82,7 @@ import {
   focusHero,
   logout,
   mapCommand,
+  toggleMapLayer,
   openRoadTool,
   notify,
   saveSettings,
@@ -527,6 +529,8 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 function MapTools() {
   const settings = useGame((s) => s.world)!.player.settings;
   const roadMode = useGame((s) => s.mode) === 'road';
+  const showUnits = useGame((s) => s.showUnits);
+  const showBuildings = useGame((s) => s.showBuildings);
   return (
     <div className="map-tools">
       <button
@@ -571,6 +575,24 @@ function MapTools() {
       >
         <Hexagon size={17} />
       </button>
+      {(
+        [
+          ['showUnits', showUnits, 'Unités', 'les unités', Users],
+          ['showBuildings', showBuildings, 'Bâtiments', 'les bâtiments', Castle],
+        ] as const
+      ).map(([layer, visible, label, description, Icon]) => (
+        <button
+          key={layer}
+          className={`map-layer-button ${visible ? 'active' : 'layer-hidden'}`}
+          aria-label={`${visible ? 'Masquer' : 'Afficher'} ${description}`}
+          aria-pressed={visible}
+          title={`${visible ? 'Masquer' : 'Afficher'} ${description} de tous les joueurs${layer === 'showUnits' ? ', héros et PNJ compris' : ', remparts et tourelles compris'}. Filtre visuel uniquement.`}
+          onClick={() => toggleMapLayer(layer)}
+        >
+          {visible ? <Icon size={17} /> : <EyeOff size={17} />}
+          <span>{label}</span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -749,7 +771,7 @@ function SelectionPanel() {
               </p>
             </ContextHelp>
           )}
-          {own && u.kind === 'HERO' && <HeroControls />}
+          {own && u.kind === 'HERO' && <HeroControls inSelection />}
           {own && tile?.capture?.by === w.player.id && (
             <p className="capture-progress">
               Capture en cours : {tile.capture.points} points. Répétez « Revendiquer la case »
@@ -1066,38 +1088,41 @@ function SelectionPanel() {
               ? 'Envoyez un éclaireur lever la brume.'
               : tile?.visibility === 'EXPLORED'
                 ? 'Dernière observation connue. Approchez une unité pour actualiser ces informations.'
-                : own
-                  ? tile?.enclosureOwnerId
-                    ? 'Terre revendiquée par votre enceinte. Approchez un paysan ou un ingénieur à une case pour construire. Sans bâtiment, elle redevient neutre si les remparts s’ouvrent.'
-                    : 'Cette terre peut accueillir un domaine ou une infrastructure.'
-                  : 'Occupez cette terre avec une unité de capture pour la revendiquer.'}
+                : tile?.building
+                  ? `Bâtiment masqué : ${BUILDINGS[tile.building.kind].name}. Réaffichez les bâtiments pour le sélectionner. Cette case reste occupée.`
+                  : own
+                    ? tile?.enclosureOwnerId
+                      ? 'Terre revendiquée par votre enceinte. Approchez un paysan ou un ingénieur à une case pour construire. Sans bâtiment, elle redevient neutre si les remparts s’ouvrent.'
+                      : 'Cette terre peut accueillir un domaine ou une infrastructure.'
+                    : 'Occupez cette terre avec une unité de capture pour la revendiquer.'}
           </p>
           <RoadAction tile={tile} />
-          {((own &&
-            (!tile?.enclosureOwnerId ||
-              w.units.some(
-                (u) =>
-                  u.ownerId === w.player.id &&
-                  UNIT_PROFILES[u.kind].builder &&
-                  distance(u, tile) <= 1,
-              ))) ||
-            (tile &&
-              !tile.ownerId &&
-              w.units.some(
-                (u) =>
-                  u.ownerId === w.player.id &&
-                  UNIT_PROFILES[u.kind].builder &&
-                  distance(u, tile) <= 1,
-              ) &&
-              w.tiles.some(
-                (t) =>
-                  t.building?.ownerId === w.player.id &&
-                  distance(t, tile) <= RULES.constructionRadius,
-              ))) && (
-            <button className="primary" onClick={() => useGame.setState({ panel: 'build' })}>
-              <Hammer size={15} /> Construire
-            </button>
-          )}
+          {!tile?.building &&
+            ((own &&
+              (!tile?.enclosureOwnerId ||
+                w.units.some(
+                  (u) =>
+                    u.ownerId === w.player.id &&
+                    UNIT_PROFILES[u.kind].builder &&
+                    distance(u, tile) <= 1,
+                ))) ||
+              (tile &&
+                !tile.ownerId &&
+                w.units.some(
+                  (u) =>
+                    u.ownerId === w.player.id &&
+                    UNIT_PROFILES[u.kind].builder &&
+                    distance(u, tile) <= 1,
+                ) &&
+                w.tiles.some(
+                  (t) =>
+                    t.building?.ownerId === w.player.id &&
+                    distance(t, tile) <= RULES.constructionRadius,
+                ))) && (
+              <button className="primary" onClick={() => useGame.setState({ panel: 'build' })}>
+                <Hammer size={15} /> Construire
+              </button>
+            )}
         </>
       )}
       <button

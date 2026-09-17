@@ -36,6 +36,8 @@ export interface Selection extends Hex {
   id?: string;
 }
 interface GameStore {
+  showUnits: boolean;
+  showBuildings: boolean;
   clientUpdateRequired: boolean;
   user: AuthUser | null;
   token: string | null;
@@ -62,6 +64,8 @@ interface GameStore {
   set: (patch: Partial<GameStore>) => void;
 }
 export const useGame = create<GameStore>((set) => ({
+  showUnits: true,
+  showBuildings: true,
   clientUpdateRequired: false,
   user: null,
   token: null,
@@ -541,6 +545,7 @@ export function focusHero() {
   }
   focusMap(hero, true);
   useGame.setState({
+    showUnits: true,
     selection: { kind: 'unit', id: hero.id, q: hero.q, r: hero.r },
     mode: 'inspect',
     combatTarget: null,
@@ -550,7 +555,30 @@ export function focusHero() {
 export const mapCommand = (command: string) =>
   window.dispatchEvent(new CustomEvent('vm:camera', { detail: { command } }));
 export function select(selection: Selection) {
-  useGame.setState({ selection, mode: 'inspect' });
+  useGame.setState({
+    selection,
+    mode: 'inspect',
+    ...(selection.kind === 'unit' ? { showUnits: true } : {}),
+    ...(selection.kind === 'building' ? { showBuildings: true } : {}),
+  });
+}
+
+/** Local display filters: no server order or change to the world. */
+export function toggleMapLayer(layer: 'showUnits' | 'showBuildings') {
+  const state = useGame.getState();
+  const visible = !state[layer];
+  const selectedKind = layer === 'showUnits' ? 'unit' : 'building';
+  const selection =
+    !visible && state.selection?.kind === selectedKind
+      ? { kind: 'tile' as const, q: state.selection.q, r: state.selection.r }
+      : state.selection;
+  useGame.setState({
+    [layer]: visible,
+    selection,
+    mode: 'inspect',
+    combatTarget: null,
+    hover: null,
+  });
 }
 
 export function openRoadTool(tool: 'build' | 'remove' = 'build') {

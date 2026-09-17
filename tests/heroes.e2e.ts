@@ -124,7 +124,7 @@ test('héros : ancien compte, accès direct, pouvoirs et protection des versions
     }),
   ).toBe(hero.id);
   await expect(page.locator('.hero-controls')).toContainText('JeanHeros');
-  await expect(page.locator('.hero-controls img')).toHaveAttribute('src', /^data:image/);
+  await expect(page.locator('.selection-identity img')).toHaveAttribute('src', /^data:image/);
   await page.getByRole('button', { name: 'Secours de campagne · 2 PA', exact: true }).click();
   await expect.poll(() => state.units.ally.hp).toBe(16);
   await expect(page.getByRole('button', { name: /Secours de campagne · 2 PA ·/ })).toBeDisabled();

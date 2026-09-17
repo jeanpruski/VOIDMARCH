@@ -1,4 +1,6 @@
 import { GLOCKE_UNITS, GLOCKE_PROFILES } from './glocke';
+import { RESOURCE_BUILDINGS } from './resource-buildings';
+export { RESOURCE_BUILDINGS } from './resource-buildings';
 export { GLOCKE_UNITS } from './glocke';
 import {
   RADIOACTIVE_UNITS,
@@ -643,6 +645,7 @@ export const INDIRECT_FIRE_UNITS: readonly UnitKind[] = [
   'ATOMIC_SAPPER',
 ];
 export const BUILDINGS = {
+  ...RESOURCE_BUILDINGS,
   GLOCKE_COMPLEX: {
     name: 'Complexe des cloches',
     hp: 750,
@@ -1133,6 +1136,7 @@ export function buildingConstructionCost(kind: BuildingKind, faction: Faction): 
   );
 }
 export const EXTRACTOR_BUILDINGS: readonly BuildingKind[] = [
+  ...(Object.keys(RESOURCE_BUILDINGS) as (keyof typeof RESOURCE_BUILDINGS)[]),
   'LUMBER',
   'MINE',
   'QUARRY',
@@ -1446,6 +1450,12 @@ export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
 };
 export const GATHER_YIELD: Wallet = { STONE: 20, GOLD: 16, WOOD: 24, IRON: 16, FOOD: 24 };
 export const BUILDING_REQUIREMENTS: Partial<Record<BuildingKind, BuildingKind[]>> = {
+  STEAM_SAWMILL: ['LUMBER', 'WORKSHOP'],
+  MECHANIZED_QUARRY: ['QUARRY', 'WORKSHOP'],
+  INDUSTRIAL_MINE: ['MINE', 'FORGE'],
+  OCCULT_SAWMILL: ['STEAM_SAWMILL', 'OCCULT_LAB'],
+  RUNIC_QUARRY: ['MECHANIZED_QUARRY', 'OCCULT_LAB'],
+  ABYSSAL_MINE: ['INDUSTRIAL_MINE', 'OCCULT_LAB'],
   GLOCKE_COMPLEX: ['NUCLEAR_REACTOR', 'ATOMIC_FOUNDRY', 'BLACK_OBSERVATORY'],
   ISOTOPE_LAB: ['OCCULT_LAB', 'MUNITIONS'],
   NUCLEAR_REACTOR: ['ISOTOPE_LAB', 'REFINERY'],
@@ -1485,6 +1495,18 @@ export const BUILDING_POPULATION: Partial<Record<BuildingKind, number>> = {
   OUTPOST: 10,
 };
 export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
+  STEAM_SAWMILL:
+    'Exploitation industrielle du bois : 16 bois/min, uniquement en forêt. Exige une scierie et un atelier. Débloque la scierie des ombres. Production +60 % au niveau 2, +140 % au niveau 3.',
+  MECHANIZED_QUARRY:
+    'Extraction mécanique : 12 pierre/min sur colline ou montagne. Exige une carrière de pierre et un atelier. Débloque la carrière runique. Production +60 % au niveau 2, +140 % au niveau 3.',
+  INDUSTRIAL_MINE:
+    'Extraction industrielle : 10 fer/min, uniquement sur colline. Exige une mine et une forge. Débloque la mine des abysses. Production +60 % au niveau 2, +140 % au niveau 3.',
+  OCCULT_SAWMILL:
+    'Scies alimentées par les ombres : 28 bois/min, uniquement en forêt. Exige une scierie à vapeur et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3.',
+  RUNIC_QUARRY:
+    'Excavation par résonance runique : 21 pierre/min sur colline ou montagne. Exige une carrière mécanisée et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3.',
+  ABYSSAL_MINE:
+    'Forage occulte des profondeurs : 18 fer/min, uniquement sur colline. Exige une mine industrielle et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3.',
   GLOCKE_COMPLEX:
     'Armes occultes de fin de progression : exige réacteur noir, fonderie atomique et observatoire noir. Recrute Die Glocke I au niveau 1, II au niveau 2, III au niveau 3. Entraînement +25 % puis +60 % pour les cloches existantes et futures. Aucun revenu ni tir automatique.',
   ISOTOPE_LAB:
@@ -1703,6 +1725,12 @@ export const BUILDING_TABS = [
 ] as const;
 export type BuildingTab = (typeof BUILDING_TABS)[number];
 export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
+  STEAM_SAWMILL: 'Ressources',
+  MECHANIZED_QUARRY: 'Ressources',
+  INDUSTRIAL_MINE: 'Ressources',
+  OCCULT_SAWMILL: 'Ressources',
+  RUNIC_QUARRY: 'Ressources',
+  ABYSSAL_MINE: 'Ressources',
   GLOCKE_COMPLEX: 'Recrutement',
   ISOTOPE_LAB: 'Savoir & logistique',
   NUCLEAR_REACTOR: 'Industrie',

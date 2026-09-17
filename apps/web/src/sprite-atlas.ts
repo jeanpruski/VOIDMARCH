@@ -86,6 +86,7 @@ export const SPRITE_CELL = 256;
 export const SPRITE_MARGIN = 20;
 /** Source grids; all are packed into the same 6 × 4 rendering format. */
 export const SPRITE_ATLASES: Record<string, { columns: number; rows: number }> = {
+  'resource-buildings': { columns: 3, rows: 2 },
   'glocke-vril': { columns: 1, rows: 1 },
   'glocke-nacht': { columns: 1, rows: 1 },
   'glocke-apocalypse': { columns: 1, rows: 1 },
