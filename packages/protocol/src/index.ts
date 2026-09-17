@@ -21,6 +21,7 @@ const building = z.enum(
 );
 const id = z.string().min(1).max(80);
 export const commandSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('MOVE_ROAD'), actorId: id, payload: hex }),
   z.object({
     type: z.literal('MOVE'),
     actorId: id,
@@ -35,6 +36,7 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('CAPTURE'), actorId: id, payload: z.object({}) }),
   z.object({ type: z.literal('BUILD'), actorId: id, payload: hex.extend({ kind: building }) }),
   z.object({ type: z.literal('ROAD'), actorId: id, payload: hex }),
+  z.object({ type: z.literal('REMOVE_ROAD'), actorId: id, payload: hex }),
   z.object({ type: z.literal('RECRUIT'), actorId: id, payload: z.object({ kind: unit }) }),
   z.object({ type: z.literal('REPAIR'), actorId: id, payload: z.object({}) }),
   z.object({ type: z.literal('DEMOLISH'), actorId: id, payload: z.object({}) }),

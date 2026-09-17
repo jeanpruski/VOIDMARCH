@@ -10,6 +10,16 @@ function fixture() {
   return { before, after: structuredClone(before), camp: realmBuildings(state, 'p')[0] };
 }
 describe('effets du monde', () => {
+  it('anime la pose et la suppression d’une route visible, pas une disparition dans le brouillard', () => {
+    const { before, after } = fixture();
+    const tile = after.tiles.find((t) => t.building)!;
+    before.tiles.find((t) => t.building)!.road = false;
+    tile.road = true;
+    expect(worldEffects(before, after).map((e) => e.kind)).toEqual(['build']);
+    expect(worldEffects(after, before).map((e) => e.kind)).toEqual(['demolish']);
+    tile.visibility = 'EXPLORED';
+    expect(worldEffects(after, before)).toEqual([]);
+  });
   it('déclenche un nuage de poussière quand un bâtiment visible disparaît', () => {
     const { before, after } = fixture();
     const tile = after.tiles.find((t) => t.building)!;

@@ -35,7 +35,8 @@ interface GameStore {
   cameraViewport: CameraViewport | null;
   status: 'loading' | 'offline' | 'connecting' | 'online';
   selection: Selection | null;
-  mode: 'inspect' | 'move' | 'attack';
+  mode: 'inspect' | 'move' | 'attack' | 'road';
+  roadTool: 'build' | 'remove';
   panel: Panel;
   toast: { text: string; error: boolean } | null;
   pending: boolean;
@@ -53,6 +54,7 @@ export const useGame = create<GameStore>((set) => ({
   status: 'loading',
   selection: null,
   mode: 'inspect',
+  roadTool: 'build',
   panel: null,
   toast: null,
   pending: false,
@@ -188,7 +190,11 @@ export async function send(command: Command) {
       notify(result.message ?? 'Ordre exécuté.');
       window.dispatchEvent(new CustomEvent('vm:action', { detail: command }));
       useGame.setState({
-        mode: 'inspect',
+        mode:
+          (command.type === 'ROAD' || command.type === 'REMOVE_ROAD') &&
+          useGame.getState().mode === 'road'
+            ? 'road'
+            : 'inspect',
         combatTarget: null,
         ...(['BUILD', 'RECRUIT'].includes(command.type) ? { panel: null } : {}),
       });
@@ -240,4 +246,14 @@ export const mapCommand = (command: string) =>
   window.dispatchEvent(new CustomEvent('vm:camera', { detail: { command } }));
 export function select(selection: Selection) {
   useGame.setState({ selection, mode: 'inspect' });
+}
+
+export function openRoadTool(tool: 'build' | 'remove' = 'build') {
+  useGame.setState({
+    mode: 'road',
+    roadTool: tool,
+    panel: null,
+    combatTarget: null,
+    menuOpen: false,
+  });
 }

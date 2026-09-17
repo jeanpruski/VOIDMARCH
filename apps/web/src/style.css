@@ -562,7 +562,8 @@ input[type='color'] {
   min-height: 560px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* Focusing a control after resize must not scroll the entire game behind the canvas. */
+  overflow: clip;
 }
 .topbar {
   height: 76px;
@@ -833,7 +834,7 @@ input[type='color'] {
 }
 .board {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   background: #26352a;
 }
 .game-canvas {
@@ -886,6 +887,94 @@ input[type='color'] {
   height: 17px;
   width: 1px;
   background: #515e4655;
+}
+.map-tools .road-map-button {
+  width: auto;
+  padding: 0 10px;
+  gap: 5px;
+}
+.road-tools {
+  position: absolute;
+  z-index: 5;
+  top: 68px;
+  left: 20px;
+  width: min(350px, calc(100% - 80px));
+  max-height: calc(100% - 250px);
+  overflow-y: auto;
+  padding: 12px;
+  background: #19231ff5;
+  border: 1px solid #768263;
+  box-shadow: 0 8px 30px #0006;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.road-tools-heading,
+.road-tools-heading strong,
+.road-tool-buttons,
+.road-price {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.road-tools-heading {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.road-tool-buttons {
+  flex-wrap: wrap;
+}
+.road-tool-buttons .secondary {
+  flex: 1;
+  justify-content: center;
+  padding: 8px;
+  white-space: nowrap;
+}
+.road-tool-buttons .chosen {
+  color: #e0ead5;
+  background: #5a70444d;
+  border-color: #9cac79;
+}
+.road-price {
+  flex-wrap: wrap;
+}
+.road-tools p {
+  line-height: 1.5;
+  margin: 10px 0;
+}
+.road-tools .road-target {
+  color: #c8d8b3;
+}
+.road-tools details {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.road-tools summary {
+  cursor: pointer;
+  color: var(--gold-light);
+}
+.road-tools details p {
+  color: #b8c2b3;
+}
+.road-status {
+  color: #b8c7a7;
+  font-size: 11px;
+}
+@media (max-width: 700px) {
+  .road-tools {
+    top: 14px;
+    left: 10px;
+    width: calc(100% - 72px);
+    max-height: calc(100% - 160px);
+    padding: 9px;
+    font-size: 11px;
+  }
+  .map-tools .road-map-button {
+    width: 32px;
+    padding: 0;
+  }
+  .road-map-button span {
+    display: none;
+  }
 }
 .map-legend {
   position: absolute;

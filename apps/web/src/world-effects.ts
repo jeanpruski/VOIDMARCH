@@ -33,6 +33,7 @@ export function worldEffects(before: WorldView, after: WorldView): WorldEffect[]
       if (t.building.hp > old.building.hp) result.push({ ...t, kind: 'repair' });
     }
     if (t.road && !old?.road) result.push({ ...t, kind: 'build' });
+    if (old?.road && !t.road) result.push({ ...t, kind: 'demolish' });
   }
   const oldUnits = new Map(before.units.map((u) => [u.id, u]));
   for (const u of after.units) {

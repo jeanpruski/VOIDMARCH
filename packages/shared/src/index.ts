@@ -10,6 +10,8 @@ export interface Tile extends Hex {
   enclosureOwnerId?: string;
   buildingId?: string;
   road?: boolean;
+  /** Builder of the road; does not grant ownership or vision of the land. */
+  roadOwnerId?: string;
   poi?: 'COMMON' | 'UNCOMMON' | 'RARE' | 'MYTHIC';
   capture?: { by: string; points: number };
   exhausted?: boolean;
@@ -25,6 +27,7 @@ export interface ViewTile extends Hex {
   enclosureOwnerId?: string;
   building?: Building;
   road?: boolean;
+  roadOwnerId?: string;
   poi?: Tile['poi'];
   exhausted?: boolean;
   capture?: Tile['capture'];

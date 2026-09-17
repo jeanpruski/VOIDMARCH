@@ -13,6 +13,11 @@ export function removeGuestRealm(s: GameState, id: string) {
       delete tile.ownerId;
       delete tile.buildingId;
       delete tile.road;
+      delete tile.roadOwnerId;
+    }
+    if (tile.roadOwnerId === id) {
+      if (!tile.ownerId) delete tile.road;
+      delete tile.roadOwnerId;
     }
     if (tile.capture?.by === id) delete tile.capture;
     if (tile.enclosureOwnerId === id) delete tile.enclosureOwnerId;
@@ -23,6 +28,11 @@ export function removeGuestRealm(s: GameState, id: string) {
         delete tile.ownerId;
         delete tile.building;
         delete tile.road;
+        delete tile.roadOwnerId;
+      }
+      if (tile.roadOwnerId === id) {
+        if (!tile.ownerId) delete tile.road;
+        delete tile.roadOwnerId;
       }
       if (tile.capture?.by === id) delete tile.capture;
       if (tile.enclosureOwnerId === id) delete tile.enclosureOwnerId;

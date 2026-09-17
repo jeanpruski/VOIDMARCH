@@ -6,6 +6,7 @@ import {
   isBuildable,
   RESOURCES,
   buildingConstructionCost,
+  roadConstructionCost,
   buildingUpgrade,
   trainingBonusAt,
   unitPopulation,
@@ -40,6 +41,9 @@ import {
   attackBlockReason,
   unitStats,
   findPath,
+  roadPaths,
+  roadPathTo,
+  roadSiteReason,
   hash,
   hostileReason,
   income,
@@ -410,6 +414,33 @@ export function applyAction(
   let message = 'Ordre exécuté.';
   const spendAction = (override?: number) => spend(r, override ?? ACTION_COST[a.type]);
   switch (a.type) {
+    case 'MOVE_ROAD': {
+      const u = ownedUnit(s, r, a.actorId);
+      requireRule(tileAt(s, u).road, 'L’unité doit déjà être sur une route.');
+      requireRule(distance(u, a.payload) > 0, 'Choisissez une autre case du réseau routier.');
+      const seen = vision(s, r);
+      const roads = new Map(
+        Object.values(s.tiles)
+          .filter((t) => t.road && (seen.has(key(t)) || r.explored[key(t)]?.road))
+          .map((t) => [key(t), t]),
+      );
+      const blocked = new Set(
+        Object.values(s.units)
+          .filter((other) => other.id !== u.id)
+          .map(key),
+      );
+      for (const t of roads.values())
+        if (wallBlocks(s.buildings[t.buildingId ?? ''], id, u.kind)) blocked.add(key(t));
+      const path = roadPathTo(a.payload, roadPaths(u, roads, blocked, u.kind), blocked);
+      requireRule(
+        path?.length,
+        'Aucune route continue et explorée ne permet ce trajet : vérifiez les coupures, les unités et les remparts.',
+      );
+      spendAction();
+      Object.assign(u, a.payload, { updatedAt: now });
+      message = `${UNITS[u.kind].name} arrivé : ${path.length} cases par la route · 1 PA.`;
+      break;
+    }
     case 'MOVE': {
       const u = ownedUnit(s, r, a.actorId),
         max = UNITS[u.kind].move + (r.faction === 'IRON' && UNIT_PROFILES[u.kind].mounted ? 1 : 0);
@@ -585,12 +616,25 @@ export function applyAction(
     }
     case 'ROAD': {
       const t = tileAt(s, a.payload);
-      requireRule(t.ownerId === id, 'La route doit être sur votre territoire.');
+      const reason = roadSiteReason(t, id, Object.values(s.units));
+      requireRule(!reason, reason);
       requireRule(!t.road, 'Une route traverse déjà cet hexagone.');
       spendAction();
-      pay(r, { WOOD: t.terrain === 'RIVER' ? 30 : 10, IRON: t.terrain === 'RIVER' ? 10 : 0 });
-      writeTile(s, t, { road: true });
-      message = t.terrain === 'RIVER' ? 'Pont construit.' : 'Route construite.';
+      pay(r, roadConstructionCost(t.terrain));
+      writeTile(s, t, { road: true, roadOwnerId: id });
+      message = `${t.terrain === 'RIVER' ? 'Pont construit' : 'Route construite'} : entrée sur cette case à 1 point de déplacement.`;
+      log(s, message, 'ECONOMY', now, [id], t);
+      break;
+    }
+    case 'REMOVE_ROAD': {
+      const t = tileAt(s, a.payload);
+      const reason = roadSiteReason(t, id, Object.values(s.units), true);
+      requireRule(!reason, reason);
+      requireRule(t.road, 'Aucune route à supprimer sur cette case.');
+      spendAction();
+      writeTile(s, t, { road: false, roadOwnerId: undefined });
+      message = `${t.terrain === 'RIVER' ? 'Pont retiré' : 'Route retirée'} : le coût de déplacement du terrain s’applique de nouveau. Matériaux non remboursés.`;
+      log(s, message, 'ECONOMY', now, [id], t);
       break;
     }
     case 'RECRUIT': {
@@ -1092,6 +1136,8 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
   // Own assets remain selectable even when the camera subscribes to distant chunks.
   for (const p of [...realmUnits(s, id), ...realmTiles(s, id)])
     positions.set(key(p), { q: p.q, r: p.r });
+  // Known roads connect distant chunks; publicTile retains fog-of-war memory outside vision.
+  for (const t of Object.values(r.explored)) if (t.road) positions.set(key(t), { q: t.q, r: t.r });
   const {
     explored: _explored,
     nextBotAt: _botAt,

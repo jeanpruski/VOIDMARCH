@@ -18,7 +18,7 @@ Recrutement : disponibles immédiatement, puis autres unités avec priorité aux
 
 « Capturer » devient « Revendiquer la case · 1 PA », avec explication de la propriété et progression des captures longues. Une case possédée ne produit pas automatiquement de ressources et entraîne de l’entretien territorial.
 
-Routes et ponts : bouton direct depuis la case, le bâtiment ou le bâtisseur. Route 10 bois + 1 PA ; pont 30 bois + 10 fer + 1 PA. Entrer sur une case aménagée coûte 1 point de déplacement ; le trajet complet reste une action à 1 PA. Sur plaine le coût était déjà de 1. Les tronçons sont visibles même isolés et se relient visuellement aux voisins. Aucun mode d’activation n’est nécessaire.
+Routes et ponts : bouton direct et mode Routes pour poser ou retirer des tronçons successifs. Construction sur ses terres ou sur terrain neutre avec un bâtisseur à une case maximum, sans capturer le terrain. Une unité déjà sur un réseau continu et exploré peut le parcourir sans limite de distance pour 1 PA. Entrer ou sortir du réseau conserve la portée normale. Coûts et détails dans [Routes et ponts](roads.md).
 
 Tous les sons et contrôles audio ont été retirés ; les anciens champs de préférences restent compatibles avec les sauvegardes.
 

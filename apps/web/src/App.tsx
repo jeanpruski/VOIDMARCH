@@ -21,7 +21,7 @@ import {
   Hexagon,
   Home,
   Hourglass,
-  Layers,
+  Route,
   LoaderCircle,
   LogOut,
   Map,
@@ -63,6 +63,7 @@ import { Minimap } from './Minimap';
 import { Login } from './Login';
 import { Panels } from './Panels';
 import { RoadAction } from './RoadAction';
+import { RoadTools } from './RoadTools';
 import { UpgradeBuilding } from './UpgradeBuilding';
 import { DemolishBuilding } from './DemolishBuilding';
 import { NextStep, ContextHelp } from './Experience';
@@ -72,6 +73,7 @@ import {
   focusMap,
   logout,
   mapCommand,
+  openRoadTool,
   notify,
   saveSettings,
   select,
@@ -240,6 +242,7 @@ export function App() {
           <GameMap />
           <div className="map-shading" />
           <MapTools />
+          <RoadTools />
           <MapLegend />
           <Minimap />
           <SelectionPanel />
@@ -484,8 +487,19 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
 }
 function MapTools() {
   const settings = useGame((s) => s.world)!.player.settings;
+  const roadMode = useGame((s) => s.mode) === 'road';
   return (
     <div className="map-tools">
+      <button
+        className={`road-map-button ${roadMode ? 'active' : ''}`}
+        aria-label="Mode routes"
+        aria-pressed={roadMode}
+        title="Routes : poser, retirer et comprendre leur utilité"
+        onClick={() => (roadMode ? useGame.setState({ mode: 'inspect' }) : openRoadTool())}
+      >
+        <Route size={17} />
+        <span>Routes</span>
+      </button>
       <button aria-label="Zoom avant" title="Zoom avant" onClick={() => mapCommand('in')}>
         <Plus size={18} />
       </button>
@@ -695,11 +709,19 @@ function SelectionPanel() {
                   className={`primary ${mode === 'move' ? 'chosen' : ''}`}
                   disabled={pending || (!w.player.unlimitedAP && w.player.ap < 1)}
                   onClick={() => useGame.setState({ mode: mode === 'move' ? 'inspect' : 'move' })}
+                  title={
+                    tile?.road
+                      ? 'Sur une route continue et explorée : distance illimitée pour 1 PA. Hors route : portée normale.'
+                      : 'Rejoignez une route pour voyager sur tout son réseau en 1 PA.'
+                  }
                 >
                   <ArrowUpRight size={16} />
                   {mode === 'move' ? 'Choisir une destination' : 'Déplacer'}
                   <small>1 PA</small>
                 </button>
+                {tile?.road && (
+                  <span className="road-status">Réseau routier : distance illimitée · 1 PA</span>
+                )}
                 <button
                   className="secondary"
                   disabled={
@@ -947,13 +969,6 @@ function SelectionPanel() {
                   onClick={() => action('REPAIR')}
                 >
                   <Hammer size={15} /> Réparer · 1 PA
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label="Construire une route"
-                  onClick={() => useGame.setState({ panel: 'build' })}
-                >
-                  <Layers size={16} />
                 </button>
               </>
             ) : (

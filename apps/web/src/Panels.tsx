@@ -1072,10 +1072,11 @@ function Build() {
         <Route size={20} />
         <h4>Route & pont</h4>
         <p>
-          Sélectionnez une case de votre territoire puis tracez une route dessus, même sous un
-          bâtiment. Entrer sur cette case coûte 1 point de déplacement, au lieu de 2 ou 3 en forêt,
-          sur relief ou rivière. Sur plaine, le coût est déjà de 1. Les cases voisines se relient
-          automatiquement ; le trajet complet coûte toujours 1 PA.
+          Ouvrez le mode Routes pour poser ou retirer plusieurs tronçons en cliquant sur la carte.
+          Pose possible sur votre territoire, même sous un bâtiment, ou sur terrain neutre avec un
+          paysan ou un ingénieur à une case maximum. Une unité déjà sur une route peut parcourir
+          tout son réseau continu et exploré pour 1 PA, sans limite de distance. Rejoindre ou
+          quitter la route suit les règles normales de déplacement.
         </p>
         <RoadAction tile={tile} />
       </div>

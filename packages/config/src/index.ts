@@ -18,11 +18,13 @@ export const RULES = {
 };
 export const ACTION_COST = {
   MOVE: 1,
+  MOVE_ROAD: 1,
   GATHER: 1,
   ATTACK: 1,
   CAPTURE: 1,
   BUILD: 1,
   ROAD: 1,
+  REMOVE_ROAD: 1,
   RECRUIT: 1,
   REPAIR: 1,
   DEMOLISH: 1,
@@ -88,6 +90,8 @@ export const TERRAINS = {
   ALIEN: { name: 'Structure antique', color: 0x30494a, cost: 2, defense: 2, yield: 'GOLD' },
 } as const;
 export type Terrain = keyof typeof TERRAINS;
+export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
+  terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
 export const UNITS = {
   RECON_PLANE: {
     name: 'Avion de reconnaissance',

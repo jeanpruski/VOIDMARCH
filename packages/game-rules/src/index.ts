@@ -231,6 +231,25 @@ export const canGather = (
   resource: Resource,
 ) =>
   (!tile.ownerId || tile.ownerId === ownerId) && TERRAIN_RESOURCES[tile.terrain].includes(resource);
+/** Neutral road works need a nearby builder; foreign territory remains protected. */
+export function roadSiteReason(
+  tile: Pick<Tile, 'q' | 'r' | 'ownerId' | 'roadOwnerId'>,
+  ownerId: string,
+  units: Pick<Unit, 'q' | 'r' | 'ownerId' | 'kind'>[],
+  remove = false,
+) {
+  if (tile.ownerId === ownerId) return '';
+  if (tile.ownerId) return 'Impossible de modifier les routes d’un territoire adverse.';
+  if (remove && tile.roadOwnerId !== ownerId)
+    return 'Sur terrain neutre, vous pouvez seulement retirer vos propres routes.';
+  if (
+    !units.some(
+      (u) => u.ownerId === ownerId && UNIT_PROFILES[u.kind].builder && distance(u, tile) <= 1,
+    )
+  )
+    return 'Terrain neutre : un paysan ou un ingénieur doit être à une case maximum du chantier.';
+  return '';
+}
 export const armyPopulation = (units: Pick<Unit, 'kind'>[]) =>
   units.reduce((total, unit) => total + unitPopulation(unit.kind), 0);
 export function refreshAP(
@@ -362,6 +381,7 @@ export function observe(s: GameState, r: Realm, now: number) {
       ownerId: t.ownerId,
       enclosureOwnerId: t.enclosureOwnerId,
       road: t.road,
+      roadOwnerId: t.roadOwnerId,
       poi: t.poi,
       exhausted: t.exhausted,
       capture: t.capture ? { ...t.capture } : undefined,
@@ -425,6 +445,43 @@ export function findPath(
     }
   }
   return null;
+}
+/** Traverse an existing, finite road network without a movement-budget or chunk limit. */
+export function roadPaths(
+  start: Hex,
+  roads: ReadonlyMap<string, Pick<Tile, 'q' | 'r' | 'road'>>,
+  blocked: ReadonlySet<string> = new Set(),
+  kind?: UnitKind,
+): Map<string, Hex | null> {
+  const came = new Map<string, Hex | null>();
+  if (!roads.get(key(start))?.road) return came;
+  const frontier: Hex[] = [start];
+  came.set(key(start), null);
+  for (let index = 0; index < frontier.length; index++) {
+    const current = frontier[index];
+    for (const next of neighbors(current)) {
+      const k = key(next);
+      if (came.has(k) || !roads.get(k)?.road) continue;
+      if (blocked.has(k) && (!kind || !UNIT_PROFILES[kind].flying)) continue;
+      came.set(k, current);
+      frontier.push(next);
+    }
+  }
+  return came;
+}
+export function roadPathTo(
+  end: Hex,
+  paths: ReadonlyMap<string, Hex | null>,
+  blocked: ReadonlySet<string> = new Set(),
+): Hex[] | null {
+  if (!paths.has(key(end)) || blocked.has(key(end))) return null;
+  const result: Hex[] = [];
+  let current = end;
+  while (paths.get(key(current))) {
+    result.push(current);
+    current = paths.get(key(current))!;
+  }
+  return result.reverse();
 }
 export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus'>) {
   const base = UNITS[unit.kind];
@@ -579,6 +636,7 @@ export function publicTile(
     enclosureOwnerId: t.enclosureOwnerId,
     building: t.buildingId ? s.buildings[t.buildingId] : undefined,
     road: t.road,
+    roadOwnerId: t.roadOwnerId,
     poi: t.poi,
     exhausted: t.exhausted,
     capture: t.capture,

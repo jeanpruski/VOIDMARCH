@@ -8,6 +8,8 @@ import {
   disk,
   distance,
   findPath,
+  roadPaths,
+  roadPathTo,
   hash,
   key,
   neighbors,
@@ -20,6 +22,7 @@ import { normalizedAtlas, SPRITE_CELL, SPRITE_ATLASES } from './sprite-atlas';
 import { api, notify, select, send, subscribe, useGame } from './store';
 import { SIZE, Y_SCALE, hexToPixel, pixelToHex, cameraViewport } from './map-geometry';
 import { wallCanvas, setWallMaterials } from './wall-art';
+import { roadOrderReason } from './roads';
 const points = (p: { x: number; y: number }, size = SIZE) =>
   Array.from(
     { length: 6 },
@@ -54,6 +57,12 @@ class WorldScene extends Phaser.Scene {
   private viewportWidth = 0;
   private viewportHeight = 0;
   private cameraSave?: ReturnType<typeof setTimeout>;
+  private roadCache?: {
+    world: WorldView;
+    unitId: string;
+    paths: Map<string, Hex | null>;
+    blocked: Set<string>;
+  };
   constructor() {
     super('World');
   }
@@ -109,6 +118,7 @@ class WorldScene extends Phaser.Scene {
       if (
         s.selection !== previous.selection ||
         s.mode !== previous.mode ||
+        s.roadTool !== previous.roadTool ||
         s.hover !== previous.hover
       )
         this.highlight();
@@ -286,7 +296,27 @@ class WorldScene extends Phaser.Scene {
     const selection = useGame.getState().selection;
     return selection?.id ? this.view?.units.find((u) => u.id === selection.id) : undefined;
   }
+  private unitRoads(u: Unit) {
+    if (this.roadCache?.world === this.view && this.roadCache?.unitId === u.id)
+      return this.roadCache;
+    const blocked = new Set(this.view?.units.filter((x) => x.id !== u.id).map(key));
+    for (const tile of this.view?.tiles ?? [])
+      if (wallBlocks(tile.building, u.ownerId, u.kind)) blocked.add(key(tile));
+    this.roadCache = {
+      world: this.view!,
+      unitId: u.id,
+      blocked,
+      paths: roadPaths(u, this.tileMap, blocked, u.kind),
+    };
+    return this.roadCache;
+  }
+  private roadPath(u: Unit, p: Hex) {
+    const routes = this.unitRoads(u);
+    return roadPathTo(p, routes.paths, routes.blocked);
+  }
   private path(u: Unit, p: Hex) {
+    const road = this.roadPath(u, p);
+    if (road?.length) return road;
     const blocked = new Set(this.view?.units.filter((x) => x.id !== u.id).map(key));
     for (const tile of this.view?.tiles ?? [])
       if (wallBlocks(tile.building, u.ownerId, u.kind)) blocked.add(key(tile));
@@ -309,7 +339,26 @@ class WorldScene extends Phaser.Scene {
       tile = this.tileMap.get(key(p)),
       own = this.getUnit(),
       unit = this.view.units.find((u) => key(u) === key(p));
+    if (state.mode === 'road') {
+      if (state.pending) return;
+      const reason = roadOrderReason(this.view, tile, state.roadTool);
+      if (reason) {
+        notify(reason, true);
+        return;
+      }
+      useGame.setState({ hover: p });
+      void send({
+        type: state.roadTool === 'build' ? 'ROAD' : 'REMOVE_ROAD',
+        actorId: this.view.player.id,
+        payload: p,
+      });
+      return;
+    }
     if (state.mode === 'move' && own && own.ownerId === this.view.player.id) {
+      if (this.roadPath(own, p)?.length) {
+        void send({ type: 'MOVE_ROAD', actorId: own.id, payload: p });
+        return;
+      }
       const path = this.path(own, p);
       if (!path?.length) {
         notify(
@@ -750,6 +799,27 @@ class WorldScene extends Phaser.Scene {
     const state = useGame.getState(),
       selection = state.selection,
       u = this.getUnit();
+    if (state.mode === 'road') {
+      const tint = state.roadTool === 'build' ? 0x99c781 : 0xe08b78;
+      for (const t of this.view.tiles) {
+        if (roadOrderReason(this.view, t, state.roadTool)) continue;
+        const p = hexToPixel(t);
+        g.fillStyle(tint, 0.13);
+        g.fillPoints(points(p, SIZE - 3), true);
+        g.lineStyle(2, tint, 0.8);
+        g.strokePoints(points(p, SIZE - 3), true);
+      }
+      if (state.hover) {
+        const valid = !roadOrderReason(
+          this.view,
+          this.tileMap.get(key(state.hover)),
+          state.roadTool,
+        );
+        g.lineStyle(3, valid ? tint : 0xbc6962, 1);
+        g.strokePoints(points(hexToPixel(state.hover), SIZE - 2), true);
+      }
+      return;
+    }
     if (
       state.mode === 'inspect' &&
       u?.ownerId === this.view.player.id &&
@@ -781,8 +851,19 @@ class WorldScene extends Phaser.Scene {
       }
     }
     if (state.mode === 'move' && u && u.ownerId === this.view.player.id) {
-      for (const p of disk(u, UNITS[u.kind].move)) {
-        if (distance(u, p) === 0 || !this.path(u, p)) continue;
+      const routes = this.unitRoads(u);
+      const destinations = new Map(
+        disk(
+          u,
+          UNITS[u.kind].move +
+            (UNIT_PROFILES[u.kind].mounted && this.view.player.faction === 'IRON' ? 1 : 0),
+        ).map((p) => [key(p), p]),
+      );
+      for (const t of this.view.tiles)
+        if (routes.paths.has(key(t)) && !routes.blocked.has(key(t))) destinations.set(key(t), t);
+      for (const p of destinations.values()) {
+        const byRoad = routes.paths.has(key(p)) && !routes.blocked.has(key(p));
+        if (distance(u, p) === 0 || (!byRoad && !this.path(u, p))) continue;
         const px = hexToPixel(p);
         g.fillStyle(0x86bcb4, 0.1);
         g.fillPoints(points(px, SIZE - 3), true);
