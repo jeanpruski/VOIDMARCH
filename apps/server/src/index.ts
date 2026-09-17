@@ -230,6 +230,14 @@ io.on('connection', (socket) => {
       }
     }),
   );
+  socket.on('world:sync', () => {
+    if (!rate(who.sub) || !subscriptions.has(socket.id) || !repository.state.realms[who.sub])
+      return;
+    sendView(
+      socket,
+      worldView(repository.state, who.sub, Date.now(), subscriptions.get(socket.id)),
+    );
+  });
   socket.on('player:ping', () => {
     if (!rate(who.sub)) return;
     socket.emit('presence:update', { status: 'ONLINE', serverTimestamp: Date.now() });

@@ -14,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
     {[
       ...Array.from({ length: 87 }, (_, frame) => frame),
       ...Array.from({ length: 10 }, (_, i) => 96 + i),
+      120,
     ].map((frame) => (
       <div
         key={frame}

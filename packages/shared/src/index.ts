@@ -225,6 +225,8 @@ export interface WorldView {
   botsAwake: boolean;
 }
 export interface ActionResult {
+  /** Actual accepted route, returned only to the player issuing the movement. */
+  movement?: { unitId: string; from: Hex; path: Hex[] };
   actionId: string;
   accepted: boolean;
   reason?: string;

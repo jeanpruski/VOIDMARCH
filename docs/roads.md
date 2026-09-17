@@ -40,3 +40,9 @@ Les tronçons voisins se raccordent automatiquement, même sous les bâtiments. 
 - Tests : coûts, chantiers neutres, suppression, propriété, expiration d’invité, parcours sur 5 000 cases, obstacles, coupures, brouillard et chunks distants. Test navigateur de pose/retrait ordinateur et tactile, chantier neutre et trajet de 40 cases pour 1 PA.
 
 Validation effectuée : compilation réussie, 336 tests unitaires réussis (7 tests DB ignorés), parcours navigateur ordinateur/mobile et trajet routier de 40 cases réussis.
+
+## Animation des déplacements
+
+Dès le clic, le navigateur commence à parcourir le trajet prévu. Le reçu d’un ordre `MOVE` ou `MOVE_ROAD` confirme au joueur émetteur l’origine et les étapes réellement validées, sans redémarrer une animation déjà lancée. Un refus rétablit la position serveur. La figurine parcourt cette ligne étape par étape, avec son ovale, son drapeau, sa barre de vie et son aura éventuelle. Le trajet n’est pas recalculé après l’arrivée, ce qui évite les raccourcis visuels à travers les virages.
+
+L’animation survit au déplacement de caméra, au zoom et aux snapshots intermédiaires. Les ordres successifs conservent les étapes visuelles encore à parcourir avant d’enchaîner. Les longs voyages sont accélérés pour limiter l’animation à six secondes ; le coût et les règles du déplacement sont inchangés. Avec la réduction des animations activée, la position finale est affichée immédiatement.

@@ -167,8 +167,9 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                 className="primary"
                 disabled={unavailable}
                 onClick={async () => {
-                  const result = await send({ type: 'UPGRADE', actorId: b.id, payload: {} });
-                  if (result?.accepted) setOpen(false);
+                  const request = send({ type: 'UPGRADE', actorId: b.id, payload: {} });
+                  setOpen(false);
+                  await request;
                 }}
               >
                 Confirmer l’amélioration · {costAP} PA

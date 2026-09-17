@@ -1,0 +1,11 @@
+# Réponse immédiate aux ordres
+
+Le navigateur affiche une prévision dès le clic pour les déplacements, constructions, recrutements, routes, terrassements, récoltes, soins/réparations, démolitions, améliorations, captures de terres neutres, exploration de vestiges, événements accessibles et pouvoirs de soin/ralliement. Les coûts connus sont affichés immédiatement. Les fenêtres de construction et de recrutement se ferment aussitôt. Les mouvements commencent sur le tracé calculé, sans attendre le réseau.
+
+Les combats jouent immédiatement leur animation, mais les dégâts restent autoritaires. Le tirage d’une unité rare, la reconnaissance du brouillard, les actions diplomatiques et les prises hostiles attendent aussi les informations serveur. Si la réponse dépasse 600 ms, un indicateur discret signale « Ordre en cours… ». Un seul ordre peut être en vol, pour éviter les doubles dépenses et les actions sur une unité dont l’identifiant définitif n’est pas encore connu.
+
+La prévision ne modifie jamais le dernier snapshot serveur. Les snapshots reçus pendant l’ordre sont conservés séparément jusqu’à ce que le reçu identifie la révision validée. À la confirmation, le snapshot correspondant remplace la prévision sans repayer, rejouer les effets ordinaires ou redémarrer le mouvement. Une figurine provisoire est remplacée par l’unité réelle ; une éventuelle rareté est alors révélée. Les changements de brouillard, revenus, territoires d’enceintes et statistiques dérivées sont confirmés par le serveur.
+
+Un refus retire la prévision, ses coûts et son animation, tout en conservant les changements serveur intervenus entre-temps. Une réponse expirée ou une déconnexion déclenche une resynchronisation sans réémettre l’ordre. Les réponses tardives d’un ordre abandonné sont ignorées. Les snapshots plus anciens que le dernier état reçu sont ignorés. Le message `world:sync` relit uniquement la vue autorisée du joueur, sans mutation du monde ni nouvelle connexion à la partie.
+
+Validation : comparaison des prévisions avec le moteur réel et tests navigateur à transport retardé, incluant confirmation dans les deux ordres reçu/snapshot, doubles clics, refus après mise à jour concurrente, rareté, expiration, déconnexion et réponse tardive. Les tests existants des trajets, routes et terrassement couvrent les interactions avec les nouvelles prévisions.

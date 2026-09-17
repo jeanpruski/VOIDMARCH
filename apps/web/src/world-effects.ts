@@ -32,6 +32,8 @@ export function worldEffects(before: WorldView, after: WorldView): WorldEffect[]
       if (t.building.hp < old.building.hp) result.push({ ...t, kind: 'combat' });
       if (t.building.hp > old.building.hp) result.push({ ...t, kind: 'repair' });
     }
+    if (old?.terrain && old.terrain !== t.terrain && t.terrain === 'PLAIN')
+      result.push({ ...t, kind: 'build' });
     if (t.road && !old?.road) result.push({ ...t, kind: 'build' });
     if (old?.road && !t.road) result.push({ ...t, kind: 'demolish' });
   }

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { rollRareBonus } from './rarity';
 import {
   ACTION_COST,
+  TERRAFORM_COST,
   isWall,
   isBuildable,
   RESOURCES,
@@ -44,6 +45,7 @@ import {
   roadPaths,
   roadPathTo,
   roadSiteReason,
+  terraformSiteReason,
   hash,
   hostileReason,
   income,
@@ -412,6 +414,7 @@ export function applyAction(
     'Votre royaume doit d’abord être reconstruit.',
   );
   let message = 'Ordre exécuté.';
+  let movement: ActionResult['movement'];
   const spendAction = (override?: number) => spend(r, override ?? ACTION_COST[a.type]);
   switch (a.type) {
     case 'MOVE_ROAD': {
@@ -437,6 +440,7 @@ export function applyAction(
         'Aucune route continue et explorée ne permet ce trajet : vérifiez les coupures, les unités et les remparts.',
       );
       spendAction();
+      movement = { unitId: u.id, from: { q: u.q, r: u.r }, path };
       Object.assign(u, a.payload, { updatedAt: now });
       message = `${UNITS[u.kind].name} arrivé : ${path.length} cases par la route · 1 PA.`;
       break;
@@ -469,6 +473,7 @@ export function applyAction(
         cursor = p;
       }
       spendAction();
+      movement = { unitId: u.id, from: { q: u.q, r: u.r }, path: a.payload.path };
       Object.assign(u, cursor, { updatedAt: now });
       message = `${UNITS[u.kind].name} en position.`;
       break;
@@ -612,6 +617,19 @@ export function applyAction(
       r.progression.development++;
       message = `Construction terminée : ${BUILDINGS[p.kind].name}.`;
       log(s, message, 'ECONOMY', now, [id], p);
+      break;
+    }
+    case 'TERRAFORM': {
+      const u = ownedUnit(s, r, a.actorId);
+      requireRule(vision(s, r).has(key(a.payload)), 'Le terrain doit être visible.');
+      const t = tileAt(s, a.payload);
+      const reason = terraformSiteReason(t, id, u, Object.values(s.units));
+      requireRule(!reason, reason);
+      spendAction();
+      pay(r, TERRAFORM_COST);
+      writeTile(s, t, { terrain: 'PLAIN', poi: undefined, exhausted: t.poi ? true : t.exhausted });
+      message = `Terrassement terminé : ${TERRAINS[t.terrain].name} → Plaine · 2 PA, 20 bois et 10 fer. Propriété et routes conservées.`;
+      log(s, message, 'ECONOMY', now, [id], t);
       break;
     }
     case 'ROAD': {
@@ -1094,6 +1112,7 @@ export function applyAction(
     serverTimestamp: now,
     newActionPoints: r.ap,
     revision: s.revision,
+    ...(movement ? { movement } : {}),
   };
 }
 // Callers commit only the returned copy. Rejected commands never retain partial mutations.

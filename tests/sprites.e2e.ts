@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { resolve } from 'node:path';
 
-test('les 97 figurines restent isolées et alignées sur ordinateur et mobile', async ({ page }) => {
+test('les 98 figurines restent isolées et alignées sur ordinateur et mobile', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   const template = await (await page.request.get('/')).text();
@@ -13,7 +13,7 @@ test('les 97 figurines restent isolées et alignées sur ordinateur et mobile', 
     }),
   );
   await page.goto('/sprite-review');
-  await expect(page.locator('.miniature')).toHaveCount(97);
+  await expect(page.locator('.miniature')).toHaveCount(98);
   await expect
     .poll(() =>
       page
@@ -22,7 +22,7 @@ test('les 97 figurines restent isolées et alignées sur ordinateur et mobile', 
           (nodes) => nodes.filter((n) => getComputedStyle(n).backgroundImage !== 'none').length,
         ),
     )
-    .toBe(97);
+    .toBe(98);
   const bounds = await page.evaluate(async () => {
     // @ts-expect-error Vite serves this source module directly in the browser.
     const { miniatureAtlasUrl, SPRITE_ATLASES } = await import('/src/sprite-atlas.ts');

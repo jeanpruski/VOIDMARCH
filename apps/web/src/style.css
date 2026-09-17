@@ -3561,3 +3561,21 @@ button:disabled {
   color: #b7a48d;
   font-size: 11px;
 }
+
+.order-progress {
+  position: absolute;
+  z-index: 35;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid #7b8064;
+  background: #20271fed;
+  color: #e5dec2;
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+}

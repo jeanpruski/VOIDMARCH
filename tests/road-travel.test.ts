@@ -50,6 +50,9 @@ describe('liaisons routières sans limite de distance', () => {
     expect(result.state.realms.p.ap).toBe(29);
     expect(result.state.realms.p.wallet).toEqual(r.wallet);
     expect(result.result.message).toContain('80 cases');
+    expect(result.result.movement?.from).toEqual({ q: 0, r: 0 });
+    expect(result.result.movement?.path).toHaveLength(80);
+    expect(result.result.movement?.path.at(-1)).toEqual(destination);
     expect(tileAt(result.state, { q: 40, r: 0 }).ownerId).toBeUndefined();
   });
   it.each(['start', 'end', 'gap', 'unexplored', 'unknownRoad', 'unit', 'ap', 'same'] as const)(

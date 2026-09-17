@@ -23,6 +23,9 @@ import { api, notify, select, send, subscribe, useGame } from './store';
 import { SIZE, Y_SCALE, hexToPixel, pixelToHex, cameraViewport } from './map-geometry';
 import { wallCanvas, setWallMaterials } from './wall-art';
 import { roadOrderReason } from './roads';
+import { terraformOrderReason } from './terraform';
+import { roadCanvas } from './road-art';
+import { movementPosition } from './movement-animation';
 const points = (p: { x: number; y: number }, size = SIZE) =>
   Array.from(
     { length: 6 },
@@ -51,7 +54,18 @@ class WorldScene extends Phaser.Scene {
   private moved = false;
   private subscriptionKey = '';
   private lastDraw = 0;
-  private previousUnits = new Map<string, { x: number; y: number }>();
+  private unitVisuals = new Map<
+    string,
+    {
+      unit: Unit;
+      parts: {
+        object: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | Phaser.GameObjects.Text;
+        x: number;
+        y: number;
+        layer: number;
+      }[];
+    }
+  >();
   private panKey?: Phaser.Types.Input.Keyboard.CursorKeys;
   private centerSet = false;
   private viewportWidth = 0;
@@ -99,6 +113,12 @@ class WorldScene extends Phaser.Scene {
     this.panKey = this.input.keyboard?.createCursorKeys();
     this.input.mouse?.disableContextMenu();
     this.unsubscribe = useGame.subscribe((s, previous) => {
+      if (
+        s.actionEffect &&
+        s.actionEffect !== previous.actionEffect &&
+        !s.world?.player.settings.reducedMotion
+      )
+        this.playEffect(s.actionEffect);
       if (s.world !== previous.world && s.world) {
         this.view = s.world;
         this.tileMap = new Map(s.world.tiles.map((t) => [key(t), t]));
@@ -112,8 +132,14 @@ class WorldScene extends Phaser.Scene {
           this.centerSet = true;
         }
         this.renderMap();
-        if (previous.world && !s.world.player.settings.reducedMotion)
-          for (const effect of worldEffects(previous.world, s.world)) this.playEffect(effect);
+        if (previous.world && !s.world.player.settings.reducedMotion && s.effectPolicy !== 'none')
+          for (const effect of worldEffects(previous.world, s.world))
+            if (s.effectPolicy !== 'confirmed' || effect.kind === 'rare') this.playEffect(effect);
+      } else if (
+        s.movements !== previous.movements ||
+        s.pendingMovement !== previous.pendingMovement
+      ) {
+        this.renderMap();
       }
       if (
         s.selection !== previous.selection ||
@@ -296,6 +322,27 @@ class WorldScene extends Phaser.Scene {
     const selection = useGame.getState().selection;
     return selection?.id ? this.view?.units.find((u) => u.id === selection.id) : undefined;
   }
+  private visualPosition(u: Unit, now = Date.now()) {
+    const state = useGame.getState();
+    if (state.world?.player.settings.reducedMotion) return hexToPixel(u);
+    const animation = state.movements[u.id];
+    if (animation) return movementPosition(animation, now);
+    return hexToPixel(state.pendingMovement?.unitId === u.id ? state.pendingMovement.from : u);
+  }
+  private updateUnitVisuals() {
+    const now = Date.now();
+    let selectedMoved = false;
+    for (const { unit, parts } of this.unitVisuals.values()) {
+      const p = this.visualPosition(unit, now);
+      for (const part of parts) {
+        if (part.object.x === p.x + part.x && part.object.y === p.y + part.y) continue;
+        part.object.setPosition(p.x + part.x, p.y + part.y);
+        part.object.setDepth(depth(part.layer, p.y));
+        if (useGame.getState().selection?.id === unit.id) selectedMoved = true;
+      }
+    }
+    if (selectedMoved) this.highlight();
+  }
   private unitRoads(u: Unit) {
     if (this.roadCache?.world === this.view && this.roadCache?.unitId === u.id)
       return this.roadCache;
@@ -339,6 +386,13 @@ class WorldScene extends Phaser.Scene {
       tile = this.tileMap.get(key(p)),
       own = this.getUnit(),
       unit = this.view.units.find((u) => key(u) === key(p));
+    if (state.mode === 'terraform') {
+      if (state.pending || state.terraformTarget) return;
+      const reason = terraformOrderReason(this.view, tile, own);
+      if (reason) notify(reason, true);
+      else useGame.setState({ terraformTarget: p });
+      return;
+    }
     if (state.mode === 'road') {
       if (state.pending) return;
       const reason = roadOrderReason(this.view, tile, state.roadTool);
@@ -403,6 +457,7 @@ class WorldScene extends Phaser.Scene {
       piece.destroy();
     }
     this.pieces = [];
+    this.unitVisuals.clear();
     const c = this.cameras.main,
       topLeft = c.getWorldPoint(-160, -160),
       bottomRight = c.getWorldPoint(this.scale.width + 160, this.scale.height + 160),
@@ -420,8 +475,14 @@ class WorldScene extends Phaser.Scene {
           ? world.player.settings.bannerColor
           : (world.realms.find((r) => r.id === id)?.color ?? '#877d63'),
       );
-    const drawBanner = (ownerId: string, x: number, y: number, alpha = 1) => {
-      const g = this.banners;
+    const drawBanner = (
+      ownerId: string,
+      x: number,
+      y: number,
+      alpha = 1,
+      target = this.banners,
+    ) => {
+      const g = target;
       const square =
         (ownerId === world.player.id
           ? world.player.settings.bannerShape
@@ -548,24 +609,21 @@ class WorldScene extends Phaser.Scene {
     for (const t of visible.filter((t) => t.visibility !== 'UNKNOWN')) {
       const p = hexToPixel(t);
       if (t.road) {
-        d.fillStyle(
-          t.terrain === 'RIVER' ? 0xb4a07f : 0x9c8e72,
-          t.visibility === 'EXPLORED' ? 0.3 : 0.85,
+        const connections = neighbors(t).reduce(
+          (mask, n, i) => (this.tileMap.get(key(n))?.road ? mask | (1 << i) : mask),
+          0,
         );
-        d.fillRoundedRect(p.x - 9, p.y - 3, 18, 6, 2);
-        for (const n of neighbors(t)) {
-          if (this.tileMap.get(key(n))?.road) {
-            const end = hexToPixel(n);
-            d.lineStyle(7, 0x242a22, 0.6);
-            d.lineBetween(p.x, p.y, (p.x + end.x) / 2, (p.y + end.y) / 2);
-            d.lineStyle(
-              t.terrain === 'RIVER' ? 5 : 3.5,
-              t.terrain === 'RIVER' ? 0x968269 : 0x93856a,
-              t.visibility === 'EXPLORED' ? 0.25 : 0.65,
-            );
-            d.lineBetween(p.x, p.y, (p.x + end.x) / 2, (p.y + end.y) / 2);
-          }
-        }
+        const bridge = t.terrain === 'RIVER',
+          variation = Math.floor(hash(key(t)) * 4);
+        const texture = `road:${connections}:${bridge}:${variation}`;
+        if (!this.textures.exists(texture))
+          this.textures.addCanvas(texture, roadCanvas(connections, bridge, variation));
+        const road = this.add
+          .image(p.x, p.y, texture)
+          .setDisplaySize(128, 128)
+          .setDepth(depth(2000, p.y))
+          .setAlpha(t.visibility === 'EXPLORED' ? 0.4 : 1);
+        this.pieces.push(road);
       }
       if (t.ownerId) {
         const pts = points(p),
@@ -663,19 +721,43 @@ class WorldScene extends Phaser.Scene {
       }
     }
     for (const u of world.units) {
-      const p = hexToPixel(u);
-      if (p.x < topLeft.x || p.x > bottomRight.x || p.y < topLeft.y || p.y > bottomRight.y)
+      const p = this.visualPosition(u);
+      if (
+        !useGame.getState().movements[u.id] &&
+        (p.x < topLeft.x || p.x > bottomRight.x || p.y < topLeft.y || p.y > bottomRight.y)
+      )
         continue;
-      const old = this.previousUnits.get(u.id),
-        selected = useGame.getState().selection?.id === u.id;
-      d.fillStyle(0x080b08, 0.45);
-      d.fillEllipse(p.x, p.y + 10, 32, 13);
-      d.lineStyle(1.5, factionColor(u.ownerId), 0.95);
-      d.strokeEllipse(p.x, p.y + 10, 34, 13);
+      const origin = p;
+      const parts: {
+        object: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | Phaser.GameObjects.Text;
+        x: number;
+        y: number;
+        layer: number;
+      }[] = [];
+      const large =
+        UNIT_PROFILES[u.kind].siege ||
+        UNIT_PROFILES[u.kind].mechanical ||
+        UNIT_PROFILES[u.kind].flying;
+      const markerWidth = large ? 60 : 52,
+        markerHeight = large ? 23 : 20;
+      // Ownership sits above scenery/buildings and outside the miniature's opaque base.
+      // Every attachment follows the same point on the accepted route.
+      const marker = this.add
+        .graphics({ x: origin.x, y: origin.y - 20 })
+        .setDepth(depth(6400, p.y))
+        .setName(`unit-owner:${u.id}`);
+      marker.fillStyle(0x080b08, 0.45);
+      marker.fillEllipse(0, 30, markerWidth, markerHeight);
+      marker.lineStyle(4, 0x080b08, 0.85);
+      marker.strokeEllipse(0, 30, markerWidth, markerHeight);
+      marker.lineStyle(2, factionColor(u.ownerId), 1);
+      marker.strokeEllipse(0, 30, markerWidth, markerHeight);
+      this.pieces.push(marker);
+      parts.push({ object: marker, x: 0, y: -20, layer: 6400 });
       const sprite = this.add
         .image(
-          old?.x ?? p.x,
-          (old?.y ?? p.y) - 20,
+          origin.x,
+          origin.y - 20,
           miniatureTexture(UNIT_FRAMES[u.kind]),
           miniatureFrame(UNIT_FRAMES[u.kind]),
         )
@@ -683,12 +765,19 @@ class WorldScene extends Phaser.Scene {
           UNIT_PROFILES[u.kind].siege ? 75 : 67,
           UNIT_PROFILES[u.kind].siege ? 75 : 67,
         )
-        .setDepth(depth(UNIT_PROFILES[u.kind].flying ? 8500 : 7000, p.y));
+        .setDepth(depth(UNIT_PROFILES[u.kind].flying ? 8500 : 7000, p.y))
+        .setName(`unit-sprite:${u.id}`);
       if (u.ownerId !== world.player.id)
         sprite.setTint(
           world.realms.find((r) => r.id === u.ownerId)?.faction === 'MASK' ? 0xc0d2c0 : 0xcebdbe,
         );
       this.pieces.push(sprite);
+      parts.push({
+        object: sprite,
+        x: 0,
+        y: -20,
+        layer: UNIT_PROFILES[u.kind].flying ? 8500 : 7000,
+      });
       if (u.rareBonus) {
         const aura = this.add
           .graphics({ x: p.x, y: p.y + 8 })
@@ -709,6 +798,10 @@ class WorldScene extends Phaser.Scene {
           })
           .setDepth(13500);
         this.pieces.push(aura, star);
+        parts.push(
+          { object: aura, x: 0, y: 8, layer: 6500 },
+          { object: star, x: -20, y: -39, layer: 13500 },
+        );
         if (!world.player.settings.reducedMotion)
           this.tweens.add({
             targets: aura,
@@ -721,16 +814,15 @@ class WorldScene extends Phaser.Scene {
           });
       }
       const health = this.healthBar(u.id, sprite.x, sprite.y, u.hp, unitStats(u).hp, 39);
-      if (old && (old.x !== p.x || old.y !== p.y) && !world.player.settings.reducedMotion)
-        this.tweens.add({
-          targets: health ? [sprite, health] : sprite,
-          x: p.x,
-          y: p.y - 20,
-          duration: 380,
-          ease: 'Sine.easeInOut',
-        });
-      this.previousUnits.set(u.id, p);
-      drawBanner(u.ownerId, p.x + 20, p.y - 26);
+      if (health) parts.push({ object: health, x: 0, y: -20, layer: 14000 });
+      const banner = this.add
+        .graphics({ x: p.x, y: p.y })
+        .setDepth(depth(13000, p.y))
+        .setName(`unit-banner:${u.id}`);
+      drawBanner(u.ownerId, 20, -26, 1, banner);
+      this.pieces.push(banner);
+      parts.push({ object: banner, x: 0, y: 0, layer: 13000 });
+      this.unitVisuals.set(u.id, { unit: u, parts });
     }
     for (const event of world.events) {
       const t = this.tileMap.get(key(event));
@@ -799,6 +891,22 @@ class WorldScene extends Phaser.Scene {
     const state = useGame.getState(),
       selection = state.selection,
       u = this.getUnit();
+    if (state.mode === 'terraform') {
+      for (const t of this.view.tiles) {
+        if (terraformOrderReason(this.view, t, u)) continue;
+        const p = hexToPixel(t);
+        g.fillStyle(0x8ad0b5, 0.25);
+        g.fillPoints(points(p, SIZE - 3), true);
+        g.lineStyle(3, 0xb8ecd0, 1);
+        g.strokePoints(points(p, SIZE - 3), true);
+      }
+      if (state.hover) {
+        const valid = !terraformOrderReason(this.view, this.tileMap.get(key(state.hover)), u);
+        g.lineStyle(4, valid ? 0xf0d792 : 0xbc6962, 1);
+        g.strokePoints(points(hexToPixel(state.hover), SIZE - 2), true);
+      }
+      return;
+    }
     if (state.mode === 'road') {
       const tint = state.roadTool === 'build' ? 0x99c781 : 0xe08b78;
       for (const t of this.view.tiles) {
@@ -865,15 +973,16 @@ class WorldScene extends Phaser.Scene {
         const byRoad = routes.paths.has(key(p)) && !routes.blocked.has(key(p));
         if (distance(u, p) === 0 || (!byRoad && !this.path(u, p))) continue;
         const px = hexToPixel(p);
-        g.fillStyle(0x86bcb4, 0.1);
+        g.fillStyle(0x79bdb2, 0.23);
         g.fillPoints(points(px, SIZE - 3), true);
-        g.lineStyle(1, 0x8fb9ae, 0.35);
+        g.lineStyle(6, 0x101c1a, 0.8);
+        g.strokePoints(points(px, SIZE - 3), true);
+        g.lineStyle(2.5, 0xb8e8d5, 0.95);
         g.strokePoints(points(px, SIZE - 3), true);
       }
     }
     if (selection) {
-      const location = u ?? selection,
-        p = hexToPixel(location);
+      const p = u ? this.visualPosition(u) : hexToPixel(selection);
       g.lineStyle(3, 0xf2e6bc, 1);
       g.strokePoints(points(p, SIZE - 5), true);
       g.lineStyle(7, 0xcdb775, 0.1);
@@ -885,16 +994,27 @@ class WorldScene extends Phaser.Scene {
       g.strokePoints(points(p, SIZE - 2), true);
       if (state.mode === 'move' && u) {
         const path = this.path(u, state.hover);
-        if (path) {
+        if (path?.length) {
+          g.fillStyle(0xe3be7e, 0.18);
+          g.fillPoints(points(p, SIZE - 3), true);
+          g.lineStyle(6, 0x1d2019, 0.9);
+          g.strokePoints(points(p, SIZE - 3), true);
+          g.lineStyle(3, 0xffdaa0, 1);
+          g.strokePoints(points(p, SIZE - 3), true);
           let prev = hexToPixel(u);
           for (const step of path) {
             const px = hexToPixel(step);
-            g.lineStyle(2, 0xa0c5bb, 0.7);
+            g.lineStyle(6, 0x17211c, 0.85);
             g.lineBetween(prev.x, prev.y, px.x, px.y);
-            g.fillStyle(0xc5ddd0, 0.8);
-            g.fillCircle(px.x, px.y, 3);
+            g.lineStyle(3, 0xf2ce8a, 1);
+            g.lineBetween(prev.x, prev.y, px.x, px.y);
+            g.fillStyle(0xffe2aa, 1);
+            g.fillCircle(px.x, px.y, 3.5);
             prev = px;
           }
+        } else if (distance(u, state.hover) > 0) {
+          g.lineStyle(2, 0xd98576, 0.9);
+          g.strokePoints(points(p, SIZE - 3), true);
         }
       }
     }
@@ -912,6 +1032,7 @@ class WorldScene extends Phaser.Scene {
       useGame.setState({ cameraViewport: next });
   }
   update(_time: number, delta: number) {
+    this.updateUnitVisuals();
     const c = this.cameras.main,
       keys = this.panKey;
     if (keys && (keys.left.isDown || keys.right.isDown || keys.up.isDown || keys.down.isDown)) {

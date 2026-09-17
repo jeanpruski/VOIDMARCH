@@ -25,6 +25,7 @@ export const ACTION_COST = {
   BUILD: 1,
   ROAD: 1,
   REMOVE_ROAD: 1,
+  TERRAFORM: 2,
   RECRUIT: 1,
   REPAIR: 1,
   DEMOLISH: 1,
@@ -92,7 +93,19 @@ export const TERRAINS = {
 export type Terrain = keyof typeof TERRAINS;
 export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
   terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
+export const TERRAFORM_COST: Partial<Wallet> = { WOOD: 20, IRON: 10 };
 export const UNITS = {
+  TERRAFORMER: {
+    name: 'Terrassier arcanique',
+    hp: 10,
+    attack: 0,
+    defense: 2,
+    move: 3,
+    vision: 4,
+    range: 1,
+    capture: 0,
+    cost: { STONE: 0, GOLD: 65, WOOD: 35, IRON: 30, FOOD: 20 },
+  },
   RECON_PLANE: {
     name: 'Avion de reconnaissance',
     hp: 10,
@@ -1024,6 +1037,11 @@ export interface UnitProfile {
   healer?: boolean;
 }
 export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  TERRAFORMER: {
+    role: 'Transforme son terrain ou une case voisine en plaine : 2 PA, 20 bois, 10 fer. Case neutre ou à vous, sans bâtiment. Relief et ressources naturelles supprimés ; propriété conservée.',
+    recruitAt: ['WORKSHOP'],
+    requires: ['WORKSHOP'],
+  },
   RECON_PLANE: {
     role: 'Reconnaissance aérienne : vision 12, déplacement 10 ; armement léger. Survole terrains et remparts, sans capture.',
     recruitAt: ['AERODROME'],
@@ -1476,6 +1494,7 @@ export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
   MORTAR: 'Artillerie',
   PEASANT: 'Civils & soutien',
   ENGINEER: 'Civils & soutien',
+  TERRAFORMER: 'Civils & soutien',
   HEALER: 'Civils & soutien',
   SCOUT: 'Civils & soutien',
   MILITIA: 'Infanterie médiévale',

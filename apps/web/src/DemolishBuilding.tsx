@@ -83,7 +83,9 @@ export function DemolishBuilding({ building: b }: { building: Building }) {
                   className="primary"
                   disabled={pending || missingAP}
                   onClick={async () => {
-                    const result = await send({ type: 'DEMOLISH', actorId: b.id, payload: {} });
+                    const request = send({ type: 'DEMOLISH', actorId: b.id, payload: {} });
+                    setOpen(false);
+                    const result = await request;
                     if (result?.accepted) {
                       setOpen(false);
                       useGame.setState({

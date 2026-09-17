@@ -3,7 +3,10 @@ import type { CameraViewport } from './map-geometry';
 import { io, type Socket } from 'socket.io-client';
 import type { Action } from '@voidmarch/protocol';
 import type { ActionResult, AuthUser, Hex, WorldView } from '@voidmarch/shared';
+import type { WorldEffect } from './world-effects';
 import type { Settings } from '@voidmarch/config';
+import { predictAction, type Prediction } from './optimistic-actions';
+import { animateMovement, type MovementAnimation } from './movement-animation';
 export type Command = Action extends infer A
   ? A extends Action
     ? Omit<A, 'actionId' | 'clientTimestamp'>
@@ -35,11 +38,17 @@ interface GameStore {
   cameraViewport: CameraViewport | null;
   status: 'loading' | 'offline' | 'connecting' | 'online';
   selection: Selection | null;
-  mode: 'inspect' | 'move' | 'attack' | 'road';
+  mode: 'inspect' | 'move' | 'attack' | 'road' | 'terraform';
   roadTool: 'build' | 'remove';
+  terraformTarget?: Hex;
   panel: Panel;
   toast: { text: string; error: boolean } | null;
   pending: boolean;
+  pendingSince: number;
+  actionEffect?: WorldEffect & { actionId: string };
+  effectPolicy: 'normal' | 'confirmed' | 'none';
+  movements: Record<string, MovementAnimation>;
+  pendingMovement: { unitId: string; from: Hex } | null;
   now: number;
   hover: Hex | null;
   combatTarget: string | null;
@@ -58,6 +67,10 @@ export const useGame = create<GameStore>((set) => ({
   panel: null,
   toast: null,
   pending: false,
+  pendingSince: 0,
+  effectPolicy: 'normal',
+  movements: {},
+  pendingMovement: null,
   now: Date.now(),
   hover: null,
   combatTarget: null,
@@ -89,6 +102,8 @@ export async function api<T>(path: string, body?: unknown, method = 'POST'): Pro
   return data;
 }
 export function acceptSession(data: { token: string; user: AuthUser }) {
+  if (activeOrder) finishOrder(activeOrder, false);
+  if (authoritativeWorld?.player.id !== data.user.id) authoritativeWorld = null;
   sessionStorage.setItem('voidmarch.session', JSON.stringify(data));
   useGame.setState({ ...data, status: 'connecting' });
   connect();
@@ -109,6 +124,132 @@ export async function bootstrap() {
     useGame.setState({ status: 'offline', user: null, token: null });
   }
 }
+
+let authoritativeWorld: WorldView | null = null;
+interface PendingOrder {
+  action: Action;
+  prediction?: Prediction;
+  receipt?: ActionResult;
+  closedPanel: Panel;
+}
+let activeOrder: PendingOrder | undefined;
+let syncTimer: ReturnType<typeof setTimeout> | undefined;
+function publishWorld(world: WorldView, effectPolicy: GameStore['effectPolicy'] = 'normal') {
+  const previous = useGame.getState();
+  let existing = previous.selection;
+  if (existing?.id?.startsWith('preview:')) {
+    const provisional =
+      existing.kind === 'unit'
+        ? previous.world?.units.find((u) => u.id === existing!.id)
+        : previous.world?.tiles.find((t) => t.building?.id === existing!.id)?.building;
+    const entities =
+      existing.kind === 'unit'
+        ? world.units
+        : world.tiles.flatMap((t) => (t.building ? [t.building] : []));
+    const actual =
+      provisional &&
+      entities.find(
+        (item) =>
+          item.kind === provisional.kind &&
+          item.ownerId === provisional.ownerId &&
+          item.q === provisional.q &&
+          item.r === provisional.r,
+      );
+    if (actual) existing = { ...existing, id: actual.id, q: actual.q, r: actual.r };
+  }
+  const selection =
+    existing &&
+    (existing.kind === 'tile' ||
+      world.units.some((u) => u.id === existing.id) ||
+      world.tiles.some((t) => t.building?.id === existing.id))
+      ? existing
+      : (() => {
+          const unit =
+            world.units.find((u) => u.ownerId === world.player.id && u.kind === 'PEASANT') ??
+            world.units.find((u) => u.ownerId === world.player.id);
+          if (unit) return { kind: 'unit' as const, id: unit.id, q: unit.q, r: unit.r };
+          const building = world.tiles.find(
+            (t) =>
+              t.building?.ownerId === world.player.id &&
+              t.q === world.player.capital.q &&
+              t.r === world.player.capital.r,
+          )?.building;
+          return building
+            ? { kind: 'building' as const, id: building.id, q: building.q, r: building.r }
+            : null;
+        })();
+  const movements = Object.fromEntries(
+    Object.entries(previous.movements).filter(([id, animation]) => {
+      const unit = world.units.find((u) => u.id === id);
+      if (!unit || world.player.settings.reducedMotion) return false;
+      if (previous.pendingMovement?.unitId === id) return true;
+      if (world.revision < animation.revision) return true;
+      return (
+        unit.q === animation.destination.q &&
+        unit.r === animation.destination.r &&
+        Date.now() < animation.startedAt + animation.duration
+      );
+    }),
+  );
+  useGame.setState({
+    world,
+    status: 'online',
+    now: world.serverTimestamp,
+    selection,
+    movements,
+    effectPolicy,
+  });
+}
+function rememberWorld(world: WorldView) {
+  if (
+    authoritativeWorld &&
+    authoritativeWorld.player.id === world.player.id &&
+    (world.revision < authoritativeWorld.revision ||
+      (world.revision === authoritativeWorld.revision &&
+        world.serverTimestamp < authoritativeWorld.serverTimestamp))
+  )
+    return false;
+  authoritativeWorld = world;
+  return true;
+}
+function finishOrder(order: PendingOrder, accepted: boolean) {
+  if (activeOrder !== order) return;
+  clearTimeout(syncTimer);
+  activeOrder = undefined;
+  const state = useGame.getState();
+  const movements = { ...state.movements };
+  if (!accepted && order.prediction?.movement) delete movements[order.prediction.movement.unitId];
+  useGame.setState({ pending: false, pendingMovement: null, movements });
+  if (authoritativeWorld)
+    publishWorld(
+      authoritativeWorld,
+      accepted
+        ? order.prediction || order.action.type === 'ATTACK'
+          ? 'confirmed'
+          : 'normal'
+        : 'none',
+    );
+  if (!accepted && order.closedPanel && !useGame.getState().panel)
+    useGame.setState({ panel: order.closedPanel });
+}
+function receiveWorld(world: WorldView) {
+  if (!rememberWorld(world)) return;
+  if (activeOrder) {
+    // Buffer snapshots until their action receipt identifies the committed revision.
+    // Otherwise an unrelated tick could erase the prediction or spend the cost twice.
+    const receipt = activeOrder.receipt;
+    if (receipt?.accepted && receipt.revision !== undefined && world.revision >= receipt.revision)
+      finishOrder(activeOrder, true);
+    return;
+  }
+  publishWorld(world);
+}
+function resynchronize() {
+  if (activeOrder) finishOrder(activeOrder, false);
+  useGame.setState({ status: 'connecting', pending: false, movements: {}, pendingMovement: null });
+  socket?.emit('world:sync');
+}
+
 function connect() {
   socket?.disconnect();
   clearInterval(refreshTimer);
@@ -122,33 +263,8 @@ function connect() {
     useGame.setState({ status: 'connecting' });
     socket?.emit('world:join');
   });
-  socket.on('world:snapshot', (world: WorldView) => {
-    const previous = useGame.getState();
-    const existing = previous.selection;
-    const selection =
-      existing &&
-      (existing.kind === 'tile' ||
-        world.units.some((u) => u.id === existing.id) ||
-        world.tiles.some((t) => t.building?.id === existing.id))
-        ? existing
-        : (() => {
-            const unit =
-              world.units.find((u) => u.ownerId === world.player.id && u.kind === 'PEASANT') ??
-              world.units.find((u) => u.ownerId === world.player.id);
-            if (unit) return { kind: 'unit' as const, id: unit.id, q: unit.q, r: unit.r };
-            const building = world.tiles.find(
-              (t) =>
-                t.building?.ownerId === world.player.id &&
-                t.q === world.player.capital.q &&
-                t.r === world.player.capital.r,
-            )?.building;
-            return building
-              ? { kind: 'building' as const, id: building.id, q: building.q, r: building.r }
-              : null;
-          })();
-    useGame.setState({ world, status: 'online', now: world.serverTimestamp, selection });
-  });
-  socket.on('disconnect', () => useGame.setState({ status: 'connecting' }));
+  socket.on('world:snapshot', receiveWorld);
+  socket.on('disconnect', () => resynchronize());
   socket.on('connect_error', (error: Error) => {
     useGame.setState({ status: 'connecting' });
     notify(
@@ -159,7 +275,7 @@ function connect() {
     );
   });
   socket.on('server:error', (data: { message: string }) => {
-    useGame.setState({ pending: false });
+    resynchronize();
     notify(data.message, true);
   });
   heartbeat = setInterval(() => socket?.emit('player:ping'), 25000);
@@ -178,35 +294,125 @@ export function subscribe(chunks: Hex[]) {
   socket?.emit('chunks:subscribe', { chunks });
 }
 export async function send(command: Command) {
-  if (useGame.getState().pending || useGame.getState().status !== 'online') return;
-  useGame.setState({ pending: true });
-  const action = { ...command, actionId: crypto.randomUUID(), clientTimestamp: Date.now() };
+  const state = useGame.getState();
+  if (state.pending || activeOrder || state.status !== 'online' || !state.world || !socket) return;
+  // Provisional entities cannot issue orders until their real server ID arrives.
+  if (command.actorId.startsWith('preview:')) return;
+  const action: Action = { ...command, actionId: crypto.randomUUID(), clientTimestamp: Date.now() };
+  const prediction = predictAction(state.world, action);
+  authoritativeWorld ??= state.world;
+  const closePanel = prediction && ['BUILD', 'RECRUIT'].includes(command.type);
+  const order: PendingOrder = { action, prediction, closedPanel: closePanel ? state.panel : null };
+  activeOrder = order;
+  const movement = prediction?.movement;
+  const attackTarget =
+    command.type === 'ATTACK'
+      ? (state.world.units.find((u) => u.id === command.payload.targetId) ??
+        state.world.tiles.find((t) => t.building?.id === command.payload.targetId))
+      : undefined;
+  useGame.setState({
+    pending: true,
+    pendingSince: Date.now(),
+    effectPolicy: 'normal',
+    ...(attackTarget
+      ? {
+          actionEffect: {
+            q: attackTarget.q,
+            r: attackTarget.r,
+            kind: 'combat' as const,
+            actionId: action.actionId,
+          },
+          combatTarget: null,
+        }
+      : {}),
+    ...(prediction
+      ? {
+          world: prediction.world,
+          mode: state.mode === 'road' ? 'road' : 'inspect',
+          combatTarget: null,
+          terraformTarget: undefined,
+        }
+      : {}),
+    ...(closePanel ? { panel: null } : {}),
+    pendingMovement: movement ? { unitId: movement.unitId, from: movement.from } : null,
+    ...(movement && !state.world.player.settings.reducedMotion
+      ? {
+          movements: {
+            ...state.movements,
+            [movement.unitId]: animateMovement(
+              movement,
+              action.actionId,
+              state.world.revision + 1,
+              Date.now(),
+              state.movements[movement.unitId],
+            ),
+          },
+        }
+      : {}),
+  });
   try {
-    const result = (await socket!
+    const result = (await socket
       .timeout(12000)
       .emitWithAck('player:action', action)) as ActionResult;
-    if (!result.accepted) notify(result.reason ?? 'Ordre refusé.', true);
-    else {
+    // A disconnect, logout or resync may have invalidated this in-flight request.
+    if (activeOrder !== order) return;
+    if (!result.accepted) {
+      finishOrder(order, false);
+      notify(result.reason ?? 'Ordre refusé.', true);
+    } else {
+      order.receipt = result;
+      const current = useGame.getState();
+      if (result.movement?.path.length && !current.world?.player.settings.reducedMotion) {
+        const samePrediction =
+          movement && JSON.stringify(movement) === JSON.stringify(result.movement);
+        const existing = current.movements[result.movement.unitId];
+        useGame.setState({
+          movements: {
+            ...current.movements,
+            [result.movement.unitId]:
+              samePrediction && existing
+                ? { ...existing, revision: result.revision ?? existing.revision }
+                : animateMovement(
+                    result.movement,
+                    result.actionId,
+                    result.revision ?? 0,
+                    Date.now(),
+                    movement ? undefined : existing,
+                  ),
+          },
+        });
+      }
       notify(result.message ?? 'Ordre exécuté.');
       window.dispatchEvent(new CustomEvent('vm:action', { detail: command }));
       useGame.setState({
         mode:
-          (command.type === 'ROAD' || command.type === 'REMOVE_ROAD') &&
-          useGame.getState().mode === 'road'
+          ['ROAD', 'REMOVE_ROAD'].includes(command.type) && current.mode === 'road'
             ? 'road'
             : 'inspect',
         combatTarget: null,
         ...(['BUILD', 'RECRUIT'].includes(command.type) ? { panel: null } : {}),
       });
+      if (
+        authoritativeWorld &&
+        result.revision !== undefined &&
+        authoritativeWorld.revision >= result.revision
+      )
+        finishOrder(order, true);
+      else {
+        socket.emit('world:sync');
+        syncTimer = setTimeout(() => {
+          if (activeOrder === order) {
+            resynchronize();
+            notify('Actualisation du monde en cours…', true);
+          }
+        }, 8000);
+      }
     }
     return result;
   } catch {
-    notify(
-      'Réponse en attente. Reconnectez-vous pour vérifier l’ordre ; ne le répétez pas immédiatement.',
-      true,
-    );
-  } finally {
-    useGame.setState({ pending: false });
+    if (activeOrder !== order) return;
+    resynchronize();
+    notify('Connexion ralentie : vérification de l’ordre en cours…', true);
   }
 }
 export async function saveSettings(settings: Partial<Settings>) {
@@ -225,6 +431,9 @@ export async function logout() {
     return;
   }
   socket?.disconnect();
+  if (activeOrder) finishOrder(activeOrder, false);
+  authoritativeWorld = null;
+  clearTimeout(syncTimer);
   clearInterval(refreshTimer);
   clearInterval(heartbeat);
   sessionStorage.removeItem('voidmarch.session');
@@ -233,6 +442,8 @@ export async function logout() {
     token: null,
     world: null,
     cameraViewport: null,
+    movements: {},
+    pendingMovement: null,
     status: 'offline',
     selection: null,
     panel: null,

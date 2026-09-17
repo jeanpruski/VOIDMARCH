@@ -642,3 +642,23 @@ export function publicTile(
     capture: t.capture,
   };
 }
+
+/** Shared site validation; visibility and budgets are checked by the caller. */
+export function terraformSiteReason(
+  tile: Hex & { terrain?: Terrain; ownerId?: string; buildingId?: string; building?: Building },
+  ownerId: string,
+  unit: Unit,
+  units: readonly Unit[],
+) {
+  if (unit.ownerId !== ownerId || unit.kind !== 'TERRAFORMER')
+    return 'Sélectionnez votre terrassier arcanique.';
+  if (distance(unit, tile) > 1) return 'Le terrassier doit être à une case maximum du chantier.';
+  if (tile.ownerId && tile.ownerId !== ownerId)
+    return 'Impossible de transformer un territoire ennemi.';
+  if (tile.buildingId || tile.building)
+    return 'Démolissez le bâtiment avant de transformer ce terrain.';
+  if (!tile.terrain || tile.terrain === 'PLAIN') return 'Cette case est déjà une plaine.';
+  if (units.some((u) => u.ownerId !== ownerId && key(u) === key(tile)))
+    return 'Une unité ennemie occupe ce terrain.';
+  return '';
+}

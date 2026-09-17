@@ -64,6 +64,7 @@ import { Login } from './Login';
 import { Panels } from './Panels';
 import { RoadAction } from './RoadAction';
 import { RoadTools } from './RoadTools';
+import { TerraformTools } from './TerraformTools';
 import { UpgradeBuilding } from './UpgradeBuilding';
 import { DemolishBuilding } from './DemolishBuilding';
 import { NextStep, ContextHelp } from './Experience';
@@ -242,7 +243,9 @@ export function App() {
           <GameMap />
           <div className="map-shading" />
           <MapTools />
+          <PendingOrderIndicator />
           <RoadTools />
+          <TerraformTools />
           <MapLegend />
           <Minimap />
           <SelectionPanel />
@@ -805,6 +808,20 @@ function SelectionPanel() {
                       </button>
                     );
                   })}
+                {u.kind === 'TERRAFORMER' && (
+                  <button
+                    className="secondary"
+                    title="Transformer un terrain en plaine : 20 bois et 10 fer par case"
+                    onClick={() =>
+                      useGame.setState({
+                        mode: mode === 'terraform' ? 'inspect' : 'terraform',
+                        terraformTarget: undefined,
+                      })
+                    }
+                  >
+                    <Hammer size={17} /> Terrasser · 2 PA
+                  </button>
+                )}
                 {UNIT_PROFILES[u.kind].builder && <RoadAction tile={tile} />}
                 {UNIT_PROFILES[u.kind].builder && (
                   <button
@@ -1170,4 +1187,21 @@ function Defeat() {
       </section>
     </div>
   );
+}
+
+function PendingOrderIndicator() {
+  const pending = useGame((s) => s.pending);
+  const since = useGame((s) => s.pendingSince);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    setVisible(false);
+    if (!pending) return;
+    const timer = setTimeout(() => setVisible(true), 600);
+    return () => clearTimeout(timer);
+  }, [pending, since]);
+  return pending && visible ? (
+    <div className="order-progress" role="status">
+      <LoaderCircle className="spin" size={14} /> Ordre en cours…
+    </div>
+  ) : null;
 }
