@@ -37,6 +37,7 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ROAD'), actorId: id, payload: hex }),
   z.object({ type: z.literal('RECRUIT'), actorId: id, payload: z.object({ kind: unit }) }),
   z.object({ type: z.literal('REPAIR'), actorId: id, payload: z.object({}) }),
+  z.object({ type: z.literal('DEMOLISH'), actorId: id, payload: z.object({}) }),
   z.object({ type: z.literal('UPGRADE'), actorId: id, payload: z.object({}) }),
   z.object({
     type: z.literal('INTERACT'),

@@ -36,13 +36,15 @@ import {
   Target,
   TrendingUp,
   Users,
-  Volume2,
-  VolumeX,
   Wheat,
   X,
 } from 'lucide-react';
 import {
   BUILDINGS,
+  isWall,
+  WALL_KINDS,
+  productionMultiplier,
+  productionOnTerrain,
   UNIT_PROFILES,
   RECON_UNITS,
   GATHER_YIELD,
@@ -54,17 +56,19 @@ import {
   TERRAINS,
   UNITS,
 } from '@voidmarch/config';
-import { canGather, distance, key } from '@voidmarch/game-rules';
+import { canAfford, canGather, distance, key } from '@voidmarch/game-rules';
 import type { ViewTile } from '@voidmarch/shared';
-import { audioSettings, sound, startAudio } from './audio';
 import { GameMap } from './Map';
 import { Minimap } from './Minimap';
 import { Login } from './Login';
 import { Panels } from './Panels';
+import { RoadAction } from './RoadAction';
 import { UpgradeBuilding } from './UpgradeBuilding';
+import { DemolishBuilding } from './DemolishBuilding';
 import { NextStep, ContextHelp } from './Experience';
 import {
   bootstrap,
+  api,
   focusMap,
   logout,
   mapCommand,
@@ -125,6 +129,8 @@ export function App() {
       booted = true;
       void bootstrap();
     }
+    let code = '';
+    let lastKeyAt = 0;
     const t = setInterval(() => useGame.setState((s) => ({ now: s.now + 1000 })), 1000);
     const keyboard = (e: KeyboardEvent) => {
       if (
@@ -134,6 +140,22 @@ export function App() {
       )
         return;
       if (document.querySelector('[role="dialog"]')) return;
+      if (Date.now() - lastKeyAt > 5000) code = '';
+      if (e.key.toLowerCase() === 'y') code = '';
+      lastKeyAt = Date.now();
+      if (e.key === 'Enter' && code.length === 6) {
+        e.preventDefault();
+        e.stopPropagation();
+        void api<{ enabled: boolean }>('/admin/unlimited-ap', { code })
+          .then(({ enabled }) =>
+            notify(enabled ? 'PA illimités activés.' : 'PA illimités désactivés.'),
+          )
+          .catch(() => {});
+        code = '';
+      } else if (/^[a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey)
+        code = (code + e.key.toLowerCase()).slice(-6);
+
+      if (code.startsWith('y') && /^[a-z]$/i.test(e.key)) return;
       if (e.key === 'Escape')
         useGame.setState({ panel: null, combatTarget: null, mode: 'inspect', menuOpen: false });
       const item = nav.find((n) => n.hint.toLowerCase() === e.key.toLowerCase());
@@ -147,7 +169,6 @@ export function App() {
   }, []);
   useEffect(() => {
     if (world) {
-      audioSettings(world.player.settings);
       document.documentElement.style.setProperty(
         '--ui-scale',
         String(world.player.settings.uiScale),
@@ -174,29 +195,13 @@ export function App() {
         lastJournal.current &&
         entry.id !== lastJournal.current &&
         ((entry.kind === 'COMBAT' && world.player.settings.combatNotifications) ||
-          (entry.kind === 'DIPLOMACY' && world.player.settings.realmNotifications))
+          (['DIPLOMACY', 'ECONOMY'].includes(entry.kind) &&
+            world.player.settings.realmNotifications))
       )
         notify(entry.text, entry.kind === 'COMBAT');
       lastJournal.current = entry?.id;
     }
   }, [world]);
-  useEffect(() => {
-    const action = (e: Event) =>
-        sound(
-          (e as CustomEvent).detail.type,
-          useGame.getState().world?.player.settings.sfxVolume ?? 50,
-        ),
-      visibility = () => {
-        const settings = useGame.getState().world?.player.settings;
-        if (settings) audioSettings(settings);
-      };
-    window.addEventListener('vm:action', action);
-    document.addEventListener('visibilitychange', visibility);
-    return () => {
-      window.removeEventListener('vm:action', action);
-      document.removeEventListener('visibilitychange', visibility);
-    };
-  }, []);
   if (status === 'loading')
     return (
       <div className="loading-screen">
@@ -225,7 +230,7 @@ export function App() {
       </div>
     );
   return (
-    <div className="game-shell" onPointerDown={() => startAudio()}>
+    <div className="game-shell">
       <Topbar />
       <div
         className={`game-layout ${collapsedSides.left ? 'left-collapsed' : ''} ${collapsedSides.right ? 'right-collapsed' : ''}`}
@@ -273,10 +278,13 @@ function Topbar() {
   const w = useGame((s) => s.world)!,
     p = w.player,
     now = useGame((s) => s.now),
-    ap = Math.min(
-      RULES.maxAP,
-      p.ap + Math.max(0, Math.floor((now - p.nextAPAt) / RULES.apInterval) + 1),
-    );
+    ap =
+      p.ap > RULES.maxAP
+        ? p.ap
+        : Math.min(
+            RULES.maxAP,
+            p.ap + Math.max(0, Math.floor((now - p.nextAPAt) / RULES.apInterval) + 1),
+          );
   return (
     <header className="topbar">
       <button
@@ -316,15 +324,26 @@ function Topbar() {
       <div className="action-points">
         <div>
           <span className="eyebrow">POINTS D’ACTION</span>
-          <span className="runes" aria-label={`${ap} points d’action sur ${RULES.maxAP}`}>
-            <span className="full">
-              {ap} / {RULES.maxAP}
-            </span>
+          <span
+            className="runes"
+            aria-label={
+              p.unlimitedAP
+                ? 'Points d’action illimités'
+                : `${ap} points d’action sur ${RULES.maxAP}`
+            }
+          >
+            <span className="full">{p.unlimitedAP ? '∞' : `${ap} / ${RULES.maxAP}`}</span>
           </span>
         </div>
         <span className="ap-countdown">
-          {ap >= RULES.maxAP ? (
-            'RÉSERVE PLEINE'
+          {p.unlimitedAP ? (
+            'PA ILLIMITÉS'
+          ) : ap >= RULES.maxAP ? (
+            ap > RULES.maxAP ? (
+              `BONUS DE DÉPART · +${ap - RULES.maxAP}`
+            ) : (
+              'RÉSERVE PLEINE'
+            )
           ) : (
             <>
               +1 dans{' '}
@@ -601,6 +620,9 @@ function SelectionPanel() {
             {u ? 'UNITÉ SÉLECTIONNÉE' : b ? 'DOMAINE SÉLECTIONNÉ' : 'HEXAGONE SÉLECTIONNÉ'}
           </span>
           <h2>{name}</h2>
+          {u?.trainingBonus ? (
+            <span className="rare-tag">Entraînement · +{u.trainingBonus} %</span>
+          ) : null}
           {u?.rareBonus && (
             <span className="rare-tag" title="Bonus permanent aux PV, à l’attaque et à la défense">
               ✦ Rare · +{u.rareBonus} %
@@ -649,11 +671,18 @@ function SelectionPanel() {
                 ; montagne → pierre ; plaine, rivière ou marais → vivres ; ruines → or.
               </p>
               <p>
-                Une terre neutre suffit pour récolter. Capturer permet de la posséder ; elle ne
-                produit pas seule et coûte de l’or en entretien. Construire permet d’y installer une
-                production ou un domaine.
+                Les contours verts indiquent les chantiers accessibles au bâtisseur dans un rayon de
+                3 cases de vos bâtiments. Une terre neutre suffit pour récolter. Capturer permet de
+                la posséder ; elle ne produit pas seule et coûte de l’or en entretien. Construire
+                permet d’y installer une production ou un domaine.
               </p>
             </ContextHelp>
+          )}
+          {own && tile?.capture?.by === w.player.id && (
+            <p className="capture-progress">
+              Capture en cours : {tile.capture.points} points. Répétez « Revendiquer la case »
+              jusqu’à la prise de contrôle.
+            </p>
           )}
           <div
             className="selection-actions"
@@ -664,7 +693,7 @@ function SelectionPanel() {
               <>
                 <button
                   className={`primary ${mode === 'move' ? 'chosen' : ''}`}
-                  disabled={pending || w.player.ap < 1}
+                  disabled={pending || (!w.player.unlimitedAP && w.player.ap < 1)}
                   onClick={() => useGame.setState({ mode: mode === 'move' ? 'inspect' : 'move' })}
                 >
                   <ArrowUpRight size={16} />
@@ -673,23 +702,29 @@ function SelectionPanel() {
                 </button>
                 <button
                   className="secondary"
-                  disabled={pending || w.player.ap < 1 || unitStats(u).attack === 0}
+                  disabled={
+                    pending ||
+                    (!w.player.unlimitedAP && w.player.ap < 1) ||
+                    unitStats(u).attack === 0
+                  }
                   onClick={() => useGame.setState({ mode: 'attack' })}
                 >
-                  <Swords size={15} /> Attaquer
+                  <Swords size={15} /> Attaquer · {UNIT_PROFILES[u.kind].siege ? 2 : 1} PA
                 </button>
                 <button
                   className="secondary"
                   disabled={
                     pending ||
                     UNITS[u.kind].capture === 0 ||
+                    isWall(tile?.building?.kind ?? '') ||
                     (u.kind === 'PEASANT' && (!!tile?.ownerId || !!tile?.building)) ||
                     tile?.ownerId === w.player.id ||
-                    w.player.ap < 1
+                    (!w.player.unlimitedAP && w.player.ap < 1)
                   }
+                  title="Prend possession de la case occupée : permet d’y construire et d’y tracer une route. Aucun revenu automatique ; entretien territorial en or. Les sites fortifiés demandent plusieurs actions."
                   onClick={() => action('CAPTURE')}
                 >
-                  <Flag size={15} /> Capturer
+                  <Flag size={15} /> Revendiquer la case · 1 PA
                 </button>
                 <button
                   className="icon-button"
@@ -701,10 +736,19 @@ function SelectionPanel() {
                   aria-label={
                     UNIT_PROFILES[u.kind].mechanical ? 'Réparer le véhicule' : 'Soigner l’unité'
                   }
-                  disabled={pending || u.hp === unitStats(u).hp}
+                  disabled={
+                    pending ||
+                    u.hp >= unitStats(u).hp ||
+                    (!w.player.unlimitedAP && w.player.ap < 1) ||
+                    !canAfford(w.player.wallet, {
+                      GOLD: 10,
+                      ...(UNIT_PROFILES[u.kind].mechanical ? { IRON: 10 } : { FOOD: 10 }),
+                    })
+                  }
                   onClick={() => action('REPAIR')}
                 >
-                  <Plus size={17} />
+                  <Plus size={17} /> {UNIT_PROFILES[u.kind].mechanical ? 'Réparer' : 'Soigner'} · 1
+                  PA
                 </button>
                 {u.kind === 'PEASANT' &&
                   RESOURCES.map((resource) => {
@@ -722,7 +766,9 @@ function SelectionPanel() {
                       <button
                         key={resource}
                         className="secondary"
-                        disabled={pending || w.player.ap < 1 || !accessible}
+                        disabled={
+                          pending || (!w.player.unlimitedAP && w.player.ap < 1) || !accessible
+                        }
                         title={
                           accessible
                             ? 'Récolter sur la case occupée'
@@ -737,6 +783,7 @@ function SelectionPanel() {
                       </button>
                     );
                   })}
+                {UNIT_PROFILES[u.kind].builder && <RoadAction tile={tile} />}
                 {UNIT_PROFILES[u.kind].builder && (
                   <button
                     className="secondary"
@@ -751,7 +798,9 @@ function SelectionPanel() {
                             (t.ownerId === w.player.id ||
                               (!t.ownerId &&
                                 w.tiles.some(
-                                  (n) => n.ownerId === w.player.id && distance(n, t) === 1,
+                                  (n) =>
+                                    n.building?.ownerId === w.player.id &&
+                                    distance(n, t) <= RULES.constructionRadius,
                                 ))),
                         );
                       if (site) {
@@ -767,7 +816,11 @@ function SelectionPanel() {
                 {u.kind !== 'PEASANT' && (
                   <button
                     className="secondary"
-                    disabled={pending || w.player.ap < (UNIT_PROFILES[u.kind].healer ? 1 : 2)}
+                    disabled={
+                      pending ||
+                      (!w.player.unlimitedAP &&
+                        w.player.ap < (UNIT_PROFILES[u.kind].healer ? 1 : 2))
+                    }
                     onClick={() =>
                       void send({
                         type: 'ABILITY',
@@ -811,7 +864,7 @@ function SelectionPanel() {
                         void send({ type: 'INTERACT', actorId: u.id, payload: { eventId: e.id } })
                       }
                     >
-                      <Eye size={14} /> Explorer l’anomalie
+                      <Eye size={14} /> Explorer l’anomalie · 1 PA
                     </button>
                   ))}
                 {w.caravans
@@ -841,13 +894,30 @@ function SelectionPanel() {
             <span>
               {b.hp}/{BUILDINGS[b.kind].hp * b.level} PV
             </span>
-            <span>Niveau {b.level}</span>
+            <span>
+              {isWall(b.kind)
+                ? `Rempart · palier ${WALL_KINDS.indexOf(b.kind) + 1}/3`
+                : `Niveau ${b.level}`}
+            </span>
+            {isWall(b.kind) && (
+              <span title="Les ennemis doivent détruire ce tronçon pour entrer sur la case. Vos unités traversent librement. Une route ne supprime pas cette protection.">
+                Passage allié · ennemis bloqués
+              </span>
+            )}
             {b.population > 0 && (
               <span>
                 <Users size={13} /> {format(b.population)}
               </span>
             )}
-            <Cost cost={BUILDINGS[b.kind].production} />
+            <span title="Production brute par minute">
+              <Cost
+                cost={Object.fromEntries(
+                  Object.entries(productionOnTerrain(b.kind, tile?.terrain ?? 'PLAIN')).map(
+                    ([r, v]) => [r, v * productionMultiplier(b.kind, b.level)],
+                  ),
+                )}
+              />
+            </span>
           </div>
           <div
             className="selection-actions"
@@ -863,15 +933,20 @@ function SelectionPanel() {
                 >
                   <Users size={15} /> Recruter
                 </button>
-                {['CAMP', 'OUTPOST', 'VILLAGE'].includes(b.kind) && (
-                  <UpgradeBuilding key={b.id} building={b} />
-                )}
+                <UpgradeBuilding key={b.id} building={b} />
+                <DemolishBuilding key={`demolish-${b.id}`} building={b} />
+                <RoadAction tile={tile} />
                 <button
                   className="secondary"
-                  disabled={pending || b.hp === BUILDINGS[b.kind].hp * b.level}
+                  disabled={
+                    pending ||
+                    b.hp >= BUILDINGS[b.kind].hp * b.level ||
+                    (!w.player.unlimitedAP && w.player.ap < 1) ||
+                    !canAfford(w.player.wallet, { GOLD: 10, WOOD: 15 })
+                  }
                   onClick={() => action('REPAIR')}
                 >
-                  <Hammer size={15} /> Réparer
+                  <Hammer size={15} /> Réparer · 1 PA
                 </button>
                 <button
                   className="icon-button"
@@ -899,6 +974,7 @@ function SelectionPanel() {
                   ? 'Cette terre peut accueillir un domaine ou une infrastructure.'
                   : 'Occupez cette terre avec une unité de capture pour la revendiquer.'}
           </p>
+          <RoadAction tile={tile} />
           {(own ||
             (tile &&
               !tile.ownerId &&
@@ -908,7 +984,11 @@ function SelectionPanel() {
                   UNIT_PROFILES[u.kind].builder &&
                   distance(u, tile) <= 1,
               ) &&
-              w.tiles.some((t) => t.ownerId === w.player.id && distance(t, tile) === 1))) && (
+              w.tiles.some(
+                (t) =>
+                  t.building?.ownerId === w.player.id &&
+                  distance(t, tile) <= RULES.constructionRadius,
+              ))) && (
             <button className="primary" onClick={() => useGame.setState({ panel: 'build' })}>
               <Hammer size={15} /> Construire
             </button>
@@ -1026,16 +1106,6 @@ function BottomBar() {
         <b>·</b>
         {w.onlineHumans} souverain{w.onlineHumans > 1 ? 's' : ''} présent
         {w.onlineHumans > 1 ? 's' : ''}
-      </span>
-      <span>
-        <button
-          aria-label="Activer ou couper le son"
-          onClick={() =>
-            void saveSettings({ masterVolume: w.player.settings.masterVolume ? 0 : 35 })
-          }
-        >
-          {w.player.settings.masterVolume ? <Volume2 size={13} /> : <VolumeX size={13} />}
-        </button>
       </span>
     </footer>
   );

@@ -5,12 +5,18 @@ import {
   type Wallet,
   ACTION_COST,
   BUILDINGS,
+  isWall,
+  BUILDING_DEFENSE,
   BUILDING_POPULATION,
   RESOURCES,
   RESOURCE_NAMES,
   UNIT_PROFILES,
   UNITS,
   buildingUpgrade,
+  productionMultiplier,
+  populationCapacity,
+  storageBonus,
+  trainingBonusAt,
 } from '@voidmarch/config';
 import type { ViewTile } from '@voidmarch/shared';
 import { Modal, format } from './ui';
@@ -27,9 +33,11 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
     : [];
   const populationMissing = !!upgrade && b.population < upgrade.population;
   const unavailable =
-    pending || world.player.ap < costAP || missing.length > 0 || populationMissing;
-  const capacity = (kind: typeof b.kind, level: number) =>
-    (BUILDING_POPULATION[kind] ?? 0) * (kind === 'VILLAGE' ? level + 1 : 2);
+    pending ||
+    (!world.player.unlimitedAP && world.player.ap < costAP) ||
+    missing.length > 0 ||
+    populationMissing;
+  const capacity = populationCapacity;
   const unlocked = upgrade
     ? Object.entries(UNIT_PROFILES)
         .filter(([, p]) => p.recruitAt.includes(upgrade.kind) && !p.recruitAt.includes(b.kind))
@@ -38,7 +46,7 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
   return (
     <>
       <button className="secondary" disabled={!upgrade} onClick={() => setOpen(true)}>
-        <TrendingUp size={15} /> {upgrade ? 'Développer…' : 'Niveau maximal'}
+        <TrendingUp size={15} /> {upgrade ? 'Améliorer · 2 PA' : 'Niveau maximal'}
       </button>
       {open &&
         upgrade &&
@@ -56,12 +64,22 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                   {BUILDINGS[upgrade.kind].hp * upgrade.level} PV maximum. Le bâtiment est
                   entièrement réparé.
                 </li>
-                <li>
-                  Population : {format(b.population)} →{' '}
-                  {format(Math.max(b.population, upgrade.minimumPopulation))} habitants ; capacité
-                  de croissance : {capacity(b.kind, b.level)} →{' '}
-                  {capacity(upgrade.kind, upgrade.level)}.
-                </li>
+                {!isWall(b.kind) && (
+                  <li>
+                    Population : {format(b.population)} →{' '}
+                    {format(Math.max(b.population, upgrade.minimumPopulation))} habitants ; capacité
+                    de croissance : {capacity(b.kind, b.level)} →{' '}
+                    {capacity(upgrade.kind, upgrade.level)}.
+                  </li>
+                )}
+                {isWall(b.kind) && (
+                  <li>
+                    Résistance aux attaques : {BUILDING_DEFENSE[b.kind] ?? 0} →{' '}
+                    {BUILDING_DEFENSE[upgrade.kind] ?? 0}. Vos unités gardent le passage ; tous les
+                    ennemis restent bloqués jusqu’à destruction. Les raccords aux remparts voisins
+                    sont conservés.
+                  </li>
+                )}
                 {RESOURCES.filter(
                   (r) =>
                     ((BUILDINGS[b.kind].production as Partial<Wallet>)[r] ?? 0) ||
@@ -70,10 +88,10 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                   <li key={r}>
                     {RESOURCE_NAMES[r]} / min (production de base) :{' '}
                     {((BUILDINGS[b.kind].production as Partial<Wallet>)[r] ?? 0) *
-                      (b.kind === 'VILLAGE' ? b.level : 1)}{' '}
+                      productionMultiplier(b.kind, b.level)}{' '}
                     →{' '}
                     {((BUILDINGS[upgrade.kind].production as Partial<Wallet>)[r] ?? 0) *
-                      upgrade.level}
+                      productionMultiplier(upgrade.kind, upgrade.level)}
                     .
                   </li>
                 ))}
@@ -83,6 +101,23 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                     vivres restent déduits du revenu net.
                   </li>
                 )}
+                {trainingBonusAt(upgrade.kind, upgrade.level) > 0 && (
+                  <li>
+                    Entraînement : +{trainingBonusAt(b.kind, b.level)} % → +
+                    {trainingBonusAt(upgrade.kind, upgrade.level)} % aux PV, attaque et défense des
+                    types d’unités formés ici, y compris les troupes existantes. Le meilleur bonus
+                    s’applique, sans cumul entre bâtiments.
+                  </li>
+                )}
+                {storageBonus(upgrade.kind, upgrade.level) > 0 && (
+                  <li>
+                    Stockage ajouté : {storageBonus(b.kind, b.level)} →{' '}
+                    {storageBonus(upgrade.kind, upgrade.level)} par ressource.
+                  </li>
+                )}
+                {!isWall(b.kind) && (
+                  <li>Vision : +{upgrade.level - 1} cases par rapport au bâtiment de niveau 1.</li>
+                )}
                 {unlocked.length > 0 && (
                   <li>
                     Recrutement dans ce bâtiment : {unlocked.join(', ')} (autres prérequis toujours
@@ -91,8 +126,13 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                 )}
               </ul>
               <h3>Coût de l’amélioration</h3>
-              <p className={world.player.ap < costAP ? 'upgrade-missing' : ''}>
-                {costAP} PA nécessaires · {world.player.ap} disponibles
+              <p
+                className={
+                  !world.player.unlimitedAP && world.player.ap < costAP ? 'upgrade-missing' : ''
+                }
+              >
+                {costAP} PA nécessaires · {world.player.unlimitedAP ? '∞' : world.player.ap}{' '}
+                disponibles
               </p>
               <table>
                 <thead>

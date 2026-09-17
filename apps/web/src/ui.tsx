@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { miniatureAtlasUrl } from './sprite-atlas';
+import { wallImageUrl, loadWallMaterials } from './wall-art';
+import { WALL_KINDS, type WallKind } from '@voidmarch/config';
 import { RESOURCES, RESOURCE_NAMES, type Resource, type Wallet } from '@voidmarch/config';
 import { useGame } from './store';
 export const resourceIcons: Record<Resource, LucideIcon> = {
@@ -188,6 +190,15 @@ export function Modal({
   );
 }
 export const UNIT_FRAMES: Record<string, number> = {
+  TESLA_TROOPER: 72,
+  HEX_HUNTER: 73,
+  PLAGUE_MEDIC: 74,
+  GHOUL_INFANTRY: 75,
+  SPECTRAL_RIDER: 76,
+  SIEGE_WALKER: 77,
+  HEX_TANK: 78,
+  MORTAR: 79,
+
   RIFLEMAN: 48,
   STORMTROOPER: 49,
   MACHINE_GUNNER: 50,
@@ -222,6 +233,14 @@ export const UNIT_FRAMES: Record<string, number> = {
   SIEGE: 5,
 };
 export const BUILDING_FRAMES: Record<string, number> = {
+  WOOD_WALL: 84,
+  STONE_WALL: 85,
+  STEEL_WALL: 86,
+  TESLA_COIL: 80,
+  CRYPT_BARRACKS: 81,
+  ALCHEMY_FOUNDRY: 82,
+  BLACK_OBSERVATORY: 83,
+
   QUARRY: 12,
   ARSENAL: 60,
   BUNKER: 61,
@@ -262,9 +281,55 @@ export const BUILDING_FRAMES: Record<string, number> = {
   TOWER: 18,
 };
 export const miniatureTexture = (frame: number) =>
-  frame >= 48 ? 'industrial' : frame >= 24 ? 'expansion' : 'miniatures';
+  frame < 6
+    ? 'units-medieval'
+    : frame >= 24 && frame < 36
+      ? 'units-civil'
+      : frame >= 48 && frame < 60
+        ? 'units-industrial'
+        : frame >= 72
+          ? 'occult'
+          : frame >= 48
+            ? 'industrial'
+            : frame >= 24
+              ? 'expansion'
+              : 'miniatures';
 export const miniatureFrame = (frame: number) => frame % 24;
 export function Miniature({ frame, size = 76 }: { frame: number; size?: number }) {
+  const wall = WALL_KINDS[frame - 84];
+  return wall ? (
+    <WallMiniature wall={wall} size={size} />
+  ) : (
+    <AtlasMiniature frame={frame} size={size} />
+  );
+}
+function WallMiniature({ wall, size }: { wall: WallKind; size: number }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void loadWallMaterials()
+      .then(() => {
+        if (active) setReady(true);
+      })
+      .catch(console.error);
+    return () => {
+      active = false;
+    };
+  }, []);
+  return (
+    <span
+      className="miniature"
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        backgroundImage: ready ? `url(${wallImageUrl(wall)})` : 'none',
+        backgroundSize: '100% 100%',
+      }}
+    />
+  );
+}
+function AtlasMiniature({ frame, size }: { frame: number; size: number }) {
   const texture = miniatureTexture(frame);
   const [atlas, setAtlas] = useState<{ texture: string; url: string }>();
   useEffect(() => {

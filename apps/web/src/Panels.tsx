@@ -1,6 +1,7 @@
 import { buildingStage, compareBuildings, buildingsUnlockedBy } from './building-order';
 import { unitStats } from '@voidmarch/game-rules';
 import { useState, type FormEvent } from 'react';
+import { RoadAction } from './RoadAction';
 import { ContextHelp } from './Experience';
 import {
   ArrowRight,
@@ -18,10 +19,13 @@ import {
   Crown,
   ScrollText,
   ArrowUp,
-  Volume2,
 } from 'lucide-react';
 import {
   BUILDINGS,
+  isBuildable,
+  isWall,
+  RULES,
+  BUILDING_POPULATION,
   UNIT_PROFILES,
   UNIT_TABS,
   UNIT_CATEGORY,
@@ -32,6 +36,8 @@ import {
   unitPopulation,
   unitUpkeep,
   productionOnTerrain,
+  productionMultiplier,
+  trainingBonusAt,
   BUILDING_REQUIREMENTS,
   BUILDING_ROLES,
   CITY_LEVELS,
@@ -40,6 +46,7 @@ import {
   RESOURCE_NAMES,
   TERRAINS,
   UNITS,
+  type Terrain,
   type BuildingKind,
   type Resource,
   type Settings,
@@ -355,7 +362,14 @@ function Economy() {
             .filter((t) => t.building?.ownerId === p.id)
             .map((t) => {
               const b = t.building!;
-              const production = t.terrain ? productionOnTerrain(b.kind, t.terrain) : {};
+              const production = t.terrain
+                ? Object.fromEntries(
+                    Object.entries(productionOnTerrain(b.kind, t.terrain)).map(([r, v]) => [
+                      r,
+                      v * productionMultiplier(b.kind, b.level),
+                    ]),
+                  )
+                : {};
               return (
                 <tr key={b.id}>
                   <td>
@@ -703,63 +717,68 @@ function Events() {
         Certaines merveilles sont annoncées dans toutes les Marches. D’autres attendent un
         éclaireur.
       </p>
-      {w.events.map((e) => (
-        <article className={`event-card ${e.claimedBy ? 'claimed' : ''}`} key={e.id}>
-          <Miniature
-            frame={
-              e.kind === 'MONOLITH'
-                ? 19
-                : e.kind === 'METEOR'
-                  ? 20
-                  : e.kind === 'COLOSSUS'
-                    ? 21
-                    : e.kind === 'ROYAL_CARAVAN'
-                      ? 22
-                      : 23
-            }
-            size={94}
-          />
-          <div>
-            <div className="eyebrow">
-              {e.claimedBy
-                ? 'DÉCOUVERTE ACCOMPLIE'
-                : e.global
-                  ? 'ÉVÉNEMENT MONDIAL'
-                  : 'DÉCOUVERTE LOCALE'}
-            </div>
-            <h3>{e.title}</h3>
-            <p>{e.description}</p>
-            <Cost cost={e.reward} />
-            <small>
-              Disparaît dans <Duration until={e.endsAt} />
-            </small>
-            <div className="button-row">
-              <button className="secondary small" onClick={() => focusMap(e)}>
-                Localiser <MapPin size={13} />
-              </button>
-              {!e.claimedBy && (
-                <button
-                  className="primary small"
-                  disabled={!unit || distance(unit, e) > 1}
-                  title={
-                    !unit
-                      ? 'Sélectionnez une de vos unités.'
-                      : distance(unit, e) > 1
-                        ? 'Approchez une unité à un hexagone.'
-                        : undefined
-                  }
-                  onClick={() =>
-                    unit &&
-                    void send({ type: 'INTERACT', actorId: unit.id, payload: { eventId: e.id } })
-                  }
-                >
-                  Explorer · 1 PA
+      {!w.events.some((e) => !e.claimedBy && e.endsAt > w.serverTimestamp) && (
+        <p className="empty-line">Aucune découverte disponible pour le moment.</p>
+      )}
+      {w.events
+        .filter((e) => !e.claimedBy && e.endsAt > w.serverTimestamp)
+        .map((e) => (
+          <article className={`event-card ${e.claimedBy ? 'claimed' : ''}`} key={e.id}>
+            <Miniature
+              frame={
+                e.kind === 'MONOLITH'
+                  ? 19
+                  : e.kind === 'METEOR'
+                    ? 20
+                    : e.kind === 'COLOSSUS'
+                      ? 21
+                      : e.kind === 'ROYAL_CARAVAN'
+                        ? 22
+                        : 23
+              }
+              size={94}
+            />
+            <div>
+              <div className="eyebrow">
+                {e.claimedBy
+                  ? 'DÉCOUVERTE ACCOMPLIE'
+                  : e.global
+                    ? 'ÉVÉNEMENT MONDIAL'
+                    : 'DÉCOUVERTE LOCALE'}
+              </div>
+              <h3>{e.title}</h3>
+              <p>{e.description}</p>
+              <Cost cost={e.reward} />
+              <small>
+                Disparaît dans <Duration until={e.endsAt} />
+              </small>
+              <div className="button-row">
+                <button className="secondary small" onClick={() => focusMap(e)}>
+                  Localiser <MapPin size={13} />
                 </button>
-              )}
+                {!e.claimedBy && (
+                  <button
+                    className="primary small"
+                    disabled={!unit || distance(unit, e) > 1}
+                    title={
+                      !unit
+                        ? 'Sélectionnez une de vos unités.'
+                        : distance(unit, e) > 1
+                          ? 'Approchez une unité à un hexagone.'
+                          : undefined
+                    }
+                    onClick={() =>
+                      unit &&
+                      void send({ type: 'INTERACT', actorId: unit.id, payload: { eventId: e.id } })
+                    }
+                  >
+                    Explorer · 1 PA
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        </article>
-      ))}
+          </article>
+        ))}
     </>
   );
 }
@@ -836,15 +855,22 @@ function Build() {
     tile &&
     !tile.ownerId &&
     builder &&
-    w.tiles.some((t) => t.ownerId === w.player.id && distance(t, tile) === 1);
+    w.tiles.some(
+      (t) => t.building?.ownerId === w.player.id && distance(t, tile) <= RULES.constructionRadius,
+    );
   return (
     <>
       <p className="panel-intro">
         {tile?.terrain ? `${TERRAINS[tile.terrain].name} · Hexagone ${tile.q}, ${tile.r}. ` : ''}Un
-        bâtiment par hexagone. Les routes peuvent traverser un domaine déjà bâti.
+        bâtiment par hexagone. Extension possible à 3 cases d’un bâtiment avec un bâtisseur près du
+        chantier. {Object.keys(BUILDINGS).length} types de bâtiments, dont 2 évolutions de remparts.
+        Les routes peuvent traverser un domaine déjà bâti.
       </p>
       {tile?.ownerId !== w.player.id && !frontier && (
-        <p className="form-error">Sélectionnez un hexagone de votre royaume.</p>
+        <p className="form-error">
+          Choisissez vos terres, ou un chantier à 3 cases d’un bâtiment et à une case d’un
+          bâtisseur.
+        </p>
       )}
       <p className="catalog-order-hint">
         Terrain adapté en premier · Bâtiments de base → développements avancés
@@ -853,8 +879,8 @@ function Build() {
         <p>
           Les bâtiments adaptés au terrain apparaissent en premier, des bases aux constructions
           avancées. Chaque étape correspond à la profondeur des prérequis. À étape égale, les moins
-          coûteux viennent d’abord. Il faut une case libre de votre royaume, ou un bâtisseur à
-          proximité d’une case neutre voisine de vos terres.
+          coûteux viennent d’abord. Il faut une case libre de votre royaume, ou un bâtisseur à une
+          case maximum du chantier neutre, situé à trois cases maximum de l’un de vos bâtiments.
         </p>
         <p>
           Chaque construction coûte 1 PA et les ressources affichées. Certains bâtiments demandent
@@ -885,6 +911,7 @@ function Build() {
       </label>
       <div className="catalog">
         {(Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][])
+          .filter(([kind]) => isBuildable(kind))
           .filter(([kind]) => category === 'Tous' || BUILDING_CATEGORY[kind] === category)
           .filter(([, b]) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
           .sort(([a], [b]) => compareBuildings(a, b, tile?.terrain))
@@ -908,7 +935,7 @@ function Build() {
                     ? 'Terrain incompatible'
                     : missing
                       ? `${BUILDINGS[missing].name} nécessaire`
-                      : w.player.ap < 1
+                      : !w.player.unlimitedAP && w.player.ap < 1
                         ? '1 PA nécessaire'
                         : !canAfford(w.player.wallet, cost)
                           ? 'Ressources insuffisantes'
@@ -970,9 +997,37 @@ function Build() {
                 </div>
                 {BUILDING_ROLES[kind] && <p>{BUILDING_ROLES[kind]}</p>}
                 <p>
+                  Production / min :{' '}
+                  {RESOURCES.filter(
+                    (r) =>
+                      (productionOnTerrain(kind, tile?.terrain ?? (b.terrains[0] as Terrain))[r] ??
+                        0) > 0,
+                  )
+                    .map(
+                      (r) =>
+                        `${productionOnTerrain(kind, tile?.terrain ?? (b.terrains[0] as Terrain))[r]} ${RESOURCE_NAMES[r].toLowerCase()}`,
+                    )
+                    .join(' · ') || 'aucune ressource directe'}
+                  .
+                </p>
+                {(BUILDING_POPULATION[kind] ?? 0) > 0 && (
+                  <p>Population initiale : {BUILDING_POPULATION[kind]} habitants.</p>
+                )}
+                {Object.entries(UNIT_PROFILES).some(([, p]) => p.recruitAt.includes(kind)) && (
+                  <p>
+                    Forme :{' '}
+                    {Object.entries(UNIT_PROFILES)
+                      .filter(([, p]) => p.recruitAt.includes(kind))
+                      .map(([k]) => UNITS[k as UnitKind].name)
+                      .join(', ')}
+                    .
+                  </p>
+                )}
+                <p>
                   {b.terrains.map((t) => TERRAINS[t as keyof typeof TERRAINS].name).join(' · ')}
                 </p>
                 <Cost cost={cost} wallet={w.player.wallet} />
+                {reason && <p className="catalog-unavailable">{reason}</p>}
 
                 <button
                   className="secondary small"
@@ -987,7 +1042,7 @@ function Build() {
                     })
                   }
                 >
-                  {reason || 'Construire · 1 PA'}
+                  Construire · 1 PA
                 </button>
               </article>
             );
@@ -997,22 +1052,12 @@ function Build() {
         <Route size={20} />
         <h4>Route & pont</h4>
         <p>
-          Connectez vos domaines. Une route réduit le coût de déplacement ; un pont permet de
-          traverser une rivière plus facilement.
+          Sélectionnez une case de votre territoire puis tracez une route dessus, même sous un
+          bâtiment. Entrer sur cette case coûte 1 point de déplacement, au lieu de 2 ou 3 en forêt,
+          sur relief ou rivière. Sur plaine, le coût est déjà de 1. Les cases voisines se relient
+          automatiquement ; le trajet complet coûte toujours 1 PA.
         </p>
-        <button
-          className="secondary"
-          disabled={
-            pending || !tile || tile.ownerId !== w.player.id || tile.road || w.player.ap < 1
-          }
-          onClick={() =>
-            tile &&
-            void send({ type: 'ROAD', actorId: w.player.id, payload: { q: tile.q, r: tile.r } })
-          }
-        >
-          Construire {tile?.terrain === 'RIVER' ? 'un pont' : 'une route'} · 1 PA{' '}
-          <Cost cost={tile?.terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 }} />
-        </button>
+        <RoadAction tile={tile} />
       </div>
     </>
   );
@@ -1027,13 +1072,28 @@ function Recruit() {
   const ownUnits = w.units.filter((u) => u.ownerId === w.player.id);
   const capacity = Math.max(15, w.player.population);
   const mobilized = armyPopulation(ownUnits);
+  const recruitReason = (kind: UnitKind) => {
+    const profile = UNIT_PROFILES[kind];
+    const free = kind === 'PEASANT' && !ownUnits.some((u) => u.kind === 'PEASANT');
+    const missing = profile.requires.find(
+      (k) => !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
+    );
+    if (!building || building.ownerId !== w.player.id) return 'Sélectionnez votre bâtiment';
+    if (!profile.recruitAt.includes(building.kind))
+      return `Formation : ${BUILDINGS[profile.recruitAt[0]].name}`;
+    if (missing) return `${BUILDINGS[missing].name} nécessaire`;
+    if (!free && mobilized + unitPopulation(kind) > capacity) return 'Population insuffisante';
+    if (!free && !canAfford(w.player.wallet, UNITS[kind].cost)) return 'Ressources insuffisantes';
+    if (!w.player.unlimitedAP && w.player.ap < 1) return '1 PA nécessaire';
+    return '';
+  };
   return (
     <>
       <p className="panel-intro">
         {building
           ? `${BUILDINGS[building.kind].name} · ${building.q}, ${building.r}`
           : 'Sélectionnez un bâtiment de recrutement.'}{' '}
-        — Mobilisation : {mobilized}/{capacity} places.
+        — {Object.keys(UNITS).length} types d’unités · Mobilisation : {mobilized}/{capacity} places.
       </p>
       <p className="rare-explanation">
         ✦ À chaque recrutement : 1 % de chance d’obtenir une unité rare, avec +10 à +30 % de PV,
@@ -1045,8 +1105,9 @@ function Recruit() {
       </p>
       <ContextHelp title="Comment choisir et former une unité ?">
         <p>
-          Civils et soutiens d’abord, combattants par attaque croissante, véhicules en dernier. La
-          portée, la défense et les capacités spéciales comptent aussi dans un combat.
+          Unités recrutables immédiatement en premier, puis les autres. Dans chaque groupe : civils,
+          combattants par force croissante, puis véhicules. La portée, la défense et les capacités
+          spéciales comptent aussi dans un combat.
         </p>
         <p>
           PV : résistance aux dégâts. ATQ : attaque. DÉF : défense. MOUV : budget de déplacement ;
@@ -1081,31 +1142,20 @@ function Recruit() {
       </label>
       <div className="catalog">
         {(Object.entries(UNITS) as [UnitKind, (typeof UNITS)[UnitKind]][])
-          .sort(compareRecruits)
+          .sort(
+            (a, b) =>
+              Number(!!recruitReason(a[0])) - Number(!!recruitReason(b[0])) ||
+              Number(!canAfford(w.player.wallet, UNITS[a[0]].cost)) -
+                Number(!canAfford(w.player.wallet, UNITS[b[0]].cost)) ||
+              compareRecruits(a, b),
+          )
           .filter(([kind]) => category === 'Toutes' || UNIT_CATEGORY[kind] === category)
           .filter(([, u]) => u.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
           .map(([kind, u]) => {
             const profile = UNIT_PROFILES[kind],
               free = kind === 'PEASANT' && !ownUnits.some((x) => x.kind === 'PEASANT');
             const cost = free ? { STONE: 0, GOLD: 0, WOOD: 0, IRON: 0, FOOD: 0 } : u.cost;
-            const missing = profile.requires.find(
-              (k) =>
-                !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
-            );
-            const reason =
-              !building || building.ownerId !== w.player.id
-                ? 'Sélectionnez votre bâtiment'
-                : !profile.recruitAt.includes(building.kind)
-                  ? `Formation : ${BUILDINGS[profile.recruitAt[0]].name}`
-                  : missing
-                    ? `${BUILDINGS[missing].name} nécessaire`
-                    : !free && mobilized + unitPopulation(kind) > capacity
-                      ? 'Population insuffisante'
-                      : !canAfford(w.player.wallet, cost)
-                        ? 'Ressources insuffisantes'
-                        : w.player.ap < 1
-                          ? '1 PA nécessaire'
-                          : '';
+            const reason = recruitReason(kind);
             return (
               <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
                 <span className="catalog-status">
@@ -1114,6 +1164,22 @@ function Recruit() {
                 <Miniature frame={UNIT_FRAMES[kind]} size={90} />
                 <h4>{u.name}</h4>
                 <p>{profile.role}</p>
+                {building && !profile.builder && (
+                  <p>
+                    Entraînement de votre royaume : +
+                    {Math.max(
+                      0,
+                      ...w.tiles
+                        .filter(
+                          (t) =>
+                            t.building?.ownerId === w.player.id &&
+                            profile.recruitAt.includes(t.building.kind),
+                        )
+                        .map((t) => trainingBonusAt(t.building!.kind, t.building!.level)),
+                    )}{' '}
+                    % aux PV, attaque et défense.
+                  </p>
+                )}
                 <p>
                   {unitPopulation(kind)} places · Entretien / min :{' '}
                   {RESOURCES.filter((resource) => unitUpkeep(kind)[resource] > 0)
@@ -1129,6 +1195,7 @@ function Recruit() {
                   MOUV {u.move} · VISION {u.vision} · PORTÉE {u.range}
                 </p>
                 <Cost cost={cost} wallet={w.player.wallet} />
+                {reason && <p className="catalog-unavailable">{reason}</p>}
                 {free && <p>Gratuit en ressources</p>}
 
                 <p>Formation : {profile.recruitAt.map((k) => BUILDINGS[k].name).join(', ')}.</p>
@@ -1151,7 +1218,7 @@ function Recruit() {
                     void send({ type: 'RECRUIT', actorId: building.id, payload: { kind } })
                   }
                 >
-                  {reason || (free ? 'Former le paysan · 1 PA' : 'Recruter · 1 PA')}
+                  {free ? 'Former le paysan · 1 PA' : 'Recruter · 1 PA'}
                 </button>
               </article>
             );
@@ -1194,7 +1261,7 @@ function Combat() {
         ? 'Ce royaume bénéficie de la protection initiale.'
         : distance(attacker, target) > UNITS[attacker.kind].range
           ? 'Cette cible est hors de portée.'
-          : w.player.ap < ap
+          : !w.player.unlimitedAP && w.player.ap < ap
             ? `${ap} PA nécessaires.`
             : '';
   return (
@@ -1228,6 +1295,12 @@ function Combat() {
           {TERRAINS[tile.terrain].name} · Défense du terrain : +{TERRAINS[tile.terrain].defense}
         </small>
       </div>
+      {isWall(target.kind) && (
+        <p>
+          Ouvrir une brèche : détruisez ce tronçon pour rendre sa case franchissable. Les engins de
+          siège utilisent leurs dégâts contre les bâtiments.
+        </p>
+      )}
       {w.player.protectedUntil > now && (
         <p className="warning">Donner cet ordre mettra fin à votre protection initiale.</p>
       )}
@@ -1250,7 +1323,6 @@ function Preferences() {
     [busy, setBusy] = useState(false);
   const update = <K extends keyof Settings>(k: K, v: Settings[K]) => setDraft({ ...draft, [k]: v });
   const checks: [keyof Settings, string, string][] = [
-    ['muteUnfocused', 'Couper le son en arrière-plan', 'Lorsque la fenêtre perd le focus.'],
     ['grid', 'Contours des hexagones', 'Conserver les limites du plateau visibles.'],
     ['coordinates', 'Coordonnées axiales', 'Afficher q et r sous le curseur.'],
     [
@@ -1290,30 +1362,6 @@ function Preferences() {
         setBusy(false);
       }}
     >
-      <h4>
-        <Volume2 size={16} /> Ambiance & sons
-      </h4>
-      {(
-        [
-          ['masterVolume', 'Volume général'],
-          ['musicVolume', 'Vent & nappes sonores'],
-          ['sfxVolume', 'Effets des actions'],
-        ] as const
-      ).map(([k, label]) => (
-        <label className="range-setting" key={k}>
-          <span>
-            {label}
-            <b>{draft[k]} %</b>
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={draft[k]}
-            onChange={(e) => update(k, Number(e.target.value))}
-          />
-        </label>
-      ))}
       <h4>Carte & accessibilité</h4>
       {checks.map(([k, label, description]) => (
         <label className="toggle-setting" key={k}>
@@ -1454,7 +1502,10 @@ function Profile() {
       {user.guest && (
         <form className="register-form" onSubmit={register}>
           <h4>Inscrire votre nom dans la pierre</h4>
-          <p>Enregistrez votre compte pour retrouver ce royaume sur un autre appareil.</p>
+          <p>
+            Après 24 h sans connexion, ce compte invité et tout son royaume seront supprimés.
+            Enregistrez-le pour le conserver et le retrouver sur un autre appareil.
+          </p>
           <label>
             Nom de souverain
             <input
@@ -1535,7 +1586,8 @@ function Help() {
           <div>
             <strong>Chaque minute, une décision</strong>
             <p>
-              Vous gagnez 1 PA par minute, jusqu’à 15. Le commerce et les négociations n’en
+              Vous commencez avec 30 PA. Le bonus au-dessus de 15 se dépense sans se régénérer ;
+              ensuite vous gagnez 1 PA par minute, jusqu’à 15. Le commerce et les négociations n’en
               consomment pas. Glissez la carte, utilisez la molette ou les boutons de zoom.
             </p>
           </div>

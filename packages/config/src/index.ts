@@ -1,6 +1,9 @@
 export const GAME_NAME = 'VOIDMARCH';
 export const RULES = {
   maxAP: 15,
+  startingAP: 30,
+  constructionRadius: 3,
+  guestLifetime: 24 * 60 * 60 * 1000,
   apInterval: 60_000,
   grace: 180_000,
   protection: 600_000,
@@ -22,6 +25,7 @@ export const ACTION_COST = {
   ROAD: 1,
   RECRUIT: 1,
   REPAIR: 1,
+  DEMOLISH: 1,
   UPGRADE: 2,
   INTERACT: 1,
   ABILITY: 2,
@@ -85,6 +89,97 @@ export const TERRAINS = {
 } as const;
 export type Terrain = keyof typeof TERRAINS;
 export const UNITS = {
+  TESLA_TROOPER: {
+    name: 'Voltigeur Tesla',
+    hp: 14,
+    attack: 8,
+    defense: 2,
+    move: 2,
+    vision: 5,
+    range: 3,
+    capture: 1,
+    cost: { STONE: 0, GOLD: 120, WOOD: 20, IRON: 80, FOOD: 25 },
+  },
+  HEX_HUNTER: {
+    name: 'Chasseur de maléfices',
+    hp: 11,
+    attack: 7,
+    defense: 2,
+    move: 4,
+    vision: 7,
+    range: 3,
+    capture: 1,
+    cost: { STONE: 0, GOLD: 100, WOOD: 35, IRON: 40, FOOD: 25 },
+  },
+  PLAGUE_MEDIC: {
+    name: 'Médecin de la peste',
+    hp: 9,
+    attack: 1,
+    defense: 2,
+    move: 3,
+    vision: 5,
+    range: 1,
+    capture: 0,
+    cost: { STONE: 0, GOLD: 85, WOOD: 20, IRON: 20, FOOD: 35 },
+  },
+  GHOUL_INFANTRY: {
+    name: 'Grenadier revenant',
+    hp: 16,
+    attack: 6,
+    defense: 3,
+    move: 2,
+    vision: 4,
+    range: 2,
+    capture: 1,
+    cost: { STONE: 0, GOLD: 95, WOOD: 15, IRON: 60, FOOD: 20 },
+  },
+  SPECTRAL_RIDER: {
+    name: 'Cavalier spectral',
+    hp: 15,
+    attack: 8,
+    defense: 3,
+    move: 5,
+    vision: 6,
+    range: 1,
+    capture: 1,
+    cost: { STONE: 0, GOLD: 160, WOOD: 25, IRON: 70, FOOD: 40 },
+  },
+  SIEGE_WALKER: {
+    name: 'Marcheur de siège',
+    hp: 24,
+    attack: 9,
+    defense: 5,
+    move: 2,
+    vision: 5,
+    range: 4,
+    capture: 0,
+    buildingAttack: 16,
+    cost: { STONE: 0, GOLD: 220, WOOD: 60, IRON: 180, FOOD: 30 },
+  },
+  HEX_TANK: {
+    name: 'Char possédé',
+    hp: 34,
+    attack: 12,
+    defense: 7,
+    move: 2,
+    vision: 5,
+    range: 3,
+    capture: 1,
+    cost: { STONE: 0, GOLD: 300, WOOD: 65, IRON: 250, FOOD: 45 },
+  },
+  MORTAR: {
+    name: 'Section de mortier',
+    hp: 9,
+    attack: 6,
+    defense: 1,
+    move: 2,
+    vision: 5,
+    range: 5,
+    capture: 0,
+    buildingAttack: 10,
+    cost: { STONE: 0, GOLD: 110, WOOD: 40, IRON: 75, FOOD: 20 },
+  },
+
   RIFLEMAN: {
     name: 'Fusilier',
     hp: 10,
@@ -425,6 +520,63 @@ export const UNITS = {
 } as const;
 export type UnitKind = keyof typeof UNITS;
 export const BUILDINGS = {
+  WOOD_WALL: {
+    name: 'Palissade en bois',
+    hp: 30,
+    capture: 0,
+    cost: { STONE: 0, GOLD: 0, WOOD: 30, IRON: 0, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'FOREST', 'RUINS', 'MOUNTAIN'],
+  },
+  STONE_WALL: {
+    name: 'Rempart de pierre',
+    hp: 65,
+    capture: 0,
+    cost: { STONE: 45, GOLD: 0, WOOD: 0, IRON: 0, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'FOREST', 'RUINS', 'MOUNTAIN'],
+  },
+  STEEL_WALL: {
+    name: 'Mur en acier',
+    hp: 100,
+    capture: 0,
+    cost: { STONE: 0, GOLD: 0, WOOD: 0, IRON: 45, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'FOREST', 'RUINS', 'MOUNTAIN'],
+  },
+  TESLA_COIL: {
+    name: 'Tour Tesla',
+    hp: 95,
+    capture: 5,
+    cost: { STONE: 70, GOLD: 90, WOOD: 45, IRON: 90, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
+  CRYPT_BARRACKS: {
+    name: 'Caserne des revenants',
+    hp: 75,
+    capture: 4,
+    cost: { STONE: 65, GOLD: 100, WOOD: 60, IRON: 50, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
+  ALCHEMY_FOUNDRY: {
+    name: 'Fonderie alchimique',
+    hp: 65,
+    capture: 4,
+    cost: { STONE: 50, GOLD: 130, WOOD: 70, IRON: 80, FOOD: 0 },
+    production: { GOLD: 5 },
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
+  BLACK_OBSERVATORY: {
+    name: 'Observatoire noir',
+    hp: 55,
+    capture: 3,
+    cost: { STONE: 60, GOLD: 140, WOOD: 80, IRON: 65, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
+
   QUARRY: {
     name: 'Carrière de pierre',
     hp: 30,
@@ -726,6 +878,19 @@ export const BUILDINGS = {
   }
 >;
 export type BuildingKind = keyof typeof BUILDINGS;
+export const WALL_KINDS = ['WOOD_WALL', 'STONE_WALL', 'STEEL_WALL'] as const;
+export type WallKind = (typeof WALL_KINDS)[number];
+export const isWall = (kind: string): kind is WallKind => WALL_KINDS.includes(kind as WallKind);
+export const isBuildable = (kind: BuildingKind) => kind !== 'STONE_WALL' && kind !== 'STEEL_WALL';
+export function buildingConstructionCost(kind: BuildingKind, faction: Faction): Partial<Wallet> {
+  const discount = faction === 'ASH' ? 0.9 : 1;
+  return Object.fromEntries(
+    Object.entries(BUILDINGS[kind].cost).map(([resource, value]) => [
+      resource,
+      Math.ceil(value * discount),
+    ]),
+  );
+}
 export const EXTRACTOR_BUILDINGS: readonly BuildingKind[] = [
   'LUMBER',
   'MINE',
@@ -752,6 +917,55 @@ export interface UnitProfile {
   healer?: boolean;
 }
 export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  TESLA_TROOPER: {
+    role: 'Fusil électrique à moyenne portée ; puissance élevée, déplacement lent.',
+    recruitAt: ['TESLA_COIL'],
+    requires: ['OCCULT_LAB'],
+  },
+  HEX_HUNTER: {
+    role: 'Éclaireur armé de pistolet et d’arbalète ; vision étendue.',
+    recruitAt: ['BLACK_OBSERVATORY'],
+    requires: ['ARSENAL'],
+  },
+  PLAGUE_MEDIC: {
+    role: 'Soigne les alliés voisins ; le soin de groupe coûte 1 PA.',
+    recruitAt: ['FIELD_HOSPITAL'],
+    requires: ['MONASTERY'],
+    healer: true,
+  },
+  GHOUL_INFANTRY: {
+    role: 'Infanterie revenante résistante capable de revendiquer les terres.',
+    recruitAt: ['CRYPT_BARRACKS'],
+    requires: ['ARSENAL'],
+  },
+  SPECTRAL_RIDER: {
+    role: 'Cavalerie occulte rapide, armée d’une épée et d’un pistolet.',
+    recruitAt: ['CRYPT_BARRACKS'],
+    requires: ['STABLE'],
+    mounted: true,
+  },
+  SIEGE_WALKER: {
+    role: 'Marcheur blindé contre les fortifications. Attaque : 2 PA.',
+    recruitAt: ['TANK_FACTORY'],
+    requires: ['ALCHEMY_FOUNDRY'],
+    mechanical: true,
+    armored: true,
+    siege: true,
+  },
+  HEX_TANK: {
+    role: 'Blindé lourd possédé ; coûteux à produire et entretenir.',
+    recruitAt: ['TANK_FACTORY'],
+    requires: ['ALCHEMY_FOUNDRY', 'OCCULT_LAB'],
+    mechanical: true,
+    armored: true,
+  },
+  MORTAR: {
+    role: 'Artillerie mobile à longue portée et fragile au contact. Attaque : 2 PA.',
+    recruitAt: ['GUN_BATTERY'],
+    requires: ['MUNITIONS'],
+    siege: true,
+  },
+
   RIFLEMAN: {
     role: 'Tir à 4 cases ; infanterie de conquête.',
     recruitAt: ['ARSENAL'],
@@ -832,38 +1046,38 @@ export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
   },
   MILITIA: {
     role: 'Défense bon marché et conquête des premières terres.',
-    recruitAt: ['CAMP', 'VILLAGE', 'OUTPOST', 'BARRACKS', 'FORT'],
+    recruitAt: ['BARRACKS', 'FORT'],
     requires: [],
   },
   SCOUT: {
     role: 'Exploration rapide et reconnaissance à longue distance.',
-    recruitAt: ['CAMP', 'VILLAGE', 'OUTPOST', 'BARRACKS', 'FORT'],
+    recruitAt: ['BARRACKS', 'FORT'],
     requires: [],
   },
   INFANTRY: {
     role: 'Infanterie polyvalente pour tenir et capturer les territoires.',
-    recruitAt: ['VILLAGE', 'OUTPOST', 'BARRACKS', 'FORT'],
+    recruitAt: ['BARRACKS', 'FORT'],
     requires: [],
   },
   GUARD: {
     role: 'Défenseur lourd, solide mais lent.',
-    recruitAt: ['VILLAGE', 'BARRACKS', 'FORT'],
+    recruitAt: ['BARRACKS', 'FORT'],
     requires: ['BARRACKS'],
   },
   ARCHER: {
     role: 'Tir à distance, fragile au contact.',
-    recruitAt: ['VILLAGE', 'BARRACKS', 'FORT', 'ARCHERY'],
+    recruitAt: ['ARCHERY'],
     requires: [],
   },
   KNIGHT: {
     role: 'Cavalerie lourde pour percer et capturer.',
-    recruitAt: ['STABLE', 'VILLAGE', 'BARRACKS', 'FORT'],
+    recruitAt: ['STABLE'],
     requires: ['BARRACKS'],
     mounted: true,
   },
   SIEGE: {
     role: 'Bombardement des fortifications à longue portée. Attaque : 2 PA.',
-    recruitAt: ['WORKSHOP', 'VILLAGE', 'BARRACKS', 'FORT'],
+    recruitAt: ['WORKSHOP'],
     requires: ['BARRACKS'],
     siege: true,
   },
@@ -925,6 +1139,10 @@ export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
 };
 export const GATHER_YIELD: Wallet = { STONE: 16, GOLD: 12, WOOD: 20, IRON: 12, FOOD: 18 };
 export const BUILDING_REQUIREMENTS: Partial<Record<BuildingKind, BuildingKind[]>> = {
+  TESLA_COIL: ['FORGE', 'OCCULT_LAB'],
+  CRYPT_BARRACKS: ['BARRACKS', 'OCCULT_LAB'],
+  ALCHEMY_FOUNDRY: ['REFINERY', 'OCCULT_LAB'],
+  BLACK_OBSERVATORY: ['LIBRARY', 'RADIO'],
   ARSENAL: ['BARRACKS', 'FORGE'],
   BUNKER: ['FORGE'],
   GARAGE: ['WORKSHOP'],
@@ -951,6 +1169,28 @@ export const BUILDING_POPULATION: Partial<Record<BuildingKind, number>> = {
   OUTPOST: 10,
 };
 export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
+  WOOD_WALL:
+    'Occupe une case, bloque tous les ennemis et laisse passer vos unités. Se raccorde aux remparts voisins. Évolue avec 45 pierre, puis 45 fer pour l’acier (2 PA par évolution).',
+  STONE_WALL:
+    'Remplace une palissade : 65 PV, défense 2. Vos unités traversent ; les ennemis doivent ouvrir une brèche. Évolue en acier avec 45 fer et 2 PA.',
+  STEEL_WALL:
+    'Dernière évolution : 100 PV, défense 4. Bloque les ennemis, même sur une route. L’acier est construit à partir de votre réserve de fer.',
+  TESLA_COIL: 'Fortification électrique (+4 défense) ; forme les voltigeurs Tesla.',
+  CRYPT_BARRACKS: 'Forme grenadiers revenants et cavaliers spectraux.',
+  ALCHEMY_FOUNDRY: 'Produit 5 or par minute et débloque marcheurs de siège et chars possédés.',
+  BLACK_OBSERVATORY: 'Observe dans un rayon de 12 cases et forme les chasseurs de maléfices.',
+  FARM: 'Produit des vivres pour nourrir les habitants et entretenir les troupes.',
+  LUMBER: 'Exploite le bois en forêt ; finance les premières constructions.',
+  MINE: 'Extrait le fer des collines pour les armes, les véhicules et les réparations.',
+  MARKET: 'Permet de proposer des échanges de ressources par caravane.',
+  WAREHOUSE: 'Ajoute 800 places de stockage pour chaque ressource.',
+  WORKSHOP: 'Forme ingénieurs, engins de siège et balistes ; débloque forge et garage.',
+  BARRACKS: 'Forme les premières troupes et les éclaireurs ; base de la filière militaire.',
+  FORT: 'Fortification qui forme les troupes de caserne et sécurise un point de passage.',
+  TOWER: 'Poste de surveillance : vision de 7 cases autour de la tour.',
+  OUTPOST: 'Forme les paysans, accueille des habitants et évolue en village.',
+  VILLAGE: 'Centre civil : forme les paysans, produit des ressources et accueille la population.',
+
   QUARRY: 'Extrait 4 pierres par minute sur colline ou montagne.',
   ARSENAL: 'Forme fusiliers, troupes d’assaut et officiers.',
   BUNKER: 'Fortification résistante : +5 de défense contre les attaques.',
@@ -981,10 +1221,15 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
 };
 
 export const BUILDING_DEFENSE: Partial<Record<BuildingKind, number>> = {
+  WOOD_WALL: 0,
+  STONE_WALL: 2,
+  STEEL_WALL: 4,
+  TESLA_COIL: 4,
   BUNKER: 5,
   GUN_BATTERY: 3,
 };
 export const RECON_UNITS: UnitKind[] = [
+  'HEX_HUNTER',
   'SCOUT',
   'RANGER',
   'VOID_ACOLYTE',
@@ -996,9 +1241,9 @@ export const RECON_UNITS: UnitKind[] = [
 export const CITY_LEVELS = ['Avant-poste', 'Village', 'Bourg', 'Ville', 'Cité'];
 export const DEFAULT_SETTINGS = {
   locale: 'fr',
-  masterVolume: 35,
-  musicVolume: 30,
-  sfxVolume: 60,
+  masterVolume: 0,
+  musicVolume: 0,
+  sfxVolume: 0,
   muteUnfocused: true,
   cameraSpeed: 1,
   edgeScrolling: false,
@@ -1047,6 +1292,14 @@ export const UNIT_TABS = [
 ] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
+  TESLA_TROOPER: 'Occulte',
+  HEX_HUNTER: 'Occulte',
+  PLAGUE_MEDIC: 'Civils & soutien',
+  GHOUL_INFANTRY: 'Occulte',
+  SPECTRAL_RIDER: 'Cavalerie',
+  SIEGE_WALKER: 'Véhicules',
+  HEX_TANK: 'Véhicules',
+  MORTAR: 'Artillerie',
   PEASANT: 'Civils & soutien',
   ENGINEER: 'Civils & soutien',
   HEALER: 'Civils & soutien',
@@ -1089,6 +1342,13 @@ export const BUILDING_TABS = [
 ] as const;
 export type BuildingTab = (typeof BUILDING_TABS)[number];
 export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
+  WOOD_WALL: 'Défenses',
+  STONE_WALL: 'Défenses',
+  STEEL_WALL: 'Défenses',
+  TESLA_COIL: 'Défenses',
+  CRYPT_BARRACKS: 'Recrutement',
+  ALCHEMY_FOUNDRY: 'Industrie',
+  BLACK_OBSERVATORY: 'Savoir & logistique',
   CAMP: 'Vie civile',
   HOUSE: 'Vie civile',
   OUTPOST: 'Vie civile',
@@ -1129,7 +1389,7 @@ export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
 export const unitPopulation = (kind: UnitKind) =>
   kind === 'PEASANT'
     ? 3
-    : kind === 'TANK'
+    : ['TANK', 'HEX_TANK', 'SIEGE_WALKER'].includes(kind)
       ? 12
       : UNIT_PROFILES[kind].mechanical
         ? 8
@@ -1149,6 +1409,18 @@ export function unitUpkeep(kind: UnitKind): Wallet {
 
 /** Authoritative upgrade quote shared by the server and the preview. */
 export function buildingUpgrade(kind: BuildingKind, level: number) {
+  if (isWall(kind)) {
+    if (kind === 'STEEL_WALL') return null;
+    const next: WallKind = kind === 'WOOD_WALL' ? 'STONE_WALL' : 'STEEL_WALL';
+    return {
+      kind: next as BuildingKind,
+      level: 1,
+      name: BUILDINGS[next].name,
+      cost: { ...BUILDINGS[next].cost } as Partial<Wallet>,
+      population: 0,
+      minimumPopulation: 0,
+    };
+  }
   if (kind === 'CAMP')
     return {
       kind: 'OUTPOST' as BuildingKind,
@@ -1167,7 +1439,23 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
       population: 10,
       minimumPopulation: 15,
     };
-  if (kind !== 'VILLAGE' || level >= 4) return null;
+  if (kind !== 'VILLAGE') {
+    if (level >= 3) return null;
+    return {
+      kind,
+      level: level + 1,
+      name: `${BUILDINGS[kind].name} · niveau ${level + 1}`,
+      cost: Object.fromEntries(
+        Object.entries(BUILDINGS[kind].cost).map(([r, value]) => [
+          r,
+          Math.ceil(value * (0.75 + level * 0.25)),
+        ]),
+      ) as Partial<Wallet>,
+      population: 0,
+      minimumPopulation: 0,
+    };
+  }
+  if (level >= 3) return null;
   return {
     kind: 'VILLAGE' as BuildingKind,
     level: level + 1,
@@ -1183,3 +1471,16 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
     minimumPopulation: 0,
   };
 }
+
+export const productionMultiplier = (kind: BuildingKind, level: number) =>
+  kind === 'VILLAGE' ? level : 1 + (level - 1) * 0.25;
+export const trainingBonusAt = (kind: BuildingKind, level: number) =>
+  Object.values(UNIT_PROFILES).some((p) => p.recruitAt.includes(kind) && !p.builder)
+    ? Math.max(0, level - 1) * 10
+    : 0;
+export const storageBonus = (kind: BuildingKind, level: number) =>
+  (kind === 'WAREHOUSE' ? 800 : kind === 'GRANARY' ? 400 : kind === 'RAIL_DEPOT' ? 1200 : 0) *
+  productionMultiplier(kind, level);
+export const populationCapacity = (kind: BuildingKind, level: number) =>
+  (BUILDING_POPULATION[kind] ?? 0) *
+  (kind === 'VILLAGE' ? level + 1 : 2 * productionMultiplier(kind, level));

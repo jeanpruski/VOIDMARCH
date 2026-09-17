@@ -187,7 +187,11 @@ export async function send(command: Command) {
     else {
       notify(result.message ?? 'Ordre exécuté.');
       window.dispatchEvent(new CustomEvent('vm:action', { detail: command }));
-      useGame.setState({ mode: 'inspect', combatTarget: null });
+      useGame.setState({
+        mode: 'inspect',
+        combatTarget: null,
+        ...(['BUILD', 'RECRUIT'].includes(command.type) ? { panel: null } : {}),
+      });
     }
     return result;
   } catch {

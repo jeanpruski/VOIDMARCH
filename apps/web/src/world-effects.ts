@@ -1,6 +1,8 @@
 import type { Hex, WorldView } from '@voidmarch/shared';
 import { key } from '@voidmarch/game-rules';
-export type WorldEffect = Hex & { kind: 'combat' | 'build' | 'repair' | 'recruit' | 'rare' };
+export type WorldEffect = Hex & {
+  kind: 'combat' | 'build' | 'demolish' | 'repair' | 'recruit' | 'rare';
+};
 /** Compare authoritative visible snapshots. Never replay effects on connection or reveal. */
 export function worldEffects(before: WorldView, after: WorldView): WorldEffect[] {
   if (
@@ -17,6 +19,7 @@ export function worldEffects(before: WorldView, after: WorldView): WorldEffect[]
   for (const t of after.tiles) {
     if (!visible(t)) continue;
     const old = oldTiles.get(key(t));
+    if (old?.building && !t.building) result.push({ ...t, kind: 'demolish' });
     if (
       t.building &&
       (!old?.building ||

@@ -14,6 +14,7 @@ import {
   amount,
   armyPopulation,
   movementCost,
+  wallBlocks,
   canAfford,
   createRealm,
   distance,
@@ -180,6 +181,7 @@ export class BotDirector {
       const tile = tileAt(s, u);
       if (
         UNITS[u.kind].capture &&
+        !wallBlocks(s.buildings[tile.buildingId ?? ''], r.id) &&
         tile.ownerId !== r.id &&
         (!tile.ownerId ||
           !hostileReason(s, r, s.realms[tile.ownerId], now, this.options.offlineProtection))
@@ -199,6 +201,8 @@ export class BotDirector {
       for (const enemy of [...Object.values(s.units), ...Object.values(s.buildings)])
         if (
           enemy.ownerId !== r.id &&
+          (enemy.id === tileAt(s, enemy).buildingId ||
+            !wallBlocks(s.buildings[tileAt(s, enemy).buildingId ?? ''], r.id)) &&
           s.realms[enemy.ownerId] &&
           seen.has(key(enemy)) &&
           distance(u, enemy) <= UNITS[u.kind].range &&
@@ -215,6 +219,7 @@ export class BotDirector {
         const t = tileAt(s, p);
         if (
           !seen.has(key(p)) ||
+          wallBlocks(s.buildings[t.buildingId ?? ''], r.id) ||
           movementCost(t, u.kind) > UNITS[u.kind].move ||
           Object.values(s.units).some((x) => distance(x, p) === 0)
         )

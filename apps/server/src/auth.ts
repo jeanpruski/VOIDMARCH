@@ -77,6 +77,7 @@ export async function registerAuth(app: FastifyInstance, onLogout: (userId: stri
         else throw Object.assign(new Error('Ce compte est déjà enregistré.'), { statusCode: 400 });
       }
       const fields = {
+        lastLoginAt: new Date(),
         username: data.username,
         usernameNormalized: normalize(data.username),
         email: data.email?.toLowerCase(),

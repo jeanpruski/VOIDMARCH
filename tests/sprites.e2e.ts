@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { resolve } from 'node:path';
 
-test('les 72 figurines restent isolées et alignées sur ordinateur et mobile', async ({ page }) => {
+test('les 87 figurines restent isolées et alignées sur ordinateur et mobile', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   const template = await (await page.request.get('/')).text();
@@ -13,7 +13,7 @@ test('les 72 figurines restent isolées et alignées sur ordinateur et mobile', 
     }),
   );
   await page.goto('/sprite-review');
-  await expect(page.locator('.miniature')).toHaveCount(72);
+  await expect(page.locator('.miniature')).toHaveCount(87);
   await expect
     .poll(() =>
       page
@@ -22,12 +22,15 @@ test('les 72 figurines restent isolées et alignées sur ordinateur et mobile', 
           (nodes) => nodes.filter((n) => getComputedStyle(n).backgroundImage !== 'none').length,
         ),
     )
-    .toBe(72);
+    .toBe(87);
   const bounds = await page.evaluate(async () => {
     // @ts-expect-error Vite serves this source module directly in the browser.
-    const { miniatureAtlasUrl } = await import('/src/sprite-atlas.ts');
+    const { miniatureAtlasUrl, SPRITE_ATLASES } = await import('/src/sprite-atlas.ts');
     const results: { name: string; count: number; edge: number }[] = [];
-    for (const name of ['miniatures', 'expansion', 'industrial']) {
+    for (const [name, grid] of Object.entries(SPRITE_ATLASES) as [
+      string,
+      { columns: number; rows: number },
+    ][]) {
       const image = new Image();
       image.src = await miniatureAtlasUrl(name);
       await image.decode();
@@ -36,7 +39,7 @@ test('les 72 figurines restent isolées et alignées sur ordinateur et mobile', 
       canvas.height = image.height;
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(image, 0, 0);
-      for (let frame = 0; frame < 24; frame++) {
+      for (let frame = 0; frame < grid.columns * grid.rows; frame++) {
         const p = ctx.getImageData((frame % 6) * 256, Math.floor(frame / 6) * 256, 256, 256).data;
         let count = 0,
           edge = 0;

@@ -8,4 +8,4 @@ L’interface garde l’univers lovecraftien, médiéval et industriel : surface
 - Les fenêtres gardent le focus clavier, se ferment avec Échap et rendent le focus à l’élément d’origine. Les raccourcis du jeu ne se déclenchent plus derrière une fenêtre ouverte.
 - Les états disponibles, contours de focus et notifications ont été harmonisés. Sur téléphone, les cinq statistiques d’unité disposent de leur propre rangée.
 
-La cadence reste de 1 PA par minute avec un maximum de 15. Les coûts, règles de récolte, progression et sauvegardes restent ceux du moteur existant. L’intérêt à long terme se juge en partie ; les ajouts rendent les décisions et les étapes plus compréhensibles.
+La cadence reste de 1 PA par minute avec un maximum régénérable de 15 ; le premier départ reçoit 30 PA. Les évolutions du 17 septembre sont détaillées dans [gameplay-v03.md](gameplay-v03.md). L’intérêt à long terme se juge en partie ; les ajouts rendent les décisions et les étapes plus compréhensibles.

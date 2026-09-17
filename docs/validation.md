@@ -124,3 +124,20 @@ Docker n'a pas été exécuté, aucun moteur Docker n'étant installé sur cette
 Le cadre suit désormais la position réelle de la caméra, le zoom et les changements de taille d'écran. Toute la surface accepte les clics et le glissement. Le terrain utilise la même projection que le plateau ; l'aperçu des régions explorées est indépendant des chunks affichés et respecte leur dernière observation hors vision.
 
 Validation : 27 tests de règles et de projection réussis, dont trois nouveaux contrôles de mini-carte ; scénario Chrome réussi avec déplacement au clavier, zoom, clic dans une zone vide, glissement et passage au format mobile. Ce scénario utilise un monde fictif sans compte, sans session réseau et sans modification de la partie locale.
+
+## Gameplay v0.3 — 17 septembre 2026
+
+- Compilation TypeScript et Vite réussie (avertissement habituel sur la taille du bundle Phaser).
+- 235 tests de règles réussis ; 7 tests de base ignorés lors de cette passe puis exécutés séparément.
+- 7 tests PostgreSQL réussis sur un cluster temporaire dédié, port 55439 : idempotence, persistance et expiration des invités avec conservation des comptes enregistrés et actifs. Aucune donnée réelle utilisée pour le nettoyage.
+- API réelle testée sur ce cluster : 401 sans session, rejet d’un mauvais code, activation/désactivation des PA illimités, premier royaume à 30 PA, recrutement accepté sans dépense de PA lorsque le code est actif.
+- Chrome : parcours de fondation desktop/mobile réussi, fermetures automatiques, coûts insuffisants, boutons masqués, notifications en haut, raccourci caché sans activation accidentelle du bouton focalisé. Accueil testé ; 84 frames de miniatures contrôlées, dont les 12 nouvelles, sans pixels dans les marges.
+- Audit des catalogues régénéré : 38 unités, 40 bâtiments. Les chaînes de prérequis sont toutes réalisables. Ces tests valident les règles et la cohérence des coûts ; ils ne remplacent pas des parties longues pour régler l’équilibrage compétitif.
+- Les serveurs de test sont arrêtés après vérification. Aucun déploiement sur PlanetHoster dans cette passe.
+
+## Socles, démolition et remparts — 17 septembre 2026
+
+- Construction TypeScript/Vite réussie ; 263 tests locaux passent, 7 tests PostgreSQL non relancés pour cette passe.
+- Quatre scénarios Chrome passent : parcours réel de construction/démolition/évolution des murs sur un monde isolé en mémoire, accueil, 87 miniatures, 192 combinaisons de remparts (trois matériaux × 64 raccords) sans rognage.
+- Contrôles des remparts : passage propriétaire/adversaire sur route, validation de chaque étape d’un chemin, contournement, enceinte fermée et brèche, interdiction de capture, respect des trêves, coûts en bois/pierre/fer, résistance et remboursement hors améliorations.
+- Rendus texturés inspectés sur ordinateur et téléphone. Les 30 anciennes unités ont des socles assortis aux huit nouvelles. Aucun compte ni royaume réel modifié, aucun déploiement dans cette passe.

@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { expireGuests } from './guests';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
@@ -46,14 +47,12 @@ app.setErrorHandler((error, request, reply) => {
   if (error instanceof RuleError) return reply.code(400).send({ error: error.message });
   const e = error as Error & { statusCode?: number };
   request.log.error(e);
-  return reply
-    .code(e.statusCode ?? 500)
-    .send({
-      error:
-        e.statusCode && e.statusCode < 500
-          ? e.message
-          : 'Le serveur n’a pas pu traiter cette demande.',
-    });
+  return reply.code(e.statusCode ?? 500).send({
+    error:
+      e.statusCode && e.statusCode < 500
+        ? e.message
+        : 'Le serveur n’a pas pu traiter cette demande.',
+  });
 });
 const io = new Server(app.server, {
   cors: { origin: origins, credentials: true },
@@ -80,6 +79,7 @@ const connections = new Map<string, Set<string>>(),
 const lastViews = new Map<string, WorldView>();
 let shuttingDown = false,
   busy = false;
+let nextGuestCleanup = 0;
 const connected = () => new Set([...connections].filter(([, s]) => s.size > 0).map(([id]) => id));
 await registerAuth(app, (userId) => {
   io.in(`player:${userId}`).disconnectSockets(true);
@@ -263,14 +263,47 @@ const tick = setInterval(() => {
   if (busy || shuttingDown) return;
   busy = true;
   void repository
-    .mutate((s) => tickWorld(s, Date.now(), connected(), options))
+    .mutate(async (s, tx) => {
+      const now = Date.now();
+      if (now >= nextGuestCleanup) {
+        await expireGuests(s, tx, now, connected());
+        nextGuestCleanup = now + 60000;
+      }
+      tickWorld(s, now, connected(), options);
+    })
     .then(broadcast)
     .catch((err) => app.log.error(err))
     .finally(() => {
       busy = false;
     });
 }, 5000);
-await repository.mutate((s) => tickWorld(s, Date.now(), connected(), options));
+await repository.mutate(async (s, tx) => {
+  const now = Date.now();
+  if (now >= nextGuestCleanup) {
+    await expireGuests(s, tx, now, connected());
+    nextGuestCleanup = now + 60000;
+  }
+  tickWorld(s, now, connected(), options);
+});
+app.post(
+  '/api/admin/unlimited-ap',
+  { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+  async (request, reply) => {
+    const who = await identity(request);
+    const body = request.body as { code?: unknown } | null;
+    if (body?.code !== (process.env.ADMIN_AP_CODE || 'ytreza'))
+      return reply.code(403).send({ error: 'Code incorrect.' });
+    const enabled = await repository.mutate((s) => {
+      const r = s.realms[who.sub];
+      if (!r) throw new Error('Rejoignez le monde avant d’activer le code.');
+      r.unlimitedAP = !r.unlimitedAP;
+      s.revision++;
+      return r.unlimitedAP;
+    });
+    broadcast();
+    return { enabled };
+  },
+);
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist');
 if (existsSync(dist)) {
   await app.register(fastifyStatic, { root: dist });

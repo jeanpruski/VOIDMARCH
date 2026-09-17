@@ -25,10 +25,11 @@ Le lancement local dans l'environnement de développement a déjà été prépar
 ## Jouer
 
 - Chaque nouveau royaume commence avec **un campement, aucune unité et aucun stock**. Sélectionner le campement → Recruter → **Former le paysan** : aucune ressource nécessaire, 1 PA. Sélectionner ensuite le paysan pour le déplacer sur le terrain à récolter : bois en forêt, pierre sur colline ou montagne, fer sur colline, vivres sur plaine/rivière/marais et or dans les ruines, puis construire sur la frontière. Le campement fournit or et vivres ; les matériaux demandent une récolte ou une exploitation adaptée. Si aucun paysan ne subsiste, son remplacement est gratuit en ressources.
-- Les unités et bâtiments endommagés affichent une petite barre de vie sur la carte. Le catalogue propose **30 unités et 36 bâtiments**, avec leurs rôles et prérequis dans les panneaux. Le campement évolue en avant-poste, puis en village.
+- Les unités et bâtiments endommagés affichent une petite barre de vie sur la carte. Le catalogue propose **38 unités et 43 types de bâtiments**, dont deux évolutions de remparts, avec leurs rôles et prérequis dans les panneaux. Le campement évolue en avant-poste, puis en village.
 - Cliquer une unité, puis **Déplacer**, puis une case surlignée. Le chemin tient compte des six voisins hexagonaux, du terrain, des routes et des unités.
 - **Capturer** revendique la case occupée. Les lieux importants nécessitent plusieurs actions. Les unités militaires de capture sont les fantassins, gardes et chevaliers.
 - Cliquer une terre possédée pour **Construire**, ou un bâtiment pour recruter, réparer ou développer une ville.
+- **Remparts** : construire une palissade dans **Défenses** (30 bois, 1 PA), puis évoluer en pierre (45 pierre, 2 PA) et en acier (45 fer, 2 PA). Chaque tronçon occupe une case ; vos unités passent, les ennemis doivent contourner ou détruire le mur. Les voisins se raccordent automatiquement. Voir [les règles des remparts](docs/remparts.md).
 - **Attaquer** affiche une estimation avant validation. Le serveur décide des dégâts. Les engins de siège consomment 2 PA et ont un bonus contre les bâtiments.
 - **Économie** détaille stocks, capacité, production et entretien. La population consomme des vivres et permet le recrutement. Les entrepôts augmentent le stockage.
 - **Commerce & diplomatie** permet des échanges, accords commerciaux, tributs, contre-propositions, refus et annulations. Le paiement du tribut et la trêve commencent simultanément à l'acceptation.
@@ -51,7 +52,7 @@ La [décision de conception actualisée](docs/decisions.md) prime sur le [docume
 
 ## Systèmes présents
 
-Carte extensible déterministe par graine, chunks axiaux de 32 × 32, brouillard VISIBLE / EXPLORED / UNKNOWN, prévisualisation de chemins, 30 types d'unités, 36 types de bâtiments, récoltes et construction par les paysans, routes et ponts, progression Campement → Cité, cinq ressources, population, coûts d'empire, combat, soins, capacités, exploration, huit types d'événements, reliques, accords, caravanes, trêves, classement par huit dimensions, bots à personnalités, comptes et invités, journal, paramètres persistants et audio synthétique d'ambiance.
+Carte extensible déterministe par graine, chunks axiaux de 32 × 32, brouillard VISIBLE / EXPLORED / UNKNOWN, prévisualisation de chemins, 38 types d'unités, 43 types de bâtiments, récoltes et construction par les paysans, routes et ponts, progression Campement → Cité, cinq ressources, population, coûts d'empire, combat, soins, capacités, exploration, huit types d'événements, reliques, accords, caravanes, trêves, classement par huit dimensions, bots à personnalités, comptes et invités, journal, paramètres persistants et interface sans son.
 
 ## Cendres et acier
 

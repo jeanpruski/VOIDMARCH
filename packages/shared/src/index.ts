@@ -28,6 +28,7 @@ export interface ViewTile extends Hex {
 export interface Unit extends Hex {
   /** Permanent server-generated percentage bonus, absent for ordinary units. */
   rareBonus?: number;
+  trainingBonus?: number;
   id: string;
   ownerId: string;
   kind: UnitKind;
@@ -36,6 +37,8 @@ export interface Unit extends Hex {
   updatedAt: number;
 }
 export interface Building extends Hex {
+  /** Actual initial construction payment, excluding later upgrades. */
+  constructionCost?: Partial<Wallet>;
   id: string;
   ownerId: string;
   kind: BuildingKind;
@@ -56,6 +59,7 @@ export interface Realm {
   createdAt: number;
   wallet: Wallet;
   ap: number;
+  unlimitedAP?: boolean;
   apAt: number;
   economyAt: number;
   lastSeen: number;

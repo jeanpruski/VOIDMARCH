@@ -96,7 +96,7 @@ describe('serveur autoritaire et rollback', () => {
     const result = execute(s, 'a', command('MOVE', u.id, { path: [{ q: 100, r: 100 }] }), now);
     expect(result.result.accepted).toBe(false);
     expect(result.state).toBe(s);
-    expect(s.realms.a.ap).toBe(RULES.maxAP);
+    expect(s.realms.a.ap).toBe(RULES.startingAP);
   });
   it('rejette un acteur appartenant à un autre joueur', () => {
     const s = fixture(),
@@ -112,7 +112,7 @@ describe('serveur autoritaire et rollback', () => {
     writeTile(s, { q: 1, r: -1 }, { terrain: 'PLAIN', ownerId: 'a', buildingId: undefined });
     const result = execute(s, 'a', command('BUILD', 'a', { q: 1, r: -1, kind: 'FORT' }), now);
     expect(result.result.accepted).toBe(false);
-    expect(result.state.realms.a.ap).toBe(RULES.maxAP);
+    expect(result.state.realms.a.ap).toBe(RULES.startingAP);
   });
   it('ne permet ni double soin ni construction empilée', () => {
     const s = fixture(),

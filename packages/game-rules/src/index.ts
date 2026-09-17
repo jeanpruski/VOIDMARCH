@@ -1,6 +1,11 @@
 import {
   BUILDINGS,
+  isWall,
+  buildingConstructionCost,
   BUILDING_DEFENSE,
+  productionMultiplier,
+  storageBonus,
+  populationCapacity,
   BUILDING_POPULATION,
   UNIT_PROFILES,
   TERRAIN_RESOURCES,
@@ -101,6 +106,23 @@ export function transfer(wallet: Wallet, amount: Partial<Wallet>, sign = 1) {
   for (const [k, v] of Object.entries(amount)) wallet[k as keyof Wallet] += v * sign;
 }
 export const amount = (w: Partial<Wallet>) => Object.values(w).reduce((a, b) => a + b, 0);
+/** Walls block their entire cell for every other realm, even on a road or during a truce. */
+export const wallBlocks = (building: Building | undefined, realmId: string) =>
+  !!building && building.hp > 0 && isWall(building.kind) && building.ownerId !== realmId;
+export function wallConnections(
+  building: Building,
+  getBuilding: (p: Hex) => Building | undefined,
+): number {
+  return neighbors(building).reduce((mask, p, side) => {
+    const other = getBuilding(p);
+    return other && other.hp > 0 && isWall(other.kind) && other.ownerId === building.ownerId
+      ? mask | (1 << side)
+      : mask;
+  }, 0);
+}
+/** Legacy saves have no payment receipt: use the level-one catalogue cost. */
+export const demolitionRefund = (building: Building, faction: Faction): Partial<Wallet> =>
+  building.constructionCost ?? buildingConstructionCost(building.kind, faction);
 export const canGather = (
   tile: Pick<Tile, 'terrain' | 'ownerId'>,
   ownerId: string,
@@ -116,7 +138,6 @@ export function refreshAP(
 ) {
   if (now < realm.apAt) return;
   if (realm.ap >= RULES.maxAP) {
-    realm.ap = RULES.maxAP;
     realm.apAt = now;
     return;
   }
@@ -142,7 +163,7 @@ export function income(s: GameState, id: string): Wallet {
     tiles = realmTiles(s, id);
   for (const b of buildings) {
     for (const [k, v] of Object.entries(productionOnTerrain(b.kind, tileAt(s, b).terrain)))
-      out[k as keyof Wallet] += v * (b.kind === 'VILLAGE' ? Math.max(1, b.level) : 1);
+      out[k as keyof Wallet] += v * productionMultiplier(b.kind, b.level);
     if (b.kind === 'VILLAGE') out.GOLD += b.population * 0.015;
   }
   for (const unit of units) transfer(out, unitUpkeep(unit.kind), -1);
@@ -151,10 +172,7 @@ export function income(s: GameState, id: string): Wallet {
   return out;
 }
 export const storage = (s: GameState, id: string) =>
-  800 +
-  realmBuildings(s, id).filter((b) => b.kind === 'WAREHOUSE').length * 800 +
-  realmBuildings(s, id).filter((b) => b.kind === 'GRANARY').length * 400 +
-  realmBuildings(s, id).filter((b) => b.kind === 'RAIL_DEPOT').length * 1200;
+  800 + realmBuildings(s, id).reduce((sum, b) => sum + storageBonus(b.kind, b.level), 0);
 export function accrueEconomy(s: GameState, r: Realm, now: number, grace = RULES.grace) {
   const until = Math.min(now, r.offlineAt ?? r.lastSeen + grace),
     minutes = Math.max(0, until - r.economyAt) / 60_000;
@@ -175,10 +193,7 @@ export function accrueEconomy(s: GameState, r: Realm, now: number, grace = RULES
       for (const b of buildings)
         if (['CAMP', 'HOUSE', 'VILLAGE', 'OUTPOST'].includes(b.kind))
           b.population = Math.min(
-            Math.max(
-              b.population,
-              (BUILDING_POPULATION[b.kind] ?? 0) * (b.kind === 'VILLAGE' ? b.level + 1 : 2),
-            ),
+            Math.max(b.population, populationCapacity(b.kind, b.level)),
             b.population +
               minutes *
                 0.4 *
@@ -216,7 +231,16 @@ export function vision(s: GameState, r: Realm): Set<string> {
   for (const b of realmBuildings(s, r.id))
     for (const p of disk(
       b,
-      (b.kind === 'RADIO' ? 10 : b.kind === 'TOWER' ? 7 : b.kind === 'FORT' ? 4 : 3) +
+      (b.kind === 'BLACK_OBSERVATORY'
+        ? 12
+        : b.kind === 'RADIO'
+          ? 10
+          : b.kind === 'TOWER'
+            ? 7
+            : b.kind === 'FORT'
+              ? 4
+              : 3) +
+        (b.level - 1) +
         (realmBuildings(s, r.id).some((x) => x.kind === 'LIBRARY') ? 1 : 0),
     ))
       visible.add(key(p));
@@ -294,9 +318,9 @@ export function findPath(
   }
   return null;
 }
-export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus'>) {
+export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus'>) {
   const base = UNITS[unit.kind];
-  const multiplier = 1 + (unit.rareBonus ?? 0) / 100;
+  const multiplier = 1 + ((unit.rareBonus ?? 0) + (unit.trainingBonus ?? 0)) / 100;
   const boosted = (value: number) => Math.round(value * multiplier * 100) / 100;
   return {
     ...base,
@@ -368,7 +392,7 @@ export function createRealm(
     bot,
     createdAt: now,
     wallet: { STONE: 0, GOLD: 320, WOOD: 240, IRON: 140, FOOD: 200 },
-    ap: RULES.maxAP,
+    ap: bot ? RULES.maxAP : RULES.startingAP,
     apAt: now,
     economyAt: now,
     lastSeen: now,

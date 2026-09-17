@@ -77,7 +77,7 @@ describe('fondation sans ressources', () => {
     s = result.state;
     expect(realmBuildings(s, 'founder').map((b) => b.kind)).toEqual(['CAMP', 'HOUSE']);
     expect(s.realms.founder.wallet.WOOD).toBe(2);
-    expect(s.realms.founder.ap).toBe(11);
+    expect(s.realms.founder.ap).toBe(26);
     expect(realmTiles(s, 'founder')).toHaveLength(2);
   });
   it('refuse le second paysan sans ressources et permet un remplacement gratuit après perte', () => {
@@ -102,7 +102,7 @@ describe('fondation sans ressources', () => {
     for (const p of neighbors(u)) writeTile(s, p, { terrain: 'FOREST', ownerId: 'enemy' });
     const result = execute(s, 'founder', action('GATHER', u.id, { resource: 'WOOD' }), now);
     expect(result.result.accepted).toBe(false);
-    expect(result.state.realms.founder.ap).toBe(14);
+    expect(result.state.realms.founder.ap).toBe(29);
     expect(result.state.realms.founder.wallet.WOOD).toBe(0);
   });
   it('fait évoluer le campement en avant-poste puis en village sans perdre la capitale', () => {
@@ -134,25 +134,24 @@ describe('catalogue étendu', () => {
       expect(realmUnits(result.state, r.id)).toHaveLength(before + 1);
     },
   );
-  it.each(Object.keys(BUILDINGS) as BuildingKind[])(
-    'construit %s sur un terrain compatible',
-    (kind) => {
-      const s = established(),
-        r = s.realms.founder,
-        p = { q: 8, r: 0 };
-      writeTile(s, p, { terrain: BUILDINGS[kind].terrains[0] as Terrain, ownerId: r.id });
-      (BUILDING_REQUIREMENTS[kind] ?? []).forEach((k, i) =>
-        addBuilding(s, r, { q: 12 + i, r: 0 }, k, now),
-      );
-      const result = execute(s, r.id, action('BUILD', r.id, { ...p, kind }), now);
-      expect(result.result.accepted, result.result.reason).toBe(true);
-      expect(
-        realmBuildings(result.state, r.id).some(
-          (b) => b.kind === kind && b.q === p.q && b.r === p.r,
-        ),
-      ).toBe(true);
-    },
-  );
+  it.each(
+    (Object.keys(BUILDINGS) as BuildingKind[]).filter(
+      (kind) => kind !== 'STONE_WALL' && kind !== 'STEEL_WALL',
+    ),
+  )('construit %s sur un terrain compatible', (kind) => {
+    const s = established(),
+      r = s.realms.founder,
+      p = { q: 8, r: 0 };
+    writeTile(s, p, { terrain: BUILDINGS[kind].terrains[0] as Terrain, ownerId: r.id });
+    (BUILDING_REQUIREMENTS[kind] ?? []).forEach((k, i) =>
+      addBuilding(s, r, { q: 12 + i, r: 0 }, k, now),
+    );
+    const result = execute(s, r.id, action('BUILD', r.id, { ...p, kind }), now);
+    expect(result.result.accepted, result.result.reason).toBe(true);
+    expect(
+      realmBuildings(result.state, r.id).some((b) => b.kind === kind && b.q === p.q && b.r === p.r),
+    ).toBe(true);
+  });
   it('bloque les troupes avancées sans leurs infrastructures', () => {
     const s = established(),
       r = s.realms.founder,
@@ -175,7 +174,7 @@ describe('catalogue étendu', () => {
     const result = execute(s, r.id, action('ABILITY', healer.id, { ability: 'MEND' }), now);
     expect(result.result.accepted).toBe(true);
     expect(result.state.units[target.id].hp).toBe(UNITS[target.kind].hp);
-    expect(result.state.realms[r.id].ap).toBe(14);
+    expect(result.state.realms[r.id].ap).toBe(29);
   });
   it('le lancier inflige davantage de dégâts à la cavalerie', () => {
     const s = established(),

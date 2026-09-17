@@ -1376,7 +1376,7 @@ input[type='color'] {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 48px;
+  top: max(76px, env(safe-area-inset-top));
   transform: translateX(-50%);
   z-index: 200;
   background: #2e3b28f8;
@@ -2660,7 +2660,7 @@ input[type='color'] {
   }
   .toast {
     width: max-content;
-    bottom: 36px;
+    top: max(66px, env(safe-area-inset-top));
     font-size: 10px;
   }
   .building-info {
@@ -3461,4 +3461,14 @@ button:disabled {
 .cost .cost-insufficient {
   color: #f29b8c;
   font-weight: 600;
+}
+
+/* Unavailable orders remain explained in text; only executable controls are shown. */
+.game-shell button:disabled,
+.modal button:disabled {
+  display: none;
+}
+.catalog-unavailable {
+  color: #b7a48d;
+  font-size: 11px;
 }

@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { rollRareBonus } from './rarity';
 import {
   ACTION_COST,
+  isWall,
+  isBuildable,
+  RESOURCES,
+  buildingConstructionCost,
   buildingUpgrade,
+  trainingBonusAt,
   unitPopulation,
   RESOURCE_NAMES,
   RECON_UNITS,
@@ -28,6 +33,8 @@ import {
   createRealm,
   disk,
   distance,
+  wallBlocks,
+  demolitionRefund,
   estimateDamage,
   unitStats,
   findPath,
@@ -120,8 +127,10 @@ export function addBuilding(
   kind: BuildingKind,
   now: number,
   level = 1,
+  constructionCost = buildingConstructionCost(kind, r.faction),
 ): Building {
   const b: Building = {
+    constructionCost,
     ...p,
     id: randomUUID(),
     ownerId: r.id,
@@ -185,7 +194,7 @@ export function settleFounding(s: GameState, r: Realm, now: number) {
     if (!tileAt(s, p).ownerId && !tileAt(s, p).buildingId)
       writeTile(s, p, { terrain: resources[i] });
   });
-  addBuilding(s, r, r.capital, 'CAMP', now);
+  addBuilding(s, r, r.capital, 'CAMP', now, 1, {});
   observe(s, r, now);
   log(
     s,
@@ -284,6 +293,7 @@ function pay(r: Realm, cost: Partial<Wallet>) {
   transfer(r.wallet, cost, -1);
 }
 function spend(r: Realm, cost = 1) {
+  if (r.unlimitedAP) return;
   requireRule(r.ap >= cost, `Cette action demande ${cost} PA.`);
   r.ap -= cost;
 }
@@ -335,6 +345,10 @@ export function applyAction(
           'Explorez cette région avant de la traverser.',
         );
         const t = tileAt(s, p);
+        requireRule(
+          !wallBlocks(t.buildingId ? s.buildings[t.buildingId] : undefined, id),
+          'Un rempart ennemi bloque le passage. Détruisez-le ou contournez-le.',
+        );
         cost += movementCost(t, u.kind);
         requireRule(cost <= max, 'Ce chemin dépasse la capacité de déplacement.');
         requireRule(
@@ -373,6 +387,12 @@ export function applyAction(
         target = targetAt(s, a.payload.targetId);
       requireRule(UNITS[u.kind].attack > 0, 'Cette unité ne peut pas attaquer.');
       requireRule(target && vision(s, r).has(key(target)), 'Cible indisponible.');
+      const cover = tileAt(s, target).buildingId;
+      const coveringWall = cover ? s.buildings[cover] : undefined;
+      requireRule(
+        target.id === coveringWall?.id || !wallBlocks(coveringWall, id),
+        'Détruisez d’abord le rempart qui protège cette unité.',
+      );
       requireRule(distance(u, target) <= UNITS[u.kind].range, 'La cible est hors de portée.');
       hostile(s, r, target.ownerId, now, options);
       spendAction(UNIT_PROFILES[u.kind].siege ? 2 : ACTION_COST.ATTACK);
@@ -406,6 +426,10 @@ export function applyAction(
       requireRule(UNITS[u.kind].capture > 0, 'Cette unité ne peut pas revendiquer de territoire.');
       requireRule(t.ownerId !== id, 'Cet hexagone vous appartient déjà.');
       requireRule(
+        !t.buildingId || !isWall(s.buildings[t.buildingId]?.kind ?? ''),
+        'Les remparts ne peuvent pas être capturés : détruisez-les pour ouvrir une brèche.',
+      );
+      requireRule(
         u.kind !== 'PEASANT' || (!t.ownerId && !t.buildingId),
         'Les paysans ne revendiquent que les terres neutres sans bâtiment.',
       );
@@ -424,6 +448,7 @@ export function applyAction(
         const previous = t.ownerId;
         writeTile(s, u, { ownerId: id, capture: undefined });
         if (b) {
+          b.constructionCost ??= demolitionRefund(b, s.realms[b.ownerId]?.faction ?? r.faction);
           b.ownerId = id;
           b.updatedAt = now;
           if (previous) updateDefeat(s, previous, b, now);
@@ -439,16 +464,20 @@ export function applyAction(
     case 'BUILD': {
       const p = a.payload,
         t = tileAt(s, p);
+      requireRule(
+        isBuildable(p.kind),
+        'Construisez une palissade, puis améliorez-la en pierre et en acier.',
+      );
       const builder = s.units[a.actorId];
       const frontier =
         builder?.ownerId === id &&
         UNIT_PROFILES[builder.kind].builder &&
         distance(builder, p) <= 1 &&
         !t.ownerId &&
-        neighbors(p).some((n) => tileAt(s, n).ownerId === id);
+        realmBuildings(s, id).some((b) => distance(b, p) <= RULES.constructionRadius);
       requireRule(
         t.ownerId === id || frontier,
-        'Construisez sur votre territoire ou avec un paysan au bord de vos terres.',
+        'Construisez sur vos terres ou avec un bâtisseur près du chantier, à 3 cases maximum de vos bâtiments.',
       );
       const missing = (BUILDING_REQUIREMENTS[p.kind] ?? []).find(
         (kind) => !realmBuildings(s, id).some((b) => b.kind === kind),
@@ -464,14 +493,9 @@ export function applyAction(
         'Ce terrain ne convient pas à ce bâtiment.',
       );
       spendAction();
-      const discount = r.faction === 'ASH' ? 0.9 : 1;
-      pay(
-        r,
-        Object.fromEntries(
-          Object.entries(BUILDINGS[p.kind].cost).map(([k, v]) => [k, Math.ceil(v * discount)]),
-        ),
-      );
-      addBuilding(s, r, p, p.kind, now);
+      const cost = buildingConstructionCost(p.kind, r.faction);
+      pay(r, cost);
+      addBuilding(s, r, p, p.kind, now, 1, cost);
       r.progression.development++;
       message = `Construction terminée : ${BUILDINGS[p.kind].name}.`;
       log(s, message, 'ECONOMY', now, [id], p);
@@ -510,6 +534,7 @@ export function applyAction(
       const p = [b, ...neighbors(b)].find(
         (p) =>
           tileAt(s, p).ownerId === id &&
+          !wallBlocks(s.buildings[tileAt(s, p).buildingId ?? ''], id) &&
           movementCost(tileAt(s, p), a.payload.kind) <= UNITS[a.payload.kind].move &&
           !Object.values(s.units).some((u) => distance(u, p) === 0),
       );
@@ -518,14 +543,23 @@ export function applyAction(
       if (!freePeasant) pay(r, UNITS[a.payload.kind].cost);
       const uid = randomUUID();
       const rareBonus = (options.recruitBonus ?? rollRareBonus)();
+      const trainingBonus = profile.builder
+        ? 0
+        : Math.max(
+            0,
+            ...realmBuildings(s, id)
+              .filter((x) => profile.recruitAt.includes(x.kind))
+              .map((x) => trainingBonusAt(x.kind, x.level)),
+          );
       s.units[uid] = {
         ...(rareBonus ? { rareBonus } : {}),
+        ...(trainingBonus ? { trainingBonus } : {}),
         q: p.q,
         r: p.r,
         id: uid,
         ownerId: id,
         kind: a.payload.kind,
-        hp: unitStats({ kind: a.payload.kind, rareBonus }).hp,
+        hp: unitStats({ kind: a.payload.kind, rareBonus, trainingBonus }).hp,
         createdAt: now,
         updatedAt: now,
       };
@@ -554,10 +588,31 @@ export function applyAction(
       message = 'Réparations et soins terminés.';
       break;
     }
+    case 'DEMOLISH': {
+      const b = ownedBuilding(s, r, a.actorId);
+      requireRule(
+        distance(b, r.capital) !== 0,
+        'Le bâtiment de votre capitale ne peut pas être démoli.',
+      );
+      const refund = demolitionRefund(b, r.faction);
+      spendAction();
+      delete s.buildings[b.id];
+      writeTile(s, b, { buildingId: undefined, capture: undefined });
+      // Preserve the entire refund, even if demolishing a warehouse lowers capacity.
+      // Economy already pauses positive production while a resource exceeds its cap.
+      transfer(r.wallet, refund);
+      const received = RESOURCES.filter((resource) => (refund[resource] ?? 0) > 0)
+        .map((resource) => `+${refund[resource]} ${RESOURCE_NAMES[resource].toLowerCase()}`)
+        .join(', ');
+      message = `${BUILDINGS[b.kind].name} démoli.${received ? ` Ressources récupérées : ${received}.` : ' Aucune ressource à rembourser.'}`;
+      log(s, message, 'ECONOMY', now, [id], b);
+      break;
+    }
     case 'UPGRADE': {
       const b = ownedBuilding(s, r, a.actorId);
       const upgrade = buildingUpgrade(b.kind, b.level);
       requireRule(upgrade, 'Ce bâtiment ne peut plus évoluer.');
+      b.constructionCost ??= demolitionRefund(b, r.faction);
       requireRule(
         b.population >= upgrade.population,
         `${upgrade.population} habitants sont nécessaires.`,
@@ -589,21 +644,31 @@ export function applyAction(
         message = 'Votre avant-poste devient un village.';
         break;
       }
-      requireRule(
-        ['OUTPOST', 'VILLAGE'].includes(b.kind),
-        'Seules les agglomérations peuvent évoluer.',
-      );
-      requireRule(b.level < 4, 'Cette cité a atteint son niveau maximal.');
-      requireRule(b.population >= b.level * 25, 'Population insuffisante pour ce développement.');
       spendAction();
       pay(r, upgrade.cost);
-      b.level++;
-      b.kind = 'VILLAGE';
-      b.hp = BUILDINGS.VILLAGE.hp * b.level;
-      b.name = `${CITY_LEVELS[b.level]} de ${r.name}`;
+      b.kind = upgrade.kind;
+      b.level = upgrade.level;
+      b.hp = BUILDINGS[b.kind].hp * b.level;
+      b.name =
+        b.kind === 'VILLAGE' ? `${CITY_LEVELS[b.level]} de ${r.name}` : BUILDINGS[b.kind].name;
       b.updatedAt = now;
+      const training = trainingBonusAt(b.kind, b.level);
+      let trained = 0;
+      for (const u of realmUnits(s, id)) {
+        if (
+          UNIT_PROFILES[u.kind].builder ||
+          !UNIT_PROFILES[u.kind].recruitAt.includes(b.kind) ||
+          (u.trainingBonus ?? 0) >= training
+        )
+          continue;
+        const healthRatio = u.hp / unitStats(u).hp;
+        u.trainingBonus = training;
+        u.hp = Math.round(unitStats(u).hp * healthRatio * 100) / 100;
+        u.updatedAt = now;
+        trained++;
+      }
       r.progression.development++;
-      message = `Votre agglomération devient une ${CITY_LEVELS[b.level].toLowerCase()}.`;
+      message = `${upgrade.name} : amélioration terminée.${trained ? ` ${trained} unités améliorées (+${training} % d’entraînement).` : ''}`;
       break;
     }
     case 'ABILITY': {
@@ -674,7 +739,7 @@ export function applyAction(
         spendAction();
         transfer(r.wallet, c.cargo);
         delete s.caravans[c.id];
-        message = 'La cargaison a été interceptée.';
+        message = `Cargaison récupérée : ${rewardText(c.cargo)}.`;
         log(s, message, 'COMBAT', now, [id, c.ownerId, c.partnerId], u);
       } else if (a.payload.eventId) {
         const e = s.events[a.payload.eventId];
@@ -686,7 +751,7 @@ export function applyAction(
         e.claimedBy = id;
         transfer(r.wallet, e.reward);
         if (e.relic) r.relics.push(e.relic);
-        message = `${e.title} : découverte accomplie.`;
+        message = `${e.title} : ${rewardText(e.reward)}${e.relic ? ` · Relique : ${e.relic}` : ''}.`;
         log(s, message, 'WORLD', now, [id], e);
       } else {
         const t = tileAt(s, u);
@@ -695,7 +760,7 @@ export function applyAction(
         writeTile(s, t, { exhausted: true });
         transfer(r.wallet, { GOLD: t.poi === 'MYTHIC' ? 100 : 35, IRON: 15 });
         if (t.poi === 'MYTHIC' || t.poi === 'RARE') r.relics.push(`Fragment de ${key(u)}`);
-        message = 'Les ruines ont livré leurs secrets.';
+        message = `Ruines explorées : +${t.poi === 'MYTHIC' ? 100 : 35} or · +15 fer${t.poi === 'MYTHIC' || t.poi === 'RARE' ? ' · Fragment antique obtenu' : ''}.`;
       }
       break;
     }
@@ -808,7 +873,18 @@ export function applyAction(
         p.kind === 'TRIBUTE'
           ? 'Tribut versé. La trêve protège les deux royaumes.'
           : 'Échange effectué. La route commerciale est ouverte.';
-      log(s, message, 'DIPLOMACY', now, [from.id, to.id]);
+      for (const participant of [payer, receiver]) {
+        const gains = participant.id === receiver.id ? p.offer : p.request;
+        log(
+          s,
+          `${message}${amount(gains) > 0 ? ` Reçu : ${rewardText(gains)}.` : ''}`,
+          'DIPLOMACY',
+          now,
+          [participant.id],
+        );
+      }
+      const received = id === receiver.id ? p.offer : p.request;
+      if (amount(received) > 0) message += ` Reçu : ${rewardText(received)}.`;
       break;
     }
     case 'RESPAWN': {
@@ -986,7 +1062,7 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
       (c) => c.ownerId === id || c.partnerId === id || visible.has(key(c)),
     ),
     events: Object.values(s.events).filter(
-      (e) => e.endsAt > now && (e.global || visible.has(key(e))),
+      (e) => !e.claimedBy && e.endsAt > now && (e.global || visible.has(key(e))),
     ),
     journal: s.journal
       .filter((j) =>
@@ -997,4 +1073,16 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     onlineHumans,
     botsAwake: onlineHumans > 0,
   };
+}
+
+function rewardText(reward: Partial<Wallet>) {
+  return (
+    Object.entries(reward)
+      .filter(([, value]) => value > 0)
+      .map(
+        ([resource, value]) =>
+          `+${value} ${RESOURCE_NAMES[resource as keyof Wallet].toLowerCase()}`,
+      )
+      .join(' · ') || 'Aucune ressource'
+  );
 }

@@ -1,0 +1,39 @@
+# Remparts sur hexagones entiers
+
+Choix validé : chaque tronçon occupe une case, comme un bâtiment. Construire une **Palissade en bois** dans l’onglet **Défenses**, puis sélectionner ce tronçon et choisir **Améliorer** pour changer son matériau. Une case ne peut pas accueillir à la fois un rempart et un autre bâtiment.
+
+| Palier            | Matériau à payer            | PA  | PV  | Défense propre |
+| ----------------- | --------------------------- | --- | --- | -------------- |
+| Palissade en bois | 30 bois (27 pour la Cendre) | 1   | 30  | 0              |
+| Rempart de pierre | 45 pierre                   | 2   | 65  | 2              |
+| Mur en acier      | 45 fer                      | 2   | 100 | 4              |
+
+La ressource fer sert à produire l’acier ; aucune sixième ressource n’est ajoutée. Les paliers pierre et acier sont des évolutions du même tronçon, et ne se construisent pas directement. L’évolution répare intégralement le mur, conformément aux autres améliorations. Le coût initial de la palissade reste enregistré pour la démolition : les améliorations ne sont pas remboursées.
+
+Les remparts suivent les mêmes règles de chantier que les bâtiments : terres possédées ou terrain neutre à trois cases d’un bâtiment avec un bâtisseur à une case du chantier. Terrains autorisés : plaine, forêt, colline, montagne et ruines. Pas de construction sur une rivière ou un marais.
+
+## Passage et siège
+
+- Les unités du propriétaire traversent librement, sous réserve du terrain et d’une éventuelle unité occupant la case.
+- Tous les autres royaumes sont bloqués, même sur une route et même pendant une trêve. Une trêve interdit d’attaquer ; elle ne donne pas un droit de passage.
+- Le serveur contrôle chaque case du chemin, pas seulement la destination. Les chemins prévisualisés et les bots évitent les remparts adverses.
+- Un rempart ne peut pas être capturé. Il faut le contourner ou le détruire pour ouvrir une brèche. Après destruction, la case redevient franchissable ; la propriété du terrain et les routes sont conservées.
+- En mode attaque, un rempart adverse prend priorité sur une unité stationnée dessus : il faut ouvrir la brèche avant d’attaquer cette unité.
+- Les murs sont des cibles de bâtiment : les dégâts de siège, les PA, la portée, la défense du terrain et les protections diplomatiques habituelles s’appliquent. Ils ne bloquent pas les tirs vers des cases situées au-delà de l’enceinte.
+- Les remparts peuvent être réparés ou démolis avec les actions de bâtiment existantes. Les barres de vie apparaissent après des dégâts.
+
+## Rendu
+
+`apps/web/src/wall-art.ts` projette les matières peintes de `apps/web/public/assets/wall-materials.png` sur la géométrie hexagonale : bois pointu et traverses, pierre appareillée et créneaux, acier riveté et traces de rouille. Carte et menus utilisent la même source. Texture créée avec imagegen intégré ; prompt et provenance dans `assets-walls.md`.
+
+Les six voisins appartenant au même royaume déterminent les raccords, y compris entre matériaux différents. Le rendu couvre 64 configurations par matériau : tronçon isolé, six extrémités, lignes droites, angles, jonctions et croisements. Chaque demi-tronçon rejoint exactement la bordure commune ; un pilier ferme le raccord central. Les différences de hauteur entre matériaux restent visibles.
+
+Les textures sont mises en cache et recalculées au changement des voisins. Une destruction coupe le raccord et laisse une extrémité fermée. Le brouillard conserve seulement les informations déjà observées.
+
+## Vérification
+
+- `tests/walls.test.ts` : matériaux, progression, remboursement, routes, passage ami/ennemi, chemin à plusieurs étapes, contournement, enceinte fermée, brèche, trêve, capture interdite et six directions de raccord.
+- `tests/walls.e2e.ts` : contrôle des 192 configurations et absence de rognage.
+- `tests/founding.e2e.ts` : construction et deux évolutions via l’interface, vues réelles de remparts sur ordinateur et mobile.
+
+Les remparts utilisent la sauvegarde des bâtiments existante : ils suivent automatiquement les règles de persistance, d’archivage, de reconstruction après défaite et de suppression des invités.

@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import {
   BUILDINGS,
+  isBuildable,
   BUILDING_REQUIREMENTS,
   UNIT_PROFILES,
   UNITS,
@@ -67,7 +68,7 @@ for (const [kind, building] of Object.entries(BUILDINGS) as [
   (typeof BUILDINGS)[BuildingKind],
 ][])
   lines.push(
-    `| ${building.name} | ${building.hp} | ${wallet(building.cost)} | ${wallet(building.production)} | ${building.terrains.join(', ')} | ${(BUILDING_REQUIREMENTS[kind] ?? []).map((k) => BUILDINGS[k].name).join(', ') || '—'} |`,
+    `| ${building.name} | ${building.hp} | ${wallet(building.cost)} | ${wallet(building.production)} | ${building.terrains.join(', ')} | ${!isBuildable(kind) ? `Évolution uniquement : ${kind === 'STONE_WALL' ? 'palissade en bois' : 'rempart de pierre'} (2 PA, coût sans réduction)` : (BUILDING_REQUIREMENTS[kind] ?? []).map((k) => BUILDINGS[k].name).join(', ') || '—'} |`,
   );
 writeFileSync('docs/balance-audit.md', lines.join('\n') + '\n');
 console.log(

@@ -84,6 +84,16 @@ export function isolateSprites(
 
 export const SPRITE_CELL = 256;
 export const SPRITE_MARGIN = 20;
+/** Source grids; all are packed into the same 6 × 4 rendering format. */
+export const SPRITE_ATLASES: Record<string, { columns: number; rows: number }> = {
+  miniatures: { columns: 6, rows: 4 },
+  expansion: { columns: 6, rows: 4 },
+  industrial: { columns: 6, rows: 4 },
+  occult: { columns: 6, rows: 2 },
+  'units-medieval': { columns: 3, rows: 2 },
+  'units-civil': { columns: 6, rows: 2 },
+  'units-industrial': { columns: 6, rows: 2 },
+};
 const canvases = new Map<string, HTMLCanvasElement>();
 const urls = new Map<string, Promise<string>>();
 
@@ -100,6 +110,8 @@ export function normalizedAtlas(name: string, source: HTMLImageElement): HTMLCan
     context.getImageData(0, 0, input.width, input.height).data,
     input.width,
     input.height,
+    SPRITE_ATLASES[name].columns,
+    SPRITE_ATLASES[name].rows,
   );
   const atlas = document.createElement('canvas');
   atlas.width = SPRITE_CELL * 6;

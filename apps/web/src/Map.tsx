@@ -2,13 +2,24 @@ import { unitStats } from '@voidmarch/game-rules';
 import { worldEffects, type WorldEffect } from './world-effects';
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
-import { RULES, TERRAINS, UNITS, BUILDINGS, UNIT_PROFILES } from '@voidmarch/config';
-import { chunkOf, disk, distance, findPath, hash, key, neighbors } from '@voidmarch/game-rules';
+import { RULES, TERRAINS, UNITS, BUILDINGS, UNIT_PROFILES, isWall } from '@voidmarch/config';
+import {
+  chunkOf,
+  disk,
+  distance,
+  findPath,
+  hash,
+  key,
+  neighbors,
+  wallBlocks,
+  wallConnections,
+} from '@voidmarch/game-rules';
 import type { Hex, Unit, ViewTile, WorldView } from '@voidmarch/shared';
 import { BUILDING_FRAMES, UNIT_FRAMES, miniatureTexture, miniatureFrame } from './ui';
-import { normalizedAtlas, SPRITE_CELL } from './sprite-atlas';
+import { normalizedAtlas, SPRITE_CELL, SPRITE_ATLASES } from './sprite-atlas';
 import { api, notify, select, send, subscribe, useGame } from './store';
 import { SIZE, Y_SCALE, hexToPixel, pixelToHex, cameraViewport } from './map-geometry';
+import { wallCanvas, setWallMaterials } from './wall-art';
 const points = (p: { x: number; y: number }, size = SIZE) =>
   Array.from(
     { length: 6 },
@@ -47,12 +58,14 @@ class WorldScene extends Phaser.Scene {
     super('World');
   }
   preload() {
-    for (const name of ['industrial', 'expansion', 'miniatures'])
+    this.load.image('wall-materials', '/assets/wall-materials.png');
+    for (const name of Object.keys(SPRITE_ATLASES))
       this.load.image(`${name}-source`, `/assets/${name}.png`);
     this.load.spritesheet('terrain', '/assets/terrain.png', { frameWidth: 362, frameHeight: 362 });
   }
   create() {
-    for (const name of ['industrial', 'expansion', 'miniatures']) {
+    setWallMaterials(this.textures.get('wall-materials').getSourceImage() as HTMLImageElement);
+    for (const name of Object.keys(SPRITE_ATLASES)) {
       const source = this.textures.get(`${name}-source`).getSourceImage() as HTMLImageElement;
       const texture = this.textures.addCanvas(name, normalizedAtlas(name, source))!;
       for (let frame = 0; frame < 24; frame++)
@@ -202,7 +215,7 @@ class WorldScene extends Phaser.Scene {
     this.activeEffects++;
     const group = this.add.container(p.x, p.y).setDepth(14500).setName(`effect:${effect.kind}`);
     const combat = effect.kind === 'combat',
-      dust = effect.kind === 'build';
+      dust = effect.kind === 'build' || effect.kind === 'demolish';
     const ink = combat ? 0xe4a46e : dust ? 0xb0a18a : effect.kind === 'rare' ? 0xe0d69b : 0xa0d1ba;
     const ring = this.add.graphics();
     ring.lineStyle(combat ? 3 : 2, ink, 0.85);
@@ -275,6 +288,8 @@ class WorldScene extends Phaser.Scene {
   }
   private path(u: Unit, p: Hex) {
     const blocked = new Set(this.view?.units.filter((x) => x.id !== u.id).map(key));
+    for (const tile of this.view?.tiles ?? [])
+      if (wallBlocks(tile.building, u.ownerId)) blocked.add(key(tile));
     return findPath(
       u,
       p,
@@ -297,14 +312,19 @@ class WorldScene extends Phaser.Scene {
     if (state.mode === 'move' && own && own.ownerId === this.view.player.id) {
       const path = this.path(own, p);
       if (!path?.length) {
-        notify('Ce déplacement est impossible : terrain, distance ou unité sur le chemin.', true);
+        notify(
+          'Ce déplacement est impossible : rempart ennemi, terrain, distance ou unité sur le chemin.',
+          true,
+        );
         return;
       }
       void send({ type: 'MOVE', actorId: own.id, payload: { path } });
       return;
     }
     if (state.mode === 'attack' && own) {
-      const target = unit ?? tile?.building;
+      const target = wallBlocks(tile?.building, this.view.player.id)
+        ? tile?.building
+        : (unit ?? tile?.building);
       if (target && target.ownerId !== this.view.player.id)
         useGame.setState({ combatTarget: target.id });
       else notify('Sélectionnez une cible ennemie visible.', true);
@@ -477,6 +497,11 @@ class WorldScene extends Phaser.Scene {
     for (const t of visible.filter((t) => t.visibility !== 'UNKNOWN')) {
       const p = hexToPixel(t);
       if (t.road) {
+        d.fillStyle(
+          t.terrain === 'RIVER' ? 0xb4a07f : 0x9c8e72,
+          t.visibility === 'EXPLORED' ? 0.3 : 0.85,
+        );
+        d.fillRoundedRect(p.x - 9, p.y - 3, 18, 6, 2);
         for (const n of neighbors(t)) {
           if (this.tileMap.get(key(n))?.road) {
             const end = hexToPixel(n);
@@ -528,6 +553,23 @@ class WorldScene extends Phaser.Scene {
         const b = t.building,
           frame = b.kind === 'VILLAGE' ? Math.min(9, 6 + b.level) : BUILDING_FRAMES[b.kind],
           size = b.kind === 'VILLAGE' ? 105 : 78;
+        if (isWall(b.kind)) {
+          const connections = wallConnections(b, (p) => this.tileMap.get(key(p))?.building);
+          const texture = `wall:${b.kind}:${connections}`;
+          if (!this.textures.exists(texture))
+            this.textures.addCanvas(texture, wallCanvas(b.kind, connections));
+          const sprite = this.add
+            .image(p.x, p.y, texture)
+            .setDisplaySize(128, 128)
+            .setOrigin(0.5, 152 / 256)
+            .setDepth(depth(5000, p.y))
+            .setName(`wall:${b.id}`);
+          if (t.visibility === 'EXPLORED') sprite.setTint(0x777f75).setAlpha(0.7);
+          this.pieces.push(sprite);
+          if (t.visibility === 'VISIBLE')
+            this.healthBar(b.id, p.x, p.y, b.hp, BUILDINGS[b.kind].hp, -55);
+          continue;
+        }
         const sprite = this.add
           .image(p.x, p.y - 17, miniatureTexture(frame), miniatureFrame(frame))
           .setDisplaySize(size, size)
@@ -709,6 +751,36 @@ class WorldScene extends Phaser.Scene {
     const state = useGame.getState(),
       selection = state.selection,
       u = this.getUnit();
+    if (
+      state.mode === 'inspect' &&
+      u?.ownerId === this.view.player.id &&
+      UNIT_PROFILES[u.kind].builder
+    ) {
+      const buildings = this.view.tiles.filter((t) => t.building?.ownerId === this.view!.player.id);
+      for (const t of this.view.tiles) {
+        if (
+          t.visibility !== 'VISIBLE' ||
+          t.building ||
+          (t.ownerId && t.ownerId !== u.ownerId) ||
+          distance(u, t) > 1
+        )
+          continue;
+        if (
+          t.ownerId !== u.ownerId &&
+          !buildings.some((b) => distance(b, t) <= RULES.constructionRadius)
+        )
+          continue;
+        if (
+          this.view.units.some((enemy) => enemy.ownerId !== u.ownerId && distance(enemy, t) === 0)
+        )
+          continue;
+        const p = hexToPixel(t);
+        g.fillStyle(0x99c781, 0.12);
+        g.fillPoints(points(p, SIZE - 3), true);
+        g.lineStyle(2, 0x99c781, 0.8);
+        g.strokePoints(points(p, SIZE - 3), true);
+      }
+    }
     if (state.mode === 'move' && u && u.ownerId === this.view.player.id) {
       for (const p of disk(u, UNITS[u.kind].move)) {
         if (distance(u, p) === 0 || !this.path(u, p)) continue;

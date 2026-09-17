@@ -20,6 +20,14 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 | Unité | PV / attaque / défense | Déplacement / portée | Places | Coût | Entretien par minute | Infrastructure requise (nombre) |
 | --- | --- | --- | --- | --- | --- | --- |
+| Voltigeur Tesla | 14 / 8 / 2 | 2 / 3 | 5 | 120 or, 20 bois, 80 fer, 25 vivres | 0.61 or, 0.25 vivres | 7 |
+| Chasseur de maléfices | 11 / 7 / 2 | 4 / 3 | 5 | 100 or, 35 bois, 40 fer, 25 vivres | 0.5 or, 0.25 vivres | 9 |
+| Médecin de la peste | 9 / 1 / 2 | 3 / 1 | 5 | 85 or, 20 bois, 20 fer, 35 vivres | 0.4 or, 0.25 vivres | 3 |
+| Grenadier revenant | 16 / 6 / 3 | 2 / 2 | 5 | 95 or, 15 bois, 60 fer, 20 vivres | 0.47 or, 0.25 vivres | 9 |
+| Cavalier spectral | 15 / 8 / 3 | 5 / 1 | 5 | 160 or, 25 bois, 70 fer, 40 vivres | 0.74 or, 0.65 vivres | 9 |
+| Marcheur de siège | 24 / 9 / 5 | 2 / 4 | 12 | 220 or, 60 bois, 180 fer, 30 vivres | 1.23 or, 0.65 fer, 0.25 vivres | 10 |
+| Char possédé | 34 / 12 / 7 | 2 / 3 | 12 | 300 or, 65 bois, 250 fer, 45 vivres | 1.65 or, 0.8 fer, 0.25 vivres | 10 |
+| Section de mortier | 9 / 6 / 1 | 2 / 5 | 6 | 110 or, 40 bois, 75 fer, 20 vivres | 0.61 or, 0.25 vivres | 6 |
 | Fusilier | 10 / 5 / 2 | 3 / 4 | 5 | 45 or, 15 bois, 30 fer, 15 vivres | 0.26 or, 0.25 vivres | 4 |
 | Soldat d’assaut | 13 / 7 / 3 | 3 / 2 | 5 | 70 or, 10 bois, 45 fer, 20 vivres | 0.36 or, 0.25 vivres | 4 |
 | Mitrailleur | 12 / 8 / 2 | 2 / 4 | 5 | 85 or, 20 bois, 55 fer, 20 vivres | 0.45 or, 0.25 vivres | 5 |
@@ -46,7 +54,7 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 | Acolyte du Vide | 7 / 6 / 0 | 2 / 3 | 5 | 100 or, 20 bois, 30 fer, 25 vivres | 0.44 or, 0.25 vivres | 3 |
 | Éclaireur | 5 / 1 / 0 | 5 / 1 | 5 | 20 or, 12 bois, 8 vivres | 0.15 or, 0.25 vivres | 1 |
 | Fantassin | 10 / 3 / 2 | 3 / 1 | 5 | 30 or, 8 bois, 12 fer, 10 vivres | 0.15 or, 0.25 vivres | 1 |
-| Garde | 15 / 2 / 5 | 2 / 1 | 5 | 45 or, 25 fer, 15 vivres | 0.21 or, 0.25 vivres | 2 |
+| Garde | 15 / 2 / 5 | 2 / 1 | 5 | 45 or, 25 fer, 15 vivres | 0.21 or, 0.25 vivres | 1 |
 | Archer | 7 / 4 / 1 | 2 / 3 | 5 | 35 or, 25 bois, 5 fer, 10 vivres | 0.19 or, 0.25 vivres | 1 |
 | Chevalier | 10 / 5 / 2 | 5 / 1 | 5 | 70 or, 10 bois, 30 fer, 25 vivres | 0.34 or, 0.65 vivres | 2 |
 | Engin de siège | 8 / 3 / 1 | 1 / 4 | 6 | 90 or, 65 bois, 40 fer, 10 vivres | 0.51 or, 0.25 vivres | 2 |
@@ -55,6 +63,13 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 | Bâtiment | PV | Coût | Production brute / minute | Terrains | Prérequis |
 | --- | --- | --- | --- | --- | --- |
+| Palissade en bois | 30 | 30 bois | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | — |
+| Rempart de pierre | 65 | 45 pierre | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | Évolution uniquement : palissade en bois (2 PA, coût sans réduction) |
+| Mur en acier | 100 | 45 fer | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | Évolution uniquement : rempart de pierre (2 PA, coût sans réduction) |
+| Tour Tesla | 95 | 90 or, 45 bois, 70 pierre, 90 fer | — | PLAIN, HILL, RUINS | Forge, Laboratoire des cendres |
+| Caserne des revenants | 75 | 100 or, 60 bois, 65 pierre, 50 fer | — | PLAIN, HILL, RUINS | Caserne, Laboratoire des cendres |
+| Fonderie alchimique | 65 | 130 or, 70 bois, 50 pierre, 80 fer | 5 or | PLAIN, HILL, RUINS | Raffinerie, Laboratoire des cendres |
+| Observatoire noir | 55 | 140 or, 80 bois, 60 pierre, 65 fer | — | PLAIN, HILL, RUINS | Bibliothèque des astres, Relais radio |
 | Carrière de pierre | 30 | 25 or, 30 bois, 5 fer | 4 pierre | HILL, MOUNTAIN | — |
 | Arsenal | 50 | 70 or, 65 bois, 35 pierre, 35 fer | — | PLAIN, HILL, RUINS | Caserne, Forge |
 | Bunker | 100 | 70 or, 35 bois, 80 pierre, 100 fer | — | PLAIN, HILL, RUINS | Forge |

@@ -43,3 +43,7 @@ Les instructions données dans la conversation priment sur les documents origina
 - Tribut : proposition libre de GOLD/WOOD/IRON/FOOD et durée de 1 minute à 7 jours ; contre-proposition, acceptation, refus ou annulation. À l'acceptation, les ressources sont prélevées une seule fois et la trêve réciproque interdit attaque et capture jusqu'à son échéance. Une proposition seule ne protège pas. Les bots évaluent les propositions selon leur personnalité et leur puissance.
 - Un seul processus simule un monde. PostgreSQL est la source de vérité ; verrou transactionnel du monde et idempotence des commandes. Redis peut distribuer les notifications, mais plusieurs simulateurs ne sont pas autorisés.
 - La graine et les terrains de base sont publics ; le serveur ne livre jamais les unités, bâtiments actuels et propriétés adverses hors vision. Les tuiles explorées gardent leur dernière observation.
+
+- 17 septembre 2026 : nouvelle passe gameplay validée (30 PA initiaux, zone de construction de 3 cases, améliorations de tous les bâtiments et des troupes existantes, expiration des invités à 24 h, code PA illimités connu des joueurs). Voir [gameplay-v03.md](gameplay-v03.md), qui prévaut sur les anciens choix concernés.
+
+- 17 septembre 2026 : remparts sur hexagones entiers validés, avec progression bois → pierre → acier et matériaux correspondants. Passage réservé aux unités du propriétaire, ennemis bloqués jusqu’à destruction ou contournement, raccords automatiques. Règles dans [remparts.md](remparts.md).

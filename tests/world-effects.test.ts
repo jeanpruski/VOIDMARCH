@@ -10,6 +10,14 @@ function fixture() {
   return { before, after: structuredClone(before), camp: realmBuildings(state, 'p')[0] };
 }
 describe('effets du monde', () => {
+  it('déclenche un nuage de poussière quand un bâtiment visible disparaît', () => {
+    const { before, after } = fixture();
+    const tile = after.tiles.find((t) => t.building)!;
+    tile.building = undefined;
+    expect(worldEffects(before, after).map((effect) => effect.kind)).toEqual(['demolish']);
+    tile.visibility = 'EXPLORED';
+    expect(worldEffects(before, after)).toEqual([]);
+  });
   it('ne joue aucun effet pour un snapshot inchangé ou une reconnexion', () => {
     const { before, after } = fixture();
     expect(worldEffects(before, after)).toEqual([]);

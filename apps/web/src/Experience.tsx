@@ -46,7 +46,7 @@ export function NextStep() {
     'Le premier paysan est gratuit en ressources. Il récolte et ouvre la voie aux constructions.',
     'Récoltez du bois en forêt puis bâtissez une chaumière pour augmenter votre population.',
     'Développez le campement : plus de place pour les habitants et accès au fantassin.',
-    'Développez l’avant-poste : le village renforce votre économie et ouvre de nouveaux recrutements.',
+    'Développez l’avant-poste : le village renforce votre économie et accueille davantage d’habitants pour soutenir votre armée.',
     'Choisissez votre voie : explorer les anomalies, développer votre industrie ou négocier avec vos voisins.',
   ];
   const toggle = () => {

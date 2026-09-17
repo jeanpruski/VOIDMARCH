@@ -3,7 +3,6 @@ import { ArrowRight, Shield, LoaderCircle } from 'lucide-react';
 import { FACTIONS, type Faction } from '@voidmarch/config';
 import type { AuthUser } from '@voidmarch/shared';
 import { acceptSession, api } from './store';
-import { startAudio } from './audio';
 import { Sigil } from './ui';
 export function Login() {
   const [mode, setMode] = useState<'guest' | 'login' | 'register'>('guest'),
@@ -17,7 +16,6 @@ export function Login() {
     e.preventDefault();
     setBusy(true);
     setError('');
-    startAudio();
     try {
       const session = await api<{ token: string; user: AuthUser }>(`/auth/${mode}`, {
         username,
@@ -138,7 +136,7 @@ export function Login() {
           </button>
           <p className="login-note">
             {mode === 'guest'
-              ? 'Jouez immédiatement. Vous pourrez enregistrer votre compte à tout moment.'
+              ? 'Compte invité : après 24 h sans connexion, votre compte, votre royaume, vos bâtiments et vos unités seront supprimés. Enregistrez votre compte pour les conserver.'
               : 'Votre royaume vous attend au même endroit.'}
           </p>
         </form>

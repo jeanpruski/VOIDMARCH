@@ -77,7 +77,7 @@ describe('récoltes sur le terrain occupé', () => {
     const s = fixture(terrain);
     const result = harvest(s, resource);
     expect(result.result.accepted).toBe(allowed);
-    expect(result.state.realms.p.ap).toBe(allowed ? RULES.maxAP - 1 : RULES.maxAP);
+    expect(result.state.realms.p.ap).toBe(allowed ? RULES.startingAP - 1 : RULES.startingAP);
     expect(result.state.realms.p.wallet[resource] > 0).toBe(allowed);
   });
   it('refuse la forêt voisine et une forêt appartenant à un adversaire', () => {
@@ -152,7 +152,7 @@ describe('économie et progression', () => {
     expect(BUILDINGS.OUTPOST.hp).toBeGreaterThanOrEqual(BUILDINGS.CAMP.hp);
     expect(BUILDINGS.VILLAGE.hp).toBeGreaterThanOrEqual(BUILDINGS.OUTPOST.hp);
     expect(BUILDINGS.QUARRY.cost.STONE).toBe(0);
-    expect(Object.keys(UNITS)).toHaveLength(30);
+    expect(Object.keys(UNITS)).toHaveLength(38);
   });
   it('complète les anciennes sauvegardes et les accords sans modifier les anciens stocks', () => {
     const wallet = { GOLD: 12, WOOD: 8, IRON: 4, FOOD: 20 };
