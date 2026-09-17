@@ -111,6 +111,16 @@ class WorldScene extends Phaser.Scene {
     this.load.spritesheet('terrain', '/assets/terrain.png', { frameWidth: 362, frameHeight: 362 });
   }
   create() {
+    // Register cleanup before the first render, including when initialization fails.
+    const cleanup = () => {
+      this.unsubscribe?.();
+      this.unsubscribe = undefined;
+      for (const cancel of this.projectiles.values()) cancel();
+      clearTimeout(this.cameraSave);
+      window.removeEventListener('vm:camera', this.cameraCommand);
+    };
+    this.events.once('shutdown', cleanup);
+    this.events.once('destroy', cleanup);
     for (const [part, name] of Object.entries(HERO_SHEETS))
       loadHeroSheet(part as HeroPart, this.textures.get(name).getSourceImage() as HTMLImageElement);
     setWallMaterials(this.textures.get('wall-materials').getSourceImage() as HTMLImageElement);
@@ -158,6 +168,7 @@ class WorldScene extends Phaser.Scene {
     this.panKey = this.input.keyboard?.createCursorKeys();
     this.input.mouse?.disableContextMenu();
     this.unsubscribe = useGame.subscribe((s, previous) => {
+      if (!this.sys.isActive() || !this.cameras.main) return;
       if (previous.actionEffect && !s.actionEffect)
         this.projectiles.get(previous.actionEffect.actionId)?.();
       if (s.world?.player.settings.reducedMotion)
@@ -268,26 +279,25 @@ class WorldScene extends Phaser.Scene {
       this.renderMap();
       this.subscribeVisible();
     });
-    this.scale.on('resize', () => {
+    const resize = () => {
       const c = this.cameras.main;
+      if (!this.sys.isActive() || !c) return;
       c.centerOn(c.scrollX + this.viewportWidth / 2, c.scrollY + this.viewportHeight / 2);
       this.viewportWidth = this.scale.width;
       this.viewportHeight = this.scale.height;
       this.renderMap();
       this.subscribeVisible();
-    });
+    };
+    this.scale.on('resize', resize);
+    this.events.once('shutdown', () => this.scale.off('resize', resize));
+    this.events.once('destroy', () => this.scale.off('resize', resize));
     window.addEventListener('vm:camera', this.cameraCommand);
-    this.events.once('shutdown', () => {
-      this.unsubscribe?.();
-      for (const cancel of this.projectiles.values()) cancel();
-      clearTimeout(this.cameraSave);
-      window.removeEventListener('vm:camera', this.cameraCommand);
-    });
     this.time.delayedCall(200, () => this.subscribeVisible());
   }
   private cameraCommand = (event: Event) => {
     const p = (event as CustomEvent).detail,
       c = this.cameras.main;
+    if (!c) return;
     if (p.command === 'in') c.setZoom(Math.min(MAP_ZOOM.max, c.zoom * MAP_ZOOM.step));
     else if (p.command === 'out') c.setZoom(Math.max(MAP_ZOOM.min, c.zoom / MAP_ZOOM.step));
     else if (p.command === 'home' && this.view) {
@@ -295,7 +305,8 @@ class WorldScene extends Phaser.Scene {
       c.centerOn(h.x, h.y);
     } else if (Number.isFinite(p.q)) {
       const h = hexToPixel(p);
-      c.centerOn(h.x, h.y);
+      // Hero controls can occupy the bottom half on phones; keep the figurine above them.
+      c.centerOn(h.x, h.y + (p.abovePanel ? (c.height * 0.23) / c.zoom : 0));
     }
     this.renderMap();
     this.subscribeVisible();
@@ -534,7 +545,7 @@ class WorldScene extends Phaser.Scene {
     else select({ kind: 'tile', ...p });
   }
   private renderMap() {
-    if (!this.view) return;
+    if (!this.view || !this.cameras.main) return;
     const world = this.view,
       g = this.ground,
       d = this.details;
@@ -1301,6 +1312,8 @@ export function GameMap() {
     resizeObserver.observe(host.current);
     return () => {
       resizeObserver.disconnect();
+      // Stop scene subscriptions synchronously; Phaser destroys the game next frame.
+      for (const scene of game.scene.getScenes(false)) scene.scene.stop();
       container.remove();
       game.destroy(true);
     };

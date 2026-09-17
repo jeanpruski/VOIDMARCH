@@ -13,7 +13,7 @@ import {
 } from '@voidmarch/config';
 import { heroCanvas, loadHeroArt } from './hero-art';
 import { canAfford } from '@voidmarch/game-rules';
-import { useGame, send, focusMap } from './store';
+import { useGame, send, focusHero } from './store';
 export function HeroPortrait({
   appearance,
   size = 220,
@@ -170,16 +170,7 @@ export function HeroControls() {
         </p>
       ) : (
         <>
-          <button
-            className="secondary"
-            onClick={() => {
-              focusMap(unit);
-              useGame.setState({
-                selection: { kind: 'unit', id: unit.id, q: unit.q, r: unit.r },
-                panel: null,
-              });
-            }}
-          >
+          <button className="secondary" onClick={focusHero}>
             Retrouver mon héros
           </button>
           <div className="hero-powers">

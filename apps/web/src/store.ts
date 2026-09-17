@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { supportsWorldCatalog } from './catalog-compatibility';
 import type { CameraViewport } from './map-geometry';
 import { io, type Socket } from 'socket.io-client';
 import type { Action } from '@voidmarch/protocol';
@@ -35,6 +36,7 @@ export interface Selection extends Hex {
   id?: string;
 }
 interface GameStore {
+  clientUpdateRequired: boolean;
   user: AuthUser | null;
   token: string | null;
   world: WorldView | null;
@@ -60,6 +62,7 @@ interface GameStore {
   set: (patch: Partial<GameStore>) => void;
 }
 export const useGame = create<GameStore>((set) => ({
+  clientUpdateRequired: false,
   user: null,
   token: null,
   world: null,
@@ -245,6 +248,11 @@ function finishOrder(order: PendingOrder, accepted: boolean) {
     useGame.setState({ panel: order.closedPanel });
 }
 function receiveWorld(world: WorldView) {
+  if (!supportsWorldCatalog(world)) {
+    useGame.setState({ clientUpdateRequired: true });
+    return;
+  }
+  if (useGame.getState().clientUpdateRequired) return;
   if (!rememberWorld(world)) return;
   if (activeOrder) {
     // Buffer snapshots until their action receipt identifies the committed revision.
@@ -511,9 +519,33 @@ export async function logout() {
     panel: null,
   });
 }
-export function focusMap(p: Hex) {
-  window.dispatchEvent(new CustomEvent('vm:camera', { detail: { ...p } }));
+export function focusMap(p: Hex, abovePanel = false) {
+  window.dispatchEvent(new CustomEvent('vm:camera', { detail: { ...p, abovePanel } }));
   useGame.setState({ panel: null, menuOpen: false });
+}
+export function focusHero() {
+  const { world } = useGame.getState();
+  if (!world) return;
+  const hero = world.units.find((u) => u.ownerId === world.player.id && u.kind === 'HERO');
+  if (!hero) {
+    useGame.setState({ panel: 'realm', menuOpen: false, mode: 'inspect', combatTarget: null });
+    const remaining = Math.ceil(((world.player.hero?.recoverAt ?? 0) - Date.now()) / 1000);
+    notify(
+      world.player.defeatedAt
+        ? 'Reconstruisez votre royaume pour retrouver votre héros.'
+        : remaining > 0
+          ? `Votre héros revient dans ${remaining} s.`
+          : 'Votre héros attend une case libre et praticable à 4 hexagones maximum de la capitale.',
+    );
+    return;
+  }
+  focusMap(hero, true);
+  useGame.setState({
+    selection: { kind: 'unit', id: hero.id, q: hero.q, r: hero.r },
+    mode: 'inspect',
+    combatTarget: null,
+    terraformTarget: undefined,
+  });
 }
 export const mapCommand = (command: string) =>
   window.dispatchEvent(new CustomEvent('vm:camera', { detail: { command } }));

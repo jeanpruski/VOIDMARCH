@@ -10,6 +10,8 @@ L’apparence est définitive après inscription. Les invités et les royaumes e
 
 ## Présence et pouvoirs
 
+Le bouton **★ Héros**, toujours disponible dans les commandes de carte à côté de la capitale, centre la caméra sur le héros et ouvre sa sélection. Il reste accessible sur mobile et lorsque les panneaux latéraux sont repliés. Pendant une convalescence ou en l’absence de place pour apparaître, il ouvre le panneau Royaume avec une explication.
+
 Le héros a 80 PV, 6 de défense, 4 de mouvement et 5 de vision. Il se déplace selon les règles ordinaires, y compris les routes et territoires. Il ne peut ni attaquer directement, ni capturer, ni construire. Son arme est un accessoire visuel.
 
 Les troupes alliées situées à 2 hexagones reçoivent un bonus automatique d’attaque et de défense : 8 % au grade 1, 10 % au grade 2, 12 % au grade 3. Le bonus ne s’applique ni aux bâtiments, ni au héros lui-même. Il cesse hors de portée ou pendant sa convalescence. Plusieurs auras ne se cumulent pas.
@@ -33,3 +35,9 @@ L’apparence choisie est enregistrée dans les paramètres du compte, puis dans
 Les tests `heroes.test.ts` et `hero-auth.test.ts` couvrent l’unicité, les règles de combat, la convalescence, les pouvoirs, les bonus, les coûts et la permanence de l’apparence. `heroes.e2e.ts` vérifie l’inscription personnalisée, les 15 variantes, le rendu mobile et un soin réellement exécuté par le moteur via une simulation réseau locale.
 
 Planches et prompts : [assets-heroes.md](assets-heroes.md).
+
+## Si le héros manque après déploiement
+
+Le serveur crée automatiquement un héros pour les anciens royaumes, mais la partie web doit aussi être recompilée (`npm run build`) avant de redémarrer Passenger. Un ancien catalogue JavaScript recevant une unité `HERO` peut provoquer des erreurs `reading 'siege'` ou `reading 'name'`. Vérifier que le fichier `/assets/index-….js` indiqué par le HTML public correspond à celui de `apps/web/dist/index.html`. Si les noms diffèrent après rechargement, vérifier le répertoire servi et les éventuelles copies statiques de l’ancien site.
+
+Le nouveau client bloque proprement les instantanés contenant des unités ou bâtiments inconnus et propose de recharger le jeu. La page HTML servie par l’application porte `Cache-Control: no-store`. Le nettoyage de la scène désabonne la carte avant sa destruction pour éviter les erreurs de caméra après démontage.

@@ -57,13 +57,15 @@ test('héros : personnalisation, couleurs et apparence envoyée à l’inscripti
   expect(coverage).toBe(15);
 });
 
-test('héros : pseudo, portrait, soin et recharge sur la carte', async ({ page }) => {
+test('héros : ancien compte, accès direct, pouvoirs et protection des versions', async ({
+  page,
+}) => {
   const now = Date.now(),
     id = 'hero-player';
   let state = createState('hero-browser', now);
   const r = addPlayer(state, id, 'JeanHeros', 'ASH', now);
   r.protectedUntil = 0;
-  r.hero = { appearance: randomHeroAppearance(() => 0.1), xp: 0, cooldowns: {} };
+  expect(r.hero).toBeUndefined(); // Existing kingdom created before heroes were introduced.
   for (const p of disk(r.capital, 10)) writeTile(state, p, { terrain: 'PLAIN' });
   ensureHeroes(state, now);
   const hero = realmUnits(state, id).find((u) => u.kind === 'HERO')!;
@@ -99,7 +101,7 @@ test('héros : pseudo, portrait, soin et recharge sur la carte', async ({ page }
   await page.route(/socket__io-client\.js/, (route) =>
     route.fulfill({
       contentType: 'text/javascript',
-      body: `export function io(){const handlers={};const socket={on(event,fn){handlers[event]=fn;if(event==='connect')queueMicrotask(fn);return socket;},emit(event){if(['world:join','chunks:subscribe','player:ping'].includes(event))window.fixtureSnapshot().then(w=>handlers['world:snapshot']?.(w));return socket;},timeout(){return socket;},async emitWithAck(event,action){const r=await window.fixtureCommand(action);handlers['world:snapshot']?.(r.world);return r.result;},disconnect(){}};return socket;}`,
+      body: `export function io(){const handlers={};window.fixturePushSnapshot=w=>handlers['world:snapshot']?.(w);const socket={on(event,fn){handlers[event]=fn;if(event==='connect')queueMicrotask(fn);return socket;},emit(event){if(['world:join','chunks:subscribe','player:ping'].includes(event))window.fixtureSnapshot().then(w=>handlers['world:snapshot']?.(w));return socket;},timeout(){return socket;},async emitWithAck(event,action){const r=await window.fixtureCommand(action);handlers['world:snapshot']?.(r.world);return r.result;},disconnect(){}};return socket;}`,
     }),
   );
   const session = {
@@ -110,12 +112,15 @@ test('héros : pseudo, portrait, soin et recharge sur la carte', async ({ page }
   await page.goto('/');
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
   await expect(page.locator('.board canvas')).toBeVisible();
-  await page.evaluate(async (u) => {
-    // @ts-expect-error Vite fixture import.
-    const { useGame, focusMap } = await import('/src/store.ts');
-    focusMap(u);
-    useGame.setState({ selection: { kind: 'unit', id: u.id, q: u.q, r: u.r }, panel: null });
-  }, hero);
+  await page.getByRole('button', { name: 'Centrer la capitale', exact: true }).click();
+  await page.getByRole('button', { name: 'Aller à mon héros', exact: true }).click();
+  expect(
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite fixture import.
+      const { useGame } = await import('/src/store.ts');
+      return useGame.getState().selection?.id;
+    }),
+  ).toBe(hero.id);
   await expect(page.locator('.hero-controls')).toContainText('JeanHeros');
   await expect(page.locator('.hero-controls img')).toHaveAttribute('src', /^data:image/);
   await page.getByRole('button', { name: 'Secours de campagne · 2 PA', exact: true }).click();
@@ -137,7 +142,43 @@ test('héros : pseudo, portrait, soin et recharge sur la carte', async ({ page }
     useGame.setState({ selection: { kind: 'unit', id: u.id, q: u.q, r: u.r } });
   }, hero);
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Aller à mon héros', exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(async (u) => {
+        // @ts-expect-error Vite fixture import.
+        const { useGame } = await import('/src/store.ts');
+        // @ts-expect-error Vite fixture import.
+        const { hexToPixel } = await import('/src/map-geometry.ts');
+        const viewport = useGame.getState().cameraViewport;
+        if (!viewport) return false;
+        const board = document.querySelector('.board')!.getBoundingClientRect();
+        const panel = document.querySelector('.selection-panel')!.getBoundingClientRect();
+        const y = board.top + ((hexToPixel(u).y - viewport.y) / viewport.height) * board.height;
+        return y > board.top + 60 && y + 20 < panel.top;
+      }, hero),
+    )
+    .toBe(true);
   await page.screenshot({ path: 'test-results/hero-world-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const recovering = view();
+  recovering.units = recovering.units.filter((u) => u.kind !== 'HERO');
+  recovering.player.hero = { ...recovering.player.hero!, recoverAt: Date.now() + 60_000 };
+  await page.evaluate((w) => (window as any).fixturePushSnapshot(w), recovering);
+  await page.getByRole('button', { name: 'Aller à mon héros', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Convalescence');
+  const incompatible = structuredClone(view());
+  // @ts-expect-error Future unit kind from a newer server.
+  incompatible.units[0].kind = 'FUTURE_UNIT';
+  await page.evaluate((w) => (window as any).fixturePushSnapshot(w), incompatible);
+  await expect(page.getByRole('alert')).toContainText('Une mise à jour du jeu est nécessaire');
+  await expect(page.getByRole('button', { name: 'Recharger le jeu' })).toBeVisible();
+  await expect(page.locator('.board canvas')).toHaveCount(0);
+  // Late snapshots and camera events must not call a destroyed Phaser camera.
+  await page.evaluate((w) => {
+    (window as any).fixturePushSnapshot(w);
+    window.dispatchEvent(new CustomEvent('vm:camera', { detail: { command: 'home' } }));
+    window.dispatchEvent(new Event('resize'));
+  }, view());
   expect(errors).toEqual([]);
 });

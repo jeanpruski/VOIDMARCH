@@ -1036,6 +1036,24 @@ input[type='color'] {
   padding: 0 10px;
   gap: 5px;
 }
+.map-tools .hero-map-button {
+  width: auto;
+  min-width: 40px;
+  padding: 0 10px;
+  gap: 6px;
+  color: #efcf7b;
+  background: #c5a45b1a;
+  border: 1px solid #c5a45b70;
+}
+@media (max-width: 760px) {
+  .map-tools .hero-map-button {
+    flex-direction: column;
+    height: 48px;
+    gap: 2px;
+    padding: 4px;
+    font-size: 9px;
+  }
+}
 .road-tools {
   position: absolute;
   z-index: 5;

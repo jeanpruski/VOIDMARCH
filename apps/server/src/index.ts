@@ -343,7 +343,12 @@ app.post(
 );
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist');
 if (existsSync(dist)) {
-  await app.register(fastifyStatic, { root: dist });
+  await app.register(fastifyStatic, {
+    root: dist,
+    setHeaders: (reply, path) => {
+      if (path.endsWith('.html')) reply.header('Cache-Control', 'no-store');
+    },
+  });
   app.setNotFoundHandler((request, reply) =>
     request.url.startsWith('/api/')
       ? reply.code(404).send({ error: 'Route inconnue.' })

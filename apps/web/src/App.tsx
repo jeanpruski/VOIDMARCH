@@ -36,6 +36,7 @@ import {
   ScrollText,
   Settings,
   Shield,
+  Star,
   Sparkles,
   Swords,
   Target,
@@ -77,6 +78,7 @@ import {
   bootstrap,
   api,
   focusMap,
+  focusHero,
   logout,
   mapCommand,
   openRoadTool,
@@ -108,6 +110,7 @@ import { CapitalRadar } from './CapitalRadar';
 let booted = false;
 export function App() {
   const status = useGame((s) => s.status),
+    clientUpdateRequired = useGame((s) => s.clientUpdateRequired),
     world = useGame((s) => s.world),
     toast = useGame((s) => s.toast),
     panel = useGame((s) => s.panel),
@@ -223,6 +226,20 @@ export function App() {
       lastJournal.current = entry?.id;
     }
   }, [world]);
+  if (clientUpdateRequired)
+    return (
+      <div className="loading-screen art-loading" role="alert">
+        <div className="wordmark">VOIDMARCH</div>
+        <h2>Une mise à jour du jeu est nécessaire</h2>
+        <p>
+          Le monde contient de nouvelles unités ou de nouveaux bâtiments. Rechargez le jeu pour les
+          afficher.
+        </p>
+        <button className="primary" onClick={() => window.location.reload()}>
+          Recharger le jeu
+        </button>
+      </div>
+    );
   if (status === 'loading')
     return (
       <div className="loading-screen">
@@ -535,6 +552,15 @@ function MapTools() {
         onClick={() => mapCommand('home')}
       >
         <Home size={17} />
+      </button>
+      <button
+        className="hero-map-button"
+        aria-label="Aller à mon héros"
+        title="Centrer la carte sur mon héros et afficher ses pouvoirs"
+        onClick={focusHero}
+      >
+        <Star size={19} fill="currentColor" />
+        <span>Héros</span>
       </button>
       <button
         aria-label={settings.grid ? 'Masquer la grille' : 'Afficher la grille'}
