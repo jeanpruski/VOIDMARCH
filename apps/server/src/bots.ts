@@ -67,7 +67,7 @@ type Intent = { command: Omit<Action, 'actionId' | 'clientTimestamp'>; score: nu
 export class BotDirector {
   constructor(private options: EngineOptions = defaultOptions) {}
   reconcile(s: GameState, now: number, humans: number) {
-    const target = humans === 0 ? 5 : humans === 1 ? 4 : 3;
+    const target = RULES.botCount;
     for (const bot of Object.values(s.realms).filter(
       (r) => r.bot && r.defeatedAt && now - r.defeatedAt > RULES.defeatCooldown,
     )) {

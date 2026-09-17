@@ -17,6 +17,7 @@
     "db:generate": "prisma generate --schema apps/server/prisma/schema.prisma",
     "db:migrate": "prisma migrate deploy --schema apps/server/prisma/schema.prisma",
     "db:seed": "tsx --env-file=.env apps/server/src/seed.ts",
+    "world:reset": "node --env-file=.env --import tsx apps/server/src/reset-cli.ts",
     "setup": "node scripts/setup.mjs",
     "start": "tsx --env-file=.env apps/server/src/index.ts",
     "test:db": "TEST_DATABASE=true node --env-file=.env node_modules/vitest/vitest.mjs run tests/database.test.ts",

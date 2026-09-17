@@ -326,19 +326,18 @@ describe('visibilité, défaite et IA', () => {
     const bot = Object.values(s.realms).find((r) => r.bot && !r.temporary)!;
     defeat(s, bot, now);
     director.reconcile(s, now + 1, 0);
-    expect(Object.values(s.realms).filter((r) => r.bot && !r.defeatedAt)).toHaveLength(4);
+    expect(Object.values(s.realms).filter((r) => r.bot && !r.defeatedAt)).toHaveLength(2);
     director.reconcile(s, now + RULES.defeatCooldown + 1, 0);
     expect(s.realms[bot.id]).toBeUndefined();
-    expect(Object.values(s.realms).filter((r) => r.bot && !r.defeatedAt)).toHaveLength(5);
+    expect(Object.values(s.realms).filter((r) => r.bot && !r.defeatedAt)).toHaveLength(3);
   });
-  it('retire les bots temporaires seulement après leur séjour minimal', () => {
+  it('conserve trois bots quel que soit le nombre de joueurs connectés', () => {
     const s = fixture(),
       director = new BotDirector();
-    director.reconcile(s, now, 0);
-    expect(Object.values(s.realms).filter((r) => r.bot)).toHaveLength(5);
-    director.reconcile(s, now + 1, 2);
-    expect(Object.values(s.realms).filter((r) => r.bot)).toHaveLength(5);
-    director.reconcile(s, now + 1800001, 2);
-    expect(Object.values(s.realms).filter((r) => r.bot)).toHaveLength(3);
+    for (const [i, humans] of [0, 1, 2, 10, 1, 0].entries()) {
+      director.reconcile(s, now + i * 1800001, humans);
+      expect(Object.values(s.realms).filter((r) => r.bot)).toHaveLength(3);
+      expect(Object.values(s.realms).some((r) => r.bot && r.temporary)).toBe(false);
+    }
   });
 });

@@ -23,6 +23,7 @@ export const RULES = {
   protection: 600_000,
   defeatCooldown: 600_000,
   botInterval: 600_000,
+  botCount: 3,
   chunkSize: 32,
   maxViewChunks: 32,
   realmSpacing: 70,
