@@ -1,4 +1,4 @@
-import { WALL_KINDS, type WallKind } from '@voidmarch/config';
+import { WALL_KINDS, WALL_HEIGHTS, type WallKind, type TurretLevel } from '@voidmarch/config';
 import { DIRECTIONS } from '@voidmarch/game-rules';
 import { hexToPixel } from './map-geometry';
 
@@ -51,8 +51,12 @@ export function loadWallMaterials(): Promise<void> {
 
 /** Joined geometry is drawn in the same hex projection as the map, so every
  * rotation, terminal, corner and junction meets exactly at the shared boundary. */
-export function wallCanvas(kind: WallKind, connections = 9): HTMLCanvasElement {
-  const id = `${kind}:${connections}`;
+export function wallCanvas(
+  kind: WallKind,
+  connections = 9,
+  turretLevel?: TurretLevel,
+): HTMLCanvasElement {
+  const id = `${kind}:${connections}:${turretLevel ?? 0}`;
   const previous = cache.get(id);
   if (previous) return previous;
   const canvas = document.createElement('canvas');
@@ -274,15 +278,134 @@ export function wallCanvas(kind: WallKind, connections = 9): HTMLCanvasElement {
     ctx.fillStyle = i % 2 ? '#78816a' : '#3c4735';
     ctx.fillRect(-5 + i * 2, 2 + (i % 2), 1.8, 0.8);
   }
+  if (turretLevel) {
+    ctx.save();
+    ctx.translate(0, -WALL_HEIGHTS[kind] - 3);
+    // The weapon sits on the joining pier; wall ends and corners remain untouched.
+    const platform = turretLevel === 1 ? '#8d7350' : '#748176';
+    poly(
+      [
+        { x: -12, y: 0 },
+        { x: 0, y: 6 },
+        { x: 12, y: 0 },
+        { x: 0, y: -6 },
+      ],
+      platform,
+    );
+    poly(
+      [
+        { x: -12, y: 0 },
+        { x: 0, y: 6 },
+        { x: 0, y: 10 },
+        { x: -12, y: 4 },
+      ],
+      '#303931',
+    );
+    poly(
+      [
+        { x: 0, y: 6 },
+        { x: 12, y: 0 },
+        { x: 12, y: 4 },
+        { x: 0, y: 10 },
+      ],
+      '#515d50',
+    );
+    for (const x of [-8, 8]) line({ x, y: 1 }, { x, y: -7 }, '#c3b483', 1.5);
+    if (turretLevel === 1) {
+      line({ x: -6, y: 0 }, { x: 1, y: -11 }, '#332b20', 5);
+      line({ x: -6, y: 0 }, { x: 1, y: -11 }, '#977947', 3);
+      line({ x: -7, y: -4 }, { x: 17, y: -14 }, '#3c3023', 5);
+      line({ x: -7, y: -4 }, { x: 17, y: -14 }, '#c2a16b', 2.5);
+      line({ x: 5, y: -21 }, { x: 12, y: -13 }, '#322b25', 3);
+      line({ x: 12, y: -13 }, { x: 20, y: -6 }, '#322b25', 3);
+      line({ x: 5, y: -21 }, { x: -1, y: -8 }, '#e4d1a2', 0.7);
+      line({ x: -1, y: -8 }, { x: 20, y: -6 }, '#e4d1a2', 0.7);
+      line({ x: -3, y: -6 }, { x: 19, y: -15 }, '#e0cf9f', 0.8);
+      poly(
+        [
+          { x: 21, y: -16 },
+          { x: 17, y: -12 },
+          { x: 16, y: -16 },
+        ],
+        '#c4c9bb',
+      );
+    } else if (turretLevel === 2) {
+      poly(
+        [
+          { x: -9, y: -2 },
+          { x: -6, y: -12 },
+          { x: 5, y: -14 },
+          { x: 11, y: -5 },
+          { x: 3, y: 0 },
+        ],
+        '#596251',
+      );
+      poly(
+        [
+          { x: -6, y: -12 },
+          { x: 5, y: -14 },
+          { x: 11, y: -5 },
+          { x: 0, y: -6 },
+        ],
+        '#889080',
+      );
+      line({ x: 2, y: -10 }, { x: 24, y: -20 }, '#18231d', 8);
+      line({ x: 2, y: -11 }, { x: 24, y: -21 }, '#7e8978', 5);
+      line({ x: 5, y: -12 }, { x: 23, y: -20 }, '#bac1a0', 1);
+      ctx.fillStyle = '#111e16';
+      ctx.beginPath();
+      ctx.ellipse(24, -20, 2.2, 3.8, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      for (const x of [-5, 4]) {
+        ctx.fillStyle = '#b2a77c';
+        ctx.fillRect(x, -6, 1.3, 1.3);
+      }
+    } else {
+      poly(
+        [
+          { x: -8, y: 0 },
+          { x: -7, y: -10 },
+          { x: 0, y: -14 },
+          { x: 8, y: -10 },
+          { x: 9, y: 0 },
+          { x: 0, y: 4 },
+        ],
+        '#344b3e',
+      );
+      line({ x: 0, y: 0 }, { x: 0, y: -24 }, '#a7b69c', 3);
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.ellipse(0, -8 - i * 4, 6 - i * 0.6, 2, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#697d67';
+        ctx.fill();
+        ctx.strokeStyle = '#acb69a';
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+      }
+      ctx.shadowColor = '#adff71';
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = '#b5f18c';
+      ctx.beginPath();
+      ctx.arc(0, -26, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      for (const x of [-5, 5]) {
+        line({ x, y: -1 }, { x, y: -7 }, '#ace977', 2);
+      }
+      line({ x: -5, y: -19 }, { x: -9, y: -24 }, '#98d7a4', 1);
+      line({ x: 5, y: -19 }, { x: 9, y: -24 }, '#98d7a4', 1);
+    }
+    ctx.restore();
+  }
   cache.set(id, canvas);
   return canvas;
 }
 
-export function wallImageUrl(kind: WallKind, connections = 9): string {
-  const id = `${kind}:${connections}`;
+export function wallImageUrl(kind: WallKind, connections = 9, turretLevel?: TurretLevel): string {
+  const id = `${kind}:${connections}:${turretLevel ?? 0}`;
   let url = urls.get(id);
   if (!url) {
-    url = wallCanvas(kind, connections).toDataURL();
+    url = wallCanvas(kind, connections, turretLevel).toDataURL();
     urls.set(id, url);
   }
   return url;

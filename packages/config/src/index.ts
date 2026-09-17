@@ -1,3 +1,11 @@
+import {
+  RADIOACTIVE_UNITS,
+  RADIOACTIVE_PROFILES,
+  RADIOACTIVE_CATEGORIES,
+  RADIOACTIVE_RECON,
+} from './radioactive';
+export { RADIOACTIVE_UNITS } from './radioactive';
+export { NPCS, NPC_RULES, type NpcKind } from './npcs';
 export const GAME_NAME = 'VOIDMARCH';
 export const RULES = {
   maxAP: 15,
@@ -10,6 +18,7 @@ export const RULES = {
   defeatCooldown: 600_000,
   botInterval: 600_000,
   chunkSize: 32,
+  maxViewChunks: 32,
   realmSpacing: 70,
   settlementScale: 5,
   minTruce: 60_000,
@@ -17,6 +26,8 @@ export const RULES = {
   tradeDuration: 3_600_000,
 };
 export const ACTION_COST = {
+  INSTALL_TURRET: 2,
+  UPGRADE_TURRET: 2,
   MOVE: 1,
   MOVE_ROAD: 1,
   GATHER: 1,
@@ -95,6 +106,7 @@ export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
   terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
 export const TERRAFORM_COST: Partial<Wallet> = { WOOD: 20, IRON: 10 };
 export const UNITS = {
+  ...RADIOACTIVE_UNITS,
   TERRAFORMER: {
     name: 'Terrassier arcanique',
     hp: 10,
@@ -606,6 +618,38 @@ export const UNITS = {
 } as const;
 export type UnitKind = keyof typeof UNITS;
 export const BUILDINGS = {
+  ISOTOPE_LAB: {
+    name: 'Laboratoire des isotopes',
+    hp: 85,
+    capture: 4,
+    cost: { GOLD: 220, WOOD: 80, STONE: 100, IRON: 150, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
+  NUCLEAR_REACTOR: {
+    name: 'Réacteur noir',
+    hp: 140,
+    capture: 6,
+    cost: { GOLD: 400, WOOD: 100, STONE: 200, IRON: 280, FOOD: 0 },
+    production: { GOLD: 8 },
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
+  HELIPAD: {
+    name: 'Héliport occulte',
+    hp: 95,
+    capture: 4,
+    cost: { GOLD: 280, WOOD: 90, STONE: 120, IRON: 180, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'RUINS'],
+  },
+  ATOMIC_FOUNDRY: {
+    name: 'Fonderie atomique',
+    hp: 125,
+    capture: 5,
+    cost: { GOLD: 520, WOOD: 140, STONE: 180, IRON: 360, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
   AERODROME: {
     name: 'Aérodrome militaire',
     hp: 75,
@@ -998,6 +1042,52 @@ export const BUILDINGS = {
 export type BuildingKind = keyof typeof BUILDINGS;
 export const WALL_KINDS = ['WOOD_WALL', 'STONE_WALL', 'STEEL_WALL'] as const;
 export type WallKind = (typeof WALL_KINDS)[number];
+export type TurretLevel = 1 | 2 | 3;
+export const WALL_HEIGHTS: Record<WallKind, number> = {
+  WOOD_WALL: 20,
+  STONE_WALL: 27,
+  STEEL_WALL: 34,
+};
+export const TURRETS = {
+  1: {
+    name: 'Arbalète de rempart',
+    attack: 7,
+    range: 3,
+    antiAir: 0,
+    wall: 'WOOD_WALL',
+    projectileUnit: 'CROSSBOW',
+    cost: { GOLD: 60, WOOD: 50, IRON: 20 },
+  },
+  2: {
+    name: 'Canon de rempart',
+    attack: 13,
+    range: 4,
+    antiAir: 0,
+    wall: 'STONE_WALL',
+    projectileUnit: 'FIELD_GUN',
+    cost: { GOLD: 120, STONE: 60, IRON: 50 },
+  },
+  3: {
+    name: 'Tourelle Tesla occulte',
+    attack: 20,
+    range: 5,
+    antiAir: 8,
+    wall: 'STEEL_WALL',
+    projectileUnit: 'TESLA_TROOPER',
+    cost: { GOLD: 220, STONE: 40, IRON: 120 },
+  },
+} as const satisfies Record<
+  TurretLevel,
+  {
+    name: string;
+    attack: number;
+    range: number;
+    antiAir: number;
+    wall: WallKind;
+    projectileUnit: UnitKind;
+    cost: Partial<Wallet>;
+  }
+>;
 export const isWall = (kind: string): kind is WallKind => WALL_KINDS.includes(kind as WallKind);
 export const isBuildable = (kind: BuildingKind) => kind !== 'STONE_WALL' && kind !== 'STEEL_WALL';
 export function buildingConstructionCost(kind: BuildingKind, faction: Faction): Partial<Wallet> {
@@ -1024,6 +1114,8 @@ export function productionOnTerrain(kind: BuildingKind, terrain: Terrain): Parti
 }
 
 export interface UnitProfile {
+  radioactive?: boolean;
+  population?: number;
   role: string;
   recruitAt: BuildingKind[];
   requires: BuildingKind[];
@@ -1037,6 +1129,7 @@ export interface UnitProfile {
   healer?: boolean;
 }
 export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  ...RADIOACTIVE_PROFILES,
   TERRAFORMER: {
     role: 'Transforme son terrain ou une case voisine en plaine : 2 PA, 20 bois, 10 fer. Case neutre ou à vous, sans bâtiment. Relief et ressources naturelles supprimés ; propriété conservée.',
     recruitAt: ['WORKSHOP'],
@@ -1310,6 +1403,10 @@ export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
 };
 export const GATHER_YIELD: Wallet = { STONE: 16, GOLD: 12, WOOD: 20, IRON: 12, FOOD: 18 };
 export const BUILDING_REQUIREMENTS: Partial<Record<BuildingKind, BuildingKind[]>> = {
+  ISOTOPE_LAB: ['OCCULT_LAB', 'MUNITIONS'],
+  NUCLEAR_REACTOR: ['ISOTOPE_LAB', 'REFINERY'],
+  HELIPAD: ['ISOTOPE_LAB', 'GARAGE', 'RADIO'],
+  ATOMIC_FOUNDRY: ['NUCLEAR_REACTOR', 'TANK_FACTORY'],
   AERODROME: ['GARAGE', 'RADIO'],
   AIRSHIP_YARD: ['AERODROME', 'REFINERY'],
   DRAGON_ROOST: ['BLACK_OBSERVATORY', 'CRYPT_BARRACKS'],
@@ -1344,22 +1441,32 @@ export const BUILDING_POPULATION: Partial<Record<BuildingKind, number>> = {
   OUTPOST: 10,
 };
 export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
+  ISOTOPE_LAB:
+    'Recherche atomique : débloque le réacteur noir et l’héliport. Ne produit pas de ressources et ne forme pas de troupes directement.',
+  NUCLEAR_REACTOR:
+    'Débloque les 36 unités de la division atomique dans leurs bâtiments de formation. Produit 8 or/min, +25 % par amélioration.',
+  HELIPAD:
+    'Forme les 6 hélicoptères atomiques : reconnaissance, assaut, précision, interception et siège. Réacteur noir requis ; fonderie atomique pour les deux modèles ultimes. +10 % aux appareils existants et futurs par amélioration.',
+  ATOMIC_FOUNDRY:
+    'Assemble le char Mausolée et le chenillé de l’Apocalypse ; débloque les unités atomiques ultimes des autres filières. Améliorations : +10 % aux unités qu’elle forme, existantes et futures.',
   AERODROME:
-    'Recrute avions de reconnaissance, chasseurs et bombardiers. Nécessite une plaine ou des ruines. Chaque amélioration renforce les avions existants et futurs de +10 %.',
+    'Recrute avions de reconnaissance, chasseurs et bombardiers, puis 5 modèles atomiques avec un réacteur noir. Nécessite une plaine ou des ruines. Chaque amélioration renforce les avions existants et futurs de +10 %.',
   AIRSHIP_YARD:
-    'Assemble les dirigeables de guerre : bombardement et observation. Chaque amélioration renforce vos dirigeables existants et futurs de +10 %.',
+    'Assemble les dirigeables de guerre et l’aile de l’Apocalypse : bombardement et observation. Chaque amélioration renforce vos dirigeables existants et futurs de +10 %.',
   DRAGON_ROOST:
     'Invoque les dragons occultes cuirassés ; exige une fonderie alchimique pour les recruter. Chaque amélioration renforce les dragons existants et futurs de +10 %.',
   FLAK_BATTERY:
-    'Recrute les canons antiaériens Flak. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +10 % aux canons existants et futurs.',
+    'Recrute les canons antiaériens Flak et les chenillés Flak gamma avec la filière atomique. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +10 % aux canons existants et futurs.',
   WOOD_WALL:
-    'Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec 45 pierre, puis 45 fer pour l’acier (2 PA par évolution).',
+    'Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec 45 pierre, puis 45 fer pour l’acier (2 PA par évolution). Sélectionnez le mur pour y installer une tourelle à tir manuel.',
   STONE_WALL:
-    'Remplace une palissade : 65 PV, défense 2. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec 45 fer et 2 PA.',
+    'Remplace une palissade : 65 PV, défense 2. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec 45 fer et 2 PA. Peut porter une tourelle de niveau 1 ou 2.',
   STEEL_WALL:
-    'Dernière évolution : 100 PV, défense 4. Bloque les ennemis terrestres, même sur une route. L’acier est construit à partir de votre réserve de fer.',
-  TESLA_COIL: 'Fortification électrique (+4 défense) ; forme les voltigeurs Tesla.',
-  CRYPT_BARRACKS: 'Forme grenadiers revenants et cavaliers spectraux.',
+    'Dernière évolution : 100 PV, défense 4. Bloque les ennemis terrestres, même sur une route. L’acier est construit à partir de votre réserve de fer. Peut porter la tourelle Tesla de niveau 3.',
+  TESLA_COIL:
+    'Fortification électrique (+4 défense) ; forme les voltigeurs Tesla puis les templiers gamma avec la filière atomique.',
+  CRYPT_BARRACKS:
+    'Forme grenadiers revenants et cavaliers spectraux, puis exécuteurs et éclaireurs blafards avec la filière atomique.',
   ALCHEMY_FOUNDRY: 'Produit 5 or par minute et débloque marcheurs de siège et chars possédés.',
   BLACK_OBSERVATORY: 'Observe dans un rayon de 12 cases et forme les chasseurs de maléfices.',
   FARM: 'Produit des vivres pour nourrir les habitants et entretenir les troupes.',
@@ -1367,18 +1474,22 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   MINE: 'Extrait le fer des collines pour les armes, les véhicules et les réparations.',
   MARKET: 'Permet de proposer des échanges de ressources par caravane.',
   WAREHOUSE: 'Ajoute 800 places de stockage pour chaque ressource.',
-  WORKSHOP: 'Forme ingénieurs, engins de siège et balistes ; débloque forge et garage.',
+  WORKSHOP:
+    'Forme ingénieurs, terrassiers, engins de siège et balistes ; débloque forge et garage. Avec un réacteur noir : sapeurs atomiques.',
   BARRACKS: 'Forme les premières troupes et les éclaireurs ; base de la filière militaire.',
-  FORT: 'Fortification qui forme les troupes de caserne et sécurise un point de passage.',
+  FORT: 'Fortification qui forme les troupes de caserne et sécurise un point de passage. Avec un réacteur noir : sentinelles de cobalt.',
   TOWER: 'Poste de surveillance : vision de 7 cases autour de la tour.',
   OUTPOST: 'Forme les paysans, accueille des habitants et évolue en village.',
   VILLAGE: 'Centre civil : forme les paysans, produit des ressources et accueille la population.',
 
   QUARRY: 'Extrait 4 pierres par minute sur colline ou montagne.',
-  ARSENAL: 'Forme fusiliers, troupes d’assaut et officiers.',
+  ARSENAL:
+    'Forme fusiliers, troupes d’assaut et officiers ; avec un réacteur noir, grenadiers au radium et tireurs isotopiques.',
   BUNKER: 'Fortification résistante : +5 de défense contre les attaques.',
-  GARAGE: 'Produit les motos et automitrailleuses.',
-  TANK_FACTORY: 'Assemble chars, canons et batteries de fusées.',
+  GARAGE:
+    'Produit motos et automitrailleuses. Avec un réacteur noir : 6 motos atomiques et l’automitrailleuse au radium.',
+  TANK_FACTORY:
+    'Assemble chars, canons et batteries de fusées, puis semi-chenillés cobalt et chasseurs de chars isotopiques avec un réacteur noir.',
   REFINERY: 'Soutient l’industrie : +4 or par minute ; débloque les blindés.',
   MUNITIONS: 'Débloque les armes lourdes ; le fer nécessaire doit être extrait ou acheté.',
   RADIO: 'Observe le terrain dans un rayon de 10 cases.',
@@ -1393,9 +1504,11 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   GRANARY: 'Ajoute 400 places de stockage ; les vivres doivent être récoltés ou produits.',
   HUNTER: 'Fournit des vivres dès les premières récoltes de bois.',
   FISHERY: 'Production importante de vivres sur rivière ou marais.',
-  STABLE: 'Recrute la cavalerie légère et les chevaliers.',
+  STABLE:
+    'Recrute cavalerie légère et chevaliers, puis hussards, lanciers, cuirassiers et dragons des cendres avec un réacteur noir.',
   ARCHERY: 'Recrute archers, rôdeurs et arbalétriers.',
-  MONASTERY: 'Recrute guérisseuses et paladins ; accélère la croissance de population.',
+  MONASTERY:
+    'Recrute guérisseuses et paladins, puis paladins gamma avec la filière atomique ; accélère la croissance de population.',
   FORGE:
     'Transforme les équipements et débloque les troupes lourdement équipées ; le fer vient des mines.',
   LIBRARY: 'Débloque les acolytes du Vide et étend la vision de tous vos bâtiments.',
@@ -1413,6 +1526,7 @@ export const BUILDING_DEFENSE: Partial<Record<BuildingKind, number>> = {
   GUN_BATTERY: 3,
 };
 export const RECON_UNITS: UnitKind[] = [
+  ...RADIOACTIVE_RECON,
   'RECON_PLANE',
   'HEX_HUNTER',
   'SCOUT',
@@ -1471,13 +1585,16 @@ export const UNIT_TABS = [
   'Armes à distance',
   'Cavalerie',
   'Armes à feu',
+  'Motos',
   'Véhicules',
   'Aviation',
+  'Hélicoptères',
   'Artillerie',
   'Occulte',
 ] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
+  ...RADIOACTIVE_CATEGORIES,
   RECON_PLANE: 'Aviation',
   FIGHTER: 'Aviation',
   BOMBER: 'Aviation',
@@ -1514,7 +1631,7 @@ export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
   SNIPER: 'Armes à feu',
   BAZOOKA: 'Armes à feu',
   OFFICER: 'Armes à feu',
-  MOTORCYCLE: 'Véhicules',
+  MOTORCYCLE: 'Motos',
   ARMORED_CAR: 'Véhicules',
   TANK: 'Véhicules',
   RAM: 'Artillerie',
@@ -1535,6 +1652,10 @@ export const BUILDING_TABS = [
 ] as const;
 export type BuildingTab = (typeof BUILDING_TABS)[number];
 export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
+  ISOTOPE_LAB: 'Savoir & logistique',
+  NUCLEAR_REACTOR: 'Industrie',
+  HELIPAD: 'Recrutement',
+  ATOMIC_FOUNDRY: 'Industrie',
   AERODROME: 'Recrutement',
   AIRSHIP_YARD: 'Recrutement',
   DRAGON_ROOST: 'Recrutement',
@@ -1584,7 +1705,8 @@ export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
   MARKET: 'Savoir & logistique',
 };
 export const unitPopulation = (kind: UnitKind) =>
-  kind === 'PEASANT'
+  UNIT_PROFILES[kind].population ??
+  (kind === 'PEASANT'
     ? 3
     : ['TANK', 'HEX_TANK', 'SIEGE_WALKER', 'BOMBER', 'ZEPPELIN', 'OCCULT_DRAGON'].includes(kind)
       ? 12
@@ -1592,7 +1714,7 @@ export const unitPopulation = (kind: UnitKind) =>
         ? 8
         : UNIT_PROFILES[kind].siege
           ? 6
-          : 5;
+          : 5);
 export function unitUpkeep(kind: UnitKind): Wallet {
   const cost = Object.values(UNITS[kind].cost).reduce<number>((a, b) => a + b, 0);
   return {

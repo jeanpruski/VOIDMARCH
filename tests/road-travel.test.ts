@@ -5,6 +5,7 @@ import { actionSchema, type Action } from '@voidmarch/protocol';
 import { addBuilding, addPlayer, execute, worldView } from '../apps/server/src/engine';
 import { removeGuestRealm } from '../apps/server/src/guests';
 import { roadOrderReason } from '../apps/web/src/roads';
+import { predictAction } from '../apps/web/src/optimistic-actions';
 const now = 1_800_000_000_000;
 const order = (type: Action['type'], actorId: string, payload: unknown) =>
   actionSchema.parse({ type, actorId, payload, actionId: randomUUID(), clientTimestamp: now });
@@ -60,7 +61,7 @@ describe('liaisons routières sans limite de distance', () => {
     (condition) => {
       const { s, r } = fixture();
       let destination = { q: 80, r: 0 };
-      if (condition === 'start') writeTile(s, s.units.worker, { road: false });
+      if (condition === 'start') writeTile(s, s.units.worker, { road: false, ownerId: undefined });
       if (condition === 'end') writeTile(s, destination, { road: false });
       if (condition === 'gap') writeTile(s, { q: 40, r: 0 }, { road: false });
       if (condition === 'unexplored') delete r.explored['40,0'];
@@ -125,6 +126,71 @@ describe('liaisons routières sans limite de distance', () => {
       visibility: 'EXPLORED',
     });
     expect(w.tiles.find((t) => t.q === 81 && t.r === 0)).toBeUndefined();
+  });
+});
+describe('déplacement illimité sur terres et routes reliées', () => {
+  function territory() {
+    const f = fixture();
+    for (const t of Object.values(f.s.tiles))
+      if (t.road) writeTile(f.s, t, { road: false, ownerId: f.r.id, enclosureOwnerId: f.r.id });
+    return f;
+  }
+  it('traverse une enceinte de 80 cases sans route, pour 1 PA, avec le même trajet anticipé', () => {
+    const { s, r } = territory();
+    const command = order('MOVE_ROAD', 'worker', { q: 80, r: 0 });
+    const before = worldView(s, r.id, now, [{ q: 0, r: 0 }]);
+    expect(before.tiles.find((t) => t.q === 80 && t.r === 0)?.ownerId).toBe(r.id);
+    const prediction = predictAction(before, command)!;
+    const result = execute(s, r.id, command, now);
+    expect(result.result.accepted, result.result.reason).toBe(true);
+    expect(result.result.movement?.path).toHaveLength(80);
+    expect(prediction.movement).toEqual(result.result.movement);
+    expect(prediction.world.units).toEqual(worldView(result.state, r.id, now).units);
+    expect(result.state.realms.p.ap).toBe(29);
+    expect(result.state.realms.p.wallet).toEqual(r.wallet);
+  });
+  it('enchaîne ses terres, une route neutre ou adverse, puis ses terres en un ordre', () => {
+    const { s, r } = territory();
+    for (let q = 20; q <= 60; q++)
+      writeTile(s, { q, r: 0 }, { road: true, ownerId: q < 40 ? undefined : 'enemy' });
+    const result = execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now);
+    expect(result.result.accepted, result.result.reason).toBe(true);
+    expect(result.result.movement?.path).toHaveLength(80);
+    expect(result.state.realms.p.ap).toBe(29);
+  });
+  it.each(['neutral', 'enemy', 'unit', 'wall', 'terrain', 'ap'] as const)(
+    'refuse le trajet coupé (%s) sans consommer de PA',
+    (condition) => {
+      const { s, r } = territory();
+      const gap = { q: 40, r: 0 };
+      if (condition === 'neutral' || condition === 'enemy')
+        writeTile(s, gap, { ownerId: condition === 'enemy' ? 'enemy' : undefined });
+      if (condition === 'unit') s.units.block = { ...s.units.worker, id: 'block', ...gap };
+      if (condition === 'wall') addBuilding(s, r, gap, 'WOOD_WALL', now).ownerId = 'enemy';
+      if (condition === 'terrain') {
+        s.units.worker.kind = 'TANK';
+        writeTile(s, gap, { terrain: 'MOUNTAIN' });
+      }
+      if (condition === 'ap') r.ap = 0;
+      r.explored[key(gap)] = { ...gap, terrain: 'PLAIN', road: false, visibility: 'EXPLORED' };
+      const result = execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now);
+      expect(result.result.accepted).toBe(false);
+      expect(result.state).toEqual(s);
+      expect(
+        predictAction(worldView(s, r.id, now), order('MOVE_ROAD', 'worker', { q: 80, r: 0 })),
+      ).toBeUndefined();
+    },
+  );
+  it('les terres revendiquées sans enceinte fonctionnent aussi, sans bonus pour les ennemis', () => {
+    const { s, r } = territory();
+    for (const t of Object.values(s.tiles)) delete t.enclosureOwnerId;
+    expect(
+      execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now).result.accepted,
+    ).toBe(true);
+    for (const t of Object.values(s.tiles)) if (t.ownerId === r.id) t.ownerId = 'enemy';
+    expect(
+      execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now).result.accepted,
+    ).toBe(false);
   });
 });
 describe('chantiers routiers en terrain neutre', () => {

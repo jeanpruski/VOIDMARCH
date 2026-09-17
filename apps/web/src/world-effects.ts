@@ -1,6 +1,8 @@
-import type { Hex, WorldView } from '@voidmarch/shared';
+import type { CombatShot, Hex, WorldView } from '@voidmarch/shared';
 import { key } from '@voidmarch/game-rules';
 export type WorldEffect = Hex & {
+  shot?: CombatShot;
+  actionId?: string;
   kind: 'combat' | 'build' | 'demolish' | 'repair' | 'recruit' | 'rare';
 };
 /** Compare authoritative visible snapshots. Never replay effects on connection or reveal. */
@@ -25,7 +27,8 @@ export function worldEffects(before: WorldView, after: WorldView): WorldEffect[]
       (!old?.building ||
         old.building.id !== t.building.id ||
         old.building.kind !== t.building.kind ||
-        old.building.level !== t.building.level)
+        old.building.level !== t.building.level ||
+        old.building.turretLevel !== t.building.turretLevel)
     )
       result.push({ ...t, kind: 'build' });
     else if (t.building && old?.building) {
@@ -59,7 +62,12 @@ export function worldEffects(before: WorldView, after: WorldView): WorldEffect[]
       entry.at >= before.serverTimestamp &&
       visible({ q: entry.q, r: entry.r })
     )
-      result.push({ q: entry.q, r: entry.r, kind: 'combat' });
+      result.push({
+        q: entry.q,
+        r: entry.r,
+        kind: 'combat',
+        ...(entry.shot && visible(entry.shot.from) ? { shot: entry.shot } : {}),
+      });
   }
   return [
     ...new Map(result.map((effect) => [`${effect.kind}:${key(effect)}`, effect])).values(),

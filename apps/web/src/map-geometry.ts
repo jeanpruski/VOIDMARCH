@@ -1,4 +1,6 @@
 import type { Hex } from '@voidmarch/shared';
+import { RULES } from '@voidmarch/config';
+export const MAP_ZOOM = { min: 0.2, max: 3.2, step: 1.2 } as const;
 export const SIZE = 48,
   Y_SCALE = 0.82;
 export function hexToPixel(p: Hex) {
@@ -62,4 +64,37 @@ export function minimapProjection(tiles: Hex[], capital: Hex) {
     }),
     unproject: (x: number, y: number) => pixelToHex(cx + (x - 90) / scale, cy + (y - 55) / scale),
   };
+}
+
+/** Subscribe to the visible rectangle, not a fixed-radius disk that clips at distant zooms. */
+export function viewportChunks(view: CameraViewport): Hex[] {
+  const left = view.x - 160,
+    right = view.x + view.width + 160;
+  const top = view.y - 160,
+    bottom = view.y + view.height + 160;
+  const corners = [
+    pixelToHex(left, top),
+    pixelToHex(right, top),
+    pixelToHex(left, bottom),
+    pixelToHex(right, bottom),
+  ];
+  const size = RULES.chunkSize;
+  const qMin = Math.max(-3125, Math.floor((Math.min(...corners.map((p) => p.q)) - 1) / size));
+  const qMax = Math.min(3125, Math.floor((Math.max(...corners.map((p) => p.q)) + 1) / size));
+  const rMin = Math.max(-3125, Math.floor((Math.min(...corners.map((p) => p.r)) - 1) / size));
+  const rMax = Math.min(3125, Math.floor((Math.max(...corners.map((p) => p.r)) + 1) / size));
+  const chunks: Hex[] = [];
+  for (let r = rMin; r <= rMax; r++)
+    for (let q = qMin; q <= qMax; q++) {
+      const a = hexToPixel({ q: q * size, r: r * size });
+      const b = hexToPixel({ q: (q + 1) * size - 1, r: (r + 1) * size - 1 });
+      if (a.x - SIZE <= right && b.x + SIZE >= left && a.y - SIZE <= bottom && b.y + SIZE >= top)
+        chunks.push({ q, r });
+    }
+  const center = { x: view.x + view.width / 2, y: view.y + view.height / 2 };
+  const proximity = (c: Hex) => {
+    const p = hexToPixel({ q: (c.q + 0.5) * size, r: (c.r + 0.5) * size });
+    return (p.x - center.x) ** 2 + (p.y - center.y) ** 2;
+  };
+  return chunks.sort((a, b) => proximity(a) - proximity(b)).slice(0, RULES.maxViewChunks);
 }

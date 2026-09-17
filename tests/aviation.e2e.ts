@@ -94,7 +94,7 @@ test('aviation : catalogue, recrutement, figurines et explication des attaques a
     }, building);
   await recruitFrom(airfield);
   await page.getByRole('tab', { name: 'Aviation', exact: true }).click();
-  await expect(page.getByRole('dialog').locator('article')).toHaveCount(5);
+  await expect(page.getByRole('dialog').locator('article')).toHaveCount(11);
   const fighter = page
     .getByRole('dialog')
     .locator('article')

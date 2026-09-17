@@ -1,5 +1,9 @@
 import {
   BUILDINGS,
+  NPCS,
+  TURRETS,
+  WALL_KINDS,
+  type TurretLevel,
   isWall,
   buildingConstructionCost,
   BUILDING_DEFENSE,
@@ -223,8 +227,43 @@ export function wallConnections(
   }, 0);
 }
 /** Legacy saves have no payment receipt: use the level-one catalogue cost. */
-export const demolitionRefund = (building: Building, faction: Faction): Partial<Wallet> =>
-  building.constructionCost ?? buildingConstructionCost(building.kind, faction);
+export const demolitionRefund = (building: Building, faction: Faction): Partial<Wallet> => {
+  const result = {
+    ...(building.constructionCost ?? buildingConstructionCost(building.kind, faction)),
+  };
+  for (const [resource, value] of Object.entries(building.turretConstructionCost ?? {}))
+    result[resource as Resource] = (result[resource as Resource] ?? 0) + value;
+  return result;
+};
+export const turretStats = (building: Building) =>
+  isWall(building.kind) && building.turretLevel ? TURRETS[building.turretLevel] : undefined;
+export const nextTurretLevel = (building: Building): TurretLevel | undefined =>
+  isWall(building.kind) && (building.turretLevel ?? 0) < 3
+    ? (((building.turretLevel ?? 0) + 1) as TurretLevel)
+    : undefined;
+export function turretUpgradeReason(building: Building, ownerId: string, units: Unit[]) {
+  if (building.ownerId !== ownerId) return 'Ce rempart ne vous appartient pas.';
+  if (!isWall(building.kind) || building.hp <= 0)
+    return 'Une tourelle doit être posée sur un rempart intact.';
+  const next = nextTurretLevel(building);
+  if (!next) return 'Cette tourelle est au niveau maximal.';
+  if (WALL_KINDS.indexOf(building.kind) < next - 1)
+    return `Améliorez d’abord le mur : ${BUILDINGS[TURRETS[next].wall].name} nécessaire.`;
+  if (
+    !building.turretLevel &&
+    !units.some(
+      (u) =>
+        u.ownerId === ownerId &&
+        u.hp > 0 &&
+        UNIT_PROFILES[u.kind].builder &&
+        distance(u, building) <= 1,
+    )
+  )
+    return 'Approchez un paysan ou un ingénieur à une case maximum pour installer la tourelle.';
+  if (units.some((u) => u.ownerId !== ownerId && distance(u, building) === 0))
+    return 'Une unité adverse occupe ce rempart.';
+  return '';
+}
 export const canGather = (
   tile: Pick<Tile, 'terrain' | 'ownerId'>,
   ownerId: string,
@@ -352,15 +391,16 @@ export function vision(s: GameState, r: Realm): Set<string> {
   for (const b of realmBuildings(s, r.id))
     for (const p of disk(
       b,
-      (b.kind === 'BLACK_OBSERVATORY'
-        ? 12
-        : b.kind === 'RADIO'
-          ? 10
-          : b.kind === 'TOWER'
-            ? 7
-            : b.kind === 'FORT'
-              ? 4
-              : 3) +
+      (turretStats(b)?.range ??
+        (b.kind === 'BLACK_OBSERVATORY'
+          ? 12
+          : b.kind === 'RADIO'
+            ? 10
+            : b.kind === 'TOWER'
+              ? 7
+              : b.kind === 'FORT'
+                ? 4
+                : 3)) +
         (b.level - 1) +
         (realmBuildings(s, r.id).some((x) => x.kind === 'LIBRARY') ? 1 : 0),
     ))
@@ -446,22 +486,35 @@ export function findPath(
   }
   return null;
 }
-/** Traverse an existing, finite road network without a movement-budget or chunk limit. */
+type TravelTile = Hex & Partial<Pick<Tile, 'road' | 'ownerId' | 'terrain'>>;
+/** Roads are public; only the unit owner's land extends the unlimited travel network. */
+export function travelNetworkTile(tile: TravelTile | undefined, ownerId?: string, kind?: UnitKind) {
+  return (
+    !!tile &&
+    (!!tile.road ||
+      (!!ownerId &&
+        tile.ownerId === ownerId &&
+        !!tile.terrain &&
+        movementCost({ ...tile, terrain: tile.terrain }, kind) < 99))
+  );
+}
+/** Traverse connected roads and owned land without a movement-budget or chunk limit. */
 export function roadPaths(
   start: Hex,
-  roads: ReadonlyMap<string, Pick<Tile, 'q' | 'r' | 'road'>>,
+  roads: ReadonlyMap<string, TravelTile>,
   blocked: ReadonlySet<string> = new Set(),
   kind?: UnitKind,
+  ownerId?: string,
 ): Map<string, Hex | null> {
   const came = new Map<string, Hex | null>();
-  if (!roads.get(key(start))?.road) return came;
+  if (!travelNetworkTile(roads.get(key(start)), ownerId, kind)) return came;
   const frontier: Hex[] = [start];
   came.set(key(start), null);
   for (let index = 0; index < frontier.length; index++) {
     const current = frontier[index];
     for (const next of neighbors(current)) {
       const k = key(next);
-      if (came.has(k) || !roads.get(k)?.road) continue;
+      if (came.has(k) || !travelNetworkTile(roads.get(k), ownerId, kind)) continue;
       if (blocked.has(k) && (!kind || !UNIT_PROFILES[kind].flying)) continue;
       came.set(k, current);
       frontier.push(next);
@@ -483,8 +536,21 @@ export function roadPathTo(
   }
   return result.reverse();
 }
-export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus'>) {
+export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus' | 'npc'>) {
   const base = UNITS[unit.kind];
+  if (unit.npc) {
+    const profile = NPCS[unit.npc.kind];
+    return {
+      ...base,
+      name: profile.name,
+      hp: unit.npc.maxHp,
+      attack: unit.npc.attack,
+      defense: unit.npc.defense,
+      buildingAttack: unit.npc.attack,
+      range: profile.range,
+      move: 0,
+    };
+  }
   const multiplier = 1 + ((unit.rareBonus ?? 0) + (unit.trainingBonus ?? 0)) / 100;
   const boosted = (value: number) => Math.round(value * multiplier * 100) / 100;
   return {
@@ -497,19 +563,49 @@ export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus
 }
 
 /** Shared targeting restrictions for server orders, bots and the combat preview. */
-export function attackBlockReason(attacker: Unit, target: Unit | Building, wall?: Building) {
+export function attackStats(attacker: Unit | Building) {
+  if (!('population' in attacker)) return unitStats(attacker);
+  const turret = turretStats(attacker);
+  return {
+    name: turret?.name ?? BUILDINGS[attacker.kind].name,
+    attack: turret?.attack ?? 0,
+    buildingAttack: turret?.attack ?? 0,
+    range: turret?.range ?? 0,
+  };
+}
+export const attackCost = (attacker: Unit | Building) =>
+  'population' in attacker ? 1 : UNIT_PROFILES[attacker.kind].siege ? 2 : 1;
+export function attackBlockReason(
+  attacker: Unit | Building,
+  target: Unit | Building,
+  wall?: Building,
+) {
+  const building = 'population' in attacker;
+  if (building && !turretStats(attacker)) return 'Ce bâtiment ne possède pas de tourelle.';
+  if (building && attacker.hp <= 0) return 'Ce rempart est détruit.';
+  if (building && distance(attacker, target) === 0)
+    return 'Une tourelle ne peut pas tirer sur sa propre case.';
   const flyingTarget = !('population' in target) && UNIT_PROFILES[target.kind].flying;
-  if (flyingTarget && !UNIT_PROFILES[attacker.kind].flying && UNITS[attacker.kind].range <= 1)
+  if (
+    flyingTarget &&
+    !building &&
+    !UNIT_PROFILES[attacker.kind].flying &&
+    UNITS[attacker.kind].range <= 1
+  )
     return 'Cette unité terrestre ne peut pas atteindre une cible aérienne. Utilisez une unité à distance.';
-  if (!flyingTarget && target.id !== wall?.id && wallBlocks(wall, attacker.ownerId, attacker.kind))
+  if (
+    !flyingTarget &&
+    target.id !== wall?.id &&
+    wallBlocks(wall, attacker.ownerId, building ? undefined : attacker.kind)
+  )
     return 'Détruisez d’abord le rempart qui protège cette unité.';
   return '';
 }
 export const targetTerrainDefense = (target: Unit | Building, terrain: Terrain) =>
   !('population' in target) && UNIT_PROFILES[target.kind].flying ? 0 : TERRAINS[terrain].defense;
 
-export function estimateDamage(attacker: Unit, target: Unit | Building, tile: Tile) {
-  const a = unitStats(attacker);
+export function estimateDamage(attacker: Unit | Building, target: Unit | Building, tile: Tile) {
+  const a = attackStats(attacker);
   const atk = 'population' in target && 'buildingAttack' in a ? a.buildingAttack : a.attack;
   const defense =
     'population' in target
@@ -535,7 +631,9 @@ export function estimateDamage(attacker: Unit, target: Unit | Building, tile: Ti
       atk +
         bonus +
         (!('population' in target) && UNIT_PROFILES[target.kind].flying
-          ? (UNIT_PROFILES[attacker.kind].antiAir ?? 0)
+          ? 'population' in attacker
+            ? (turretStats(attacker)?.antiAir ?? 0)
+            : (UNIT_PROFILES[attacker.kind].antiAir ?? 0)
           : 0) -
         defense -
         cover -

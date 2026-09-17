@@ -1,4 +1,14 @@
-import type { Wallet, Faction, Terrain, UnitKind, BuildingKind, Settings } from '@voidmarch/config';
+import type {
+  Wallet,
+  Faction,
+  Terrain,
+  UnitKind,
+  BuildingKind,
+  Settings,
+  TurretLevel,
+  WallKind,
+  NpcKind,
+} from '@voidmarch/config';
 export interface Hex {
   q: number;
   r: number;
@@ -33,6 +43,16 @@ export interface ViewTile extends Hex {
   capture?: Tile['capture'];
 }
 export interface Unit extends Hex {
+  npc?: {
+    kind: NpcKind;
+    maxHp: number;
+    attack: number;
+    defense: number;
+    reward: Partial<Wallet>;
+    bonusAP: number;
+    expiresAt: number;
+    contributions: Record<string, number>;
+  };
   /** Permanent server-generated percentage bonus, absent for ordinary units. */
   rareBonus?: number;
   trainingBonus?: number;
@@ -44,6 +64,9 @@ export interface Unit extends Hex {
   updatedAt: number;
 }
 export interface Building extends Hex {
+  /** A fixed weapon attachment; its survival and ownership follow the wall. */
+  turretLevel?: TurretLevel;
+  turretConstructionCost?: Partial<Wallet>;
   /** Actual initial construction payment, excluding later upgrades. */
   constructionCost?: Partial<Wallet>;
   id: string;
@@ -67,6 +90,7 @@ export interface Realm {
   wallet: Wallet;
   ap: number;
   unlimitedAP?: boolean;
+  capitalRadar?: boolean;
   apAt: number;
   economyAt: number;
   lastSeen: number;
@@ -138,7 +162,14 @@ export interface WorldEvent extends Hex {
   reward: Partial<Wallet>;
   relic?: string;
 }
+export interface CombatShot {
+  wallKind?: WallKind;
+  from: Hex;
+  unitKind: UnitKind;
+  targetAirborne: boolean;
+}
 export interface JournalEntry {
+  shot?: CombatShot;
   id: string;
   at: number;
   text: string;
@@ -171,6 +202,7 @@ export interface GameState {
   journal: JournalEntry[];
   archives: Record<string, RealmArchive>;
   nextEventAt: number;
+  npcZoneChecks?: Record<string, number>;
   botSerial: number;
   revision: number;
 }
@@ -208,6 +240,8 @@ export interface PlayerState extends Omit<
 }
 export type OverviewTile = Pick<ViewTile, 'q' | 'r' | 'terrain' | 'ownerId' | 'visibility'>;
 export interface WorldView {
+  /** Secret radar only: never included in ordinary player views. */
+  enemyCapitals?: { realmId: string; position: Hex }[];
   overview: OverviewTile[];
   revision: number;
   serverTimestamp: number;

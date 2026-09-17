@@ -1,7 +1,9 @@
 import { buildingStage, compareBuildings, buildingsUnlockedBy } from './building-order';
-import { unitStats } from '@voidmarch/game-rules';
+import { unitStats, attackStats, attackCost } from '@voidmarch/game-rules';
 import { useState, type FormEvent } from 'react';
 import { RoadAction } from './RoadAction';
+import { NpcInfo } from './NpcInfo';
+import { unitFrame } from './ui';
 import { ContextHelp } from './Experience';
 import {
   ArrowRight,
@@ -160,7 +162,7 @@ function CatalogResources() {
 const recruitmentGroup = (kind: UnitKind) =>
   UNIT_CATEGORY[kind] === 'Civils & soutien'
     ? 0
-    : ['Véhicules', 'Aviation'].includes(UNIT_CATEGORY[kind])
+    : ['Motos', 'Véhicules', 'Aviation', 'Hélicoptères'].includes(UNIT_CATEGORY[kind])
       ? 2
       : 1;
 const compareRecruits = ([a]: [UnitKind, unknown], [b]: [UnitKind, unknown]) =>
@@ -283,6 +285,7 @@ function CitiesPanel() {
           >
             <Miniature
               frame={b.kind === 'VILLAGE' ? Math.min(9, b.level + 6) : BUILDING_FRAMES[b.kind]}
+              turretLevel={b.turretLevel}
               size={66}
             />
             <div>
@@ -723,6 +726,30 @@ function Events() {
         Certaines merveilles sont annoncées dans toutes les Marches. D’autres attendent un
         éclaireur.
       </p>
+      {w.units.filter((u) => u.npc).length > 0 && <h3>Rencontres neutres visibles</h3>}
+      {w.units
+        .filter((u) => u.npc)
+        .map((npc) => (
+          <article className="event-card" key={npc.id}>
+            <Miniature frame={unitFrame(npc)} size={94} />
+            <div>
+              <h3>{unitStats(npc).name}</h3>
+              <NpcInfo unit={npc} />
+              <button
+                className="secondary small"
+                onClick={() => {
+                  focusMap(npc);
+                  useGame.setState({
+                    selection: { kind: 'unit', id: npc.id, q: npc.q, r: npc.r },
+                    mode: 'inspect',
+                  });
+                }}
+              >
+                Voir le PNJ
+              </button>
+            </div>
+          </article>
+        ))}
       {!w.events.some((e) => !e.claimedBy && e.endsAt > w.serverTimestamp) && (
         <p className="empty-line">Aucune découverte disponible pour le moment.</p>
       )}
@@ -1074,9 +1101,11 @@ function Build() {
         <p>
           Ouvrez le mode Routes pour poser ou retirer plusieurs tronçons en cliquant sur la carte.
           Pose possible sur votre territoire, même sous un bâtiment, ou sur terrain neutre avec un
-          paysan ou un ingénieur à une case maximum. Une unité déjà sur une route peut parcourir
-          tout son réseau continu et exploré pour 1 PA, sans limite de distance. Rejoindre ou
-          quitter la route suit les règles normales de déplacement.
+          paysan ou un ingénieur à une case maximum. Depuis vos terres ou une route, une unité peut
+          voyager sans limite de distance pour 1 PA, tant que chaque case du trajet est à vous ou
+          porte une route explorée. Cela inclut les terres capturées à l’intérieur des remparts. Les
+          obstacles et terrains impraticables restent bloquants. Ailleurs, sa portée normale
+          s’applique.
         </p>
         <RoadAction tile={tile} />
       </div>
@@ -1086,6 +1115,7 @@ function Build() {
 function Recruit() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<UnitTab>('Toutes');
+  const [atomicOnly, setAtomicOnly] = useState(false);
   const w = useGame((s) => s.world)!,
     selection = useGame((s) => s.selection),
     pending = useGame((s) => s.pending);
@@ -1140,6 +1170,21 @@ function Recruit() {
           production active.
         </p>
       </ContextHelp>
+      <label className="atomic-filter">
+        <input
+          type="checkbox"
+          checked={atomicOnly}
+          onChange={(e) => setAtomicOnly(e.target.checked)}
+        />
+        ☢ Division atomique · {Object.values(UNIT_PROFILES).filter((p) => p.radioactive).length}{' '}
+        unités d’élite
+      </label>
+      {atomicOnly && (
+        <p className="muted">
+          Laboratoire des isotopes → Réacteur noir. Recrutez ensuite dans les bâtiments indiqués ;
+          la fonderie atomique débloque les modèles ultimes. Coûts et mobilisation élevés.
+        </p>
+      )}
       <div className="catalog-tabs" role="tablist" aria-label="Types d’unités">
         {UNIT_TABS.map((tab) => (
           <button
@@ -1171,7 +1216,12 @@ function Recruit() {
               compareRecruits(a, b),
           )
           .filter(([kind]) => category === 'Toutes' || UNIT_CATEGORY[kind] === category)
-          .filter(([, u]) => u.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+          .filter(([kind]) => !atomicOnly || UNIT_PROFILES[kind].radioactive)
+          .filter(([kind, u]) =>
+            `${u.name} ${UNIT_PROFILES[kind].radioactive ? 'atomique radioactif' : ''} ${UNIT_PROFILES[kind].recruitAt.map((k) => BUILDINGS[k].name).join(' ')}`
+              .toLocaleLowerCase()
+              .includes(query.toLocaleLowerCase()),
+          )
           .map(([kind, u]) => {
             const profile = UNIT_PROFILES[kind],
               free = kind === 'PEASANT' && !ownUnits.some((x) => x.kind === 'PEASANT');
@@ -1184,6 +1234,7 @@ function Recruit() {
                 </span>
                 <Miniature frame={UNIT_FRAMES[kind]} size={90} />
                 <h4>{u.name}</h4>
+                {profile.radioactive && <span className="atomic-badge">☢ Division atomique</span>}
                 <p>{profile.role}</p>
                 {building && !profile.builder && (
                   <p>
@@ -1254,7 +1305,9 @@ function Combat() {
     targetId = useGame((s) => s.combatTarget),
     pending = useGame((s) => s.pending),
     now = useGame((s) => s.now);
-  const attacker = w.units.find((u) => u.id === selection?.id),
+  const attacker =
+      w.units.find((u) => u.id === selection?.id) ??
+      w.tiles.find((t) => t.building?.id === selection?.id)?.building,
     target: Unit | Building | undefined =
       w.units.find((u) => u.id === targetId) ??
       w.tiles.find((t) => t.building?.id === targetId)?.building;
@@ -1275,14 +1328,14 @@ function Combat() {
       (t) =>
         t.kind === 'TRUCE' && t.endsAt > now && (t.a === target.ownerId || t.b === target.ownerId),
     ),
-    ap = UNIT_PROFILES[attacker.kind].siege ? 2 : 1,
+    ap = attackCost(attacker),
     reason =
       attackBlockReason(attacker, target, tile.building) ||
       (truce
         ? 'Une trêve interdit cette attaque.'
         : enemy && enemy.protectedUntil > now
           ? 'Ce royaume bénéficie de la protection initiale.'
-          : distance(attacker, target) > UNITS[attacker.kind].range
+          : distance(attacker, target) > attackStats(attacker).range
             ? 'Cette cible est hors de portée.'
             : !w.player.unlimitedAP && w.player.ap < ap
               ? `${ap} PA nécessaires.`
@@ -1291,21 +1344,26 @@ function Combat() {
     <Modal title="Donner l’ordre d’attaquer" eyebrow="CONSEIL DE GUERRE">
       <div className="combat-versus">
         <div>
-          <Miniature frame={UNIT_FRAMES[attacker.kind]} size={115} />
-          <strong>{UNITS[attacker.kind].name}</strong>
+          <Miniature
+            frame={'population' in attacker ? BUILDING_FRAMES[attacker.kind] : unitFrame(attacker)}
+            size={115}
+            turretLevel={'population' in attacker ? attacker.turretLevel : undefined}
+          />
+          <strong>{attackStats(attacker).name}</strong>
           <span>{attacker.hp} PV</span>
         </div>
         <Swords size={30} />
         <div>
           <Miniature
-            frame={'population' in target ? BUILDING_FRAMES[target.kind] : UNIT_FRAMES[target.kind]}
+            frame={'population' in target ? BUILDING_FRAMES[target.kind] : unitFrame(target)}
+            turretLevel={'population' in target ? target.turretLevel : undefined}
             size={115}
           />
           <strong>
-            {'population' in target ? BUILDINGS[target.kind].name : UNITS[target.kind].name}
+            {'population' in target ? BUILDINGS[target.kind].name : unitStats(target).name}
           </strong>
           <span>
-            {target.hp} PV · {enemy?.name}
+            {target.hp} PV · {'npc' in target && target.npc ? 'PNJ neutre' : enemy?.name}
           </span>
         </div>
       </div>
@@ -1322,13 +1380,36 @@ function Combat() {
             : ''}
         </small>
       </div>
+      {'npc' in target && target.npc && (
+        <>
+          <NpcInfo unit={target as Unit} />
+          <p className="warning">
+            {distance(target, attacker) <= unitStats(target as Unit).range &&
+            !attackBlockReason(
+              target,
+              attacker,
+              w.tiles.find((t) => key(t) === key(attacker))?.building,
+            )
+              ? (() => {
+                  const terrain = w.tiles.find((t) => key(t) === key(attacker))?.terrain ?? 'PLAIN';
+                  const retaliation = estimateDamage(target, attacker, {
+                    q: attacker.q,
+                    r: attacker.r,
+                    terrain,
+                  });
+                  return `S’il survit : riposte estimée de ${retaliation.min} à ${retaliation.max} dégâts.`;
+                })()
+              : 'Votre attaquant est hors de portée de sa riposte.'}
+          </p>
+        </>
+      )}
       {isWall(target.kind) && (
         <p>
           Ouvrir une brèche : détruisez ce tronçon pour rendre sa case franchissable. Les engins de
           siège utilisent leurs dégâts contre les bâtiments.
         </p>
       )}
-      {w.player.protectedUntil > now && (
+      {w.player.protectedUntil > now && !('npc' in target && target.npc) && (
         <p className="warning">Donner cet ordre mettra fin à votre protection initiale.</p>
       )}
       {reason && <p className="form-error">{reason}</p>}

@@ -1,5 +1,9 @@
 import { unitStats } from '@voidmarch/game-rules';
 import { useEffect, useRef, useState } from 'react';
+import { TurretControls } from './TurretControls';
+import { NpcInfo, AttackNpc } from './NpcInfo';
+import { unitFrame } from './ui';
+import { turretStats } from '@voidmarch/game-rules';
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -99,6 +103,7 @@ const nav: { panel: Panel; label: string; icon: typeof Crown; hint: string }[] =
   { panel: 'economy', label: 'Économie', icon: TrendingUp, hint: 'E' },
   { panel: 'trade', label: 'Commerce & diplomatie', icon: Handshake, hint: 'D' },
 ];
+import { CapitalRadar } from './CapitalRadar';
 let booted = false;
 export function App() {
   const status = useGame((s) => s.status),
@@ -139,26 +144,38 @@ export function App() {
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
+        e.target instanceof HTMLSelectElement ||
+        (e.target instanceof HTMLElement && e.target.isContentEditable)
       )
         return;
       if (document.querySelector('[role="dialog"]')) return;
       if (Date.now() - lastKeyAt > 5000) code = '';
-      if (e.key.toLowerCase() === 'y') code = '';
+      if (['y', 'h'].includes(e.key.toLowerCase())) code = '';
       lastKeyAt = Date.now();
       if (e.key === 'Enter' && code.length === 6) {
         e.preventDefault();
         e.stopPropagation();
-        void api<{ enabled: boolean }>('/admin/unlimited-ap', { code })
+        const radar = code.startsWith('h');
+        void api<{ enabled: boolean }>(radar ? '/admin/capital-radar' : '/admin/unlimited-ap', {
+          code,
+        })
           .then(({ enabled }) =>
-            notify(enabled ? 'PA illimités activés.' : 'PA illimités désactivés.'),
+            notify(
+              radar
+                ? enabled
+                  ? 'Repérage des capitales activé.'
+                  : 'Repérage des capitales désactivé.'
+                : enabled
+                  ? 'PA illimités activés.'
+                  : 'PA illimités désactivés.',
+            ),
           )
           .catch(() => {});
         code = '';
       } else if (/^[a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey)
         code = (code + e.key.toLowerCase()).slice(-6);
 
-      if (code.startsWith('y') && /^[a-z]$/i.test(e.key)) return;
+      if ((code.startsWith('y') || code.startsWith('h')) && /^[a-z]$/i.test(e.key)) return;
       if (e.key === 'Escape')
         useGame.setState({ panel: null, combatTarget: null, mode: 'inspect', menuOpen: false });
       const item = nav.find((n) => n.hint.toLowerCase() === e.key.toLowerCase());
@@ -248,6 +265,7 @@ export function App() {
           <TerraformTools />
           <MapLegend />
           <Minimap />
+          <CapitalRadar />
           <SelectionPanel />
           <div className="coordinate-bar">
             <Map size={12} />
@@ -518,8 +536,9 @@ function MapTools() {
         <Home size={17} />
       </button>
       <button
-        aria-label="Afficher la grille"
-        title="Afficher la grille"
+        aria-label={settings.grid ? 'Masquer la grille' : 'Afficher la grille'}
+        title={settings.grid ? 'Masquer la grille' : 'Afficher la grille'}
+        aria-pressed={settings.grid}
         className={settings.grid ? 'active' : ''}
         onClick={() => void saveSettings({ grid: !settings.grid })}
       >
@@ -607,7 +626,7 @@ function SelectionPanel() {
       </div>
     );
   const name = u
-      ? UNITS[u.kind].name
+      ? unitStats(u).name
       : b
         ? b.kind === 'VILLAGE'
           ? CITY_LEVELS[b.level]
@@ -616,7 +635,7 @@ function SelectionPanel() {
           ? TERRAINS[tile.terrain].name
           : 'Terres inconnues',
     frame = u
-      ? UNIT_FRAMES[u.kind]
+      ? unitFrame(u)
       : b
         ? b.kind === 'VILLAGE'
           ? Math.min(9, 6 + b.level)
@@ -626,7 +645,7 @@ function SelectionPanel() {
     <section ref={panelRef} className="selection-panel" aria-label="Sélection actuelle">
       <div className="selection-identity">
         {frame !== undefined ? (
-          <Miniature frame={frame} size={88} />
+          <Miniature frame={frame} size={88} turretLevel={b?.turretLevel} />
         ) : (
           <div className="tile-symbol">
             <Hexagon size={40} strokeWidth={1} />
@@ -646,10 +665,12 @@ function SelectionPanel() {
             </span>
           )}
           <span className="selection-owner">
-            {own
-              ? FACTIONS[w.player.faction].name
-              : (w.realms.find((r) => r.id === (u?.ownerId ?? b?.ownerId ?? tile?.ownerId))?.name ??
-                'Terres sans bannière')}
+            {u?.npc
+              ? 'PNJ neutre · sans royaume'
+              : own
+                ? FACTIONS[w.player.faction].name
+                : (w.realms.find((r) => r.id === (u?.ownerId ?? b?.ownerId ?? tile?.ownerId))
+                    ?.name ?? 'Terres sans bannière')}
           </span>
         </div>
       </div>
@@ -674,13 +695,14 @@ function SelectionPanel() {
             </div>
             <div>
               <span>MOUV.</span>
-              <strong>{UNITS[u.kind].move}</strong>
+              <strong>{unitStats(u).move}</strong>
             </div>
             <div>
               <span>VISION</span>
               <strong>{UNITS[u.kind].vision}</strong>
             </div>
           </div>
+          {u.npc && <NpcInfo unit={u} />}
           {own && u.kind === 'PEASANT' && (
             <ContextHelp title="Aide aux actions">
               <p>
@@ -713,17 +735,17 @@ function SelectionPanel() {
                   disabled={pending || (!w.player.unlimitedAP && w.player.ap < 1)}
                   onClick={() => useGame.setState({ mode: mode === 'move' ? 'inspect' : 'move' })}
                   title={
-                    tile?.road
-                      ? 'Sur une route continue et explorée : distance illimitée pour 1 PA. Hors route : portée normale.'
-                      : 'Rejoignez une route pour voyager sur tout son réseau en 1 PA.'
+                    'Distance illimitée pour 1 PA sur un trajet continu de vos terres et de routes explorées. Ailleurs : portée normale. Les obstacles et terrains impraticables restent bloquants.'
                   }
                 >
                   <ArrowUpRight size={16} />
                   {mode === 'move' ? 'Choisir une destination' : 'Déplacer'}
                   <small>1 PA</small>
                 </button>
-                {tile?.road && (
-                  <span className="road-status">Réseau routier : distance illimitée · 1 PA</span>
+                {(tile?.road || tile?.ownerId === w.player.id) && (
+                  <span className="road-status">
+                    Vos terres + routes : distance illimitée · 1 PA
+                  </span>
                 )}
                 <button
                   className="secondary"
@@ -920,6 +942,8 @@ function SelectionPanel() {
                     </button>
                   ))}
               </>
+            ) : u.npc ? (
+              <AttackNpc unit={u} />
             ) : (
               <button className="secondary" onClick={() => useGame.setState({ panel: 'trade' })}>
                 <Handshake size={15} /> Négocier avec ce royaume
@@ -930,6 +954,12 @@ function SelectionPanel() {
       ) : b ? (
         <>
           <div className="building-info">
+            {b.turretLevel && (
+              <span>
+                {turretStats(b)?.name} · niveau {b.turretLevel}/3 · ATQ {turretStats(b)?.attack} ·
+                portée {turretStats(b)?.range}
+              </span>
+            )}
             <span>
               {b.hp}/{BUILDINGS[b.kind].hp * b.level} PV
             </span>
@@ -973,6 +1003,7 @@ function SelectionPanel() {
                   <Users size={15} /> Recruter
                 </button>
                 <UpgradeBuilding key={b.id} building={b} />
+                {isWall(b.kind) && <TurretControls key={`turret-${b.id}`} building={b} />}
                 <DemolishBuilding key={`demolish-${b.id}`} building={b} />
                 <RoadAction tile={tile} />
                 <button
@@ -1191,17 +1222,12 @@ function Defeat() {
 
 function PendingOrderIndicator() {
   const pending = useGame((s) => s.pending);
-  const since = useGame((s) => s.pendingSince);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    setVisible(false);
-    if (!pending) return;
-    const timer = setTimeout(() => setVisible(true), 600);
-    return () => clearTimeout(timer);
-  }, [pending, since]);
-  return pending && visible ? (
+  const action = useGame((s) => s.pendingAction);
+  const reduced = useGame((s) => s.world?.player.settings.reducedMotion);
+  return pending ? (
     <div className="order-progress" role="status">
-      <LoaderCircle className="spin" size={14} /> Ordre en cours…
+      <LoaderCircle className={reduced ? '' : 'spin'} size={14} />{' '}
+      {action?.label ?? 'Ordre en cours'}…
     </div>
   ) : null;
 }

@@ -7,6 +7,7 @@ import {
   GATHER_YIELD,
   RULES,
   TERRAFORM_COST,
+  TURRETS,
   UNIT_PROFILES,
   UNITS,
   buildingConstructionCost,
@@ -19,6 +20,8 @@ import {
 } from '@voidmarch/config';
 import {
   armyPopulation,
+  nextTurretLevel,
+  turretUpgradeReason,
   canAfford,
   canGather,
   demolitionRefund,
@@ -70,7 +73,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       const path =
         action.type === 'MOVE'
           ? action.payload.path
-          : roadPathTo(action.payload, roadPaths(unit, tiles, blocked, unit.kind), blocked);
+          : roadPathTo(action.payload, roadPaths(unit, tiles, blocked, unit.kind, id), blocked);
       if (!path?.length) return;
       let cursor = unit,
         cost = 0;
@@ -254,12 +257,28 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       t.capture = undefined;
       break;
     }
+    case 'INSTALL_TURRET':
+    case 'UPGRADE_TURRET': {
+      if (
+        !building ||
+        (action.type === 'INSTALL_TURRET' ? !!building.turretLevel : !building.turretLevel) ||
+        turretUpgradeReason(building, id, world.units)
+      )
+        return;
+      const next = nextTurretLevel(building)!;
+      if (!pay(TURRETS[next].cost)) return;
+      if (!building.turretLevel) building.turretConstructionCost = { ...TURRETS[1].cost };
+      building.turretLevel = next;
+      building.updatedAt = now;
+      player.progression.development++;
+      break;
+    }
     case 'UPGRADE': {
       if (!building) return;
       const upgrade = buildingUpgrade(building.kind, building.level);
       if (!upgrade || building.population < upgrade.population || !pay(upgrade.cost)) return;
       const oldKind = building.kind;
-      building.constructionCost ??= demolitionRefund(building, player.faction);
+      building.constructionCost ??= buildingConstructionCost(building.kind, player.faction);
       building.kind = upgrade.kind;
       building.level = upgrade.level;
       building.hp = BUILDINGS[building.kind].hp * building.level;

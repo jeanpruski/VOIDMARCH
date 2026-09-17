@@ -4,6 +4,7 @@ import { createState, disk, writeTile } from '@voidmarch/game-rules';
 import { actionSchema, type Action } from '@voidmarch/protocol';
 import { addBuilding, addPlayer, execute, worldView } from '../apps/server/src/engine';
 import { predictAction } from '../apps/web/src/optimistic-actions';
+import { pendingWorld, pendingAction } from '../apps/web/src/pending-action';
 
 const now = 1_800_000_000_000;
 function fixture() {
@@ -73,6 +74,15 @@ describe('affichage anticipé', () => {
       backup = structuredClone(source);
     const prediction = predictAction(source, command);
     expect(prediction).toBeDefined();
+    const waiting = pendingWorld(source, prediction!);
+    expect(waiting.tiles).toEqual(source.tiles);
+    expect(waiting.units).toEqual(type === 'MOVE' ? prediction!.world.units : source.units);
+    expect(waiting.player.ap).toBe(prediction!.world.player.ap);
+    for (const resource of Object.keys(
+      source.player.wallet,
+    ) as (keyof typeof source.player.wallet)[])
+      expect(waiting.player.wallet[resource]).toBeLessThanOrEqual(source.player.wallet[resource]);
+    expect(pendingAction(command, source, prediction).label.length).toBeGreaterThan(0);
     const actual = execute(state, realm.id, command, now);
     expect(actual.result.accepted).toBe(true);
     const view = worldView(actual.state, realm.id, now);
@@ -97,6 +107,7 @@ describe('affichage anticipé', () => {
   });
   it('anticipe les virages sur une route, sans inventer de visibilité', () => {
     const { state, realm } = fixture();
+    for (const t of Object.values(state.tiles)) t.ownerId = undefined;
     const path = [
       { q: 1, r: 0 },
       { q: 2, r: 0 },

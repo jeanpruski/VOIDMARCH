@@ -16,6 +16,7 @@ import {
 } from '@voidmarch/game-rules';
 import type { GameState, Hex, WorldEvent } from '@voidmarch/shared';
 import { BotDirector } from './bots.js';
+import { tickNpcs } from './npcs.js';
 import { archive, defaultOptions, log, type EngineOptions } from './engine.js';
 export function initialEvents(s: GameState, now: number) {
   const id = randomUUID();
@@ -108,6 +109,7 @@ export function tickWorld(
     }
   }
   new BotDirector(options).tick(s, now, humans);
+  tickNpcs(s, now, connected);
   for (const p of Object.values(s.proposals))
     if (p.status === 'PENDING' && p.expiresAt <= now) p.status = 'EXPIRED';
   for (const c of Object.values(s.caravans)) {

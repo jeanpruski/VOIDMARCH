@@ -7,7 +7,7 @@ Rapport reproductible : `node --import tsx scripts/audit-balance.ts`. Les coûts
 - Récolte uniquement sur la case occupée, jamais sur une voisine ni sur une terre adverse. Bois : forêt ; pierre : colline/montagne ; fer : colline ; vivres : plaine/rivière/marais ; or : ruines. Les vestiges cosmiques se fouillent par leur action dédiée.
 - Pierre ajoutée aux stocks, échanges, coûts et sauvegardes. Carrière accessible sans coût initial en pierre. La mine extrait le fer sur colline ; la carrière extrait la pierre sur colline ou montagne.
 - Aucun revenu brut par simple propriété d’une case. Le campement ne produit plus de bois, les forges/ateliers/raffineries/manufactures ne génèrent plus de fer sans mine. Le grenier stocke sans générer de vivres.
-- Entretien proportionné au prix des unités ; les machines consomment aussi du fer. Mobilisation unifiée entre recrutement, interface et croissance : paysan 3, soldats 5, siège médiéval 6, machines légères 8, chars / bombardiers / dirigeables / dragons 12.
+- Entretien proportionné au prix des unités ; les machines consomment aussi du fer. Mobilisation unifiée entre recrutement, interface et croissance : paysan 3, soldats 5, siège médiéval 6, machines légères 8, chars / bombardiers / dirigeables / dragons 12 ; division atomique de 7 à 18 places selon le modèle.
 - Croissance bornée selon le bâtiment : un campement ou une chaumière ne finit plus avec la capacité d’une ville. Les populations existantes ne sont pas supprimées.
 - Montagne accessible au paysan pour la pierre ; véhicules et cavaliers ont besoin de routes en montagne ou marais. Les machines terrestres ralentissent en forêt. Les unités volantes survolent tous les terrains et les remparts pour un point de déplacement par case.
 - L’amélioration campement → avant-poste ne réduit plus la résistance ni la production de vivres. Les améliorations de villes en pierre utilisent désormais cette ressource.
@@ -20,6 +20,43 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 | Unité | PV / attaque / défense | Déplacement / portée | Places | Coût | Entretien par minute | Infrastructure requise (nombre) |
 | --- | --- | --- | --- | --- | --- | --- |
+| Grenadier au radium | 24 / 12 / 4 | 3 / 3 | 7 | 300 or, 30 bois, 140 fer, 45 vivres | 1.29 or, 0.25 vivres | 12 |
+| Sentinelle de cobalt | 38 / 10 / 8 | 2 / 2 | 7 | 370 or, 35 bois, 200 fer, 50 vivres | 1.64 or, 0.25 vivres | 13 |
+| Tireur isotopique | 19 / 17 / 2 | 3 / 6 | 7 | 410 or, 30 bois, 145 fer, 40 vivres | 1.56 or, 0.25 vivres | 12 |
+| Sapeur atomique | 25 / 10 / 4 | 2 / 3 | 7 | 430 or, 50 bois, 210 fer, 50 vivres | 1.85 or, 0.25 vivres | 12 |
+| Exécuteur blafard | 45 / 23 / 6 | 2 / 1 | 7 | 510 or, 30 bois, 240 fer, 75 vivres | 2.14 or, 0.25 vivres | 16 |
+| Templier gamma | 34 / 16 / 6 | 3 / 4 | 11 | 530 or, 35 bois, 250 fer, 65 vivres | 2.2 or, 0.25 vivres | 16 |
+| Hussard au radium | 28 / 14 / 4 | 6 / 1 | 8 | 340 or, 35 bois, 120 fer, 90 vivres | 1.46 or, 0.65 vivres | 13 |
+| Lancier isotopique | 32 / 18 / 4 | 5 / 1 | 8 | 390 or, 40 bois, 170 fer, 100 vivres | 1.75 or, 0.65 vivres | 13 |
+| Cuirassier de cobalt | 46 / 14 / 8 | 4 / 1 | 8 | 470 or, 45 bois, 220 fer, 120 vivres | 2.14 or, 0.65 vivres | 13 |
+| Dragon des cendres | 27 / 13 / 4 | 5 / 4 | 8 | 410 or, 40 bois, 155 fer, 95 vivres | 1.75 or, 0.65 vivres | 13 |
+| Éclaireur blafard | 24 / 12 / 3 | 7 / 3 | 8 | 420 or, 35 bois, 125 fer, 100 vivres | 1.7 or, 0.65 vivres | 17 |
+| Paladin gamma | 44 / 19 / 7 | 4 / 1 | 12 | 560 or, 50 bois, 250 fer, 140 vivres | 2.5 or, 0.65 vivres | 16 |
+| Estafette au radium | 23 / 10 / 3 | 9 / 3 | 9 | 360 or, 25 bois, 160 fer, 35 vivres | 1.45 or, 0.7 fer, 0.25 vivres | 13 |
+| Moto d’assaut isotopique | 29 / 15 / 4 | 7 / 3 | 9 | 420 or, 30 bois, 200 fer, 40 vivres | 1.73 or, 0.95 fer, 0.25 vivres | 13 |
+| Side-car de cobalt | 38 / 13 / 7 | 5 / 3 | 9 | 450 or, 40 bois, 230 fer, 45 vivres | 1.91 or, 0.85 fer, 0.25 vivres | 13 |
+| Chasseur blafard motorisé | 25 / 18 / 3 | 7 / 5 | 9 | 500 or, 30 bois, 210 fer, 40 vivres | 1.95 or, 1.1 fer, 0.25 vivres | 13 |
+| Tricycle gamma | 30 / 10 / 4 | 6 / 5 | 9 | 480 or, 35 bois, 230 fer, 40 vivres | 1.96 or, 0.7 fer, 0.25 vivres | 13 |
+| Moto de l’Apocalypse | 36 / 14 / 5 | 5 / 4 | 13 | 600 or, 45 bois, 280 fer, 50 vivres | 2.44 or, 0.9 fer, 0.25 vivres | 13 |
+| Automitrailleuse au radium | 35 / 13 / 5 | 7 / 4 | 14 | 490 or, 50 bois, 250 fer, 40 vivres | 2.08 or, 0.85 fer, 0.25 vivres | 13 |
+| Semi-chenillé de cobalt | 48 / 17 / 7 | 4 / 3 | 14 | 580 or, 55 bois, 320 fer, 50 vivres | 2.51 or, 1.05 fer, 0.25 vivres | 14 |
+| Chasseur de chars isotopique | 43 / 23 / 5 | 3 / 5 | 14 | 690 or, 50 bois, 370 fer, 55 vivres | 2.91 or, 1.35 fer, 0.25 vivres | 14 |
+| Char Mausolée | 76 / 20 / 9 | 2 / 3 | 14 | 900 or, 70 bois, 520 fer, 75 vivres | 3.91 or, 1.2 fer, 0.25 vivres | 15 |
+| Chenillé Flak gamma | 44 / 10 / 6 | 3 / 6 | 14 | 660 or, 45 bois, 350 fer, 50 vivres | 2.76 or, 0.7 fer, 0.25 vivres | 17 |
+| Chenillé de l’Apocalypse | 52 / 17 / 6 | 2 / 6 | 18 | 980 or, 80 bois, 550 fer, 70 vivres | 4.2 or, 1.05 fer, 0.25 vivres | 15 |
+| Épervier au radium | 23 / 8 / 3 | 12 / 3 | 14 | 520 or, 50 bois, 240 fer, 35 vivres | 2.11 or, 0.6 fer, 0.25 vivres | 15 |
+| Intercepteur isotopique | 31 / 14 / 4 | 10 / 4 | 14 | 650 or, 55 bois, 340 fer, 45 vivres | 2.73 or, 0.9 fer, 0.25 vivres | 15 |
+| Avion d’assaut cobalt | 45 / 22 / 7 | 6 / 3 | 14 | 760 or, 70 bois, 410 fer, 55 vivres | 3.24 or, 1.3 fer, 0.25 vivres | 15 |
+| Chasseur nocturne blafard | 29 / 18 / 4 | 8 / 5 | 14 | 780 or, 60 bois, 370 fer, 45 vivres | 3.14 or, 1.1 fer, 0.25 vivres | 15 |
+| Bombardier gamma | 48 / 14 / 5 | 5 / 4 | 14 | 950 or, 90 bois, 500 fer, 65 vivres | 4.01 or, 0.9 fer, 0.25 vivres | 17 |
+| Aile de l’Apocalypse | 62 / 19 / 7 | 4 / 5 | 18 | 1250 or, 120 bois, 680 fer, 90 vivres | 5.35 or, 1.15 fer, 0.25 vivres | 18 |
+| Autogire au radium | 26 / 10 / 3 | 9 / 3 | 12 | 510 or, 40 bois, 240 fer, 35 vivres | 2.06 or, 0.7 fer, 0.25 vivres | 15 |
+| Hélicoptère isotopique | 32 / 16 / 4 | 7 / 4 | 12 | 640 or, 50 bois, 330 fer, 45 vivres | 2.66 or, 1 fer, 0.25 vivres | 15 |
+| Canonnière cobalt | 49 / 21 / 8 | 4 / 3 | 12 | 810 or, 65 bois, 430 fer, 60 vivres | 3.41 or, 1.25 fer, 0.25 vivres | 15 |
+| Hélicoptère Chasseur blafard | 30 / 23 / 3 | 6 / 5 | 12 | 820 or, 50 bois, 390 fer, 50 vivres | 3.27 or, 1.35 fer, 0.25 vivres | 15 |
+| Hélicoptère Flak gamma | 36 / 11 / 5 | 6 / 5 | 12 | 740 or, 55 bois, 370 fer, 50 vivres | 3.04 or, 0.75 fer, 0.25 vivres | 17 |
+| Hélicoptère de l’Apocalypse | 57 / 17 / 6 | 4 / 4 | 16 | 1100 or, 95 bois, 580 fer, 80 vivres | 4.64 or, 1.05 fer, 0.25 vivres | 17 |
+| Terrassier arcanique | 10 / 0 / 2 | 3 / 1 | 5 | 65 or, 35 bois, 30 fer, 20 vivres | 0.38 or, 0.25 vivres | 1 |
 | Avion de reconnaissance | 10 / 2 / 0 | 10 / 2 | 8 | 140 or, 35 bois, 90 fer, 15 vivres | 0.7 or, 0.3 fer, 0.25 vivres | 4 |
 | Chasseur Nachtjäger | 18 / 10 / 2 | 8 / 3 | 8 | 220 or, 40 bois, 150 fer, 20 vivres | 1.07 or, 0.7 fer, 0.25 vivres | 8 |
 | Bombardier funèbre | 24 / 7 / 2 | 5 / 3 | 12 | 290 or, 60 bois, 210 fer, 30 vivres | 1.48 or, 0.55 fer, 0.25 vivres | 9 |
@@ -69,6 +106,10 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 | Bâtiment | PV | Coût | Production brute / minute | Terrains | Prérequis |
 | --- | --- | --- | --- | --- | --- |
+| Laboratoire des isotopes | 85 | 220 or, 80 bois, 100 pierre, 150 fer | — | PLAIN, HILL, RUINS | Laboratoire des cendres, Manufacture de munitions |
+| Réacteur noir | 140 | 400 or, 100 bois, 200 pierre, 280 fer | 8 or | PLAIN, HILL, RUINS | Laboratoire des isotopes, Raffinerie |
+| Héliport occulte | 95 | 280 or, 90 bois, 120 pierre, 180 fer | — | PLAIN, RUINS | Laboratoire des isotopes, Garage militaire, Relais radio |
+| Fonderie atomique | 125 | 520 or, 140 bois, 180 pierre, 360 fer | — | PLAIN, HILL, RUINS | Réacteur noir, Usine de blindés |
 | Aérodrome militaire | 75 | 160 or, 100 bois, 70 pierre, 100 fer | — | PLAIN, RUINS | Garage militaire, Relais radio |
 | Chantier de dirigeables | 95 | 210 or, 130 bois, 90 pierre, 150 fer | — | PLAIN, RUINS | Aérodrome militaire, Raffinerie |
 | Sanctuaire draconique | 110 | 260 or, 100 bois, 160 pierre, 140 fer | — | HILL, MOUNTAIN, RUINS, CORRUPTION | Observatoire noir, Caserne des revenants |
@@ -116,3 +157,13 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 | Caserne | 40 | 60 or, 45 bois, 20 pierre, 25 fer, 10 vivres | — | PLAIN, HILL, RUINS | — |
 | Fort | 65 | 90 or, 45 bois, 65 pierre, 65 fer | — | PLAIN, HILL, RUINS | — |
 | Tour de guet | 40 | 45 or, 25 bois, 25 pierre, 30 fer | — | PLAIN, HILL, FOREST, RUINS | — |
+
+## Tourelles de rempart
+
+Équipements fixes partageant les PV du mur, sans production ni entretien. Installation et chaque évolution : 2 PA. Tir manuel : 1 PA. Les prix ci-dessous excluent le mur et les étapes précédentes. Voir [les règles des tourelles](turrets.md).
+
+| Arme | Mur minimal | Attaque / portée | Bonus antiaérien | Coût de cette étape |
+| --- | --- | --- | --- | --- |
+| Arbalète de rempart | Palissade en bois | 7 / 3 | 0 | 60 or, 50 bois, 20 fer |
+| Canon de rempart | Rempart de pierre | 13 / 4 | 0 | 120 or, 60 pierre, 50 fer |
+| Tourelle Tesla occulte | Mur en acier | 20 / 5 | 8 | 220 or, 40 pierre, 120 fer |

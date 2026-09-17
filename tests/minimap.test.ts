@@ -1,9 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { createState, writeTile } from '@voidmarch/game-rules';
 import { addPlayer, worldView } from '../apps/server/src/engine';
-import { cameraViewport, hexToPixel, minimapProjection } from '../apps/web/src/map-geometry';
+import {
+  cameraViewport,
+  hexToPixel,
+  minimapProjection,
+  viewportChunks,
+  pixelToHex,
+  MAP_ZOOM,
+} from '../apps/web/src/map-geometry';
+import { chunksSchema } from '@voidmarch/protocol';
+import { chunkOf, key } from '@voidmarch/game-rules';
 
 describe('mini-carte', () => {
+  it.each([
+    [390, 844],
+    [1440, 960],
+    [1920, 1080],
+  ])('charge tout le rectangle visible au dézoom maximal (%i × %i)', (width, height) => {
+    const view = cameraViewport(-4700, 3200, width, height, MAP_ZOOM.min);
+    const chunks = viewportChunks(view);
+    expect(chunksSchema.safeParse({ chunks }).success).toBe(true);
+    const keys = new Set(chunks.map(key));
+    for (let x = 0; x <= 10; x++)
+      for (let y = 0; y <= 10; y++)
+        expect(
+          keys.has(
+            key(
+              chunkOf(pixelToHex(view.x + (x * view.width) / 10, view.y + (y * view.height) / 10)),
+            ),
+          ),
+        ).toBe(true);
+  });
   it('retrouve la case choisie même loin de l’origine et dans les coordonnées négatives', () => {
     const capital = { q: -140, r: 85 };
     const distant = { q: -200, r: -30 };

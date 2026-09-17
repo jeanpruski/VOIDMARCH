@@ -101,6 +101,23 @@ function fixture(radius = 2) {
   return { s, a, b, center, gap, walls, close };
 }
 describe('territoires revendiqués par les remparts', () => {
+  it('ouvre le déplacement illimité dans l’enceinte et le retire quand la zone redevient neutre', () => {
+    const { close, center, gap } = fixture(4);
+    const closed = close();
+    expect(closed.result.accepted, closed.result.reason).toBe(true);
+    const s = closed.state;
+    Object.assign(s.units.builder, { q: center.q - 2, r: 0 });
+    const destination = { q: center.q + 2, r: 0 };
+    const move = order('MOVE_ROAD', 'builder', destination);
+    const result = execute(s, 'a', move, now);
+    expect(result.result.accepted, result.result.reason).toBe(true);
+    expect(result.result.movement?.path).toHaveLength(4);
+    expect(result.state.realms.a.ap).toBe(s.realms.a.ap - 1);
+    const opened = execute(s, 'a', order('DEMOLISH', tileAt(s, gap).buildingId!), now);
+    expect(opened.result.accepted).toBe(true);
+    expect(tileAt(opened.state, destination).ownerId).toBeUndefined();
+    expect(execute(opened.state, 'a', move, now).result.accepted).toBe(false);
+  });
   it('fermer le dernier tronçon colore et revendique tout l’intérieur neutre, sans PA de capture', () => {
     const { s, center, close } = fixture();
     expect(refreshEnclosures(s, now).size).toBe(0);

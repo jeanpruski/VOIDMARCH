@@ -77,5 +77,31 @@ test('la mini-carte suit la caméra, le zoom et le mobile, et navigue par clic e
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(async () => (await bounds()).width).toBeCloseTo((zoomed.width * 390) / 1440, 0);
   await page.screenshot({ path: 'test-results/minimap-mobile.png' });
+  const camera = () =>
+    page.evaluate(async () => {
+      // @ts-expect-error Vite source module.
+      const { useGame } = await import('/src/store.ts');
+      return useGame.getState().cameraViewport;
+    });
+  const centerBefore = await camera();
+  await page.evaluate(async () => {
+    // @ts-expect-error Vite source module.
+    const { mapCommand } = await import('/src/store.ts');
+    for (let i = 0; i < 25; i++) mapCommand('out');
+  });
+  await expect.poll(async () => (await camera()).width).toBeCloseTo(390 / 0.2, 1);
+  const far = await camera();
+  expect(far.x + far.width / 2).toBeCloseTo(centerBefore.x + centerBefore.width / 2, 1);
+  await page.mouse.move(160, 250);
+  await page.mouse.wheel(0, -10000);
+  await expect.poll(async () => (await camera()).width).toBeCloseTo(390 / 3.2, 1);
+  await page.evaluate(async () => {
+    // @ts-expect-error Vite source module.
+    const { mapCommand } = await import('/src/store.ts');
+    mapCommand('in');
+  });
+  await expect.poll(async () => (await camera()).width).toBeCloseTo(390 / 3.2, 1);
+  await page.mouse.wheel(0, 10000);
+  await expect.poll(async () => (await camera()).width).toBeCloseTo(390 / 0.2, 1);
   expect(errors).toEqual([]);
 });

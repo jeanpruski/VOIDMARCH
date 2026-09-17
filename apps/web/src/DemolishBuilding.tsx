@@ -42,6 +42,12 @@ export function DemolishBuilding({ building: b }: { building: Building }) {
                   bâtiment redeviennent neutres. Les cases portant un bâtiment restent à vous.
                 </p>
               )}
+              {b.turretLevel && (
+                <p className="warning">
+                  La tourelle sera également supprimée. Son coût d’installation initial est inclus
+                  dans le remboursement, hors évolutions.
+                </p>
+              )}
               <h3>Ressources récupérées</h3>
               {amount(refund) > 0 ? (
                 <Cost cost={refund} />

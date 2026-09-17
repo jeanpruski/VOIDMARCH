@@ -46,7 +46,12 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
   return (
     <>
       <button className="secondary" disabled={!upgrade} onClick={() => setOpen(true)}>
-        <TrendingUp size={15} /> {upgrade ? 'Améliorer · 2 PA' : 'Niveau maximal'}
+        <TrendingUp size={15} />{' '}
+        {upgrade
+          ? b.turretLevel
+            ? 'Améliorer le mur · 2 PA'
+            : 'Améliorer · 2 PA'
+          : 'Niveau maximal'}
       </button>
       {open &&
         upgrade &&
@@ -58,6 +63,12 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
           >
             <div className="upgrade-preview">
               <p>Ce bâtiment évolue sur sa case actuelle.</p>
+              {b.turretLevel && (
+                <p>
+                  La tourelle est conservée au niveau {b.turretLevel}. Son arme s’améliore
+                  séparément avec « Améliorer la tourelle ».
+                </p>
+              )}
               <ul>
                 <li>
                   Solidité : {BUILDINGS[b.kind].hp * b.level} →{' '}

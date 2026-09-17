@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import {
   BUILDINGS,
+  TURRETS,
   isBuildable,
   BUILDING_REQUIREMENTS,
   UNIT_PROFILES,
@@ -38,7 +39,7 @@ const lines = [
   '- Récolte uniquement sur la case occupée, jamais sur une voisine ni sur une terre adverse. Bois : forêt ; pierre : colline/montagne ; fer : colline ; vivres : plaine/rivière/marais ; or : ruines. Les vestiges cosmiques se fouillent par leur action dédiée.',
   '- Pierre ajoutée aux stocks, échanges, coûts et sauvegardes. Carrière accessible sans coût initial en pierre. La mine extrait le fer sur colline ; la carrière extrait la pierre sur colline ou montagne.',
   '- Aucun revenu brut par simple propriété d’une case. Le campement ne produit plus de bois, les forges/ateliers/raffineries/manufactures ne génèrent plus de fer sans mine. Le grenier stocke sans générer de vivres.',
-  '- Entretien proportionné au prix des unités ; les machines consomment aussi du fer. Mobilisation unifiée entre recrutement, interface et croissance : paysan 3, soldats 5, siège médiéval 6, machines légères 8, chars / bombardiers / dirigeables / dragons 12.',
+  '- Entretien proportionné au prix des unités ; les machines consomment aussi du fer. Mobilisation unifiée entre recrutement, interface et croissance : paysan 3, soldats 5, siège médiéval 6, machines légères 8, chars / bombardiers / dirigeables / dragons 12 ; division atomique de 7 à 18 places selon le modèle.',
   '- Croissance bornée selon le bâtiment : un campement ou une chaumière ne finit plus avec la capacité d’une ville. Les populations existantes ne sont pas supprimées.',
   '- Montagne accessible au paysan pour la pierre ; véhicules et cavaliers ont besoin de routes en montagne ou marais. Les machines terrestres ralentissent en forêt. Les unités volantes survolent tous les terrains et les remparts pour un point de déplacement par case.',
   '- L’amélioration campement → avant-poste ne réduit plus la résistance ni la production de vivres. Les améliorations de villes en pierre utilisent désormais cette ressource.',
@@ -69,6 +70,19 @@ for (const [kind, building] of Object.entries(BUILDINGS) as [
 ][])
   lines.push(
     `| ${building.name} | ${building.hp} | ${wallet(building.cost)} | ${wallet(building.production)} | ${building.terrains.join(', ')} | ${!isBuildable(kind) ? `Évolution uniquement : ${kind === 'STONE_WALL' ? 'palissade en bois' : 'rempart de pierre'} (2 PA, coût sans réduction)` : (BUILDING_REQUIREMENTS[kind] ?? []).map((k) => BUILDINGS[k].name).join(', ') || '—'} |`,
+  );
+lines.push(
+  '',
+  '## Tourelles de rempart',
+  '',
+  'Équipements fixes partageant les PV du mur, sans production ni entretien. Installation et chaque évolution : 2 PA. Tir manuel : 1 PA. Les prix ci-dessous excluent le mur et les étapes précédentes. Voir [les règles des tourelles](turrets.md).',
+  '',
+  '| Arme | Mur minimal | Attaque / portée | Bonus antiaérien | Coût de cette étape |',
+  '| --- | --- | --- | --- | --- |',
+);
+for (const turret of Object.values(TURRETS))
+  lines.push(
+    `| ${turret.name} | ${BUILDINGS[turret.wall].name} | ${turret.attack} / ${turret.range} | ${turret.antiAir} | ${wallet(turret.cost)} |`,
   );
 writeFileSync('docs/balance-audit.md', lines.join('\n') + '\n');
 console.log(

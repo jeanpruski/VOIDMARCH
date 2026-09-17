@@ -5,7 +5,10 @@ import type { Action } from '@voidmarch/protocol';
 import type { ActionResult, AuthUser, Hex, WorldView } from '@voidmarch/shared';
 import type { WorldEffect } from './world-effects';
 import type { Settings } from '@voidmarch/config';
+import { UNIT_PROFILES, isWall } from '@voidmarch/config';
+import { turretStats } from '@voidmarch/game-rules';
 import { predictAction, type Prediction } from './optimistic-actions';
+import { pendingAction, pendingWorld, type PendingAction } from './pending-action';
 import { animateMovement, type MovementAnimation } from './movement-animation';
 export type Command = Action extends infer A
   ? A extends Action
@@ -45,6 +48,7 @@ interface GameStore {
   toast: { text: string; error: boolean } | null;
   pending: boolean;
   pendingSince: number;
+  pendingAction?: PendingAction;
   actionEffect?: WorldEffect & { actionId: string };
   effectPolicy: 'normal' | 'confirmed' | 'none';
   movements: Record<string, MovementAnimation>;
@@ -219,12 +223,20 @@ function finishOrder(order: PendingOrder, accepted: boolean) {
   const state = useGame.getState();
   const movements = { ...state.movements };
   if (!accepted && order.prediction?.movement) delete movements[order.prediction.movement.unitId];
-  useGame.setState({ pending: false, pendingMovement: null, movements });
+  useGame.setState({
+    pending: false,
+    pendingAction: undefined,
+    pendingMovement: null,
+    movements,
+    ...(!accepted && state.actionEffect?.actionId === order.action.actionId
+      ? { actionEffect: undefined }
+      : {}),
+  });
   if (authoritativeWorld)
     publishWorld(
       authoritativeWorld,
       accepted
-        ? order.prediction || order.action.type === 'ATTACK'
+        ? order.prediction?.movement || order.action.type === 'ATTACK'
           ? 'confirmed'
           : 'normal'
         : 'none',
@@ -310,10 +322,16 @@ export async function send(command: Command) {
       ? (state.world.units.find((u) => u.id === command.payload.targetId) ??
         state.world.tiles.find((t) => t.building?.id === command.payload.targetId))
       : undefined;
+  const attacker = attackTarget
+    ? (state.world.units.find((u) => u.id === command.actorId) ??
+      state.world.tiles.find((t) => t.building?.id === command.actorId)?.building)
+    : undefined;
   useGame.setState({
     pending: true,
     pendingSince: Date.now(),
-    effectPolicy: 'normal',
+    toast: null,
+    pendingAction: pendingAction(action, state.world, prediction),
+    effectPolicy: 'none',
     ...(attackTarget
       ? {
           actionEffect: {
@@ -321,13 +339,29 @@ export async function send(command: Command) {
             r: attackTarget.r,
             kind: 'combat' as const,
             actionId: action.actionId,
+            ...(attacker
+              ? {
+                  shot: {
+                    from: { q: attacker.q, r: attacker.r },
+                    unitKind:
+                      'population' in attacker
+                        ? (turretStats(attacker)?.projectileUnit ?? 'CROSSBOW')
+                        : attacker.kind,
+                    ...('population' in attacker && isWall(attacker.kind)
+                      ? { wallKind: attacker.kind }
+                      : {}),
+                    targetAirborne:
+                      'kind' in attackTarget && !!UNIT_PROFILES[attackTarget.kind].flying,
+                  },
+                }
+              : {}),
           },
           combatTarget: null,
         }
       : {}),
     ...(prediction
       ? {
-          world: prediction.world,
+          world: pendingWorld(state.world, prediction),
           mode: state.mode === 'road' ? 'road' : 'inspect',
           combatTarget: null,
           terraformTarget: undefined,
@@ -416,8 +450,27 @@ export async function send(command: Command) {
   }
 }
 export async function saveSettings(settings: Partial<Settings>) {
+  const playerId = useGame.getState().world?.player.id;
   try {
     await api('/settings', settings, 'PATCH');
+    // The HTTP acknowledgement is sufficient; do not wait for a socket snapshot.
+    const world = useGame.getState().world;
+    if (world && world.player.id === playerId) {
+      if (authoritativeWorld?.player.id === playerId)
+        authoritativeWorld = {
+          ...authoritativeWorld,
+          player: {
+            ...authoritativeWorld.player,
+            settings: { ...authoritativeWorld.player.settings, ...settings },
+          },
+        };
+      useGame.setState({
+        world: {
+          ...world,
+          player: { ...world.player, settings: { ...world.player.settings, ...settings } },
+        },
+      });
+    }
     notify('Préférences sauvegardées.');
   } catch (e) {
     notify((e as Error).message, true);

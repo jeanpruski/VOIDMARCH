@@ -4,7 +4,7 @@ import { addPlayer, execute, worldView } from '../apps/server/src/engine';
 import { actionSchema } from '@voidmarch/protocol';
 import { hexToPixel } from '../apps/web/src/map-geometry';
 
-test('la figurine et ses marqueurs suivent les virages validés malgré les snapshots et déplacements de caméra', async ({
+test('la figurine suit les virages sur ses terres et les routes malgré les snapshots et déplacements de caméra', async ({
   page,
 }) => {
   const now = Date.now(),
@@ -37,6 +37,8 @@ test('la figurine et ses marqueurs suivent les virages validés malgré les snap
     writeTile(state, p, { road: true });
     realm.explored[key(p)] = { ...p, terrain: 'PLAIN', road: true, visibility: 'EXPLORED' };
   }
+  // A connected mixed journey: own land → neutral roads → own land, with no road on the ends.
+  for (const p of [road[0], road[1], road[6]]) writeTile(state, p, { road: false, ownerId: id });
   const view = () =>
     worldView(state, id, Date.now(), [
       { q: -1, r: -1 },
@@ -167,6 +169,17 @@ test('la figurine et ses marqueurs suivent les virages validés malgré les snap
   await sampleAtCorner(3);
   await assertParts(hexToPixel(normalPath[2]));
   // The reverse ordering (acknowledgement before snapshot) must follow the road too.
+  const preview = await page.evaluate(async (destination) => {
+    // @ts-expect-error Vite test source module.
+    const { useGame } = await import('/src/store.ts');
+    const unit = useGame.getState().world.units.find((u: any) => u.id === 'worker');
+    useGame.setState({
+      selection: { kind: 'unit', id: unit.id, q: unit.q, r: unit.r },
+      mode: 'move',
+    });
+    return (window as any).__movementScene.path(unit, destination);
+  }, road.at(-1));
+  expect(preview).toEqual(road.slice(1));
   await begin('MOVE_ROAD', road.at(-1), false, true);
   await page.evaluate(async () => {
     await (window as any).__sendPromise;

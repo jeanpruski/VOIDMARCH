@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { rollRareBonus } from './rarity';
+import { npcRewards } from './npcs';
 import {
   ACTION_COST,
+  TURRETS,
   TERRAFORM_COST,
   isWall,
   isBuildable,
@@ -28,6 +30,11 @@ import {
 } from '@voidmarch/config';
 import {
   accrueEconomy,
+  turretStats,
+  turretUpgradeReason,
+  nextTurretLevel,
+  attackStats,
+  attackCost,
   canGather,
   armyPopulation,
   amount,
@@ -43,6 +50,7 @@ import {
   unitStats,
   findPath,
   roadPaths,
+  travelNetworkTile,
   roadPathTo,
   roadSiteReason,
   terraformSiteReason,
@@ -103,8 +111,17 @@ export function log(
   now: number,
   realmIds?: string[],
   p?: Hex,
+  shot?: JournalEntry['shot'],
 ) {
-  s.journal.push({ id: randomUUID(), text, kind, at: now, realmIds, ...p });
+  s.journal.push({
+    id: randomUUID(),
+    text,
+    kind,
+    at: now,
+    realmIds,
+    ...(p ? { q: p.q, r: p.r } : {}),
+    ...(shot ? { shot } : {}),
+  });
   if (s.journal.length > 1000) s.journal.splice(0, s.journal.length - 1000);
 }
 export function spawnPosition(s: GameState, id: string): Hex {
@@ -419,12 +436,22 @@ export function applyAction(
   switch (a.type) {
     case 'MOVE_ROAD': {
       const u = ownedUnit(s, r, a.actorId);
-      requireRule(tileAt(s, u).road, 'L’unité doit déjà être sur une route.');
-      requireRule(distance(u, a.payload) > 0, 'Choisissez une autre case du réseau routier.');
+      requireRule(
+        travelNetworkTile(tileAt(s, u), id, u.kind),
+        'L’unité doit être sur vos terres praticables ou sur une route.',
+      );
+      requireRule(
+        distance(u, a.payload) > 0,
+        'Choisissez une autre case de vos terres ou du réseau routier.',
+      );
       const seen = vision(s, r);
       const roads = new Map(
         Object.values(s.tiles)
-          .filter((t) => t.road && (seen.has(key(t)) || r.explored[key(t)]?.road))
+          .filter(
+            (t) =>
+              travelNetworkTile(t, id, u.kind) &&
+              (seen.has(key(t)) || travelNetworkTile(r.explored[key(t)], id, u.kind)),
+          )
           .map((t) => [key(t), t]),
       );
       const blocked = new Set(
@@ -434,15 +461,15 @@ export function applyAction(
       );
       for (const t of roads.values())
         if (wallBlocks(s.buildings[t.buildingId ?? ''], id, u.kind)) blocked.add(key(t));
-      const path = roadPathTo(a.payload, roadPaths(u, roads, blocked, u.kind), blocked);
+      const path = roadPathTo(a.payload, roadPaths(u, roads, blocked, u.kind, id), blocked);
       requireRule(
         path?.length,
-        'Aucune route continue et explorée ne permet ce trajet : vérifiez les coupures, les unités et les remparts.',
+        'Aucun trajet continu et exploré sur vos terres ou les routes : vérifiez les coupures, les terrains impraticables, les unités et les remparts.',
       );
       spendAction();
       movement = { unitId: u.id, from: { q: u.q, r: u.r }, path };
       Object.assign(u, a.payload, { updatedAt: now });
-      message = `${UNITS[u.kind].name} arrivé : ${path.length} cases par la route · 1 PA.`;
+      message = `${UNITS[u.kind].name} arrivé : ${path.length} cases sur vos terres et les routes · 1 PA.`;
       break;
     }
     case 'MOVE': {
@@ -499,29 +526,41 @@ export function applyAction(
       break;
     }
     case 'ATTACK': {
-      const u = ownedUnit(s, r, a.actorId),
+      const u = s.units[a.actorId] ? ownedUnit(s, r, a.actorId) : ownedBuilding(s, r, a.actorId),
         target = targetAt(s, a.payload.targetId);
-      requireRule(UNITS[u.kind].attack > 0, 'Cette unité ne peut pas attaquer.');
+      const stats = attackStats(u);
+      requireRule(stats.attack > 0, 'Cette unité ou ce bâtiment ne peut pas attaquer.');
       requireRule(target && vision(s, r).has(key(target)), 'Cible indisponible.');
+      const npc = 'npc' in target && target.npc ? (target as Unit) : undefined;
+      requireRule(!npc || npc.npc!.expiresAt > now, 'Cette rencontre est terminée.');
       const cover = tileAt(s, target).buildingId;
       const coveringWall = cover ? s.buildings[cover] : undefined;
       const obstruction = attackBlockReason(u, target, coveringWall);
       requireRule(!obstruction, obstruction);
-      requireRule(distance(u, target) <= UNITS[u.kind].range, 'La cible est hors de portée.');
-      hostile(s, r, target.ownerId, now, options);
-      spendAction(UNIT_PROFILES[u.kind].siege ? 2 : ACTION_COST.ATTACK);
+      requireRule(distance(u, target) <= stats.range, 'La cible est hors de portée.');
+      if (!npc) hostile(s, r, target.ownerId, now, options);
+      spendAction(attackCost(u));
       const bounds = estimateDamage(u, target, tileAt(s, target)),
         damage = bounds.min + Math.floor(hash(a.actionId) * (bounds.max - bounds.min + 1));
+      if (npc)
+        npc.npc!.contributions[id] =
+          (npc.npc!.contributions[id] ?? 0) + Math.min(target.hp, damage);
       target.hp = Math.round((target.hp - damage) * 100) / 100;
       target.updatedAt = now;
-      message = `${UNITS[u.kind].name} inflige ${damage} dégâts.`;
+      message = `${stats.name} inflige ${damage} dégâts.`;
       log(
         s,
-        `${r.name} attaque ${s.realms[target.ownerId]?.name ?? 'une fortification'} : ${damage} dégâts.`,
+        `${r.name} attaque ${npc ? unitStats(npc).name : (s.realms[target.ownerId]?.name ?? 'une fortification')} : ${damage} dégâts.`,
         'COMBAT',
         now,
         [id, target.ownerId],
         target,
+        {
+          from: { q: u.q, r: u.r },
+          unitKind: 'population' in u ? turretStats(u)!.projectileUnit : u.kind,
+          ...('population' in u && isWall(u.kind) ? { wallKind: u.kind } : {}),
+          targetAirborne: !('population' in target) && !!UNIT_PROFILES[target.kind].flying,
+        },
       );
       if (target.hp <= 0) {
         if ('population' in target) {
@@ -531,6 +570,38 @@ export function applyAction(
         } else delete s.units[target.id];
         r.progression.battles++;
         message += ' Cible détruite.';
+        if (npc) {
+          for (const reward of npcRewards(s, npc, now)) {
+            const loot = `${unitStats(npc).name} vaincu : ${rewardText(reward.resources)}${reward.ap ? ` · +${reward.ap} PA` : ''}.`;
+            log(s, loot, 'ECONOMY', now, [reward.realmId], npc);
+            if (reward.realmId === id)
+              message += ` Butin : ${rewardText(reward.resources)}${reward.ap ? ` · +${reward.ap} PA` : ''}.`;
+          }
+        }
+      } else if (
+        npc &&
+        distance(npc, u) <= unitStats(npc).range &&
+        !attackBlockReason(npc, u, s.buildings[tileAt(s, u).buildingId ?? ''])
+      ) {
+        const retaliation = estimateDamage(npc, u, tileAt(s, u));
+        const dealt =
+          retaliation.min +
+          Math.floor(hash(`${a.actionId}:riposte`) * (retaliation.max - retaliation.min + 1));
+        u.hp = Math.round((u.hp - dealt) * 100) / 100;
+        u.updatedAt = now;
+        message += ` Riposte : ${dealt} dégâts${u.hp <= 0 ? ', votre unité ou rempart est détruit' : ''}.`;
+        log(s, `${unitStats(npc).name} riposte : ${dealt} dégâts.`, 'COMBAT', now, [id], u, {
+          from: { q: npc.q, r: npc.r },
+          unitKind: npc.kind,
+          targetAirborne: !('population' in u) && !!UNIT_PROFILES[u.kind].flying,
+        });
+        if (u.hp <= 0) {
+          if ('population' in u) {
+            delete s.buildings[u.id];
+            writeTile(s, u, { buildingId: undefined });
+            updateDefeat(s, id, u, now);
+          } else delete s.units[u.id];
+        }
       }
       break;
     }
@@ -752,11 +823,33 @@ export function applyAction(
       log(s, message, 'ECONOMY', now, [id], b);
       break;
     }
+    case 'INSTALL_TURRET':
+    case 'UPGRADE_TURRET': {
+      const b = ownedBuilding(s, r, a.actorId);
+      requireRule(
+        a.type === 'INSTALL_TURRET' ? !b.turretLevel : !!b.turretLevel,
+        a.type === 'INSTALL_TURRET'
+          ? 'Ce rempart porte déjà une tourelle.'
+          : 'Installez d’abord une tourelle.',
+      );
+      const reason = turretUpgradeReason(b, id, Object.values(s.units));
+      requireRule(!reason, reason);
+      const next = nextTurretLevel(b)!;
+      spendAction();
+      pay(r, TURRETS[next].cost);
+      if (!b.turretLevel) b.turretConstructionCost = { ...TURRETS[1].cost };
+      b.turretLevel = next;
+      b.updatedAt = now;
+      r.progression.development++;
+      message = `${TURRETS[next].name} ${next === 1 ? 'installée' : 'améliorée'} : attaque ${TURRETS[next].attack}, portée ${TURRETS[next].range}, tir manuel · 1 PA.`;
+      log(s, message, 'REALM', now, [id], b);
+      break;
+    }
     case 'UPGRADE': {
       const b = ownedBuilding(s, r, a.actorId);
       const upgrade = buildingUpgrade(b.kind, b.level);
       requireRule(upgrade, 'Ce bâtiment ne peut plus évoluer.');
-      b.constructionCost ??= demolitionRefund(b, r.faction);
+      b.constructionCost ??= buildingConstructionCost(b.kind, r.faction);
       requireRule(
         b.population >= upgrade.population,
         `${upgrade.population} habitants sont nécessaires.`,
@@ -1194,6 +1287,16 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     revision: s.revision,
     serverTimestamp: now,
     seed: s.seed,
+    ...(r.capitalRadar
+      ? {
+          enemyCapitals: Object.values(s.realms)
+            .filter((enemy) => enemy.id !== id && !enemy.defeatedAt)
+            .map((enemy) => ({
+              realmId: enemy.id,
+              position: { q: enemy.capital.q, r: enemy.capital.r },
+            })),
+        }
+      : {}),
     player: {
       ...player,
       ap: apCopy.ap,
@@ -1223,7 +1326,21 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
         j.realmIds ? j.realmIds.includes(id) : j.q === undefined || visible.has(key(j as Hex)),
       )
       .slice(-80)
-      .reverse(),
+      .reverse()
+      .map((entry) => {
+        // Combat logs can outlive visibility; never disclose a hidden firing position.
+        if (
+          entry.shot &&
+          (!visible.has(key(entry.shot.from)) ||
+            entry.q === undefined ||
+            entry.r === undefined ||
+            !visible.has(key(entry as Hex)))
+        ) {
+          const { shot: _shot, ...safe } = entry;
+          return safe;
+        }
+        return entry;
+      }),
     onlineHumans,
     botsAwake: onlineHumans > 0,
   };

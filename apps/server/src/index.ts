@@ -312,6 +312,25 @@ app.post(
     return { enabled };
   },
 );
+app.post(
+  '/api/admin/capital-radar',
+  { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+  async (request, reply) => {
+    const who = await identity(request);
+    const body = request.body as { code?: unknown } | null;
+    if (body?.code !== (process.env.ADMIN_RADAR_CODE || 'hgfdsq'))
+      return reply.code(403).send({ error: 'Code incorrect.' });
+    const enabled = await repository.mutate((s) => {
+      const r = s.realms[who.sub];
+      if (!r) throw new Error('Rejoignez le monde avant d’activer le code.');
+      r.capitalRadar = !r.capitalRadar;
+      s.revision++;
+      return r.capitalRadar;
+    });
+    broadcast();
+    return { enabled };
+  },
+);
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist');
 if (existsSync(dist)) {
   await app.register(fastifyStatic, { root: dist });

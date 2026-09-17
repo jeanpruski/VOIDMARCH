@@ -1,10 +1,17 @@
-import { unitStats } from '@voidmarch/game-rules';
+import { unitStats, turretStats, attackStats } from '@voidmarch/game-rules';
 import { worldEffects, type WorldEffect } from './world-effects';
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
-import { RULES, TERRAINS, UNITS, BUILDINGS, UNIT_PROFILES, isWall } from '@voidmarch/config';
 import {
-  chunkOf,
+  RULES,
+  TERRAINS,
+  UNITS,
+  BUILDINGS,
+  UNIT_PROFILES,
+  isWall,
+  WALL_HEIGHTS,
+} from '@voidmarch/config';
+import {
   disk,
   distance,
   findPath,
@@ -17,15 +24,26 @@ import {
   wallConnections,
 } from '@voidmarch/game-rules';
 import type { Hex, Unit, ViewTile, WorldView } from '@voidmarch/shared';
-import { BUILDING_FRAMES, UNIT_FRAMES, miniatureTexture, miniatureFrame } from './ui';
+import { BUILDING_FRAMES, UNIT_FRAMES, unitFrame, miniatureTexture, miniatureFrame } from './ui';
 import { normalizedAtlas, SPRITE_CELL, SPRITE_ATLASES } from './sprite-atlas';
 import { api, notify, select, send, subscribe, useGame } from './store';
-import { SIZE, Y_SCALE, hexToPixel, pixelToHex, cameraViewport } from './map-geometry';
+import {
+  SIZE,
+  Y_SCALE,
+  hexToPixel,
+  pixelToHex,
+  cameraViewport,
+  MAP_ZOOM,
+  viewportChunks,
+} from './map-geometry';
 import { wallCanvas, setWallMaterials } from './wall-art';
 import { roadOrderReason } from './roads';
 import { terraformOrderReason } from './terraform';
 import { roadCanvas } from './road-art';
 import { movementPosition } from './movement-animation';
+import { projectileProfile, type ProjectileProfile } from './projectile-profile';
+import { animateProjectile } from './projectile-animation';
+import { drawPending } from './pending-art';
 const points = (p: { x: number; y: number }, size = SIZE) =>
   Array.from(
     { length: 6 },
@@ -43,9 +61,12 @@ function color(hex: string) {
 class WorldScene extends Phaser.Scene {
   private ground!: Phaser.GameObjects.Graphics;
   private details!: Phaser.GameObjects.Graphics;
+  private grid!: Phaser.GameObjects.Graphics;
   private territories!: Phaser.GameObjects.Graphics;
   private banners!: Phaser.GameObjects.Graphics;
   private highlights!: Phaser.GameObjects.Graphics;
+  private pendingMarker!: Phaser.GameObjects.Graphics;
+  private pendingLabel!: Phaser.GameObjects.Text;
   private pieces: Phaser.GameObjects.GameObject[] = [];
   private view?: WorldView;
   private tileMap = new Map<string, ViewTile>();
@@ -107,12 +128,35 @@ class WorldScene extends Phaser.Scene {
     this.cameras.main.setZoom(0.92);
     this.ground = this.add.graphics();
     this.details = this.add.graphics().setDepth(1);
+    // Keep the optional grid above scenery and roads, below buildings and units.
+    this.grid = this.add.graphics().setName('hex-grid').setDepth(2500);
     this.territories = this.add.graphics().setDepth(11000);
     this.banners = this.add.graphics().setDepth(13000);
     this.highlights = this.add.graphics().setDepth(15000);
+    this.pendingMarker = this.add
+      .graphics()
+      .setDepth(17000)
+      .setName('pending-site')
+      .setVisible(false);
+    this.pendingLabel = this.add
+      .text(0, 0, '', {
+        fontFamily: 'Georgia',
+        fontSize: '11px',
+        color: '#ffe0a1',
+        backgroundColor: '#19231ef2',
+        padding: { x: 7, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setDepth(17001)
+      .setName('pending-site-label')
+      .setVisible(false);
     this.panKey = this.input.keyboard?.createCursorKeys();
     this.input.mouse?.disableContextMenu();
     this.unsubscribe = useGame.subscribe((s, previous) => {
+      if (previous.actionEffect && !s.actionEffect)
+        this.projectiles.get(previous.actionEffect.actionId)?.();
+      if (s.world?.player.settings.reducedMotion)
+        for (const cancel of this.projectiles.values()) cancel();
       if (
         s.actionEffect &&
         s.actionEffect !== previous.actionEffect &&
@@ -134,7 +178,14 @@ class WorldScene extends Phaser.Scene {
         this.renderMap();
         if (previous.world && !s.world.player.settings.reducedMotion && s.effectPolicy !== 'none')
           for (const effect of worldEffects(previous.world, s.world))
-            if (s.effectPolicy !== 'confirmed' || effect.kind === 'rare') this.playEffect(effect);
+            if (
+              s.effectPolicy !== 'confirmed' ||
+              effect.kind === 'rare' ||
+              (effect.shot &&
+                previous.actionEffect?.shot &&
+                key(effect.shot.from) !== key(previous.actionEffect.shot.from))
+            )
+              this.playEffect(effect);
       } else if (
         s.movements !== previous.movements ||
         s.pendingMovement !== previous.pendingMovement
@@ -206,7 +257,9 @@ class WorldScene extends Phaser.Scene {
     });
     this.input.on('wheel', (_p: unknown, _g: unknown, _x: number, y: number) => {
       const camera = this.cameras.main;
-      camera.setZoom(Phaser.Math.Clamp(camera.zoom - y * 0.001, 0.42, 1.6));
+      camera.setZoom(
+        Phaser.Math.Clamp(camera.zoom * Math.exp(-y * 0.001), MAP_ZOOM.min, MAP_ZOOM.max),
+      );
       this.renderMap();
       this.subscribeVisible();
     });
@@ -219,20 +272,19 @@ class WorldScene extends Phaser.Scene {
       this.subscribeVisible();
     });
     window.addEventListener('vm:camera', this.cameraCommand);
-    window.addEventListener('vm:action', this.actionAnimation);
     this.events.once('shutdown', () => {
       this.unsubscribe?.();
+      for (const cancel of this.projectiles.values()) cancel();
       clearTimeout(this.cameraSave);
       window.removeEventListener('vm:camera', this.cameraCommand);
-      window.removeEventListener('vm:action', this.actionAnimation);
     });
     this.time.delayedCall(200, () => this.subscribeVisible());
   }
   private cameraCommand = (event: Event) => {
     const p = (event as CustomEvent).detail,
       c = this.cameras.main;
-    if (p.command === 'in') c.setZoom(Math.min(1.6, c.zoom + 0.15));
-    else if (p.command === 'out') c.setZoom(Math.max(0.42, c.zoom - 0.15));
+    if (p.command === 'in') c.setZoom(Math.min(MAP_ZOOM.max, c.zoom * MAP_ZOOM.step));
+    else if (p.command === 'out') c.setZoom(Math.max(MAP_ZOOM.min, c.zoom / MAP_ZOOM.step));
     else if (p.command === 'home' && this.view) {
       const h = hexToPixel(this.view.player.capital);
       c.centerOn(h.x, h.y);
@@ -244,7 +296,41 @@ class WorldScene extends Phaser.Scene {
     this.subscribeVisible();
   };
   private activeEffects = 0;
+  private projectiles = new Map<string, () => void>();
   private playEffect(effect: WorldEffect) {
+    const shot = effect.shot;
+    const profile = shot && projectileProfile(shot.unitKind, shot.targetAirborne);
+    if (effect.kind !== 'combat' || !shot || !profile || key(shot.from) === key(effect)) {
+      this.playImpact(effect);
+      return;
+    }
+    if (this.activeEffects >= 24) return;
+    const from = hexToPixel(shot.from),
+      to = hexToPixel(effect);
+    const viewport = this.cameras.main.worldView;
+    if (!viewport.contains(from.x, from.y) && !viewport.contains(to.x, to.y)) return;
+    from.y -= shot.wallKind
+      ? WALL_HEIGHTS[shot.wallKind] + 14
+      : UNIT_PROFILES[shot.unitKind].flying
+        ? 36
+        : 20;
+    to.y -= shot.targetAirborne ? 36 : 20;
+    const id = effect.actionId ?? crypto.randomUUID();
+    this.activeEffects++;
+    const complete = () => {
+      this.projectiles.delete(id);
+      this.activeEffects--;
+    };
+    const cancel = animateProjectile(this, from, to, profile, () => {
+      complete();
+      if (!this.view?.player.settings.reducedMotion) this.playImpact(effect, profile);
+    });
+    this.projectiles.set(id, () => {
+      cancel();
+      complete();
+    });
+  }
+  private playImpact(effect: WorldEffect, projectile?: ProjectileProfile) {
     if (this.activeEffects >= 24) return;
     const p = hexToPixel(effect);
     if (!this.cameras.main.worldView.contains(p.x, p.y)) return;
@@ -252,16 +338,22 @@ class WorldScene extends Phaser.Scene {
     const group = this.add.container(p.x, p.y).setDepth(14500).setName(`effect:${effect.kind}`);
     const combat = effect.kind === 'combat',
       dust = effect.kind === 'build' || effect.kind === 'demolish';
-    const ink = combat ? 0xe4a46e : dust ? 0xb0a18a : effect.kind === 'rare' ? 0xe0d69b : 0xa0d1ba;
+    const ink =
+      projectile?.color ??
+      (combat ? 0xe4a46e : dust ? 0xb0a18a : effect.kind === 'rare' ? 0xe0d69b : 0xa0d1ba);
+    const heavy = projectile?.explosive ?? combat;
+    if (combat && heavy && !this.view?.player.settings.reducedMotion)
+      this.cameras.main.shake(140, 0.0012);
+    if (combat) group.y -= effect.shot?.targetAirborne ? 36 : 20;
     const ring = this.add.graphics();
     ring.lineStyle(combat ? 3 : 2, ink, 0.85);
-    ring.strokeEllipse(0, 0, 32, 17);
+    ring.strokeEllipse(0, 0, heavy ? 32 : 14, heavy ? 17 : 8);
     group.add(ring);
     this.tweens.add({ targets: ring, scale: combat ? 3 : 2.4, alpha: 0, duration: 650 });
-    for (let i = 0; i < (combat || dust ? 14 : 9); i++) {
+    for (let i = 0; i < (dust || heavy ? 14 : combat ? 6 : 9); i++) {
       const particle = this.add.graphics();
       const angle = (i / 14) * Math.PI * 2;
-      const radius = 15 + Math.random() * 30;
+      const radius = combat && !heavy ? 5 + Math.random() * 12 : 15 + Math.random() * 30;
       particle.fillStyle(ink, dust ? 0.35 : 0.8);
       if (dust) particle.fillCircle(0, 0, 5 + Math.random() * 5);
       else if (effect.kind === 'repair') {
@@ -284,11 +376,6 @@ class WorldScene extends Phaser.Scene {
       this.activeEffects--;
     });
   }
-  private actionAnimation = (event: Event) => {
-    const type = (event as CustomEvent).detail.type;
-    if (type === 'ATTACK' && !this.view?.player.settings.reducedMotion)
-      this.cameras.main.shake(160, 0.0015);
-  };
   private subscribeVisible() {
     clearTimeout(this.cameraSave);
     this.cameraSave = setTimeout(() => {
@@ -297,21 +384,8 @@ class WorldScene extends Phaser.Scene {
         hex = pixelToHex(p.x, p.y);
       void api('/settings', { lastCameraQ: hex.q, lastCameraR: hex.r }, 'PATCH').catch(() => {});
     }, 1500);
-    const c = this.cameras.main,
-      center = c.getWorldPoint(this.scale.width / 2, this.scale.height / 2),
-      middle = pixelToHex(center.x, center.y),
-      radius = Math.min(
-        27,
-        Math.ceil(Math.max(this.scale.width / 100, this.scale.height / 75) / c.zoom) + 3,
-      );
-    const chunks = [
-      ...new Map(
-        disk(middle, radius).map((p) => {
-          const chunk = chunkOf(p);
-          return [key(chunk), chunk];
-        }),
-      ).values(),
-    ].slice(0, 12);
+    const c = this.cameras.main;
+    const chunks = viewportChunks(cameraViewport(c.scrollX, c.scrollY, c.width, c.height, c.zoom));
     const k = JSON.stringify(chunks);
     if (k !== this.subscriptionKey) {
       this.subscriptionKey = k;
@@ -321,6 +395,13 @@ class WorldScene extends Phaser.Scene {
   private getUnit() {
     const selection = useGame.getState().selection;
     return selection?.id ? this.view?.units.find((u) => u.id === selection.id) : undefined;
+  }
+  private getAttacker() {
+    const selection = useGame.getState().selection;
+    const building = selection?.id
+      ? this.view?.tiles.find((t) => t.building?.id === selection.id)?.building
+      : undefined;
+    return this.getUnit() ?? (building && turretStats(building) ? building : undefined);
   }
   private visualPosition(u: Unit, now = Date.now()) {
     const state = useGame.getState();
@@ -353,7 +434,7 @@ class WorldScene extends Phaser.Scene {
       world: this.view!,
       unitId: u.id,
       blocked,
-      paths: roadPaths(u, this.tileMap, blocked, u.kind),
+      paths: roadPaths(u, this.tileMap, blocked, u.kind, u.ownerId),
     };
     return this.roadCache;
   }
@@ -424,10 +505,18 @@ class WorldScene extends Phaser.Scene {
       void send({ type: 'MOVE', actorId: own.id, payload: { path } });
       return;
     }
-    if (state.mode === 'attack' && own) {
+    const attacker = this.getAttacker();
+    if (state.mode === 'attack' && attacker) {
+      if (tile?.visibility !== 'VISIBLE') {
+        notify('Sélectionnez une cible ennemie visible.', true);
+        return;
+      }
       const target =
-        wallBlocks(tile?.building, this.view.player.id, own.kind) &&
-        !(unit && UNIT_PROFILES[unit.kind].flying)
+        wallBlocks(
+          tile?.building,
+          this.view.player.id,
+          'population' in attacker ? undefined : attacker.kind,
+        ) && !(unit && UNIT_PROFILES[unit.kind].flying)
           ? tile?.building
           : (unit ?? tile?.building);
       if (target && target.ownerId !== this.view.player.id)
@@ -439,7 +528,9 @@ class WorldScene extends Phaser.Scene {
       useGame.setState({ selection: { kind: 'tile', ...p }, mode: 'inspect' });
       return;
     }
-    if (unit) select({ kind: 'unit', id: unit.id, ...p });
+    if (unit && tile.building && isWall(tile.building.kind) && state.selection?.id === unit.id)
+      select({ kind: 'building', id: tile.building.id, ...p });
+    else if (unit) select({ kind: 'unit', id: unit.id, ...p });
     else if (tile.building) select({ kind: 'building', id: tile.building.id, ...p });
     else select({ kind: 'tile', ...p });
   }
@@ -450,6 +541,8 @@ class WorldScene extends Phaser.Scene {
       d = this.details;
     g.clear();
     d.clear();
+    this.grid.clear();
+    this.grid.setVisible(world.player.settings.grid);
     this.territories.clear();
     this.banners.clear();
     for (const piece of this.pieces) {
@@ -529,9 +622,13 @@ class WorldScene extends Phaser.Scene {
         g.fillStyle(factionColor(t.ownerId), explored ? 0.07 : own ? 0.3 : 0.18);
         g.fillPoints(points(p, SIZE - 1), true);
       }
-      if (world.player.settings.grid || unknown) {
-        g.lineStyle(0.7, unknown ? 0x3b4940 : 0x899079, unknown ? 0.2 : 0.22);
-        g.strokePoints(points(p, SIZE - 1), true);
+      if (world.player.settings.grid) {
+        const outline = points(p);
+        const width = 1.2 / this.cameras.main.zoom;
+        this.grid.lineStyle(width + 1.5, 0x101814, unknown ? 0.3 : 0.6);
+        this.grid.strokePoints(outline, true);
+        this.grid.lineStyle(width, 0xc1cab0, unknown ? 0.2 : explored ? 0.4 : 0.65);
+        this.grid.strokePoints(outline, true);
       }
       if (unknown) {
         if (n > 0.87) {
@@ -661,9 +758,9 @@ class WorldScene extends Phaser.Scene {
           size = b.kind === 'VILLAGE' ? 105 : 78;
         if (isWall(b.kind)) {
           const connections = wallConnections(b, (p) => this.tileMap.get(key(p))?.building);
-          const texture = `wall:${b.kind}:${connections}`;
+          const texture = `wall:${b.kind}:${connections}:${b.turretLevel ?? 0}`;
           if (!this.textures.exists(texture))
-            this.textures.addCanvas(texture, wallCanvas(b.kind, connections));
+            this.textures.addCanvas(texture, wallCanvas(b.kind, connections, b.turretLevel));
           const sprite = this.add
             .image(p.x, p.y, texture)
             .setDisplaySize(128, 128)
@@ -673,7 +770,7 @@ class WorldScene extends Phaser.Scene {
           if (t.visibility === 'EXPLORED') sprite.setTint(0x777f75).setAlpha(0.7);
           this.pieces.push(sprite);
           if (t.visibility === 'VISIBLE')
-            this.healthBar(b.id, p.x, p.y, b.hp, BUILDINGS[b.kind].hp, -55);
+            this.healthBar(b.id, p.x, p.y, b.hp, BUILDINGS[b.kind].hp, b.turretLevel ? -75 : -55);
           continue;
         }
         const sprite = this.add
@@ -758,8 +855,8 @@ class WorldScene extends Phaser.Scene {
         .image(
           origin.x,
           origin.y - 20,
-          miniatureTexture(UNIT_FRAMES[u.kind]),
-          miniatureFrame(UNIT_FRAMES[u.kind]),
+          miniatureTexture(unitFrame(u)),
+          miniatureFrame(unitFrame(u)),
         )
         .setDisplaySize(
           UNIT_PROFILES[u.kind].siege ? 75 : 67,
@@ -767,7 +864,7 @@ class WorldScene extends Phaser.Scene {
         )
         .setDepth(depth(UNIT_PROFILES[u.kind].flying ? 8500 : 7000, p.y))
         .setName(`unit-sprite:${u.id}`);
-      if (u.ownerId !== world.player.id)
+      if (u.ownerId !== world.player.id && !u.npc)
         sprite.setTint(
           world.realms.find((r) => r.id === u.ownerId)?.faction === 'MASK' ? 0xc0d2c0 : 0xcebdbe,
         );
@@ -819,7 +916,19 @@ class WorldScene extends Phaser.Scene {
         .graphics({ x: p.x, y: p.y })
         .setDepth(depth(13000, p.y))
         .setName(`unit-banner:${u.id}`);
-      drawBanner(u.ownerId, 20, -26, 1, banner);
+      if (!u.npc) drawBanner(u.ownerId, 20, -26, 1, banner);
+      else {
+        const tag = this.add
+          .text(p.x, p.y - 55, 'PNJ', {
+            fontSize: '9px',
+            color: '#e9c68a',
+            backgroundColor: '#222b21',
+            padding: { x: 4, y: 2 },
+          })
+          .setOrigin(0.5)
+          .setDepth(13500);
+        this.pieces.push(tag);
+      }
       this.pieces.push(banner);
       parts.push({ object: banner, x: 0, y: 0, layer: 13000 });
       this.unitVisuals.set(u.id, { unit: u, parts });
@@ -891,6 +1000,22 @@ class WorldScene extends Phaser.Scene {
     const state = useGame.getState(),
       selection = state.selection,
       u = this.getUnit();
+    const attacker = this.getAttacker();
+    if (state.mode === 'attack' && attacker?.ownerId === this.view.player.id) {
+      for (const t of this.view.tiles) {
+        if (
+          t.visibility !== 'VISIBLE' ||
+          distance(attacker, t) > attackStats(attacker).range ||
+          key(attacker) === key(t)
+        )
+          continue;
+        const p = hexToPixel(t);
+        g.fillStyle(0xc87f67, 0.12);
+        g.fillPoints(points(p, SIZE - 3), true);
+        g.lineStyle(1.5, 0xe5a782, 0.65);
+        g.strokePoints(points(p, SIZE - 3), true);
+      }
+    }
     if (state.mode === 'terraform') {
       for (const t of this.view.tiles) {
         if (terraformOrderReason(this.view, t, u)) continue;
@@ -1031,8 +1156,27 @@ class WorldScene extends Phaser.Scene {
     )
       useGame.setState({ cameraViewport: next });
   }
+  private updatePendingSite() {
+    const state = useGame.getState(),
+      action = state.pendingAction;
+    const visible = !!(state.pending && action?.position);
+    this.pendingMarker.setVisible(visible);
+    this.pendingLabel.setVisible(visible);
+    if (!visible || !action?.position) return;
+    const unit = action.movingUnitId && this.view?.units.find((u) => u.id === action.movingUnitId);
+    const p = unit ? this.visualPosition(unit) : hexToPixel(action.position);
+    this.pendingMarker.setPosition(p.x, p.y);
+    drawPending(
+      this.pendingMarker,
+      action.style,
+      state.world?.player.settings.reducedMotion ? 0 : (this.time.now / 450) % (Math.PI * 2),
+    );
+    this.pendingLabel.setPosition(p.x, p.y - (action.style === 'construction' ? 66 : 52));
+    this.pendingLabel.setText(`${action.label}…`);
+  }
   update(_time: number, delta: number) {
     this.updateUnitVisuals();
+    this.updatePendingSite();
     const c = this.cameras.main,
       keys = this.panKey;
     if (keys && (keys.left.isDown || keys.right.isDown || keys.up.isDown || keys.down.isDown)) {

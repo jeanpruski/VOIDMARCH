@@ -21,6 +21,7 @@ import { wallImageUrl, loadWallMaterials } from './wall-art';
 import { WALL_KINDS, type WallKind } from '@voidmarch/config';
 import { RESOURCES, RESOURCE_NAMES, type Resource, type Wallet } from '@voidmarch/config';
 import { useGame } from './store';
+import type { Unit } from '@voidmarch/shared';
 export const resourceIcons: Record<Resource, LucideIcon> = {
   STONE: Mountain,
   GOLD: Coins,
@@ -190,6 +191,43 @@ export function Modal({
   );
 }
 export const UNIT_FRAMES: Record<string, number> = {
+  RADIUM_GRENADIER: 144,
+  COBALT_SENTINEL: 145,
+  ISOTOPE_SNIPER: 146,
+  ATOMIC_SAPPER: 147,
+  PALE_EXECUTIONER: 148,
+  GAMMA_TEMPLAR: 149,
+  RADIUM_HUSSAR: 168,
+  ISOTOPE_LANCER: 169,
+  COBALT_CUIRASSIER: 170,
+  ASH_DRAGOON: 171,
+  PALE_OUTRIDER: 172,
+  GAMMA_PALADIN: 173,
+  RADIUM_COURIER: 192,
+  ISOTOPE_BIKE: 193,
+  COBALT_SIDECAR: 194,
+  PALE_HUNTER_BIKE: 195,
+  GAMMA_TRIKE: 196,
+  APOCALYPSE_BIKE: 197,
+  RADIUM_SCOUT_CAR: 216,
+  COBALT_HALFTRACK: 217,
+  ISOTOPE_TANK_HUNTER: 218,
+  MAUSOLEUM_TANK: 219,
+  GAMMA_FLAK_CRAWLER: 220,
+  APOCALYPSE_CRAWLER: 221,
+  RADIUM_RECON: 240,
+  ISOTOPE_INTERCEPTOR: 241,
+  COBALT_ATTACK_PLANE: 242,
+  PALE_NIGHT_FIGHTER: 243,
+  GAMMA_BOMBER: 244,
+  APOCALYPSE_WING: 245,
+  RADIUM_GYRO: 264,
+  ISOTOPE_HELICOPTER: 265,
+  COBALT_GUNSHIP: 266,
+  PALE_HUNTER_HELI: 267,
+  GAMMA_HELICOPTER: 268,
+  APOCALYPSE_HELICOPTER: 269,
+
   TERRAFORMER: 120,
   RECON_PLANE: 96,
   FIGHTER: 97,
@@ -240,6 +278,10 @@ export const UNIT_FRAMES: Record<string, number> = {
   SIEGE: 5,
 };
 export const BUILDING_FRAMES: Record<string, number> = {
+  ISOTOPE_LAB: 288,
+  NUCLEAR_REACTOR: 289,
+  HELIPAD: 290,
+  ATOMIC_FOUNDRY: 291,
   AERODROME: 102,
   AIRSHIP_YARD: 103,
   DRAGON_ROOST: 104,
@@ -291,34 +333,65 @@ export const BUILDING_FRAMES: Record<string, number> = {
   FORT: 17,
   TOWER: 18,
 };
+const npcTextures = ['npc-deserter', 'npc-marauder', 'npc-cultist', 'npc-mutant', 'npc-rider'];
+export const unitFrame = (unit: Unit) =>
+  unit.npc ? 312 + npcTextures.indexOf(`npc-${unit.npc.kind}`) * 24 : UNIT_FRAMES[unit.kind];
 export const miniatureTexture = (frame: number) =>
-  frame >= 120
-    ? 'terraformer'
-    : frame >= 96
-      ? 'aviation'
-      : frame < 6
-        ? 'units-medieval'
-        : frame >= 24 && frame < 36
-          ? 'units-civil'
-          : frame >= 48 && frame < 60
-            ? 'units-industrial'
-            : frame >= 72
-              ? 'occult'
-              : frame >= 48
-                ? 'industrial'
-                : frame >= 24
-                  ? 'expansion'
-                  : 'miniatures';
+  frame >= 312
+    ? npcTextures[Math.floor((frame - 312) / 24)]
+    : frame >= 144
+      ? [
+          'rad-infantry',
+          'rad-cavalry',
+          'rad-motorcycles',
+          'rad-vehicles',
+          'rad-planes',
+          'rad-helicopters',
+          'rad-buildings',
+        ][Math.floor((frame - 144) / 24)]
+      : frame >= 120
+        ? 'terraformer'
+        : frame >= 96
+          ? 'aviation'
+          : frame < 6
+            ? 'units-medieval'
+            : frame >= 24 && frame < 36
+              ? 'units-civil'
+              : frame >= 48 && frame < 60
+                ? 'units-industrial'
+                : frame >= 72
+                  ? 'occult'
+                  : frame >= 48
+                    ? 'industrial'
+                    : frame >= 24
+                      ? 'expansion'
+                      : 'miniatures';
 export const miniatureFrame = (frame: number) => frame % 24;
-export function Miniature({ frame, size = 76 }: { frame: number; size?: number }) {
+export function Miniature({
+  frame,
+  size = 76,
+  turretLevel,
+}: {
+  frame: number;
+  size?: number;
+  turretLevel?: import('@voidmarch/config').TurretLevel;
+}) {
   const wall = WALL_KINDS[frame - 84];
   return wall ? (
-    <WallMiniature wall={wall} size={size} />
+    <WallMiniature wall={wall} size={size} turretLevel={turretLevel} />
   ) : (
     <AtlasMiniature frame={frame} size={size} />
   );
 }
-function WallMiniature({ wall, size }: { wall: WallKind; size: number }) {
+function WallMiniature({
+  wall,
+  size,
+  turretLevel,
+}: {
+  wall: WallKind;
+  size: number;
+  turretLevel?: import('@voidmarch/config').TurretLevel;
+}) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     let active = true;
@@ -338,7 +411,7 @@ function WallMiniature({ wall, size }: { wall: WallKind; size: number }) {
       style={{
         width: size,
         height: size,
-        backgroundImage: ready ? `url(${wallImageUrl(wall)})` : 'none',
+        backgroundImage: ready ? `url(${wallImageUrl(wall, 9, turretLevel)})` : 'none',
         backgroundSize: '100% 100%',
       }}
     />
