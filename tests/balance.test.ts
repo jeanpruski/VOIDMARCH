@@ -152,7 +152,7 @@ describe('économie et progression', () => {
     expect(BUILDINGS.OUTPOST.hp).toBeGreaterThanOrEqual(BUILDINGS.CAMP.hp);
     expect(BUILDINGS.VILLAGE.hp).toBeGreaterThanOrEqual(BUILDINGS.OUTPOST.hp);
     expect(BUILDINGS.QUARRY.cost.STONE).toBe(0);
-    expect(Object.keys(UNITS)).toHaveLength(38);
+    expect(Object.keys(UNITS)).toHaveLength(44);
   });
   it('complète les anciennes sauvegardes et les accords sans modifier les anciens stocks', () => {
     const wallet = { GOLD: 12, WOOD: 8, IRON: 4, FOOD: 20 };

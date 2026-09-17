@@ -89,6 +89,75 @@ export const TERRAINS = {
 } as const;
 export type Terrain = keyof typeof TERRAINS;
 export const UNITS = {
+  RECON_PLANE: {
+    name: 'Avion de reconnaissance',
+    hp: 10,
+    attack: 2,
+    defense: 0,
+    move: 10,
+    vision: 12,
+    range: 2,
+    capture: 0,
+    cost: { STONE: 0, GOLD: 140, WOOD: 35, IRON: 90, FOOD: 15 },
+  },
+  FIGHTER: {
+    name: 'Chasseur Nachtjäger',
+    hp: 18,
+    attack: 10,
+    defense: 2,
+    move: 8,
+    vision: 8,
+    range: 3,
+    capture: 0,
+    cost: { STONE: 0, GOLD: 220, WOOD: 40, IRON: 150, FOOD: 20 },
+  },
+  BOMBER: {
+    name: 'Bombardier funèbre',
+    hp: 24,
+    attack: 7,
+    defense: 2,
+    move: 5,
+    vision: 7,
+    range: 3,
+    capture: 0,
+    buildingAttack: 18,
+    cost: { STONE: 0, GOLD: 290, WOOD: 60, IRON: 210, FOOD: 30 },
+  },
+  ZEPPELIN: {
+    name: 'Dirigeable de guerre',
+    hp: 38,
+    attack: 9,
+    defense: 4,
+    move: 4,
+    vision: 9,
+    range: 4,
+    capture: 0,
+    buildingAttack: 16,
+    cost: { STONE: 0, GOLD: 360, WOOD: 100, IRON: 220, FOOD: 40 },
+  },
+  OCCULT_DRAGON: {
+    name: 'Dragon du Reich noir',
+    hp: 44,
+    attack: 14,
+    defense: 5,
+    move: 5,
+    vision: 8,
+    range: 2,
+    capture: 0,
+    buildingAttack: 20,
+    cost: { STONE: 0, GOLD: 500, WOOD: 60, IRON: 250, FOOD: 150 },
+  },
+  FLAK_CANNON: {
+    name: 'Canon antiaérien Flak',
+    hp: 18,
+    attack: 5,
+    defense: 2,
+    move: 2,
+    vision: 6,
+    range: 5,
+    capture: 0,
+    cost: { STONE: 0, GOLD: 130, WOOD: 30, IRON: 100, FOOD: 20 },
+  },
   TESLA_TROOPER: {
     name: 'Voltigeur Tesla',
     hp: 14,
@@ -520,6 +589,38 @@ export const UNITS = {
 } as const;
 export type UnitKind = keyof typeof UNITS;
 export const BUILDINGS = {
+  AERODROME: {
+    name: 'Aérodrome militaire',
+    hp: 75,
+    capture: 4,
+    cost: { STONE: 70, GOLD: 160, WOOD: 100, IRON: 100, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'RUINS'],
+  },
+  AIRSHIP_YARD: {
+    name: 'Chantier de dirigeables',
+    hp: 95,
+    capture: 4,
+    cost: { STONE: 90, GOLD: 210, WOOD: 130, IRON: 150, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'RUINS'],
+  },
+  DRAGON_ROOST: {
+    name: 'Sanctuaire draconique',
+    hp: 110,
+    capture: 4,
+    cost: { STONE: 160, GOLD: 260, WOOD: 100, IRON: 140, FOOD: 0 },
+    production: {},
+    terrains: ['HILL', 'MOUNTAIN', 'RUINS', 'CORRUPTION'],
+  },
+  FLAK_BATTERY: {
+    name: 'École de défense antiaérienne',
+    hp: 80,
+    capture: 4,
+    cost: { STONE: 65, GOLD: 100, WOOD: 50, IRON: 85, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
   WOOD_WALL: {
     name: 'Palissade en bois',
     hp: 30,
@@ -909,6 +1010,8 @@ export interface UnitProfile {
   role: string;
   recruitAt: BuildingKind[];
   requires: BuildingKind[];
+  flying?: boolean;
+  antiAir?: number;
   mounted?: boolean;
   mechanical?: boolean;
   armored?: boolean;
@@ -917,6 +1020,52 @@ export interface UnitProfile {
   healer?: boolean;
 }
 export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  RECON_PLANE: {
+    role: 'Reconnaissance aérienne : vision 12, déplacement 10 ; armement léger. Survole terrains et remparts, sans capture.',
+    recruitAt: ['AERODROME'],
+    requires: ['RADIO'],
+    mechanical: true,
+    flying: true,
+  },
+  FIGHTER: {
+    role: 'Chasseur rapide : +5 dégâts contre les unités aériennes. Survole terrains et remparts, sans capture.',
+    recruitAt: ['AERODROME'],
+    requires: ['MUNITIONS'],
+    mechanical: true,
+    flying: true,
+    antiAir: 5,
+  },
+  BOMBER: {
+    role: 'Bombardement des fortifications : attaque 18 contre les bâtiments, 2 PA. Survole terrains et remparts, sans capture.',
+    recruitAt: ['AERODROME'],
+    requires: ['MUNITIONS', 'REFINERY'],
+    mechanical: true,
+    flying: true,
+    siege: true,
+  },
+  ZEPPELIN: {
+    role: 'Forteresse volante lente : vision 9 et bombardement à 4 cases, 2 PA. Survole terrains et remparts, sans capture.',
+    recruitAt: ['AIRSHIP_YARD'],
+    requires: ['MUNITIONS'],
+    mechanical: true,
+    flying: true,
+    siege: true,
+  },
+  OCCULT_DRAGON: {
+    role: 'Dragon cuirassé du Reich noir, lié par les rites occultes. Souffle à 2 cases, 20 attaque contre les bâtiments, 2 PA. Vole, sans capture ; vulnérable à la Flak.',
+    recruitAt: ['DRAGON_ROOST'],
+    requires: ['ALCHEMY_FOUNDRY'],
+    flying: true,
+    siege: true,
+  },
+  FLAK_CANNON: {
+    role: 'Défense antiaérienne mobile : +10 dégâts contre les cibles volantes à 5 cases. Faible contre les troupes au sol. Attaque : 1 PA.',
+    recruitAt: ['FLAK_BATTERY'],
+    requires: ['MUNITIONS'],
+    mechanical: true,
+    antiAir: 10,
+  },
+
   TESLA_TROOPER: {
     role: 'Fusil électrique à moyenne portée ; puissance élevée, déplacement lent.',
     recruitAt: ['TESLA_COIL'],
@@ -1139,6 +1288,10 @@ export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
 };
 export const GATHER_YIELD: Wallet = { STONE: 16, GOLD: 12, WOOD: 20, IRON: 12, FOOD: 18 };
 export const BUILDING_REQUIREMENTS: Partial<Record<BuildingKind, BuildingKind[]>> = {
+  AERODROME: ['GARAGE', 'RADIO'],
+  AIRSHIP_YARD: ['AERODROME', 'REFINERY'],
+  DRAGON_ROOST: ['BLACK_OBSERVATORY', 'CRYPT_BARRACKS'],
+  FLAK_BATTERY: ['MUNITIONS', 'RADIO'],
   TESLA_COIL: ['FORGE', 'OCCULT_LAB'],
   CRYPT_BARRACKS: ['BARRACKS', 'OCCULT_LAB'],
   ALCHEMY_FOUNDRY: ['REFINERY', 'OCCULT_LAB'],
@@ -1169,12 +1322,20 @@ export const BUILDING_POPULATION: Partial<Record<BuildingKind, number>> = {
   OUTPOST: 10,
 };
 export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
+  AERODROME:
+    'Recrute avions de reconnaissance, chasseurs et bombardiers. Nécessite une plaine ou des ruines. Chaque amélioration renforce les avions existants et futurs de +10 %.',
+  AIRSHIP_YARD:
+    'Assemble les dirigeables de guerre : bombardement et observation. Chaque amélioration renforce vos dirigeables existants et futurs de +10 %.',
+  DRAGON_ROOST:
+    'Invoque les dragons occultes cuirassés ; exige une fonderie alchimique pour les recruter. Chaque amélioration renforce les dragons existants et futurs de +10 %.',
+  FLAK_BATTERY:
+    'Recrute les canons antiaériens Flak. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +10 % aux canons existants et futurs.',
   WOOD_WALL:
-    'Occupe une case, bloque tous les ennemis et laisse passer vos unités. Se raccorde aux remparts voisins. Évolue avec 45 pierre, puis 45 fer pour l’acier (2 PA par évolution).',
+    'Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Évolue avec 45 pierre, puis 45 fer pour l’acier (2 PA par évolution).',
   STONE_WALL:
-    'Remplace une palissade : 65 PV, défense 2. Vos unités traversent ; les ennemis doivent ouvrir une brèche. Évolue en acier avec 45 fer et 2 PA.',
+    'Remplace une palissade : 65 PV, défense 2. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec 45 fer et 2 PA.',
   STEEL_WALL:
-    'Dernière évolution : 100 PV, défense 4. Bloque les ennemis, même sur une route. L’acier est construit à partir de votre réserve de fer.',
+    'Dernière évolution : 100 PV, défense 4. Bloque les ennemis terrestres, même sur une route. L’acier est construit à partir de votre réserve de fer.',
   TESLA_COIL: 'Fortification électrique (+4 défense) ; forme les voltigeurs Tesla.',
   CRYPT_BARRACKS: 'Forme grenadiers revenants et cavaliers spectraux.',
   ALCHEMY_FOUNDRY: 'Produit 5 or par minute et débloque marcheurs de siège et chars possédés.',
@@ -1221,6 +1382,7 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
 };
 
 export const BUILDING_DEFENSE: Partial<Record<BuildingKind, number>> = {
+  FLAK_BATTERY: 3,
   WOOD_WALL: 0,
   STONE_WALL: 2,
   STEEL_WALL: 4,
@@ -1229,6 +1391,7 @@ export const BUILDING_DEFENSE: Partial<Record<BuildingKind, number>> = {
   GUN_BATTERY: 3,
 };
 export const RECON_UNITS: UnitKind[] = [
+  'RECON_PLANE',
   'HEX_HUNTER',
   'SCOUT',
   'RANGER',
@@ -1287,11 +1450,18 @@ export const UNIT_TABS = [
   'Cavalerie',
   'Armes à feu',
   'Véhicules',
+  'Aviation',
   'Artillerie',
   'Occulte',
 ] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
+  RECON_PLANE: 'Aviation',
+  FIGHTER: 'Aviation',
+  BOMBER: 'Aviation',
+  ZEPPELIN: 'Aviation',
+  OCCULT_DRAGON: 'Aviation',
+  FLAK_CANNON: 'Artillerie',
   TESLA_TROOPER: 'Occulte',
   HEX_HUNTER: 'Occulte',
   PLAGUE_MEDIC: 'Civils & soutien',
@@ -1342,6 +1512,10 @@ export const BUILDING_TABS = [
 ] as const;
 export type BuildingTab = (typeof BUILDING_TABS)[number];
 export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
+  AERODROME: 'Recrutement',
+  AIRSHIP_YARD: 'Recrutement',
+  DRAGON_ROOST: 'Recrutement',
+  FLAK_BATTERY: 'Défenses',
   WOOD_WALL: 'Défenses',
   STONE_WALL: 'Défenses',
   STEEL_WALL: 'Défenses',
@@ -1389,7 +1563,7 @@ export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
 export const unitPopulation = (kind: UnitKind) =>
   kind === 'PEASANT'
     ? 3
-    : ['TANK', 'HEX_TANK', 'SIEGE_WALKER'].includes(kind)
+    : ['TANK', 'HEX_TANK', 'SIEGE_WALKER', 'BOMBER', 'ZEPPELIN', 'OCCULT_DRAGON'].includes(kind)
       ? 12
       : UNIT_PROFILES[kind].mechanical
         ? 8
@@ -1403,7 +1577,7 @@ export function unitUpkeep(kind: UnitKind): Wallet {
     WOOD: 0,
     STONE: 0,
     IRON: UNIT_PROFILES[kind].mechanical ? 0.2 + UNITS[kind].attack / 20 : 0,
-    FOOD: UNIT_PROFILES[kind].mounted ? 0.65 : 0.25,
+    FOOD: kind === 'OCCULT_DRAGON' ? 2 : UNIT_PROFILES[kind].mounted ? 0.65 : 0.25,
   };
 }
 

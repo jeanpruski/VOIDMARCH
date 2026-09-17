@@ -190,6 +190,12 @@ export function Modal({
   );
 }
 export const UNIT_FRAMES: Record<string, number> = {
+  RECON_PLANE: 96,
+  FIGHTER: 97,
+  BOMBER: 98,
+  ZEPPELIN: 99,
+  OCCULT_DRAGON: 100,
+  FLAK_CANNON: 101,
   TESLA_TROOPER: 72,
   HEX_HUNTER: 73,
   PLAGUE_MEDIC: 74,
@@ -233,6 +239,10 @@ export const UNIT_FRAMES: Record<string, number> = {
   SIEGE: 5,
 };
 export const BUILDING_FRAMES: Record<string, number> = {
+  AERODROME: 102,
+  AIRSHIP_YARD: 103,
+  DRAGON_ROOST: 104,
+  FLAK_BATTERY: 105,
   WOOD_WALL: 84,
   STONE_WALL: 85,
   STEEL_WALL: 86,
@@ -281,19 +291,21 @@ export const BUILDING_FRAMES: Record<string, number> = {
   TOWER: 18,
 };
 export const miniatureTexture = (frame: number) =>
-  frame < 6
-    ? 'units-medieval'
-    : frame >= 24 && frame < 36
-      ? 'units-civil'
-      : frame >= 48 && frame < 60
-        ? 'units-industrial'
-        : frame >= 72
-          ? 'occult'
-          : frame >= 48
-            ? 'industrial'
-            : frame >= 24
-              ? 'expansion'
-              : 'miniatures';
+  frame >= 96
+    ? 'aviation'
+    : frame < 6
+      ? 'units-medieval'
+      : frame >= 24 && frame < 36
+        ? 'units-civil'
+        : frame >= 48 && frame < 60
+          ? 'units-industrial'
+          : frame >= 72
+            ? 'occult'
+            : frame >= 48
+              ? 'industrial'
+              : frame >= 24
+                ? 'expansion'
+                : 'miniatures';
 export const miniatureFrame = (frame: number) => frame % 24;
 export function Miniature({ frame, size = 76 }: { frame: number; size?: number }) {
   const wall = WALL_KINDS[frame - 84];

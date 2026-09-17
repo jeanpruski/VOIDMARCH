@@ -15,10 +15,10 @@ Les remparts suivent les mêmes règles de chantier que les bâtiments : terres 
 ## Passage et siège
 
 - Les unités du propriétaire traversent librement, sous réserve du terrain et d’une éventuelle unité occupant la case.
-- Tous les autres royaumes sont bloqués, même sur une route et même pendant une trêve. Une trêve interdit d’attaquer ; elle ne donne pas un droit de passage.
-- Le serveur contrôle chaque case du chemin, pas seulement la destination. Les chemins prévisualisés et les bots évitent les remparts adverses.
+- Les unités terrestres des autres royaumes sont bloquées, même sur une route et même pendant une trêve. Une trêve interdit d’attaquer ; elle ne donne pas un droit de passage.
+- Le serveur contrôle chaque case du chemin, pas seulement la destination. Les chemins terrestres prévisualisés et les bots évitent les remparts adverses. Les unités volantes peuvent les survoler.
 - Un rempart ne peut pas être capturé. Il faut le contourner ou le détruire pour ouvrir une brèche. Après destruction, la case redevient franchissable ; la propriété du terrain et les routes sont conservées.
-- En mode attaque, un rempart adverse prend priorité sur une unité stationnée dessus : il faut ouvrir la brèche avant d’attaquer cette unité.
+- En mode attaque terrestre contre une unité terrestre, un rempart adverse prend priorité sur la troupe stationnée dessus : il faut ouvrir la brèche. Les attaques aériennes ignorent cette protection, et les cibles volantes ne sont pas protégées par le mur.
 - Les murs sont des cibles de bâtiment : les dégâts de siège, les PA, la portée, la défense du terrain et les protections diplomatiques habituelles s’appliquent. Ils ne bloquent pas les tirs vers des cases situées au-delà de l’enceinte.
 - Les remparts peuvent être réparés ou démolis avec les actions de bâtiment existantes. Les barres de vie apparaissent après des dégâts.
 

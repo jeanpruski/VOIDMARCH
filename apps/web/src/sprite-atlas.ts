@@ -90,6 +90,7 @@ export const SPRITE_ATLASES: Record<string, { columns: number; rows: number }> =
   expansion: { columns: 6, rows: 4 },
   industrial: { columns: 6, rows: 4 },
   occult: { columns: 6, rows: 2 },
+  aviation: { columns: 5, rows: 2 },
   'units-medieval': { columns: 3, rows: 2 },
   'units-civil': { columns: 6, rows: 2 },
   'units-industrial': { columns: 6, rows: 2 },

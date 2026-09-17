@@ -11,7 +11,10 @@ createRoot(document.getElementById('root')!).render(
       padding: 20,
     }}
   >
-    {Array.from({ length: 87 }, (_, frame) => (
+    {[
+      ...Array.from({ length: 87 }, (_, frame) => frame),
+      ...Array.from({ length: 10 }, (_, i) => 96 + i),
+    ].map((frame) => (
       <div
         key={frame}
         className="selection-identity"

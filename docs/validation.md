@@ -141,3 +141,12 @@ Validation : 27 tests de règles et de projection réussis, dont trois nouveaux 
 - Quatre scénarios Chrome passent : parcours réel de construction/démolition/évolution des murs sur un monde isolé en mémoire, accueil, 87 miniatures, 192 combinaisons de remparts (trois matériaux × 64 raccords) sans rognage.
 - Contrôles des remparts : passage propriétaire/adversaire sur route, validation de chaque étape d’un chemin, contournement, enceinte fermée et brèche, interdiction de capture, respect des trêves, coûts en bois/pierre/fer, résistance et remboursement hors améliorations.
 - Rendus texturés inspectés sur ordinateur et téléphone. Les 30 anciennes unités ont des socles assortis aux huit nouvelles. Aucun compte ni royaume réel modifié, aucun déploiement dans cette passe.
+
+## Aviation et palissades prioritaires — 17 septembre 2026
+
+- Compilation TypeScript / Vite de production réussie. **289 tests de règles réussis**, 7 tests PostgreSQL ignorés dans cette exécution (pas de migration SQL).
+- **5 tests Chrome réussis** : recrutement réel via moteur en mémoire du chasseur et du dragon, fermeture des fenêtres, blocage expliqué des attaques de mêlée contre un avion, catalogue Aviation sur mobile ; parcours de fondation avec palissade en première position ; accueil ; contrôle des 97 figurines ; contrôle des 192 configurations de remparts.
+- Règles aériennes testées : survol des terrains / unités / murs, case finale libre, distance et PA, absence de capture, attaques à distance, bonus Flak / chasseur, absence de couvert terrestre en vol, trêves, recrutement spécialisé, améliorations des troupes existantes et futures, remboursement de démolition.
+- `aviation-world-desktop.png` et `aviation-catalog-mobile.png` inspectées ; les ailes restent dans les figurines isolées. Atlas et prompts dans `assets-aviation.md`.
+- Le contrôle des remparts a révélé un défaut de texture des faces vues de profil : une transformation de surface nulle pouvait laisser une ligne parasite au bord du canvas dans Chrome. Les faces de surface nulle ne reçoivent plus de projection de texture ; les 192 configurations passent à nouveau sans pixels de bord.
+- Audit des coûts régénéré : 44 unités, 47 types de bâtiments. Modifications locales, non déployées.

@@ -47,3 +47,6 @@ Les instructions données dans la conversation priment sur les documents origina
 - 17 septembre 2026 : nouvelle passe gameplay validée (30 PA initiaux, zone de construction de 3 cases, améliorations de tous les bâtiments et des troupes existantes, expiration des invités à 24 h, code PA illimités connu des joueurs). Voir [gameplay-v03.md](gameplay-v03.md), qui prévaut sur les anciens choix concernés.
 
 - 17 septembre 2026 : remparts sur hexagones entiers validés, avec progression bois → pierre → acier et matériaux correspondants. Passage réservé aux unités du propriétaire, ennemis bloqués jusqu’à destruction ou contournement, raccords automatiques. Règles dans [remparts.md](remparts.md).
+
+- 17 septembre 2026 : ajout de cinq unités volantes (reconnaissance, chasseur, bombardier, dirigeable, dragon du Reich noir), d’un canon antiaérien et de quatre bâtiments de recrutement. Les unités volantes survolent terrains, troupes et remparts, sans capture ; elles finissent sur une case libre et peuvent être atteintes par les attaques à distance. Les règles sont détaillées dans [aviation.md](aviation.md).
+- 17 septembre 2026 : à la demande du joueur, la palissade est épinglée en première position du catalogue de construction, avant le tri des autres bâtiments par terrain et progression. Les filtres de catégorie et de recherche restent actifs.

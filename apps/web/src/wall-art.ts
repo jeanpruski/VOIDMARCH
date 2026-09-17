@@ -67,7 +67,14 @@ export function wallCanvas(kind: WallKind, connections = 9): HTMLCanvasElement {
     ctx.closePath();
     ctx.fillStyle = fill;
     ctx.fill();
-    if (materials && points.length === 4) {
+    // An edge-on face has zero area. A singular texture transform can leave
+    // stray strokes at the canvas origin in Chrome, outside the wall sprite.
+    const area =
+      points.length === 4
+        ? (points[1].x - points[0].x) * (points[3].y - points[0].y) -
+          (points[1].y - points[0].y) * (points[3].x - points[0].x)
+        : 0;
+    if (materials && points.length === 4 && Math.abs(area) > 0.001) {
       // Project the painted material onto this exact parallelogram; geometry,
       // end caps and adjacency remain deterministic in every orientation.
       const a = points[0],

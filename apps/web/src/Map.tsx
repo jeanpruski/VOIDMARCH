@@ -289,7 +289,7 @@ class WorldScene extends Phaser.Scene {
   private path(u: Unit, p: Hex) {
     const blocked = new Set(this.view?.units.filter((x) => x.id !== u.id).map(key));
     for (const tile of this.view?.tiles ?? [])
-      if (wallBlocks(tile.building, u.ownerId)) blocked.add(key(tile));
+      if (wallBlocks(tile.building, u.ownerId, u.kind)) blocked.add(key(tile));
     return findPath(
       u,
       p,
@@ -322,9 +322,11 @@ class WorldScene extends Phaser.Scene {
       return;
     }
     if (state.mode === 'attack' && own) {
-      const target = wallBlocks(tile?.building, this.view.player.id)
-        ? tile?.building
-        : (unit ?? tile?.building);
+      const target =
+        wallBlocks(tile?.building, this.view.player.id, own.kind) &&
+        !(unit && UNIT_PROFILES[unit.kind].flying)
+          ? tile?.building
+          : (unit ?? tile?.building);
       if (target && target.ownerId !== this.view.player.id)
         useGame.setState({ combatTarget: target.id });
       else notify('Sélectionnez une cible ennemie visible.', true);
@@ -635,7 +637,7 @@ class WorldScene extends Phaser.Scene {
           UNIT_PROFILES[u.kind].siege ? 75 : 67,
           UNIT_PROFILES[u.kind].siege ? 75 : 67,
         )
-        .setDepth(depth(7000, p.y));
+        .setDepth(depth(UNIT_PROFILES[u.kind].flying ? 8500 : 7000, p.y));
       if (u.ownerId !== world.player.id)
         sprite.setTint(
           world.realms.find((r) => r.id === u.ownerId)?.faction === 'MASK' ? 0xc0d2c0 : 0xcebdbe,

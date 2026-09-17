@@ -7,9 +7,9 @@ Rapport reproductible : `node --import tsx scripts/audit-balance.ts`. Les coûts
 - Récolte uniquement sur la case occupée, jamais sur une voisine ni sur une terre adverse. Bois : forêt ; pierre : colline/montagne ; fer : colline ; vivres : plaine/rivière/marais ; or : ruines. Les vestiges cosmiques se fouillent par leur action dédiée.
 - Pierre ajoutée aux stocks, échanges, coûts et sauvegardes. Carrière accessible sans coût initial en pierre. La mine extrait le fer sur colline ; la carrière extrait la pierre sur colline ou montagne.
 - Aucun revenu brut par simple propriété d’une case. Le campement ne produit plus de bois, les forges/ateliers/raffineries/manufactures ne génèrent plus de fer sans mine. Le grenier stocke sans générer de vivres.
-- Entretien proportionné au prix des unités ; les machines consomment aussi du fer. Mobilisation unifiée entre recrutement, interface et croissance : paysan 3, soldats 5, siège médiéval 6, machines 8, char 12.
+- Entretien proportionné au prix des unités ; les machines consomment aussi du fer. Mobilisation unifiée entre recrutement, interface et croissance : paysan 3, soldats 5, siège médiéval 6, machines légères 8, chars / bombardiers / dirigeables / dragons 12.
 - Croissance bornée selon le bâtiment : un campement ou une chaumière ne finit plus avec la capacité d’une ville. Les populations existantes ne sont pas supprimées.
-- Montagne accessible au paysan pour la pierre ; véhicules et cavaliers ont besoin de routes en montagne ou marais. Les machines ralentissent en forêt.
+- Montagne accessible au paysan pour la pierre ; véhicules et cavaliers ont besoin de routes en montagne ou marais. Les machines terrestres ralentissent en forêt. Les unités volantes survolent tous les terrains et les remparts pour un point de déplacement par case.
 - L’amélioration campement → avant-poste ne réduit plus la résistance ni la production de vivres. Les améliorations de villes en pierre utilisent désormais cette ressource.
 
 ## Limites de la validation
@@ -20,6 +20,12 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 | Unité | PV / attaque / défense | Déplacement / portée | Places | Coût | Entretien par minute | Infrastructure requise (nombre) |
 | --- | --- | --- | --- | --- | --- | --- |
+| Avion de reconnaissance | 10 / 2 / 0 | 10 / 2 | 8 | 140 or, 35 bois, 90 fer, 15 vivres | 0.7 or, 0.3 fer, 0.25 vivres | 4 |
+| Chasseur Nachtjäger | 18 / 10 / 2 | 8 / 3 | 8 | 220 or, 40 bois, 150 fer, 20 vivres | 1.07 or, 0.7 fer, 0.25 vivres | 8 |
+| Bombardier funèbre | 24 / 7 / 2 | 5 / 3 | 12 | 290 or, 60 bois, 210 fer, 30 vivres | 1.48 or, 0.55 fer, 0.25 vivres | 9 |
+| Dirigeable de guerre | 38 / 9 / 4 | 4 / 4 | 12 | 360 or, 100 bois, 220 fer, 40 vivres | 1.8 or, 0.65 fer, 0.25 vivres | 10 |
+| Dragon du Reich noir | 44 / 14 / 5 | 5 / 2 | 12 | 500 or, 60 bois, 250 fer, 150 vivres | 2.4 or, 2 vivres | 13 |
+| Canon antiaérien Flak | 18 / 5 / 2 | 2 / 5 | 8 | 130 or, 30 bois, 100 fer, 20 vivres | 0.7 or, 0.45 fer, 0.25 vivres | 7 |
 | Voltigeur Tesla | 14 / 8 / 2 | 2 / 3 | 5 | 120 or, 20 bois, 80 fer, 25 vivres | 0.61 or, 0.25 vivres | 7 |
 | Chasseur de maléfices | 11 / 7 / 2 | 4 / 3 | 5 | 100 or, 35 bois, 40 fer, 25 vivres | 0.5 or, 0.25 vivres | 9 |
 | Médecin de la peste | 9 / 1 / 2 | 3 / 1 | 5 | 85 or, 20 bois, 20 fer, 35 vivres | 0.4 or, 0.25 vivres | 3 |
@@ -63,6 +69,10 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 | Bâtiment | PV | Coût | Production brute / minute | Terrains | Prérequis |
 | --- | --- | --- | --- | --- | --- |
+| Aérodrome militaire | 75 | 160 or, 100 bois, 70 pierre, 100 fer | — | PLAIN, RUINS | Garage militaire, Relais radio |
+| Chantier de dirigeables | 95 | 210 or, 130 bois, 90 pierre, 150 fer | — | PLAIN, RUINS | Aérodrome militaire, Raffinerie |
+| Sanctuaire draconique | 110 | 260 or, 100 bois, 160 pierre, 140 fer | — | HILL, MOUNTAIN, RUINS, CORRUPTION | Observatoire noir, Caserne des revenants |
+| École de défense antiaérienne | 80 | 100 or, 50 bois, 65 pierre, 85 fer | — | PLAIN, HILL, RUINS | Manufacture de munitions, Relais radio |
 | Palissade en bois | 30 | 30 bois | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | — |
 | Rempart de pierre | 65 | 45 pierre | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | Évolution uniquement : palissade en bois (2 PA, coût sans réduction) |
 | Mur en acier | 100 | 45 fer | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | Évolution uniquement : rempart de pierre (2 PA, coût sans réduction) |

@@ -36,6 +36,7 @@ import {
   wallBlocks,
   demolitionRefund,
   estimateDamage,
+  attackBlockReason,
   unitStats,
   findPath,
   hash,
@@ -346,13 +347,15 @@ export function applyAction(
         );
         const t = tileAt(s, p);
         requireRule(
-          !wallBlocks(t.buildingId ? s.buildings[t.buildingId] : undefined, id),
+          !wallBlocks(t.buildingId ? s.buildings[t.buildingId] : undefined, id, u.kind),
           'Un rempart ennemi bloque le passage. Détruisez-le ou contournez-le.',
         );
         cost += movementCost(t, u.kind);
         requireRule(cost <= max, 'Ce chemin dépasse la capacité de déplacement.');
         requireRule(
-          !Object.values(s.units).some((other) => other.id !== u.id && distance(other, p) === 0),
+          (UNIT_PROFILES[u.kind].flying &&
+            key(p) !== key(a.payload.path[a.payload.path.length - 1])) ||
+            !Object.values(s.units).some((other) => other.id !== u.id && distance(other, p) === 0),
           'Ce chemin est bloqué.',
         );
         cursor = p;
@@ -389,10 +392,8 @@ export function applyAction(
       requireRule(target && vision(s, r).has(key(target)), 'Cible indisponible.');
       const cover = tileAt(s, target).buildingId;
       const coveringWall = cover ? s.buildings[cover] : undefined;
-      requireRule(
-        target.id === coveringWall?.id || !wallBlocks(coveringWall, id),
-        'Détruisez d’abord le rempart qui protège cette unité.',
-      );
+      const obstruction = attackBlockReason(u, target, coveringWall);
+      requireRule(!obstruction, obstruction);
       requireRule(distance(u, target) <= UNITS[u.kind].range, 'La cible est hors de portée.');
       hostile(s, r, target.ownerId, now, options);
       spendAction(UNIT_PROFILES[u.kind].siege ? 2 : ACTION_COST.ATTACK);

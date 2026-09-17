@@ -107,7 +107,7 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   await upgradePreview.getByRole('button', { name: 'Fermer', exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.getByRole('button', { name: 'Recruter', exact: true }).click();
-  await expect(page.getByRole('dialog').locator('article')).toHaveCount(38);
+  await expect(page.getByRole('dialog').locator('article')).toHaveCount(44);
   await page.getByText('Comment choisir et former une unité ?', { exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('budget de déplacement');
   await page.keyboard.press('Escape');
@@ -146,7 +146,10 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   await page.getByRole('button', { name: 'Récolter bois +20 · 1 PA' }).click();
   await expect.poll(() => state.realms[id].wallet.WOOD).toBeGreaterThanOrEqual(20);
   await page.getByRole('button', { name: 'Construire', exact: true }).click();
-  await expect(page.getByRole('dialog').locator('article')).toHaveCount(41);
+  await expect(page.getByRole('dialog').locator('article')).toHaveCount(45);
+  await expect(page.getByRole('dialog').locator('article').first()).toContainText(
+    'Palissade en bois',
+  );
   await page.getByRole('tab', { name: 'Industrie', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Usine de blindés', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Chaumière', exact: true })).toHaveCount(0);

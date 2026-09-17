@@ -59,6 +59,8 @@ import {
   canAfford,
   distance,
   estimateDamage,
+  attackBlockReason,
+  targetTerrainDefense,
   key,
   zeroWallet,
 } from '@voidmarch/game-rules';
@@ -156,7 +158,11 @@ function CatalogResources() {
 }
 // Civil support first; combatants by attack, defense, then health; vehicles last.
 const recruitmentGroup = (kind: UnitKind) =>
-  UNIT_CATEGORY[kind] === 'Civils & soutien' ? 0 : UNIT_CATEGORY[kind] === 'Véhicules' ? 2 : 1;
+  UNIT_CATEGORY[kind] === 'Civils & soutien'
+    ? 0
+    : ['Véhicules', 'Aviation'].includes(UNIT_CATEGORY[kind])
+      ? 2
+      : 1;
 const compareRecruits = ([a]: [UnitKind, unknown], [b]: [UnitKind, unknown]) =>
   recruitmentGroup(a) - recruitmentGroup(b) ||
   (a === 'PEASANT' ? -1 : b === 'PEASANT' ? 1 : 0) ||
@@ -914,7 +920,11 @@ function Build() {
           .filter(([kind]) => isBuildable(kind))
           .filter(([kind]) => category === 'Tous' || BUILDING_CATEGORY[kind] === category)
           .filter(([, b]) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
-          .sort(([a], [b]) => compareBuildings(a, b, tile?.terrain))
+          .sort(
+            ([a], [b]) =>
+              Number(b === 'WOOD_WALL') - Number(a === 'WOOD_WALL') ||
+              compareBuildings(a, b, tile?.terrain),
+          )
           .map(([kind, b]) => {
             const cost = Object.fromEntries(
               Object.entries(b.cost).map(([k, v]) => [
@@ -1255,15 +1265,17 @@ function Combat() {
         t.kind === 'TRUCE' && t.endsAt > now && (t.a === target.ownerId || t.b === target.ownerId),
     ),
     ap = UNIT_PROFILES[attacker.kind].siege ? 2 : 1,
-    reason = truce
-      ? 'Une trêve interdit cette attaque.'
-      : enemy && enemy.protectedUntil > now
-        ? 'Ce royaume bénéficie de la protection initiale.'
-        : distance(attacker, target) > UNITS[attacker.kind].range
-          ? 'Cette cible est hors de portée.'
-          : !w.player.unlimitedAP && w.player.ap < ap
-            ? `${ap} PA nécessaires.`
-            : '';
+    reason =
+      attackBlockReason(attacker, target, tile.building) ||
+      (truce
+        ? 'Une trêve interdit cette attaque.'
+        : enemy && enemy.protectedUntil > now
+          ? 'Ce royaume bénéficie de la protection initiale.'
+          : distance(attacker, target) > UNITS[attacker.kind].range
+            ? 'Cette cible est hors de portée.'
+            : !w.player.unlimitedAP && w.player.ap < ap
+              ? `${ap} PA nécessaires.`
+              : '');
   return (
     <Modal title="Donner l’ordre d’attaquer" eyebrow="CONSEIL DE GUERRE">
       <div className="combat-versus">
@@ -1292,7 +1304,11 @@ function Combat() {
           {estimate.min}–{estimate.max}
         </strong>
         <small>
-          {TERRAINS[tile.terrain].name} · Défense du terrain : +{TERRAINS[tile.terrain].defense}
+          {TERRAINS[tile.terrain].name} · Défense du terrain : +
+          {targetTerrainDefense(target, tile.terrain)}
+          {!('population' in target) && UNIT_PROFILES[target.kind].flying
+            ? ' (cible aérienne)'
+            : ''}
         </small>
       </div>
       {isWall(target.kind) && (

@@ -1,0 +1,16 @@
+# Figurines aériennes
+
+- Outil : imagegen intégré, compétence imagegen ; aucune API externe ou clé utilisée.
+- Livrable : `apps/web/public/assets/aviation.png`, atlas transparent de cinq colonnes sur deux lignes.
+- Ordre : reconnaissance, chasseur, bombardier, dirigeable, dragon ; Flak, aérodrome, chantier de dirigeables, sanctuaire draconique, école antiaérienne.
+- Frames logiques 96 à 105, atlas normalisé commun 6 × 4. Les frames antérieures restent inchangées.
+- Première génération rejetée : ailes du dragon et sommet du dirigeable coupés. La correction de cadrage a été conservée.
+- Originaux : `/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-f5bb8b8d-ff05-4edd-9c36-7579eb25eae9.png` puis `exec-fa39bba9-1534-4fc6-af03-2561fa4d69ee.png`.
+
+## Prompt de génération
+
+Use case: stylized-concept. Create ONE production game sprite atlas for VOIDMARCH. Exact grid FIVE equal columns by TWO equal rows, ten separate isolated miniatures, one subject per cell, generous transparent gaps, no overlap between cells. TRUE transparent RGBA background, not checkerboard painted background. Isometric three-quarter camera, intricate painted tabletop miniatures, dark Lovecraftian medieval mixed with fictional WWII German occult war machinery, worn charcoal steel, oxidized brass, muted crimson cloth, eerie restrained green glow. Small matching dark bevelled gravel display bases under EVERY subject; flying craft mounted on slender display stems. No text, no logos, no real-world political insignia. Keep all wings fully inside each cell and frame. Top row left to right: 1 compact reconnaissance propeller monoplane with spy camera, 2 aggressive single-engine fighter plane with machine guns, 3 heavy twin-engine bomber with visible bombs, 4 rigid military zeppelin airship with armored gondola, 5 terrifying winged black dragon clad in riveted WWII-style occult armor with green fire and crimson pennants. Bottom row left to right: 6 towed quad-barrel anti-aircraft cannon with steel-helmet crew, 7 small airfield hangar with short runway apron and control tower, 8 tall arched zeppelin dock hangar with mooring mast, 9 gothic fortified dragon roost with chains ritual brazier and occult egg, 10 fortified antiaircraft training emplacement with radar dish ammo bunker. Cohesive detailed hand-painted realistic game figurines, readable strong distinct silhouettes, even soft lighting, absolutely no backdrop or terrain outside bases. Wide 5:2 composition. Save as image with real alpha transparency.
+
+## Prompt de correction
+
+Edit this sprite sheet preserving exactly these ten subjects, their designs, order, bases, visual style and true alpha transparency. Fix clipping: every miniature must fit COMPLETELY inside its own equal grid cell with a generous 12% transparent margin ON ALL FOUR SIDES. Five columns, two rows. Make every subject smaller in its cell. Especially reconstruct the entire dragon wings and green fire currently cropped top and right, and the entire zeppelin top fins. Ensure wings don't touch other figures. Keep 5x2 layout and absolutely no extra subjects, text, background or fake checkerboard. Only adjust framing/scale and complete cropped parts.

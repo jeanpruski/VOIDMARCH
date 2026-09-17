@@ -25,7 +25,7 @@ Le lancement local dans l'environnement de développement a déjà été prépar
 ## Jouer
 
 - Chaque nouveau royaume commence avec **un campement, aucune unité et aucun stock**. Sélectionner le campement → Recruter → **Former le paysan** : aucune ressource nécessaire, 1 PA. Sélectionner ensuite le paysan pour le déplacer sur le terrain à récolter : bois en forêt, pierre sur colline ou montagne, fer sur colline, vivres sur plaine/rivière/marais et or dans les ruines, puis construire sur la frontière. Le campement fournit or et vivres ; les matériaux demandent une récolte ou une exploitation adaptée. Si aucun paysan ne subsiste, son remplacement est gratuit en ressources.
-- Les unités et bâtiments endommagés affichent une petite barre de vie sur la carte. Le catalogue propose **38 unités et 43 types de bâtiments**, dont deux évolutions de remparts, avec leurs rôles et prérequis dans les panneaux. Le campement évolue en avant-poste, puis en village.
+- Les unités et bâtiments endommagés affichent une petite barre de vie sur la carte. Le catalogue propose **44 unités et 47 types de bâtiments**, dont deux évolutions de remparts, avec leurs rôles et prérequis dans les panneaux. Le campement évolue en avant-poste, puis en village. Une filière aérienne ajoute reconnaissance, chasseurs, bombardiers, dirigeables et dragons occultes, avec canons antiaériens et quatre bâtiments dédiés (voir [règles aériennes](docs/aviation.md)).
 - Cliquer une unité, puis **Déplacer**, puis une case surlignée. Le chemin tient compte des six voisins hexagonaux, du terrain, des routes et des unités.
 - **Capturer** revendique la case occupée. Les lieux importants nécessitent plusieurs actions. Les unités militaires de capture sont les fantassins, gardes et chevaliers.
 - Cliquer une terre possédée pour **Construire**, ou un bâtiment pour recruter, réparer ou développer une ville.
@@ -52,7 +52,7 @@ La [décision de conception actualisée](docs/decisions.md) prime sur le [docume
 
 ## Systèmes présents
 
-Carte extensible déterministe par graine, chunks axiaux de 32 × 32, brouillard VISIBLE / EXPLORED / UNKNOWN, prévisualisation de chemins, 38 types d'unités, 43 types de bâtiments, récoltes et construction par les paysans, routes et ponts, progression Campement → Cité, cinq ressources, population, coûts d'empire, combat, soins, capacités, exploration, huit types d'événements, reliques, accords, caravanes, trêves, classement par huit dimensions, bots à personnalités, comptes et invités, journal, paramètres persistants et interface sans son.
+Carte extensible déterministe par graine, chunks axiaux de 32 × 32, brouillard VISIBLE / EXPLORED / UNKNOWN, prévisualisation de chemins, 44 types d'unités, 47 types de bâtiments, récoltes et construction par les paysans, routes et ponts, progression Campement → Cité, cinq ressources, population, coûts d'empire, combat, soins, capacités, exploration, huit types d'événements, reliques, accords, caravanes, trêves, classement par huit dimensions, bots à personnalités, comptes et invités, journal, paramètres persistants et interface sans son.
 
 ## Cendres et acier
 

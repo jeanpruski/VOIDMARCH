@@ -106,9 +106,13 @@ export function transfer(wallet: Wallet, amount: Partial<Wallet>, sign = 1) {
   for (const [k, v] of Object.entries(amount)) wallet[k as keyof Wallet] += v * sign;
 }
 export const amount = (w: Partial<Wallet>) => Object.values(w).reduce((a, b) => a + b, 0);
-/** Walls block their entire cell for every other realm, even on a road or during a truce. */
-export const wallBlocks = (building: Building | undefined, realmId: string) =>
-  !!building && building.hp > 0 && isWall(building.kind) && building.ownerId !== realmId;
+/** Walls block ground movement for every other realm, even on roads or during a truce. */
+export const wallBlocks = (building: Building | undefined, realmId: string, kind?: UnitKind) =>
+  !(kind && UNIT_PROFILES[kind].flying) &&
+  !!building &&
+  building.hp > 0 &&
+  isWall(building.kind) &&
+  building.ownerId !== realmId;
 export function wallConnections(
   building: Building,
   getBuilding: (p: Hex) => Building | undefined,
@@ -268,6 +272,7 @@ export function observe(s: GameState, r: Realm, now: number) {
   r.progression.exploration = Object.keys(r.explored).length;
 }
 export function movementCost(t: Tile, kind?: UnitKind) {
+  if (kind && UNIT_PROFILES[kind].flying) return 1;
   if (t.road) return 1;
   if (
     kind &&
@@ -308,7 +313,11 @@ export function findPath(
     }
     for (const n of neighbors(current.p)) {
       const t = getTile(n);
-      if (!t || blocked.has(key(n))) continue;
+      if (
+        !t ||
+        (blocked.has(key(n)) && (!kind || !UNIT_PROFILES[kind].flying || key(n) === key(end)))
+      )
+        continue;
       const c = current.cost + movementCost(t, kind);
       if (c > budget || c >= (costs.get(key(n)) ?? Infinity)) continue;
       costs.set(key(n), c);
@@ -330,6 +339,18 @@ export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus
     buildingAttack: boosted('buildingAttack' in base ? base.buildingAttack : base.attack),
   };
 }
+
+/** Shared targeting restrictions for server orders, bots and the combat preview. */
+export function attackBlockReason(attacker: Unit, target: Unit | Building, wall?: Building) {
+  const flyingTarget = !('population' in target) && UNIT_PROFILES[target.kind].flying;
+  if (flyingTarget && !UNIT_PROFILES[attacker.kind].flying && UNITS[attacker.kind].range <= 1)
+    return 'Cette unité terrestre ne peut pas atteindre une cible aérienne. Utilisez une unité à distance.';
+  if (!flyingTarget && target.id !== wall?.id && wallBlocks(wall, attacker.ownerId, attacker.kind))
+    return 'Détruisez d’abord le rempart qui protège cette unité.';
+  return '';
+}
+export const targetTerrainDefense = (target: Unit | Building, terrain: Terrain) =>
+  !('population' in target) && UNIT_PROFILES[target.kind].flying ? 0 : TERRAINS[terrain].defense;
 
 export function estimateDamage(attacker: Unit, target: Unit | Building, tile: Tile) {
   const a = unitStats(attacker);
@@ -354,7 +375,16 @@ export function estimateDamage(attacker: Unit, target: Unit | Building, tile: Ti
     !('population' in target) && target.kind === 'RANGER' && tile.terrain === 'FOREST' ? 2 : 0;
   const base = Math.max(
     1,
-    Math.round(atk + bonus - defense - cover - TERRAINS[tile.terrain].defense),
+    Math.round(
+      atk +
+        bonus +
+        (!('population' in target) && UNIT_PROFILES[target.kind].flying
+          ? (UNIT_PROFILES[attacker.kind].antiAir ?? 0)
+          : 0) -
+        defense -
+        cover -
+        targetTerrainDefense(target, tile.terrain),
+    ),
   );
   return { min: Math.max(1, base - 1), max: base + 1 };
 }
