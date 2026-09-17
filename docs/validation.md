@@ -159,3 +159,9 @@ Validation : 27 tests de règles et de projection réussis, dont trois nouveaux 
 - **4 tests Chrome réussis** : aviation ; cycle complet d’enceinte ; fondation/construction/recrutement/remparts ; accueil. Le scénario d’enceinte revendique 19 cases, construit une chaumière avec le paysan, puis en libère 18 après démolition du dernier tronçon. Le bouton de construction est absent tant que le bâtisseur est trop loin.
 - Captures `enclosure-closed-desktop.png` et `enclosure-open-mobile.png` inspectées : couleur de bannière à l’intérieur, perte de couleur des cases vides après brèche, conservation de la parcelle bâtie et textes explicatifs lisibles. Pas de débordement horizontal.
 - Modifications locales uniquement ; les enceintes existantes seront reconnues au redémarrage après déploiement.
+
+## Contour global des territoires — 17 septembre 2026
+
+Les cases possédées sans bâtiment gardent leur remplissage coloré mais n’affichent plus de drapeau territorial. Les traits de propriété entre hexagones du même royaume sont supprimés ; seuls les bords donnant sur un autre territoire, une case neutre ou inconnue sont dessinés. Les sommets utilisent la taille exacte des hexagones pour raccorder les segments. La grille et la sélection restent disponibles.
+
+Compilation réussie et scénario Chrome des enceintes réussi. Captures ordinateur/mobile inspectées : zone fermée colorée sans drapeaux intérieurs ni contours colorés entre cases ; après brèche, contours conformes aux seules parcelles conservées. Modifications locales, non déployées.

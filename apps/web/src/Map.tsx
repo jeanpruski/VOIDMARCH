@@ -519,17 +519,14 @@ class WorldScene extends Phaser.Scene {
         }
       }
       if (t.ownerId) {
-        const pts = points(p, SIZE - 1),
+        const pts = points(p),
           own = t.ownerId === world.player.id,
           ink = factionColor(t.ownerId),
           opacity = t.visibility === 'EXPLORED' ? 0.35 : 1,
           borders = this.territories;
-        drawBanner(t.ownerId, p.x - 25, p.y + 4, opacity);
-        // Keep ownership legible above tall terrain and buildings, even with the grid hidden.
-        borders.lineStyle(4, 0x101814, 0.7 * opacity);
-        borders.strokePoints(pts, true);
-        borders.lineStyle(own ? 1.8 : 1.2, ink, 0.7 * opacity);
-        borders.strokePoints(pts, true);
+        if (t.building) drawBanner(t.ownerId, p.x - 25, p.y + 4, opacity);
+        // Outline the territory as a whole. Full-size vertices join adjacent
+        // boundary segments without drawing seams between the realm's cells.
         neighbors(t).forEach((n, i) => {
           const nt = this.tileMap.get(key(n));
           if (nt?.ownerId !== t.ownerId) {

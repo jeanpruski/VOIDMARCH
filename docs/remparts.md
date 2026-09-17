@@ -42,7 +42,7 @@ Les remparts utilisent la sauvegarde des bâtiments existante : ils suivent auto
 
 Une boucle entièrement fermée de remparts du même joueur revendique automatiquement les cases neutres à l’intérieur. Bois, pierre et acier peuvent être mélangés. Une montagne, un autre bâtiment ou un mur adverse ne remplace pas un tronçon manquant. Aucun PA de capture supplémentaire n’est demandé : le joueur paie seulement la construction normale du dernier tronçon.
 
-Les cases prennent la couleur et les drapeaux du propriétaire via les règles de territoire habituelles. Les terres et bâtiments ennemis ne changent jamais de propriétaire automatiquement. Une unité ennemie sur une case neutre reste ennemie et bloque la construction sur sa case.
+Les cases prennent la couleur du propriétaire. Le contour coloré suit uniquement la frontière du territoire, sans séparer les hexagones voisins du même royaume ; les drapeaux de territoire sont réservés aux cases bâties. Les terres et bâtiments ennemis ne changent jamais de propriétaire automatiquement. Une unité ennemie sur une case neutre reste ennemie et bloque la construction sur sa case.
 
 À l’intérieur, on peut construire au-delà du rayon de trois cases des bâtiments, à condition d’avoir **un paysan ou un ingénieur à une case maximum du chantier**. Les coûts, PA, prérequis et restrictions de terrain restent obligatoires. Le panneau de sélection explique le statut de la terre et masque Construire si aucun bâtisseur n’est proche. Les règles de construction des autres terres possédées sont inchangées.
 
