@@ -6,6 +6,8 @@ export interface Hex {
 export interface Tile extends Hex {
   terrain: Terrain;
   ownerId?: string;
+  /** Territory dependent on this realm’s currently closed wall enclosure. */
+  enclosureOwnerId?: string;
   buildingId?: string;
   road?: boolean;
   poi?: 'COMMON' | 'UNCOMMON' | 'RARE' | 'MYTHIC';
@@ -19,6 +21,8 @@ export interface ViewTile extends Hex {
   visibility: 'UNKNOWN' | 'EXPLORED' | 'VISIBLE';
   terrain?: Terrain;
   ownerId?: string;
+  /** Territory dependent on this realm’s currently closed wall enclosure. */
+  enclosureOwnerId?: string;
   building?: Building;
   road?: boolean;
   poi?: Tile['poi'];

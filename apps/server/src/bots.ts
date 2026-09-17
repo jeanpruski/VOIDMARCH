@@ -36,6 +36,7 @@ import {
   execute,
   log,
   removePresence,
+  refreshEnclosures,
   settle,
   spawnPosition,
   type EngineOptions,
@@ -71,6 +72,7 @@ export class BotDirector {
       (r) => r.bot && r.defeatedAt && now - r.defeatedAt > RULES.defeatCooldown,
     )) {
       delete s.realms[bot.id];
+      refreshEnclosures(s, now);
       delete s.archives[bot.id];
     }
     let bots = Object.values(s.realms).filter((r) => r.bot && !r.defeatedAt);
@@ -113,6 +115,7 @@ export class BotDirector {
       if (pending) continue;
       removePresence(s, bot);
       delete s.realms[bot.id];
+      refreshEnclosures(s, now);
       bots = bots.filter((b) => b.id !== bot.id);
       log(s, `${bot.name} a quitté les Marches.`, 'WORLD', now);
     }

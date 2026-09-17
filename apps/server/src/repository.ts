@@ -3,7 +3,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { createState } from '@voidmarch/game-rules';
 import type { Action } from '@voidmarch/protocol';
 import type { ActionResult, GameState } from '@voidmarch/shared';
-import { execute, type EngineOptions } from './engine.js';
+import { execute, refreshEnclosures, type EngineOptions } from './engine.js';
 import { initialEvents } from './simulation.js';
 import { migrateResourceWallets } from './migrations.js';
 export const prisma = new PrismaClient();
@@ -16,7 +16,10 @@ export class WorldRepository {
     private worldId = 'main',
   ) {}
   async init() {
-    await this.mutate(() => {});
+    await this.mutate((s) => {
+      const changes = refreshEnclosures(s, Date.now());
+      if (changes.size) s.revision++;
+    });
   }
   async mutate<T>(
     fn: (state: GameState, tx: Prisma.TransactionClient) => T | Promise<T>,

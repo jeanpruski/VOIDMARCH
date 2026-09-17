@@ -37,3 +37,19 @@ Les textures sont mises en cache et recalculées au changement des voisins. Une 
 - `tests/founding.e2e.ts` : construction et deux évolutions via l’interface, vues réelles de remparts sur ordinateur et mobile.
 
 Les remparts utilisent la sauvegarde des bâtiments existante : ils suivent automatiquement les règles de persistance, d’archivage, de reconstruction après défaite et de suppression des invités.
+
+## Territoire à l’intérieur d’une enceinte — 17 septembre 2026
+
+Une boucle entièrement fermée de remparts du même joueur revendique automatiquement les cases neutres à l’intérieur. Bois, pierre et acier peuvent être mélangés. Une montagne, un autre bâtiment ou un mur adverse ne remplace pas un tronçon manquant. Aucun PA de capture supplémentaire n’est demandé : le joueur paie seulement la construction normale du dernier tronçon.
+
+Les cases prennent la couleur et les drapeaux du propriétaire via les règles de territoire habituelles. Les terres et bâtiments ennemis ne changent jamais de propriétaire automatiquement. Une unité ennemie sur une case neutre reste ennemie et bloque la construction sur sa case.
+
+À l’intérieur, on peut construire au-delà du rayon de trois cases des bâtiments, à condition d’avoir **un paysan ou un ingénieur à une case maximum du chantier**. Les coûts, PA, prérequis et restrictions de terrain restent obligatoires. Le panneau de sélection explique le statut de la terre et masque Construire si aucun bâtisseur n’est proche. Les règles de construction des autres terres possédées sont inchangées.
+
+À l’ouverture d’une brèche, **les cases intérieures sans bâtiment redeviennent neutres**. Cela inclut les cases vides possédées avant la fermeture, une route et une case occupée uniquement par une unité. Les unités et routes ne sont pas supprimées. Les cases portant un bâtiment restent au propriétaire et redeviennent des possessions ordinaires. Les terres extérieures à l’enceinte ne changent pas. Une enceinte intérieure encore fermée conserve sa propre zone ; refermer une brèche revendique à nouveau les cases neutres.
+
+Le résultat de l’action et le journal indiquent le nombre de cases gagnées ou libérées. La confirmation de démolition d’un mur explique les conséquences d’une brèche. L’entretien territorial normal s’applique aux nouvelles terres, sans production gratuite.
+
+Les marqueurs de territoire d’enceinte sont sauvegardés dans le monde JSON et les archives. Les anciennes enceintes fermées sont reconnues au démarrage, sans migration SQL ni réinitialisation. La suppression d’un invité efface aussi ses marqueurs d’enceinte.
+
+La détection utilise des intervalles libres par rangée et une propagation depuis l’extérieur : elle gère les enceintes irrégulières, imbriquées et les villes très éloignées sans parcourir le rectangle vide qui les sépare. `tests/enclosures.test.ts` compare le résultat à une propagation indépendante sur 150 dispositions et teste une muraille ouverte de 10 000 tronçons.

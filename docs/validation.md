@@ -150,3 +150,12 @@ Validation : 27 tests de règles et de projection réussis, dont trois nouveaux 
 - `aviation-world-desktop.png` et `aviation-catalog-mobile.png` inspectées ; les ailes restent dans les figurines isolées. Atlas et prompts dans `assets-aviation.md`.
 - Le contrôle des remparts a révélé un défaut de texture des faces vues de profil : une transformation de surface nulle pouvait laisser une ligne parasite au bord du canvas dans Chrome. Les faces de surface nulle ne reçoivent plus de projection de texture ; les 192 configurations passent à nouveau sans pixels de bord.
 - Audit des coûts régénéré : 44 unités, 47 types de bâtiments. Modifications locales, non déployées.
+
+## Territoires d’enceinte — 17 septembre 2026
+
+- Compilation TypeScript et Vite de production réussie. **306 tests de règles réussis**, 7 tests PostgreSQL ignorés dans cette exécution ; aucun changement de schéma SQL.
+- Détection validée sur 150 dispositions irrégulières comparées à un flood fill indépendant, une diagonale ouverte de 10 000 tronçons, des cités éloignées, plusieurs rayons et des enceintes imbriquées.
+- Tests métier : dernier tronçon, coût d’un seul PA, couleurs/propriété transmises au client, absence de capture adverse, trêve, constructeur obligatoire y compris à plus de trois cases d’un bâtiment, terrain compatible, brèche par démolition ou combat, routes/unités conservées, parcelles bâties conservées, réparation de brèche, matériaux mélangés, anciennes sauvegardes, archives et expiration des invités.
+- **4 tests Chrome réussis** : aviation ; cycle complet d’enceinte ; fondation/construction/recrutement/remparts ; accueil. Le scénario d’enceinte revendique 19 cases, construit une chaumière avec le paysan, puis en libère 18 après démolition du dernier tronçon. Le bouton de construction est absent tant que le bâtisseur est trop loin.
+- Captures `enclosure-closed-desktop.png` et `enclosure-open-mobile.png` inspectées : couleur de bannière à l’intérieur, perte de couleur des cases vides après brèche, conservation de la parcelle bâtie et textes explicatifs lisibles. Pas de débordement horizontal.
+- Modifications locales uniquement ; les enceintes existantes seront reconnues au redémarrage après déploiement.

@@ -32,6 +32,7 @@ import {
   canAfford,
   createRealm,
   disk,
+  enclosedHexes,
   distance,
   wallBlocks,
   demolitionRefund,
@@ -254,6 +255,7 @@ export function restartRealm(s: GameState, id: string, now: number) {
     lastCameraR: fresh.capital.r,
   };
   settleFounding(s, fresh, now);
+  refreshEnclosures(s, now);
   s.revision++;
   return fresh;
 }
@@ -261,7 +263,12 @@ export function removePresence(s: GameState, r: Realm) {
   for (const u of realmUnits(s, r.id)) delete s.units[u.id];
   for (const b of realmBuildings(s, r.id)) delete s.buildings[b.id];
   for (const t of realmTiles(s, r.id))
-    writeTile(s, t, { ownerId: undefined, buildingId: undefined, capture: undefined });
+    writeTile(s, t, {
+      ownerId: undefined,
+      buildingId: undefined,
+      capture: undefined,
+      enclosureOwnerId: undefined,
+    });
 }
 export function defeat(s: GameState, r: Realm, now: number) {
   if (r.defeatedAt) return;
@@ -315,6 +322,76 @@ function updateDefeat(s: GameState, owner: string, position: Hex, now: number) {
   )
     defeat(s, r, now);
 }
+/** Reconcile territory after walls change, and once at startup for existing cities. */
+export function refreshEnclosures(s: GameState, now: number) {
+  const regions = new Map<string, Map<string, Hex>>();
+  const changes = new Map<string, { captured: number; released: number }>();
+  const change = (owner: string) => {
+    let value = changes.get(owner);
+    if (!value) {
+      value = { captured: 0, released: 0 };
+      changes.set(owner, value);
+    }
+    return value;
+  };
+  const walls = new Map<string, Hex[]>();
+  for (const b of Object.values(s.buildings)) {
+    if (!isWall(b.kind) || b.hp <= 0 || !s.realms[b.ownerId] || s.realms[b.ownerId].defeatedAt)
+      continue;
+    const list = walls.get(b.ownerId) ?? [];
+    list.push(b);
+    walls.set(b.ownerId, list);
+  }
+  for (const [owner, cells] of walls)
+    regions.set(owner, new Map(enclosedHexes(cells).map((p) => [key(p), p])));
+  // Release first, so a surviving outer enclosure can claim newly neutral land.
+  for (const t of Object.values(s.tiles)) {
+    const owner = t.enclosureOwnerId;
+    if (!owner) continue;
+    if (t.ownerId === owner && regions.get(owner)?.has(key(t))) continue;
+    delete t.enclosureOwnerId;
+    if (t.ownerId === owner && !s.buildings[t.buildingId ?? '']) {
+      delete t.ownerId;
+      delete t.capture;
+      change(owner).released++;
+    }
+    // Losing a distant empty plot must also clear its remembered banner.
+    const remembered = s.realms[owner]?.explored[key(t)];
+    if (remembered) {
+      remembered.ownerId = t.ownerId;
+      remembered.enclosureOwnerId = undefined;
+      remembered.capture = t.capture;
+    }
+  }
+  for (const [owner, cells] of regions) {
+    for (const p of cells.values()) {
+      const t = tileAt(s, p),
+        b = s.buildings[t.buildingId ?? ''];
+      if ((t.ownerId && t.ownerId !== owner) || (b && b.ownerId !== owner)) continue;
+      if (!t.ownerId) change(owner).captured++;
+      if (t.ownerId !== owner || t.enclosureOwnerId !== owner)
+        writeTile(s, p, { ownerId: owner, enclosureOwnerId: owner, capture: undefined });
+    }
+  }
+  for (const [owner, counts] of changes) {
+    const realm = s.realms[owner];
+    if (!realm) continue;
+    const message = [
+      counts.captured
+        ? `Enceinte fermée : ${counts.captured} case(s) neutre(s) rejoignent votre royaume.`
+        : '',
+      counts.released
+        ? `Enceinte ouverte : ${counts.released} case(s) sans bâtiment redeviennent neutres. Les bâtiments sont conservés.`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+    log(s, message, 'REALM', now, [owner], realm.capital);
+    observe(s, realm, now);
+  }
+  return changes;
+}
+
 export function applyAction(
   s: GameState,
   id: string,
@@ -470,10 +547,14 @@ export function applyAction(
         'Construisez une palissade, puis améliorez-la en pierre et en acier.',
       );
       const builder = s.units[a.actorId];
+      const nearbyBuilder =
+        builder?.ownerId === id && UNIT_PROFILES[builder.kind].builder && distance(builder, p) <= 1;
+      requireRule(
+        !t.enclosureOwnerId || nearbyBuilder,
+        'Approchez un paysan ou un ingénieur à une case maximum du chantier dans l’enceinte.',
+      );
       const frontier =
-        builder?.ownerId === id &&
-        UNIT_PROFILES[builder.kind].builder &&
-        distance(builder, p) <= 1 &&
+        nearbyBuilder &&
         !t.ownerId &&
         realmBuildings(s, id).some((b) => distance(b, p) <= RULES.constructionRadius);
       requireRule(
@@ -952,6 +1033,13 @@ export function applyAction(
       log(s, message, 'REALM', now, [id], position);
       break;
     }
+  }
+  if (['BUILD', 'DEMOLISH', 'ATTACK', 'CAPTURE', 'UPGRADE', 'REPAIR', 'RESPAWN'].includes(a.type)) {
+    const territory = refreshEnclosures(s, now).get(id);
+    if (territory?.captured)
+      message += ` Enceinte fermée : +${territory.captured} case(s) de territoire.`;
+    if (territory?.released)
+      message += ` Enceinte ouverte : ${territory.released} case(s) sans bâtiment redeviennent neutres.`;
   }
   observe(s, r, now);
   s.revision++;

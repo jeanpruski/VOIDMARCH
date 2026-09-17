@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Hammer } from 'lucide-react';
-import { ACTION_COST, BUILDINGS, storageBonus } from '@voidmarch/config';
+import { ACTION_COST, BUILDINGS, storageBonus, isWall } from '@voidmarch/config';
 import { amount, demolitionRefund, distance } from '@voidmarch/game-rules';
 import type { Building } from '@voidmarch/shared';
 import { Cost, Modal, format } from './ui';
@@ -36,6 +36,12 @@ export function DemolishBuilding({ building: b }: { building: Building }) {
                 Le bâtiment et ses améliorations seront définitivement supprimés. La case et sa
                 route restent dans votre territoire.
               </p>
+              {isWall(b.kind) && (
+                <p className="warning">
+                  Si ce tronçon ouvre une brèche dans votre enceinte, les cases intérieures sans
+                  bâtiment redeviennent neutres. Les cases portant un bâtiment restent à vous.
+                </p>
+              )}
               <h3>Ressources récupérées</h3>
               {amount(refund) > 0 ? (
                 <Cost cost={refund} />

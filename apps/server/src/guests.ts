@@ -1,3 +1,4 @@
+import { refreshEnclosures } from './engine.js';
 import { RULES } from '@voidmarch/config';
 import { transfer } from '@voidmarch/game-rules';
 import type { GameState } from '@voidmarch/shared';
@@ -14,6 +15,7 @@ export function removeGuestRealm(s: GameState, id: string) {
       delete tile.road;
     }
     if (tile.capture?.by === id) delete tile.capture;
+    if (tile.enclosureOwnerId === id) delete tile.enclosureOwnerId;
   }
   for (const realm of Object.values(s.realms))
     for (const tile of Object.values(realm.explored)) {
@@ -23,6 +25,7 @@ export function removeGuestRealm(s: GameState, id: string) {
         delete tile.road;
       }
       if (tile.capture?.by === id) delete tile.capture;
+      if (tile.enclosureOwnerId === id) delete tile.enclosureOwnerId;
     }
   for (const [key, proposal] of Object.entries(s.proposals))
     if (proposal.from === id || proposal.to === id) delete s.proposals[key];
@@ -37,6 +40,7 @@ export function removeGuestRealm(s: GameState, id: string) {
     }
   delete s.archives[id];
   delete s.realms[id];
+  refreshEnclosures(s, Date.now());
   // Claimed events stay claimed; account expiry must not regenerate rewards.
   s.revision++;
 }

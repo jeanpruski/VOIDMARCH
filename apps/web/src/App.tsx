@@ -971,11 +971,20 @@ function SelectionPanel() {
               : tile?.visibility === 'EXPLORED'
                 ? 'Dernière observation connue. Approchez une unité pour actualiser ces informations.'
                 : own
-                  ? 'Cette terre peut accueillir un domaine ou une infrastructure.'
+                  ? tile?.enclosureOwnerId
+                    ? 'Terre revendiquée par votre enceinte. Approchez un paysan ou un ingénieur à une case pour construire. Sans bâtiment, elle redevient neutre si les remparts s’ouvrent.'
+                    : 'Cette terre peut accueillir un domaine ou une infrastructure.'
                   : 'Occupez cette terre avec une unité de capture pour la revendiquer.'}
           </p>
           <RoadAction tile={tile} />
-          {(own ||
+          {((own &&
+            (!tile?.enclosureOwnerId ||
+              w.units.some(
+                (u) =>
+                  u.ownerId === w.player.id &&
+                  UNIT_PROFILES[u.kind].builder &&
+                  distance(u, tile) <= 1,
+              ))) ||
             (tile &&
               !tile.ownerId &&
               w.units.some(

@@ -870,7 +870,8 @@ function Build() {
         {tile?.terrain ? `${TERRAINS[tile.terrain].name} · Hexagone ${tile.q}, ${tile.r}. ` : ''}Un
         bâtiment par hexagone. Extension possible à 3 cases d’un bâtiment avec un bâtisseur près du
         chantier. {Object.keys(BUILDINGS).length} types de bâtiments, dont 2 évolutions de remparts.
-        Les routes peuvent traverser un domaine déjà bâti.
+        Une enceinte fermée revendique les cases neutres à l’intérieur ; un bâtisseur doit rester
+        près de chaque chantier. Les routes peuvent traverser un domaine déjà bâti.
       </p>
       {tile?.ownerId !== w.player.id && !frontier && (
         <p className="form-error">
@@ -879,14 +880,21 @@ function Build() {
         </p>
       )}
       <p className="catalog-order-hint">
-        Terrain adapté en premier · Bâtiments de base → développements avancés
+        Palissade en premier · Puis terrain adapté et bâtiments de base → développements avancés
       </p>
       <ContextHelp title="Où construire et pourquoi certains bâtiments sont bloqués ?">
         <p>
-          Les bâtiments adaptés au terrain apparaissent en premier, des bases aux constructions
-          avancées. Chaque étape correspond à la profondeur des prérequis. À étape égale, les moins
-          coûteux viennent d’abord. Il faut une case libre de votre royaume, ou un bâtisseur à une
-          case maximum du chantier neutre, situé à trois cases maximum de l’un de vos bâtiments.
+          La palissade est épinglée en premier, puis les bâtiments adaptés au terrain, des bases aux
+          constructions avancées. Chaque étape correspond à la profondeur des prérequis. À étape
+          égale, les moins coûteux viennent d’abord. Il faut une case libre de votre royaume, ou un
+          bâtisseur à une case maximum du chantier neutre, situé à trois cases maximum de l’un de
+          vos bâtiments.
+        </p>
+        <p>
+          Une enceinte fermée avec vos remparts en bois, pierre ou acier prend les cases neutres à
+          l’intérieur. Vous pouvez y construire sans limite de distance aux bâtiments, avec un
+          paysan ou un ingénieur à une case maximum. Si une brèche s’ouvre, seules les cases portant
+          un bâtiment restent à vous. Les terrains ennemis ne sont jamais pris automatiquement.
         </p>
         <p>
           Chaque construction coûte 1 PA et les ressources affichées. Certains bâtiments demandent
@@ -939,17 +947,19 @@ function Build() {
             const reason =
               !tile || (tile.ownerId !== w.player.id && !frontier)
                 ? 'Sur votre territoire uniquement'
-                : tile.building
-                  ? 'Hexagone déjà construit'
-                  : !tile.terrain || !b.terrains.includes(tile.terrain)
-                    ? 'Terrain incompatible'
-                    : missing
-                      ? `${BUILDINGS[missing].name} nécessaire`
-                      : !w.player.unlimitedAP && w.player.ap < 1
-                        ? '1 PA nécessaire'
-                        : !canAfford(w.player.wallet, cost)
-                          ? 'Ressources insuffisantes'
-                          : '';
+                : tile.enclosureOwnerId && !builder
+                  ? 'Approchez un paysan ou un ingénieur à une case maximum'
+                  : tile.building
+                    ? 'Hexagone déjà construit'
+                    : !tile.terrain || !b.terrains.includes(tile.terrain)
+                      ? 'Terrain incompatible'
+                      : missing
+                        ? `${BUILDINGS[missing].name} nécessaire`
+                        : !w.player.unlimitedAP && w.player.ap < 1
+                          ? '1 PA nécessaire'
+                          : !canAfford(w.player.wallet, cost)
+                            ? 'Ressources insuffisantes'
+                            : '';
             return (
               <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
                 <span className="catalog-status">

@@ -1331,7 +1331,7 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   FLAK_BATTERY:
     'Recrute les canons antiaériens Flak. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +10 % aux canons existants et futurs.',
   WOOD_WALL:
-    'Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Évolue avec 45 pierre, puis 45 fer pour l’acier (2 PA par évolution).',
+    'Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec 45 pierre, puis 45 fer pour l’acier (2 PA par évolution).',
   STONE_WALL:
     'Remplace une palissade : 65 PV, défense 2. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec 45 fer et 2 PA.',
   STEEL_WALL:

@@ -40,6 +40,104 @@ export const DIRECTIONS: Hex[] = [
   { q: 0, r: 1 },
 ];
 export const neighbors = (p: Hex) => DIRECTIONS.map((d) => ({ q: p.q + d.q, r: p.r + d.r }));
+/** Finite regions sealed by contiguous wall cells. Sparse row spans avoid scanning
+ * the huge empty rectangle between distant cities or along an open diagonal wall. */
+export function enclosedHexes(walls: readonly Hex[]): Hex[] {
+  const remaining = new Map(walls.map((p) => [key(p), p]));
+  const allWalls = new Set(remaining.keys());
+  const enclosed = new Map<string, Hex>();
+  while (remaining.size) {
+    const first = remaining.values().next().value!;
+    const component: Hex[] = [first];
+    remaining.delete(key(first));
+    for (let i = 0; i < component.length; i++) {
+      for (const neighbor of neighbors(component[i])) {
+        const entry = remaining.get(key(neighbor));
+        if (entry) {
+          remaining.delete(key(entry));
+          component.push(entry);
+        }
+      }
+    }
+    if (component.length < 6) continue;
+    let minQ = Infinity,
+      maxQ = -Infinity,
+      minR = Infinity,
+      maxR = -Infinity;
+    const blockedRows = new Map<number, number[]>();
+    for (const p of component) {
+      minQ = Math.min(minQ, p.q);
+      maxQ = Math.max(maxQ, p.q);
+      minR = Math.min(minR, p.r);
+      maxR = Math.max(maxR, p.r);
+      const row = blockedRows.get(p.r) ?? [];
+      row.push(p.q);
+      blockedRows.set(p.r, row);
+    }
+    minQ--;
+    maxQ++;
+    minR--;
+    maxR++;
+    type Span = { start: number; end: number; r: number; neighbors: Span[]; exterior: boolean };
+    const spans: Span[] = [],
+      exterior: Span[] = [];
+    let previous: Span[] = [];
+    for (let r = minR; r <= maxR; r++) {
+      const row: Span[] = [];
+      let start = minQ;
+      const append = (end: number) => {
+        if (start > end) return;
+        const boundary = r === minR || r === maxR || start === minQ || end === maxQ;
+        const span: Span = { start, end, r, neighbors: [], exterior: boundary };
+        row.push(span);
+        spans.push(span);
+        if (boundary) exterior.push(span);
+      };
+      for (const q of (blockedRows.get(r) ?? []).sort((a, b) => a - b)) {
+        append(q - 1);
+        start = q + 1;
+      }
+      append(maxQ);
+      // Across increasing r, axial neighbors keep q or decrease q by one.
+      let i = 0,
+        j = 0;
+      while (i < previous.length && j < row.length) {
+        const a = previous[i],
+          b = row[j];
+        if (a.end < b.start) {
+          i++;
+          continue;
+        }
+        if (b.end < a.start - 1) {
+          j++;
+          continue;
+        }
+        a.neighbors.push(b);
+        b.neighbors.push(a);
+        if (a.end < b.end) i++;
+        else j++;
+      }
+      previous = row;
+    }
+    for (let i = 0; i < exterior.length; i++) {
+      for (const next of exterior[i].neighbors) {
+        if (next.exterior) continue;
+        next.exterior = true;
+        exterior.push(next);
+      }
+    }
+    for (const span of spans) {
+      if (span.exterior) continue;
+      for (let q = span.start; q <= span.end; q++) {
+        const p = { q, r: span.r },
+          k = key(p);
+        if (!allWalls.has(k)) enclosed.set(k, p);
+      }
+    }
+  }
+  return [...enclosed.values()];
+}
+
 export function disk(p: Hex, radius: number): Hex[] {
   const out: Hex[] = [];
   for (let q = -radius; q <= radius; q++)
@@ -262,6 +360,7 @@ export function observe(s: GameState, r: Realm, now: number) {
       visibility: 'EXPLORED',
       terrain: t.terrain,
       ownerId: t.ownerId,
+      enclosureOwnerId: t.enclosureOwnerId,
       road: t.road,
       poi: t.poi,
       exhausted: t.exhausted,
@@ -477,6 +576,7 @@ export function publicTile(
     visibility: 'VISIBLE',
     terrain: t.terrain,
     ownerId: t.ownerId,
+    enclosureOwnerId: t.enclosureOwnerId,
     building: t.buildingId ? s.buildings[t.buildingId] : undefined,
     road: t.road,
     poi: t.poi,
