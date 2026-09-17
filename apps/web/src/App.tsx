@@ -1,3 +1,4 @@
+import { HeroControls } from './Hero';
 import { unitStats } from '@voidmarch/game-rules';
 import { useEffect, useRef, useState } from 'react';
 import { TurretControls } from './TurretControls';
@@ -645,7 +646,12 @@ function SelectionPanel() {
     <section ref={panelRef} className="selection-panel" aria-label="Sélection actuelle">
       <div className="selection-identity">
         {frame !== undefined ? (
-          <Miniature frame={frame} size={88} turretLevel={b?.turretLevel} />
+          <Miniature
+            heroAppearance={u?.hero?.appearance}
+            frame={frame}
+            size={88}
+            turretLevel={b?.turretLevel}
+          />
         ) : (
           <div className="tile-symbol">
             <Hexagon size={40} strokeWidth={1} />
@@ -717,6 +723,7 @@ function SelectionPanel() {
               </p>
             </ContextHelp>
           )}
+          {own && u.kind === 'HERO' && <HeroControls />}
           {own && tile?.capture?.by === w.player.id && (
             <p className="capture-progress">
               Capture en cours : {tile.capture.points} points. Répétez « Revendiquer la case »
@@ -874,7 +881,7 @@ function SelectionPanel() {
                     Construire
                   </button>
                 )}
-                {u.kind !== 'PEASANT' && (
+                {u.kind !== 'PEASANT' && u.kind !== 'HERO' && (
                   <button
                     className="secondary"
                     disabled={

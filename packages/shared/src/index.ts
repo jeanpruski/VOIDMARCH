@@ -8,6 +8,8 @@ import type {
   TurretLevel,
   WallKind,
   NpcKind,
+  HeroAppearance,
+  HeroPower,
 } from '@voidmarch/config';
 export interface Hex {
   q: number;
@@ -43,6 +45,7 @@ export interface ViewTile extends Hex {
   capture?: Tile['capture'];
 }
 export interface Unit extends Hex {
+  hero?: { appearance: HeroAppearance; name: string; xp: number };
   npc?: {
     kind: NpcKind;
     maxHp: number;
@@ -80,6 +83,12 @@ export interface Building extends Hex {
   updatedAt: number;
 }
 export interface Realm {
+  hero?: {
+    appearance: HeroAppearance;
+    xp: number;
+    recoverAt?: number;
+    cooldowns: Partial<Record<HeroPower, number>>;
+  };
   id: string;
   name: string;
   faction: Faction;
@@ -189,6 +198,7 @@ export interface RealmArchive {
 }
 export interface GameState {
   version: 1;
+  balanceVersion?: number;
   seed: string;
   createdAt: number;
   realms: Record<string, Realm>;

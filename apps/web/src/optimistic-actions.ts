@@ -20,6 +20,7 @@ import {
 } from '@voidmarch/config';
 import {
   armyPopulation,
+  recruitmentRequirement,
   nextTurretLevel,
   turretUpgradeReason,
   canAfford,
@@ -142,12 +143,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
     case 'RECRUIT': {
       const kind = action.payload.kind,
         profile = UNIT_PROFILES[kind];
-      if (
-        !building ||
-        !profile.recruitAt.includes(building.kind) ||
-        profile.requires.some((k) => !buildings.some((b) => b.kind === k))
-      )
-        return;
+      if (!building || recruitmentRequirement(kind, building, buildings)) return;
       const free =
         kind === 'PEASANT' && !world.units.some((u) => u.ownerId === id && u.kind === 'PEASANT');
       if (
@@ -346,7 +342,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       break;
     }
     case 'ABILITY': {
-      if (!unit || action.payload.ability === 'SURVEY') return;
+      if (!unit || action.payload.ability === 'SURVEY' || action.payload.ability.startsWith('HERO_')) return;
       if (action.payload.ability === 'RESTORE') {
         const targets = buildings.filter(
           (b) => distance(b, unit) <= 1 && b.hp < BUILDINGS[b.kind].hp * b.level,

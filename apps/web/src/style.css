@@ -303,6 +303,149 @@ kbd {
     url('/assets/abyssal-threshold.png') center/cover;
 }
 /* The threshold */
+.hero-creator {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 24px;
+  padding: 22px;
+  margin: 20px 0;
+  border: 1px solid #5b614a;
+  background: #17211ce8;
+}
+.hero-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+.hero-preview strong {
+  color: #ddc994;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.hero-preview small,
+.hero-customization p,
+.hero-controls small {
+  color: #b7bca7;
+  line-height: 1.5;
+}
+.hero-portrait {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.hero-customization {
+  min-width: 0;
+}
+.hero-customization h3 {
+  margin-top: 0;
+}
+.hero-customization select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px;
+  color: #e4e1ce;
+  background: #202a23;
+  border: 1px solid #626853;
+}
+.hero-palette {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin: 12px 0;
+}
+.hero-palette button {
+  min-height: 28px;
+  border: 2px solid transparent;
+}
+.hero-palette button[aria-pressed='true'] {
+  border-color: #eee4b5;
+  outline: 1px solid #131813;
+}
+.hero-color {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.hero-color input {
+  width: 64px;
+  height: 36px;
+  padding: 2px;
+}
+.hero-controls {
+  background: #17211ce8;
+  border: 1px solid #5b614a;
+  padding: 12px;
+  margin: 12px 0;
+}
+.selection-panel > .hero-controls {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+}
+.selection-panel .selection-identity .hero-portrait {
+  width: 56px;
+  height: 56px;
+}
+.hero-summary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.hero-summary p {
+  margin: 5px 0;
+}
+.hero-powers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+.hero-powers > div {
+  flex: 1 1 190px;
+}
+.hero-powers small {
+  display: block;
+  margin-top: 6px;
+}
+.game-shell .hero-controls button:disabled,
+.modal .hero-controls button:disabled {
+  display: inline-flex;
+  opacity: 0.55;
+}
+.login-content.hero-registration {
+  width: min(900px, calc(100% - 40px));
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.login .hero-registration form {
+  max-width: none;
+}
+@media (max-width: 650px) {
+  .hero-creator {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+  .hero-preview .hero-portrait {
+    width: 160px;
+    height: 160px;
+  }
+  .hero-summary {
+    align-items: flex-start;
+  }
+  .hero-powers {
+    flex-direction: column;
+  }
+  .hero-powers > div {
+    flex: auto;
+  }
+  .login-content.hero-registration {
+    width: calc(100% - 24px);
+  }
+}
 .login {
   position: relative;
   min-height: 100dvh;
@@ -2935,6 +3078,48 @@ input[type='color'] {
   background: #514431;
   color: #f0dbb4;
   border-color: #bd9569;
+}
+.production-filters {
+  min-width: 0;
+  margin: 14px 0;
+  padding: 10px 12px;
+  border: 1px solid #736647;
+  background: #b6974a09;
+}
+.production-filters legend {
+  color: #e3c991;
+  font-size: 13px;
+  padding: 0 5px;
+}
+.production-filters .catalog-tabs {
+  margin: 4px 0 10px;
+}
+.production-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.production-filters button[aria-pressed='true'] {
+  background: #514431;
+  color: #f0dbb4;
+  border-color: #bd9569;
+}
+.production-count {
+  font-size: 11px;
+  opacity: 0.75;
+}
+.production-filters p {
+  margin: 0;
+  font-size: 12px;
+  color: #b9b9a8;
+}
+.production-summary {
+  padding: 8px;
+  background: #a5b96012;
+  border-left: 2px solid #a5b960;
+}
+.production-match {
+  color: #d6e6a3;
 }
 @media (max-width: 760px) {
   .top-resources {

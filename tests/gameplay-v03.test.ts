@@ -121,14 +121,14 @@ describe('améliorations et spécialisation', () => {
       else expect(buildingUpgrade(kind, 1)).not.toBeNull();
     },
   );
-  it('une mine de niveau 2 produit 25 % de fer supplémentaire', () => {
+  it('une mine de niveau 2 produit 60 % de fer supplémentaire', () => {
     const s = fixture();
     const mine = addBuilding(s, s.realms.player, { q: 1, r: 0 }, 'MINE', now);
     writeTile(s, mine, { terrain: 'HILL' });
     const before = income(s, 'player').IRON;
     const result = execute(s, 'player', action('UPGRADE', mine.id), now);
     expect(result.result.accepted).toBe(true);
-    expect(income(result.state, 'player').IRON - before).toBe(1);
+    expect(income(result.state, 'player').IRON - before).toBe(3);
     expect(result.state.buildings[mine.id].level).toBe(2);
     expect(result.state.buildings[mine.id].hp).toBe(BUILDINGS.MINE.hp * 2);
     result.state.buildings[mine.id].level = 3;
@@ -152,16 +152,16 @@ describe('améliorations et spécialisation', () => {
       updatedAt: now,
     };
     s = execute(s, r.id, action('UPGRADE', b.id), now).state;
-    expect(s.units.soldier.trainingBonus).toBe(10);
-    expect(s.units.soldier.hp).toBe(5.5);
-    expect(unitStats(s.units.soldier).attack).toBe(3.3);
+    expect(s.units.soldier.trainingBonus).toBe(25);
+    expect(s.units.soldier.hp).toBe(6.25);
+    expect(unitStats(s.units.soldier).attack).toBe(10);
     s = execute(s, r.id, action('UPGRADE', second.id), now).state;
-    expect(s.units.soldier.trainingBonus).toBe(10);
+    expect(s.units.soldier.trainingBonus).toBe(25);
     writeTile(s, b, { terrain: 'PLAIN' });
     const result = execute(s, r.id, action('RECRUIT', b.id, { kind: 'MILITIA' }), now);
     expect(result.result.accepted).toBe(true);
     expect(realmUnits(result.state, r.id).find((u) => u.kind === 'MILITIA')?.trainingBonus).toBe(
-      10,
+      25,
     );
   });
   it('refuse les soldats au campement et les paysans en caserne', () => {

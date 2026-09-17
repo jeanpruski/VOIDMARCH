@@ -1,0 +1,43 @@
+# Figurines modulaires des héros
+
+Génération avec l’outil imagegen intégré, le 17 septembre 2026. Quatre planches de 15 pièces, toutes générées séparément, grille 5 × 3. La transparence RGBA est conservée. Aucun détourage local ni appel API externe. Les couleurs sont appliquées dans le rendu Canvas aux matières neutres ; les tons de peau, laiton et lumières sont préservés autant que possible. Les éléments sont isolés par silhouettes, puis assemblés dans les mêmes points d’ancrage pour le créateur et la carte. Socle dessiné par le rendu du jeu.
+
+## hero-heads
+
+Fichier final : `apps/web/public/assets/hero-heads.png`.
+
+Source conservée : `/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-fd8c0f13-73a3-4f20-b810-52cd9aaa25d9.png`.
+
+```text
+Use case: stylized-concept. Production modular character sprite atlas for dark game VOIDMARCH. EXACTLY FIFTEEN isolated pieces in an evenly spaced 5 COLUMN by 3 ROW grid, read left to right. Painted tabletop miniature style, realistic detail, charcoal gray desaturated metal/fabric allowing runtime recoloring. Slight three-quarter front view, all pieces face same direction. True RGBA transparent background, NO checkerboard, NO grid lines, NO labels, NO text, NO insignia, no Nazi symbols. Generous transparent gutters. Each item centered in its cell, contained within 70% width and height. NO complete characters, no scenic bases. These are interchangeable pieces of one paper-doll hero. HEADS ONLY ending at short neck peg, identical scale and center alignment. Fifteen different head designs: 1 officer peaked cap with plain metal clasp and stern face, 2 steel WWII helmet with respirator, 3 medieval closed visor, 4 hooded occult face, 5 officer peaked cap with goggles and bearded face, 6 armored crusader greathelm, 7 plague doctor beak mask, 8 leather pilot cap with goggles, 9 unhelmeted short-haired woman, 10 unhelmeted dark-skinned man with beard, 11 bandaged veteran in plain field cap, 12 hornless ornate gothic knight helmet, 13 hood with gas mask, 14 skull-faced mechanical mask, 15 woman in peaked officer cap. Human faces natural skin tones, headwear neutral gray.
+```
+
+## hero-armors
+
+Fichier final : `apps/web/public/assets/hero-armors.png`.
+
+Source conservée : `/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-482ab67c-f29a-4716-ae04-073fdf02627f.png`.
+
+```text
+Use case: stylized-concept. Production modular character sprite atlas for dark game VOIDMARCH. EXACTLY FIFTEEN isolated pieces in an evenly spaced 5 COLUMN by 3 ROW grid, read left to right. Painted tabletop miniature style, realistic detail, charcoal gray desaturated metal/fabric allowing runtime recoloring. Slight three-quarter front view, all pieces face same direction. True RGBA transparent background, NO checkerboard, NO grid lines, NO labels, NO text, NO insignia, no Nazi symbols. Generous transparent gutters. Each item centered in its cell, contained within 70% width and height. NO complete characters, no scenic bases. These are interchangeable pieces of one paper-doll hero. TORSOS ONLY including shoulders and both arms with closed gloved hands down next to hips, cropped straight at belt/waist, NO head, NO legs, NO weapons, NO mannequin. Identical narrow waist position and humanoid dimensions. Fifteen designs: 1 WWII feldgrau officer tunic leather cross belt, 2 medieval steel plate cuirass, 3 short military greatcoat with fur collar, 4 occult hoodless robe torso with chains, 5 black leather officer jacket, 6 mail armor with tabard, 7 trench infantry uniform with ammunition pouches, 8 heavy gothic breastplate with bone relief, 9 pilot bomber jacket, 10 plague physician leather apron torso, 11 radiological protective suit torso, 12 armored military uniform with gorget, 13 occult priest vestments torso, 14 engineer jacket with tools and one mechanical forearm, 15 high-ranking officer double-breasted tunic braided shoulder straps, plain fictional clasp. All stop at waist, no long coat tails.
+```
+
+## hero-boots
+
+Fichier final : `apps/web/public/assets/hero-boots.png`.
+
+Source conservée : `/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-ae155b65-880a-42d1-b821-0dd3ec2861a1.png`.
+
+```text
+Use case: stylized-concept. Production modular character sprite atlas for dark game VOIDMARCH. EXACTLY FIFTEEN isolated pieces in an evenly spaced 5 COLUMN by 3 ROW grid, read left to right. Painted tabletop miniature style, realistic detail, charcoal gray desaturated metal/fabric allowing runtime recoloring. Slight three-quarter front view, all pieces face same direction. True RGBA transparent background, NO checkerboard, NO grid lines, NO labels, NO text, NO insignia, no Nazi symbols. Generous transparent gutters. Each item centered in its cell, contained within 70% width and height. NO complete characters, no scenic bases. These are interchangeable pieces of one paper-doll hero. LOWER BODY BOOT SETS ONLY: each one a single joined waist-to-feet lower body with BOTH legs and a pair of boots, in identical standing stance, narrow waist at top centered, NO torso, NO base. Fifteen designs: 1 military breeches and tall jackboots, 2 medieval armored greaves, 3 field trousers and lace-up boots, 4 occult robe lower hem and iron boots, 5 leather officer trousers and polished boots, 6 chainmail chausses and sabatons, 7 trench gaiters and worn boots, 8 heavy gothic leg plate, 9 pilot trousers and fur-lined boots, 10 plague physician long leather skirt and shoes, 11 radiological suit trousers and sealed boots, 12 officer jodhpurs and riding boots, 13 priest robe hem with pointed shoes, 14 engineer trousers with one mechanical shin, 15 reinforced commander boots with ornate knee guards. Entire both feet visible, same stance and waist width.
+```
+
+## hero-weapons
+
+Fichier final : `apps/web/public/assets/hero-weapons.png`.
+
+Source conservée : `/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-60ecdbba-3c3f-45a6-b8b0-689bbeef2fe3.png`.
+
+```text
+Use case: stylized-concept. Production modular character sprite atlas for dark game VOIDMARCH. EXACTLY FIFTEEN isolated pieces in an evenly spaced 5 COLUMN by 3 ROW grid, read left to right. Painted tabletop miniature style, realistic detail, charcoal gray desaturated metal/fabric allowing runtime recoloring. Slight three-quarter front view, all pieces face same direction. True RGBA transparent background, NO checkerboard, NO grid lines, NO labels, NO text, NO insignia, no Nazi symbols. Generous transparent gutters. Each item centered in its cell, contained within 70% width and height. NO complete characters, no scenic bases. These are interchangeable pieces of one paper-doll hero. HANDHELD EQUIPMENT ONLY, no hands or person. All held vertically with grip about 40% from top, blades/barrels angled slightly down, complete silhouette. Fifteen different items: 1 medieval longsword point down, 2 WWII officer pistol barrel down, 3 occult staff with green crystal, 4 ceremonial saber point down, 5 compact WWII submachine gun barrel down, 6 heavy engineering wrench, 7 ritual dagger, 8 field radio handset and short antenna, 9 iron warhammer head low, 10 chained occult censer, 11 Tesla pistol with coil, 12 leather grimoire with clasp, 13 officer baton, 14 gothic mace head low, 15 radium relic lantern. Neutral metal and leather, small eerie light accents only.
+```

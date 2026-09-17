@@ -1,5 +1,5 @@
 import { NPCS } from '@voidmarch/config';
-import { attackBlockReason, attackCost, attackStats, distance } from '@voidmarch/game-rules';
+import { resolveAttack, attackCost, attackStats, distance } from '@voidmarch/game-rules';
 import type { Unit } from '@voidmarch/shared';
 import { Cost, Duration } from './ui';
 import { useGame } from './store';
@@ -37,7 +37,11 @@ export function AttackNpc({ unit }: { unit: Unit }) {
         u.ownerId === w.player.id &&
         attackStats(u).attack > 0 &&
         distance(u, unit) <= attackStats(u).range &&
-        !attackBlockReason(u, unit),
+        !resolveAttack(
+          u,
+          unit,
+          w.tiles.flatMap((t) => (t.building ? [t.building] : [])),
+        ).reason,
     )
     .sort((a, b) => attackStats(b).attack - attackStats(a).attack)[0];
   if (!attacker || pending) return null;

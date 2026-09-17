@@ -214,7 +214,7 @@ describe('tourelles fixées aux remparts', () => {
     wall.turretLevel = 3;
     s.units.enemy.kind = 'FIGHTER';
     const d = estimateDamage(wall, s.units.enemy, { q: 3, r: 0, terrain: 'MOUNTAIN' });
-    expect(d.min).toBe(25);
+    expect(d.min).toBe(63);
     expect(
       execute(s, 'a', order('MOVE', wall.id, { path: [{ q: 2, r: 0 }] }), now).result.accepted,
     ).toBe(false);

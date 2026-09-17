@@ -6,7 +6,7 @@ import type { ActionResult, AuthUser, Hex, WorldView } from '@voidmarch/shared';
 import type { WorldEffect } from './world-effects';
 import type { Settings } from '@voidmarch/config';
 import { UNIT_PROFILES, isWall } from '@voidmarch/config';
-import { turretStats } from '@voidmarch/game-rules';
+import { turretStats, resolveAttack } from '@voidmarch/game-rules';
 import { predictAction, type Prediction } from './optimistic-actions';
 import { pendingAction, pendingWorld, type PendingAction } from './pending-action';
 import { animateMovement, type MovementAnimation } from './movement-animation';
@@ -317,15 +317,24 @@ export async function send(command: Command) {
   const order: PendingOrder = { action, prediction, closedPanel: closePanel ? state.panel : null };
   activeOrder = order;
   const movement = prediction?.movement;
-  const attackTarget =
+  const intendedTarget =
     command.type === 'ATTACK'
       ? (state.world.units.find((u) => u.id === command.payload.targetId) ??
-        state.world.tiles.find((t) => t.building?.id === command.payload.targetId))
+        state.world.tiles.find((t) => t.building?.id === command.payload.targetId)?.building)
       : undefined;
-  const attacker = attackTarget
+  const attacker = intendedTarget
     ? (state.world.units.find((u) => u.id === command.actorId) ??
       state.world.tiles.find((t) => t.building?.id === command.actorId)?.building)
     : undefined;
+  const resolved =
+    attacker && intendedTarget
+      ? resolveAttack(
+          attacker,
+          intendedTarget,
+          state.world.tiles.flatMap((t) => (t.building ? [t.building] : [])),
+        )
+      : undefined;
+  const attackTarget = resolved && !resolved.reason ? resolved.target : undefined;
   useGame.setState({
     pending: true,
     pendingSince: Date.now(),
@@ -351,7 +360,7 @@ export async function send(command: Command) {
                       ? { wallKind: attacker.kind }
                       : {}),
                     targetAirborne:
-                      'kind' in attackTarget && !!UNIT_PROFILES[attackTarget.kind].flying,
+                      !('population' in attackTarget) && !!UNIT_PROFILES[attackTarget.kind].flying,
                   },
                 }
               : {}),

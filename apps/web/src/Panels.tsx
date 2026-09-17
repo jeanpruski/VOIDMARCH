@@ -1,5 +1,6 @@
+import { HeroControls } from './Hero';
 import { buildingStage, compareBuildings, buildingsUnlockedBy } from './building-order';
-import { unitStats, attackStats, attackCost } from '@voidmarch/game-rules';
+import { unitStats, attackStats, attackCost, recruitmentRequirement } from '@voidmarch/game-rules';
 import { useState, type FormEvent } from 'react';
 import { RoadAction } from './RoadAction';
 import { NpcInfo } from './NpcInfo';
@@ -29,6 +30,8 @@ import {
   RULES,
   BUILDING_POPULATION,
   UNIT_PROFILES,
+  UNIT_TIERS,
+  TIER_NAMES,
   UNIT_TABS,
   UNIT_CATEGORY,
   type UnitTab,
@@ -61,7 +64,8 @@ import {
   canAfford,
   distance,
   estimateDamage,
-  attackBlockReason,
+  resolveAttack,
+  attackTrajectory,
   targetTerrainDefense,
   key,
   zeroWallet,
@@ -179,6 +183,7 @@ function RealmPanel() {
     me = w.realms.find((r) => r.id === p.id)!;
   return (
     <>
+      <HeroControls />
       <div className="realm-heading">
         <Sigil symbol={p.settings.emblem} color={p.settings.bannerColor} size={45} />
         <div>
@@ -248,7 +253,11 @@ function ArmyPanel() {
                 focusMap(u);
               }}
             >
-              <Miniature frame={UNIT_FRAMES[u.kind]} size={65} />
+              <Miniature
+                heroAppearance={u.hero?.appearance}
+                frame={UNIT_FRAMES[u.kind]}
+                size={65}
+              />
               <div>
                 <strong>
                   {UNITS[u.kind].name}{' '}
@@ -874,6 +883,7 @@ function Rank() {
 }
 function Build() {
   const [query, setQuery] = useState('');
+  const [resource, setResource] = useState<Resource | 'ALL'>('ALL');
   const [category, setCategory] = useState<BuildingTab>('Tous');
   const w = useGame((s) => s.world)!,
     selection = useGame((s) => s.selection),
@@ -891,6 +901,18 @@ function Build() {
     w.tiles.some(
       (t) => t.building?.ownerId === w.player.id && distance(t, tile) <= RULES.constructionRadius,
     );
+  const buildable = (
+    Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][]
+  ).filter(([kind]) => isBuildable(kind));
+  const catalogue = buildable
+    .filter(([kind]) => category === 'Tous' || BUILDING_CATEGORY[kind] === category)
+    .filter(([, b]) => resource === 'ALL' || ((b.production as Partial<Wallet>)[resource] ?? 0) > 0)
+    .filter(([, b]) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+    .sort(
+      ([a], [b]) =>
+        Number(b === 'WOOD_WALL') - Number(a === 'WOOD_WALL') ||
+        compareBuildings(a, b, tile?.terrain),
+    );
   return (
     <>
       <p className="panel-intro">
@@ -907,7 +929,8 @@ function Build() {
         </p>
       )}
       <p className="catalog-order-hint">
-        Palissade en premier · Puis terrain adapté et bâtiments de base → développements avancés
+        {resource === 'ALL' && category === 'Tous' ? 'Palissade en premier · Puis ' : ''}
+        Terrain adapté et bâtiments de base → développements avancés
       </p>
       <ContextHelp title="Où construire et pourquoi certains bâtiments sont bloqués ?">
         <p>
@@ -935,12 +958,53 @@ function Build() {
             key={tab}
             role="tab"
             aria-selected={category === tab}
-            onClick={() => setCategory(tab)}
+            onClick={() => {
+              setCategory(tab);
+              setResource('ALL');
+            }}
           >
             {tab}
           </button>
         ))}
       </div>
+      <fieldset className="production-filters">
+        <legend>Quelle ressource voulez-vous produire ?</legend>
+        <div
+          className="catalog-tabs"
+          role="group"
+          aria-label="Filtrer les bâtiments par ressource produite"
+        >
+          <button aria-pressed={resource === 'ALL'} onClick={() => setResource('ALL')}>
+            Tout afficher
+          </button>
+          {(['GOLD', 'WOOD', 'STONE', 'IRON', 'FOOD'] as Resource[]).map((r) => {
+            const Icon = resourceIcons[r];
+            return (
+              <button
+                key={r}
+                aria-pressed={resource === r}
+                onClick={() => {
+                  setResource(r);
+                  setCategory('Tous');
+                }}
+              >
+                <Icon size={15} aria-hidden="true" /> {RESOURCE_NAMES[r]}
+                <span className="production-count">
+                  {
+                    buildable.filter(([, b]) => ((b.production as Partial<Wallet>)[r] ?? 0) > 0)
+                      .length
+                  }
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <p>
+          {resource === 'ALL'
+            ? 'Choisissez une ressource pour voir tous les bâtiments qui en produisent, quelle que soit leur catégorie.'
+            : `Producteurs de ${RESOURCE_NAMES[resource].toLowerCase()} · terrains compatibles en premier. Les gains affichés sont bruts, avant entretien.`}
+        </p>
+      </fieldset>
       <label className="catalog-search">
         Rechercher dans le catalogue
         <input
@@ -950,150 +1014,151 @@ function Build() {
           placeholder="Nom d’une unité ou d’un bâtiment…"
         />
       </label>
+      <p className="catalog-order-hint" role="status">
+        {catalogue.length} bâtiment{catalogue.length > 1 ? 's' : ''} affiché
+        {catalogue.length > 1 ? 's' : ''}
+      </p>
+      {!catalogue.length && (
+        <p className="empty-line">
+          Aucun bâtiment ne correspond. Essayez une autre ressource ou effacez la recherche.
+        </p>
+      )}
       <div className="catalog">
-        {(Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][])
-          .filter(([kind]) => isBuildable(kind))
-          .filter(([kind]) => category === 'Tous' || BUILDING_CATEGORY[kind] === category)
-          .filter(([, b]) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
-          .sort(
-            ([a], [b]) =>
-              Number(b === 'WOOD_WALL') - Number(a === 'WOOD_WALL') ||
-              compareBuildings(a, b, tile?.terrain),
-          )
-          .map(([kind, b]) => {
-            const cost = Object.fromEntries(
-              Object.entries(b.cost).map(([k, v]) => [
-                k,
-                Math.ceil(v * (w.player.faction === 'ASH' ? 0.9 : 1)),
-              ]),
-            );
-            const missing = (BUILDING_REQUIREMENTS[kind] ?? []).find(
-              (k) =>
-                !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
-            );
-            const reason =
-              !tile || (tile.ownerId !== w.player.id && !frontier)
-                ? 'Sur votre territoire uniquement'
-                : tile.enclosureOwnerId && !builder
-                  ? 'Approchez un paysan ou un ingénieur à une case maximum'
-                  : tile.building
-                    ? 'Hexagone déjà construit'
-                    : !tile.terrain || !b.terrains.includes(tile.terrain)
-                      ? 'Terrain incompatible'
-                      : missing
-                        ? `${BUILDINGS[missing].name} nécessaire`
-                        : !w.player.unlimitedAP && w.player.ap < 1
-                          ? '1 PA nécessaire'
-                          : !canAfford(w.player.wallet, cost)
-                            ? 'Ressources insuffisantes'
-                            : '';
-            return (
-              <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
-                <span className="catalog-status">
-                  {reason
-                    ? tile?.terrain && b.terrains.includes(tile.terrain)
-                      ? 'Terrain adapté · conditions à remplir'
-                      : 'Terrain incompatible'
-                    : 'Prêt à construire'}
-                </span>
-                <Miniature frame={BUILDING_FRAMES[kind]} size={80} />
-                <h4>{b.name}</h4>
-                <span className="building-stage">
-                  {buildingStage(kind) === 0
-                    ? 'Étape 1 · Bâtiment de base'
-                    : `Étape ${buildingStage(kind) + 1} · Développement`}
-                </span>
-                <div className="building-prerequisites">
-                  {(BUILDING_REQUIREMENTS[kind] ?? []).length === 0 ? (
-                    <p>Aucun bâtiment préalable.</p>
-                  ) : (
-                    <>
-                      <p>À construire d’abord :</p>
-                      {(BUILDING_REQUIREMENTS[kind] ?? []).map((required) => {
-                        const owned = w.tiles.some(
-                          (t) =>
-                            t.building?.ownerId === w.player.id && t.building.kind === required,
-                        );
-                        return (
-                          <button
-                            key={required}
-                            className={`prerequisite-link ${owned ? 'fulfilled' : ''}`}
-                            title={`Voir ${BUILDINGS[required].name}`}
-                            onClick={() => {
-                              setCategory('Tous');
-                              setQuery(BUILDINGS[required].name);
-                            }}
-                          >
-                            {owned ? '✓ ' : '→ '}
-                            {BUILDINGS[required].name}
-                            {owned ? ' · construit' : ''}
-                          </button>
-                        );
-                      })}
-                    </>
-                  )}
-                  {buildingsUnlockedBy(kind).length > 0 && (
-                    <p className="building-unlocks">
-                      Prérequis pour :{' '}
-                      {buildingsUnlockedBy(kind)
-                        .map((next) => BUILDINGS[next].name)
-                        .join(', ')}
-                      .
-                    </p>
-                  )}
-                </div>
-                {BUILDING_ROLES[kind] && <p>{BUILDING_ROLES[kind]}</p>}
-                <p>
-                  Production / min :{' '}
-                  {RESOURCES.filter(
-                    (r) =>
-                      (productionOnTerrain(kind, tile?.terrain ?? (b.terrains[0] as Terrain))[r] ??
-                        0) > 0,
-                  )
-                    .map(
-                      (r) =>
-                        `${productionOnTerrain(kind, tile?.terrain ?? (b.terrains[0] as Terrain))[r]} ${RESOURCE_NAMES[r].toLowerCase()}`,
-                    )
-                    .join(' · ') || 'aucune ressource directe'}
-                  .
-                </p>
-                {(BUILDING_POPULATION[kind] ?? 0) > 0 && (
-                  <p>Population initiale : {BUILDING_POPULATION[kind]} habitants.</p>
+        {catalogue.map(([kind, b]) => {
+          const cost = Object.fromEntries(
+            Object.entries(b.cost).map(([k, v]) => [
+              k,
+              Math.ceil(v * (w.player.faction === 'ASH' ? 0.9 : 1)),
+            ]),
+          );
+          const missing = (BUILDING_REQUIREMENTS[kind] ?? []).find(
+            (k) =>
+              !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
+          );
+          const reason =
+            !tile || (tile.ownerId !== w.player.id && !frontier)
+              ? 'Sur votre territoire uniquement'
+              : tile.enclosureOwnerId && !builder
+                ? 'Approchez un paysan ou un ingénieur à une case maximum'
+                : tile.building
+                  ? 'Hexagone déjà construit'
+                  : !tile.terrain || !b.terrains.includes(tile.terrain)
+                    ? 'Terrain incompatible'
+                    : missing
+                      ? `${BUILDINGS[missing].name} nécessaire`
+                      : !w.player.unlimitedAP && w.player.ap < 1
+                        ? '1 PA nécessaire'
+                        : !canAfford(w.player.wallet, cost)
+                          ? 'Ressources insuffisantes'
+                          : '';
+          const compatible = !!tile?.terrain && b.terrains.includes(tile.terrain);
+          const production = productionOnTerrain(
+            kind,
+            compatible ? tile!.terrain! : (b.terrains[0] as Terrain),
+          );
+          return (
+            <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
+              <span className="catalog-status">
+                {reason
+                  ? tile?.terrain && b.terrains.includes(tile.terrain)
+                    ? 'Terrain adapté · conditions à remplir'
+                    : 'Terrain incompatible'
+                  : 'Prêt à construire'}
+              </span>
+              <Miniature frame={BUILDING_FRAMES[kind]} size={80} />
+              <h4>{b.name}</h4>
+              <span className="building-stage">
+                {buildingStage(kind) === 0
+                  ? 'Étape 1 · Bâtiment de base'
+                  : `Étape ${buildingStage(kind) + 1} · Développement`}
+              </span>
+              <div className="building-prerequisites">
+                {(BUILDING_REQUIREMENTS[kind] ?? []).length === 0 ? (
+                  <p>Aucun bâtiment préalable.</p>
+                ) : (
+                  <>
+                    <p>À construire d’abord :</p>
+                    {(BUILDING_REQUIREMENTS[kind] ?? []).map((required) => {
+                      const owned = w.tiles.some(
+                        (t) => t.building?.ownerId === w.player.id && t.building.kind === required,
+                      );
+                      return (
+                        <button
+                          key={required}
+                          className={`prerequisite-link ${owned ? 'fulfilled' : ''}`}
+                          title={`Voir ${BUILDINGS[required].name}`}
+                          onClick={() => {
+                            setCategory('Tous');
+                            setResource('ALL');
+                            setQuery(BUILDINGS[required].name);
+                          }}
+                        >
+                          {owned ? '✓ ' : '→ '}
+                          {BUILDINGS[required].name}
+                          {owned ? ' · construit' : ''}
+                        </button>
+                      );
+                    })}
+                  </>
                 )}
-                {Object.entries(UNIT_PROFILES).some(([, p]) => p.recruitAt.includes(kind)) && (
-                  <p>
-                    Forme :{' '}
-                    {Object.entries(UNIT_PROFILES)
-                      .filter(([, p]) => p.recruitAt.includes(kind))
-                      .map(([k]) => UNITS[k as UnitKind].name)
+                {buildingsUnlockedBy(kind).length > 0 && (
+                  <p className="building-unlocks">
+                    Prérequis pour :{' '}
+                    {buildingsUnlockedBy(kind)
+                      .map((next) => BUILDINGS[next].name)
                       .join(', ')}
                     .
                   </p>
                 )}
+              </div>
+              {BUILDING_ROLES[kind] && <p>{BUILDING_ROLES[kind]}</p>}
+              <p className={resource !== 'ALL' ? 'production-summary' : undefined}>
+                Production{!compatible ? ' sur terrain adapté' : ''} / min :{' '}
+                {RESOURCES.filter((r) => (production[r] ?? 0) > 0).map((r, index) => (
+                  <span key={r}>
+                    {index > 0 && ' · '}
+                    <strong className={resource === r ? 'production-match' : undefined}>
+                      +{production[r]} {RESOURCE_NAMES[r].toLowerCase()}
+                    </strong>
+                  </span>
+                ))}
+                {!RESOURCES.some((r) => (production[r] ?? 0) > 0) && 'aucune ressource directe'}.
+              </p>
+              {(BUILDING_POPULATION[kind] ?? 0) > 0 && (
+                <p>Population initiale : {BUILDING_POPULATION[kind]} habitants.</p>
+              )}
+              {Object.entries(UNIT_PROFILES).some(([, p]) => p.recruitAt.includes(kind)) && (
                 <p>
-                  {b.terrains.map((t) => TERRAINS[t as keyof typeof TERRAINS].name).join(' · ')}
+                  Forme :{' '}
+                  {Object.entries(UNIT_PROFILES)
+                    .filter(([, p]) => p.recruitAt.includes(kind))
+                    .map(([k]) => UNITS[k as UnitKind].name)
+                    .join(', ')}
+                  .
                 </p>
-                <Cost cost={cost} wallet={w.player.wallet} />
-                {reason && <p className="catalog-unavailable">{reason}</p>}
+              )}
+              <p>{b.terrains.map((t) => TERRAINS[t as keyof typeof TERRAINS].name).join(' · ')}</p>
+              <Cost cost={cost} wallet={w.player.wallet} />
+              {reason && <p className="catalog-unavailable">{reason}</p>}
 
-                <button
-                  className="secondary small"
-                  title={reason || 'Construire'}
-                  disabled={!!reason || pending}
-                  onClick={() =>
-                    tile &&
-                    void send({
-                      type: 'BUILD',
-                      actorId: builder?.id ?? w.player.id,
-                      payload: { q: tile.q, r: tile.r, kind },
-                    })
-                  }
-                >
-                  Construire · 1 PA
-                </button>
-              </article>
-            );
-          })}
+              <button
+                className="secondary small"
+                title={reason || 'Construire'}
+                disabled={!!reason || pending}
+                onClick={() =>
+                  tile &&
+                  void send({
+                    type: 'BUILD',
+                    actorId: builder?.id ?? w.player.id,
+                    payload: { q: tile.q, r: tile.r, kind },
+                  })
+                }
+              >
+                Construire · 1 PA
+              </button>
+            </article>
+          );
+        })}
       </div>
       <div className="inset">
         <Route size={20} />
@@ -1124,15 +1189,14 @@ function Recruit() {
   const capacity = Math.max(15, w.player.population);
   const mobilized = armyPopulation(ownUnits);
   const recruitReason = (kind: UnitKind) => {
-    const profile = UNIT_PROFILES[kind];
     const free = kind === 'PEASANT' && !ownUnits.some((u) => u.kind === 'PEASANT');
-    const missing = profile.requires.find(
-      (k) => !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
-    );
     if (!building || building.ownerId !== w.player.id) return 'Sélectionnez votre bâtiment';
-    if (!profile.recruitAt.includes(building.kind))
-      return `Formation : ${BUILDINGS[profile.recruitAt[0]].name}`;
-    if (missing) return `${BUILDINGS[missing].name} nécessaire`;
+    const requirement = recruitmentRequirement(
+      kind,
+      building,
+      w.tiles.flatMap((t) => (t.building ? [t.building] : [])),
+    );
+    if (requirement) return requirement;
     if (!free && mobilized + unitPopulation(kind) > capacity) return 'Population insuffisante';
     if (!free && !canAfford(w.player.wallet, UNITS[kind].cost)) return 'Ressources insuffisantes';
     if (!w.player.unlimitedAP && w.player.ap < 1) return '1 PA nécessaire';
@@ -1144,7 +1208,8 @@ function Recruit() {
         {building
           ? `${BUILDINGS[building.kind].name} · ${building.q}, ${building.r}`
           : 'Sélectionnez un bâtiment de recrutement.'}{' '}
-        — {Object.keys(UNITS).length} types d’unités · Mobilisation : {mobilized}/{capacity} places.
+        — {Object.keys(UNITS).filter((k) => k !== 'HERO').length} types d’unités · Mobilisation :{' '}
+        {mobilized}/{capacity} places.
       </p>
       <p className="rare-explanation">
         ✦ À chaque recrutement : 1 % de chance d’obtenir une unité rare, avec +10 à +30 % de PV,
@@ -1208,6 +1273,7 @@ function Recruit() {
       </label>
       <div className="catalog">
         {(Object.entries(UNITS) as [UnitKind, (typeof UNITS)[UnitKind]][])
+          .filter(([kind]) => kind !== 'HERO')
           .sort(
             (a, b) =>
               Number(!!recruitReason(a[0])) - Number(!!recruitReason(b[0])) ||
@@ -1227,6 +1293,19 @@ function Recruit() {
               free = kind === 'PEASANT' && !ownUnits.some((x) => x.kind === 'PEASANT');
             const cost = free ? { STONE: 0, GOLD: 0, WOOD: 0, IRON: 0, FOOD: 0 } : u.cost;
             const reason = recruitReason(kind);
+            const training = profile.builder
+              ? 0
+              : Math.max(
+                  0,
+                  ...w.tiles
+                    .filter(
+                      (t) =>
+                        t.building?.ownerId === w.player.id &&
+                        profile.recruitAt.includes(t.building.kind),
+                    )
+                    .map((t) => trainingBonusAt(t.building!.kind, t.building!.level)),
+                );
+            const trainedStats = unitStats({ kind, trainingBonus: training });
             return (
               <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
                 <span className="catalog-status">
@@ -1234,23 +1313,14 @@ function Recruit() {
                 </span>
                 <Miniature frame={UNIT_FRAMES[kind]} size={90} />
                 <h4>{u.name}</h4>
+                <span className="building-stage">
+                  {UNIT_TIERS[kind] ? `Palier ${UNIT_TIERS[kind]} · ` : ''}
+                  {TIER_NAMES[UNIT_TIERS[kind]]}
+                </span>
                 {profile.radioactive && <span className="atomic-badge">☢ Division atomique</span>}
                 <p>{profile.role}</p>
                 {building && !profile.builder && (
-                  <p>
-                    Entraînement de votre royaume : +
-                    {Math.max(
-                      0,
-                      ...w.tiles
-                        .filter(
-                          (t) =>
-                            t.building?.ownerId === w.player.id &&
-                            profile.recruitAt.includes(t.building.kind),
-                        )
-                        .map((t) => trainingBonusAt(t.building!.kind, t.building!.level)),
-                    )}{' '}
-                    % aux PV, attaque et défense.
-                  </p>
+                  <p>Entraînement de votre royaume : +{training} % aux PV, attaque et défense.</p>
                 )}
                 <p>
                   {unitPopulation(kind)} places · Entretien / min :{' '}
@@ -1262,7 +1332,9 @@ function Recruit() {
                     .join(' · ')}
                 </p>
                 <p>
-                  {u.hp} PV · ATQ {u.attack} · DÉF {u.defense}
+                  {trainedStats.hp.toLocaleString('fr-FR')} PV · ATQ{' '}
+                  {trainedStats.attack.toLocaleString('fr-FR')} · DÉF{' '}
+                  {trainedStats.defense.toLocaleString('fr-FR')}
                   <br />
                   MOUV {u.move} · VISION {u.vision} · PORTÉE {u.range}
                 </p>
@@ -1270,7 +1342,10 @@ function Recruit() {
                 {reason && <p className="catalog-unavailable">{reason}</p>}
                 {free && <p>Gratuit en ressources</p>}
 
-                <p>Formation : {profile.recruitAt.map((k) => BUILDINGS[k].name).join(', ')}.</p>
+                <p>
+                  Formation : {profile.recruitAt.map((k) => BUILDINGS[k].name).join(', ')}
+                  {profile.minRecruitLevel ? ` · niveau ${profile.minRecruitLevel} minimum` : ''}.
+                </p>
                 {profile.requires.length > 0 && (
                   <p>
                     Infrastructures : {profile.requires.map((k) => BUILDINGS[k].name).join(', ')}.
@@ -1308,34 +1383,47 @@ function Combat() {
   const attacker =
       w.units.find((u) => u.id === selection?.id) ??
       w.tiles.find((t) => t.building?.id === selection?.id)?.building,
-    target: Unit | Building | undefined =
+    intended: Unit | Building | undefined =
       w.units.find((u) => u.id === targetId) ??
       w.tiles.find((t) => t.building?.id === targetId)?.building;
-  const tile = target ? w.tiles.find((t) => key(t) === key(target)) : undefined;
-  if (!attacker || !target || !tile?.terrain)
+  const intendedTile = intended ? w.tiles.find((t) => key(t) === key(intended)) : undefined;
+  if (!attacker || !intended || !intendedTile?.terrain)
     return (
       <Modal title="Cible indisponible">
         <p>Cette cible n’est plus visible. Revenez à la carte pour choisir votre prochain ordre.</p>
       </Modal>
     );
-  const estimate = estimateDamage(attacker, target, {
-      q: tile.q,
-      r: tile.r,
-      terrain: tile.terrain,
-    }),
+  const walls = w.tiles.flatMap((t) => (t.building ? [t.building] : []));
+  const resolution = resolveAttack(attacker, intended, walls);
+  const target = resolution.target;
+  const tile = w.tiles.find((t) => key(t) === key(target)) ?? intendedTile;
+  const terrain = tile.terrain ?? 'PLAIN';
+  const opponents = w.realms.filter((r) => r.id === intended.ownerId || r.id === target.ownerId);
+  const estimate = estimateDamage(
+      attacker,
+      target,
+      {
+        q: tile.q,
+        r: tile.r,
+        terrain,
+      },
+      w.units,
+    ),
     enemy = w.realms.find((r) => r.id === target.ownerId),
     truce = w.treaties.some(
       (t) =>
-        t.kind === 'TRUCE' && t.endsAt > now && (t.a === target.ownerId || t.b === target.ownerId),
+        t.kind === 'TRUCE' &&
+        t.endsAt > now &&
+        [intended.ownerId, target.ownerId].some((id) => t.a === id || t.b === id),
     ),
     ap = attackCost(attacker),
     reason =
-      attackBlockReason(attacker, target, tile.building) ||
+      resolution.reason ||
       (truce
         ? 'Une trêve interdit cette attaque.'
-        : enemy && enemy.protectedUntil > now
+        : opponents.some((r) => r.protectedUntil > now)
           ? 'Ce royaume bénéficie de la protection initiale.'
-          : distance(attacker, target) > attackStats(attacker).range
+          : distance(attacker, intended) > attackStats(attacker).range
             ? 'Cette cible est hors de portée.'
             : !w.player.unlimitedAP && w.player.ap < ap
               ? `${ap} PA nécessaires.`
@@ -1345,6 +1433,7 @@ function Combat() {
       <div className="combat-versus">
         <div>
           <Miniature
+            heroAppearance={'population' in attacker ? undefined : attacker.hero?.appearance}
             frame={'population' in attacker ? BUILDING_FRAMES[attacker.kind] : unitFrame(attacker)}
             size={115}
             turretLevel={'population' in attacker ? attacker.turretLevel : undefined}
@@ -1355,6 +1444,7 @@ function Combat() {
         <Swords size={30} />
         <div>
           <Miniature
+            heroAppearance={'population' in target ? undefined : target.hero?.appearance}
             frame={'population' in target ? BUILDING_FRAMES[target.kind] : unitFrame(target)}
             turretLevel={'population' in target ? target.turretLevel : undefined}
             size={115}
@@ -1367,14 +1457,30 @@ function Combat() {
           </span>
         </div>
       </div>
+      {resolution.intercepted && (
+        <p className="warning">
+          Rempart sur la trajectoire : le mur recevra les dégâts. La cible derrière reste protégée,
+          même si ce tir détruit le mur.
+        </p>
+      )}
+      <p className="panel-intro">
+        {
+          {
+            direct: 'Tir direct : le premier rempart sur la trajectoire intercepte l’attaque.',
+            melee: 'Corps à corps : il faut détruire le rempart pour atteindre une unité protégée.',
+            indirect: 'Tir en cloche : cette arme peut atteindre une cible derrière les remparts.',
+            air: 'Attaque aérienne : cette unité frappe par-dessus les remparts.',
+            elevated: 'Tir depuis une tourelle : sa hauteur permet de franchir les remparts.',
+          }[attackTrajectory(attacker)]
+        }
+      </p>
       <div className="damage-estimate">
         <span>DÉGÂTS ESTIMÉS</span>
         <strong>
           {estimate.min}–{estimate.max}
         </strong>
         <small>
-          {TERRAINS[tile.terrain].name} · Défense du terrain : +
-          {targetTerrainDefense(target, tile.terrain)}
+          {TERRAINS[terrain].name} · Défense du terrain : +{targetTerrainDefense(target, terrain)}
           {!('population' in target) && UNIT_PROFILES[target.kind].flying
             ? ' (cible aérienne)'
             : ''}
@@ -1384,22 +1490,24 @@ function Combat() {
         <>
           <NpcInfo unit={target as Unit} />
           <p className="warning">
-            {distance(target, attacker) <= unitStats(target as Unit).range &&
-            !attackBlockReason(
-              target,
-              attacker,
-              w.tiles.find((t) => key(t) === key(attacker))?.building,
-            )
-              ? (() => {
-                  const terrain = w.tiles.find((t) => key(t) === key(attacker))?.terrain ?? 'PLAIN';
-                  const retaliation = estimateDamage(target, attacker, {
-                    q: attacker.q,
-                    r: attacker.r,
-                    terrain,
-                  });
-                  return `S’il survit : riposte estimée de ${retaliation.min} à ${retaliation.max} dégâts.`;
-                })()
-              : 'Votre attaquant est hors de portée de sa riposte.'}
+            {(() => {
+              const reply = resolveAttack(target, attacker, walls);
+              if (distance(target, attacker) > unitStats(target as Unit).range || reply.reason)
+                return 'Ce PNJ ne peut pas riposter contre votre attaquant.';
+              const recipient = reply.target;
+              const ground = w.tiles.find((t) => key(t) === key(recipient))?.terrain ?? 'PLAIN';
+              const retaliation = estimateDamage(
+                target,
+                recipient,
+                {
+                  q: recipient.q,
+                  r: recipient.r,
+                  terrain: ground,
+                },
+                w.units,
+              );
+              return `S’il survit : riposte estimée de ${retaliation.min} à ${retaliation.max} dégâts${reply.intercepted ? ' sur le rempart qui vous protège' : ''}.`;
+            })()}
           </p>
         </>
       )}
@@ -1417,7 +1525,7 @@ function Combat() {
         className="primary danger full-width"
         disabled={pending || !!reason}
         onClick={() =>
-          void send({ type: 'ATTACK', actorId: attacker.id, payload: { targetId: target.id } })
+          void send({ type: 'ATTACK', actorId: attacker.id, payload: { targetId: intended.id } })
         }
       >
         <Swords size={16} /> Confirmer l’attaque · {ap} PA
@@ -1701,6 +1809,19 @@ function Help() {
           </div>
         </li>
       </ol>
+      <ContextHelp title="Comment les remparts protègent-ils mes troupes ?">
+        <p>
+          Un fusil, une mitrailleuse, une arbalète, un bazooka ou un canon à tir tendu touche le
+          premier mur sur sa trajectoire. Le mur reçoit les dégâts, même lors d’une riposte de PNJ.
+          Un tir qui détruit le mur ne blesse pas l’unité derrière : il faut tirer de nouveau.
+        </p>
+        <p>
+          Archers, rôdeurs, catapultes, mortiers et sapeurs atomiques tirent en cloche. Ils passent
+          au-dessus, comme les unités aériennes et les tourelles. Vos propres remparts bloquent
+          aussi vos tirs directs, sans vous coûter de PA : utilisez ces armes ou ouvrez un passage.
+          Vérifiez toujours l’aperçu avant de confirmer une attaque.
+        </p>
+      </ContextHelp>
       <ContextHelp title="Pourquoi mes ressources baissent-elles ?">
         <p>
           Les gains affichés en haut sont nets : production moins entretien des unités, coût des

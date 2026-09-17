@@ -4,9 +4,9 @@ Choix validé : chaque tronçon occupe une case, comme un bâtiment. Construire 
 
 | Palier            | Matériau à payer            | PA  | PV  | Défense propre |
 | ----------------- | --------------------------- | --- | --- | -------------- |
-| Palissade en bois | 30 bois (27 pour la Cendre) | 1   | 30  | 0              |
-| Rempart de pierre | 45 pierre                   | 2   | 65  | 2              |
-| Mur en acier      | 45 fer                      | 2   | 100 | 4              |
+| Palissade en bois | 30 bois (27 pour la Cendre) | 1   | 100 | 0              |
+| Rempart de pierre | 65 pierre                   | 2   | 240 | 6              |
+| Mur en acier      | 90 fer                      | 2   | 480 | 12             |
 
 La ressource fer sert à produire l’acier ; aucune sixième ressource n’est ajoutée. Les paliers pierre et acier sont des évolutions du même tronçon, et ne se construisent pas directement. L’évolution répare intégralement le mur, conformément aux autres améliorations. Le coût initial de la palissade reste enregistré pour la démolition : les améliorations ne sont pas remboursées.
 
@@ -19,7 +19,7 @@ Les remparts suivent les mêmes règles de chantier que les bâtiments : terres 
 - Le serveur contrôle chaque case du chemin, pas seulement la destination. Les chemins terrestres prévisualisés et les bots évitent les remparts adverses. Les unités volantes peuvent les survoler.
 - Un rempart ne peut pas être capturé. Il faut le contourner ou le détruire pour ouvrir une brèche. Après destruction, la case redevient franchissable ; la propriété du terrain et les routes sont conservées.
 - En mode attaque terrestre contre une unité terrestre, un rempart adverse prend priorité sur la troupe stationnée dessus : il faut ouvrir la brèche. Les attaques aériennes ignorent cette protection, et les cibles volantes ne sont pas protégées par le mur.
-- Les murs sont des cibles de bâtiment : les dégâts de siège, les PA, la portée, la défense du terrain et les protections diplomatiques habituelles s’appliquent. Ils ne bloquent pas les tirs vers des cases situées au-delà de l’enceinte.
+- Les murs sont des cibles de bâtiment : les dégâts de siège, les PA, la portée, la défense du terrain et les protections diplomatiques habituelles s’appliquent. Ils interceptent les attaques directes au sol qui traversent leur hexagone, y compris les ripostes. Les tirs en cloche, aériens et depuis les tourelles les franchissent ; voir [la protection par les remparts](wall-combat.md).
 - Les remparts peuvent être réparés ou démolis avec les actions de bâtiment existantes. Les barres de vie apparaissent après des dégâts.
 
 ## Rendu

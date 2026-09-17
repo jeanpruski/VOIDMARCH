@@ -13,7 +13,12 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
-import { actionSchema, chunksSchema, settingsSchema } from '@voidmarch/protocol';
+import {
+  actionSchema,
+  chunksSchema,
+  settingsSchema,
+  heroAppearanceSchema,
+} from '@voidmarch/protocol';
 import { DEFAULT_SETTINGS, RULES, type Faction } from '@voidmarch/config';
 import { accrueEconomy, chunkOf, disk, key, observe } from '@voidmarch/game-rules';
 import type { Hex, WorldView } from '@voidmarch/shared';
@@ -192,6 +197,11 @@ io.on('connection', (socket) => {
         r.lastSeen = Date.now();
         r.offlineAt = undefined;
         r.name = user.username;
+        const appearance = heroAppearanceSchema.safeParse(
+          (user.settings as Record<string, unknown>)?.heroAppearance,
+        );
+        if (!r.hero && appearance.success)
+          r.hero = { appearance: appearance.data, xp: 0, cooldowns: {} };
         r.settings = { ...DEFAULT_SETTINGS, ...r.settings, ...(user.settings as object) };
         observe(s, r, Date.now());
       });

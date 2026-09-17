@@ -1,3 +1,5 @@
+import { HeroPortrait } from './Hero';
+import type { HeroAppearance } from '@voidmarch/config';
 import {
   Coins,
   Trees,
@@ -191,6 +193,10 @@ export function Modal({
   );
 }
 export const UNIT_FRAMES: Record<string, number> = {
+  HERO: 0,
+  GLOCKE_VRIL: 432,
+  GLOCKE_NACHT: 456,
+  GLOCKE_APOCALYPSE: 480,
   RADIUM_GRENADIER: 144,
   COBALT_SENTINEL: 145,
   ISOTOPE_SNIPER: 146,
@@ -278,6 +284,7 @@ export const UNIT_FRAMES: Record<string, number> = {
   SIEGE: 5,
 };
 export const BUILDING_FRAMES: Record<string, number> = {
+  GLOCKE_COMPLEX: 504,
   ISOTOPE_LAB: 288,
   NUCLEAR_REACTOR: 289,
   HELIPAD: 290,
@@ -337,45 +344,52 @@ const npcTextures = ['npc-deserter', 'npc-marauder', 'npc-cultist', 'npc-mutant'
 export const unitFrame = (unit: Unit) =>
   unit.npc ? 312 + npcTextures.indexOf(`npc-${unit.npc.kind}`) * 24 : UNIT_FRAMES[unit.kind];
 export const miniatureTexture = (frame: number) =>
-  frame >= 312
-    ? npcTextures[Math.floor((frame - 312) / 24)]
-    : frame >= 144
-      ? [
-          'rad-infantry',
-          'rad-cavalry',
-          'rad-motorcycles',
-          'rad-vehicles',
-          'rad-planes',
-          'rad-helicopters',
-          'rad-buildings',
-        ][Math.floor((frame - 144) / 24)]
-      : frame >= 120
-        ? 'terraformer'
-        : frame >= 96
-          ? 'aviation'
-          : frame < 6
-            ? 'units-medieval'
-            : frame >= 24 && frame < 36
-              ? 'units-civil'
-              : frame >= 48 && frame < 60
-                ? 'units-industrial'
-                : frame >= 72
-                  ? 'occult'
-                  : frame >= 48
-                    ? 'industrial'
-                    : frame >= 24
-                      ? 'expansion'
-                      : 'miniatures';
+  frame >= 432
+    ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
+        Math.floor((frame - 432) / 24)
+      ]
+    : frame >= 312
+      ? npcTextures[Math.floor((frame - 312) / 24)]
+      : frame >= 144
+        ? [
+            'rad-infantry',
+            'rad-cavalry',
+            'rad-motorcycles',
+            'rad-vehicles',
+            'rad-planes',
+            'rad-helicopters',
+            'rad-buildings',
+          ][Math.floor((frame - 144) / 24)]
+        : frame >= 120
+          ? 'terraformer'
+          : frame >= 96
+            ? 'aviation'
+            : frame < 6
+              ? 'units-medieval'
+              : frame >= 24 && frame < 36
+                ? 'units-civil'
+                : frame >= 48 && frame < 60
+                  ? 'units-industrial'
+                  : frame >= 72
+                    ? 'occult'
+                    : frame >= 48
+                      ? 'industrial'
+                      : frame >= 24
+                        ? 'expansion'
+                        : 'miniatures';
 export const miniatureFrame = (frame: number) => frame % 24;
 export function Miniature({
+  heroAppearance,
   frame,
   size = 76,
   turretLevel,
 }: {
+  heroAppearance?: HeroAppearance;
   frame: number;
   size?: number;
   turretLevel?: import('@voidmarch/config').TurretLevel;
 }) {
+  if (heroAppearance) return <HeroPortrait appearance={heroAppearance} size={size} />;
   const wall = WALL_KINDS[frame - 84];
   return wall ? (
     <WallMiniature wall={wall} size={size} turretLevel={turretLevel} />

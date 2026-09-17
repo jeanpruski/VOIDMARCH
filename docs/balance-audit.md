@@ -1,9 +1,12 @@
-# Audit d’équilibrage — ressources, population et catalogue
+# Audit d’équilibrage — progression v0.4
 
 Rapport reproductible : `node --import tsx scripts/audit-balance.ts`. Les coûts sont ceux de base, avant le bonus de construction de la Cendre. Le premier bâtiment de recrutement est utilisé pour calculer la chaîne d’infrastructure ; d’autres accès peuvent exister.
 
 ## Corrections appliquées
 
+- Progression : entraînement +25 % au niveau 2, +60 % au niveau 3 ; production hors villes ×1,6 puis ×2,4. Les bonus d’entraînement s’appliquent aussi aux troupes existantes, sans cumuler plusieurs bâtiments.
+- Référence de puissance : fantassin 8 d’attaque, char Mausolée 40, char Mausolée entraîné 64. Ce rapport ×5 à ×8 porte sur l’attaque ; blindage, terrain, rareté et contres modifient les dégâts effectivement reçus.
+- Contres : bazooka et chasseur de chars isotopique ignorent 75 % du blindage des cibles blindées ; armes antiaériennes spécialisées ignorent 50 % de la défense aérienne. Les bonus de contre bénéficient de l’entraînement.
 - Récolte uniquement sur la case occupée, jamais sur une voisine ni sur une terre adverse. Bois : forêt ; pierre : colline/montagne ; fer : colline ; vivres : plaine/rivière/marais ; or : ruines. Les vestiges cosmiques se fouillent par leur action dédiée.
 - Pierre ajoutée aux stocks, échanges, coûts et sauvegardes. Carrière accessible sans coût initial en pierre. La mine extrait le fer sur colline ; la carrière extrait la pierre sur colline ou montagne.
 - Aucun revenu brut par simple propriété d’une case. Le campement ne produit plus de bois, les forges/ateliers/raffineries/manufactures ne génèrent plus de fer sans mine. Le grenier stocke sans générer de vivres.
@@ -18,145 +21,150 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 ## Unités
 
-| Unité | PV / attaque / défense | Déplacement / portée | Places | Coût | Entretien par minute | Infrastructure requise (nombre) |
-| --- | --- | --- | --- | --- | --- | --- |
-| Grenadier au radium | 24 / 12 / 4 | 3 / 3 | 7 | 300 or, 30 bois, 140 fer, 45 vivres | 1.29 or, 0.25 vivres | 12 |
-| Sentinelle de cobalt | 38 / 10 / 8 | 2 / 2 | 7 | 370 or, 35 bois, 200 fer, 50 vivres | 1.64 or, 0.25 vivres | 13 |
-| Tireur isotopique | 19 / 17 / 2 | 3 / 6 | 7 | 410 or, 30 bois, 145 fer, 40 vivres | 1.56 or, 0.25 vivres | 12 |
-| Sapeur atomique | 25 / 10 / 4 | 2 / 3 | 7 | 430 or, 50 bois, 210 fer, 50 vivres | 1.85 or, 0.25 vivres | 12 |
-| Exécuteur blafard | 45 / 23 / 6 | 2 / 1 | 7 | 510 or, 30 bois, 240 fer, 75 vivres | 2.14 or, 0.25 vivres | 16 |
-| Templier gamma | 34 / 16 / 6 | 3 / 4 | 11 | 530 or, 35 bois, 250 fer, 65 vivres | 2.2 or, 0.25 vivres | 16 |
-| Hussard au radium | 28 / 14 / 4 | 6 / 1 | 8 | 340 or, 35 bois, 120 fer, 90 vivres | 1.46 or, 0.65 vivres | 13 |
-| Lancier isotopique | 32 / 18 / 4 | 5 / 1 | 8 | 390 or, 40 bois, 170 fer, 100 vivres | 1.75 or, 0.65 vivres | 13 |
-| Cuirassier de cobalt | 46 / 14 / 8 | 4 / 1 | 8 | 470 or, 45 bois, 220 fer, 120 vivres | 2.14 or, 0.65 vivres | 13 |
-| Dragon des cendres | 27 / 13 / 4 | 5 / 4 | 8 | 410 or, 40 bois, 155 fer, 95 vivres | 1.75 or, 0.65 vivres | 13 |
-| Éclaireur blafard | 24 / 12 / 3 | 7 / 3 | 8 | 420 or, 35 bois, 125 fer, 100 vivres | 1.7 or, 0.65 vivres | 17 |
-| Paladin gamma | 44 / 19 / 7 | 4 / 1 | 12 | 560 or, 50 bois, 250 fer, 140 vivres | 2.5 or, 0.65 vivres | 16 |
-| Estafette au radium | 23 / 10 / 3 | 9 / 3 | 9 | 360 or, 25 bois, 160 fer, 35 vivres | 1.45 or, 0.7 fer, 0.25 vivres | 13 |
-| Moto d’assaut isotopique | 29 / 15 / 4 | 7 / 3 | 9 | 420 or, 30 bois, 200 fer, 40 vivres | 1.73 or, 0.95 fer, 0.25 vivres | 13 |
-| Side-car de cobalt | 38 / 13 / 7 | 5 / 3 | 9 | 450 or, 40 bois, 230 fer, 45 vivres | 1.91 or, 0.85 fer, 0.25 vivres | 13 |
-| Chasseur blafard motorisé | 25 / 18 / 3 | 7 / 5 | 9 | 500 or, 30 bois, 210 fer, 40 vivres | 1.95 or, 1.1 fer, 0.25 vivres | 13 |
-| Tricycle gamma | 30 / 10 / 4 | 6 / 5 | 9 | 480 or, 35 bois, 230 fer, 40 vivres | 1.96 or, 0.7 fer, 0.25 vivres | 13 |
-| Moto de l’Apocalypse | 36 / 14 / 5 | 5 / 4 | 13 | 600 or, 45 bois, 280 fer, 50 vivres | 2.44 or, 0.9 fer, 0.25 vivres | 13 |
-| Automitrailleuse au radium | 35 / 13 / 5 | 7 / 4 | 14 | 490 or, 50 bois, 250 fer, 40 vivres | 2.08 or, 0.85 fer, 0.25 vivres | 13 |
-| Semi-chenillé de cobalt | 48 / 17 / 7 | 4 / 3 | 14 | 580 or, 55 bois, 320 fer, 50 vivres | 2.51 or, 1.05 fer, 0.25 vivres | 14 |
-| Chasseur de chars isotopique | 43 / 23 / 5 | 3 / 5 | 14 | 690 or, 50 bois, 370 fer, 55 vivres | 2.91 or, 1.35 fer, 0.25 vivres | 14 |
-| Char Mausolée | 76 / 20 / 9 | 2 / 3 | 14 | 900 or, 70 bois, 520 fer, 75 vivres | 3.91 or, 1.2 fer, 0.25 vivres | 15 |
-| Chenillé Flak gamma | 44 / 10 / 6 | 3 / 6 | 14 | 660 or, 45 bois, 350 fer, 50 vivres | 2.76 or, 0.7 fer, 0.25 vivres | 17 |
-| Chenillé de l’Apocalypse | 52 / 17 / 6 | 2 / 6 | 18 | 980 or, 80 bois, 550 fer, 70 vivres | 4.2 or, 1.05 fer, 0.25 vivres | 15 |
-| Épervier au radium | 23 / 8 / 3 | 12 / 3 | 14 | 520 or, 50 bois, 240 fer, 35 vivres | 2.11 or, 0.6 fer, 0.25 vivres | 15 |
-| Intercepteur isotopique | 31 / 14 / 4 | 10 / 4 | 14 | 650 or, 55 bois, 340 fer, 45 vivres | 2.73 or, 0.9 fer, 0.25 vivres | 15 |
-| Avion d’assaut cobalt | 45 / 22 / 7 | 6 / 3 | 14 | 760 or, 70 bois, 410 fer, 55 vivres | 3.24 or, 1.3 fer, 0.25 vivres | 15 |
-| Chasseur nocturne blafard | 29 / 18 / 4 | 8 / 5 | 14 | 780 or, 60 bois, 370 fer, 45 vivres | 3.14 or, 1.1 fer, 0.25 vivres | 15 |
-| Bombardier gamma | 48 / 14 / 5 | 5 / 4 | 14 | 950 or, 90 bois, 500 fer, 65 vivres | 4.01 or, 0.9 fer, 0.25 vivres | 17 |
-| Aile de l’Apocalypse | 62 / 19 / 7 | 4 / 5 | 18 | 1250 or, 120 bois, 680 fer, 90 vivres | 5.35 or, 1.15 fer, 0.25 vivres | 18 |
-| Autogire au radium | 26 / 10 / 3 | 9 / 3 | 12 | 510 or, 40 bois, 240 fer, 35 vivres | 2.06 or, 0.7 fer, 0.25 vivres | 15 |
-| Hélicoptère isotopique | 32 / 16 / 4 | 7 / 4 | 12 | 640 or, 50 bois, 330 fer, 45 vivres | 2.66 or, 1 fer, 0.25 vivres | 15 |
-| Canonnière cobalt | 49 / 21 / 8 | 4 / 3 | 12 | 810 or, 65 bois, 430 fer, 60 vivres | 3.41 or, 1.25 fer, 0.25 vivres | 15 |
-| Hélicoptère Chasseur blafard | 30 / 23 / 3 | 6 / 5 | 12 | 820 or, 50 bois, 390 fer, 50 vivres | 3.27 or, 1.35 fer, 0.25 vivres | 15 |
-| Hélicoptère Flak gamma | 36 / 11 / 5 | 6 / 5 | 12 | 740 or, 55 bois, 370 fer, 50 vivres | 3.04 or, 0.75 fer, 0.25 vivres | 17 |
-| Hélicoptère de l’Apocalypse | 57 / 17 / 6 | 4 / 4 | 16 | 1100 or, 95 bois, 580 fer, 80 vivres | 4.64 or, 1.05 fer, 0.25 vivres | 17 |
-| Terrassier arcanique | 10 / 0 / 2 | 3 / 1 | 5 | 65 or, 35 bois, 30 fer, 20 vivres | 0.38 or, 0.25 vivres | 1 |
-| Avion de reconnaissance | 10 / 2 / 0 | 10 / 2 | 8 | 140 or, 35 bois, 90 fer, 15 vivres | 0.7 or, 0.3 fer, 0.25 vivres | 4 |
-| Chasseur Nachtjäger | 18 / 10 / 2 | 8 / 3 | 8 | 220 or, 40 bois, 150 fer, 20 vivres | 1.07 or, 0.7 fer, 0.25 vivres | 8 |
-| Bombardier funèbre | 24 / 7 / 2 | 5 / 3 | 12 | 290 or, 60 bois, 210 fer, 30 vivres | 1.48 or, 0.55 fer, 0.25 vivres | 9 |
-| Dirigeable de guerre | 38 / 9 / 4 | 4 / 4 | 12 | 360 or, 100 bois, 220 fer, 40 vivres | 1.8 or, 0.65 fer, 0.25 vivres | 10 |
-| Dragon du Reich noir | 44 / 14 / 5 | 5 / 2 | 12 | 500 or, 60 bois, 250 fer, 150 vivres | 2.4 or, 2 vivres | 13 |
-| Canon antiaérien Flak | 18 / 5 / 2 | 2 / 5 | 8 | 130 or, 30 bois, 100 fer, 20 vivres | 0.7 or, 0.45 fer, 0.25 vivres | 7 |
-| Voltigeur Tesla | 14 / 8 / 2 | 2 / 3 | 5 | 120 or, 20 bois, 80 fer, 25 vivres | 0.61 or, 0.25 vivres | 7 |
-| Chasseur de maléfices | 11 / 7 / 2 | 4 / 3 | 5 | 100 or, 35 bois, 40 fer, 25 vivres | 0.5 or, 0.25 vivres | 9 |
-| Médecin de la peste | 9 / 1 / 2 | 3 / 1 | 5 | 85 or, 20 bois, 20 fer, 35 vivres | 0.4 or, 0.25 vivres | 3 |
-| Grenadier revenant | 16 / 6 / 3 | 2 / 2 | 5 | 95 or, 15 bois, 60 fer, 20 vivres | 0.47 or, 0.25 vivres | 9 |
-| Cavalier spectral | 15 / 8 / 3 | 5 / 1 | 5 | 160 or, 25 bois, 70 fer, 40 vivres | 0.74 or, 0.65 vivres | 9 |
-| Marcheur de siège | 24 / 9 / 5 | 2 / 4 | 12 | 220 or, 60 bois, 180 fer, 30 vivres | 1.23 or, 0.65 fer, 0.25 vivres | 10 |
-| Char possédé | 34 / 12 / 7 | 2 / 3 | 12 | 300 or, 65 bois, 250 fer, 45 vivres | 1.65 or, 0.8 fer, 0.25 vivres | 10 |
-| Section de mortier | 9 / 6 / 1 | 2 / 5 | 6 | 110 or, 40 bois, 75 fer, 20 vivres | 0.61 or, 0.25 vivres | 6 |
-| Fusilier | 10 / 5 / 2 | 3 / 4 | 5 | 45 or, 15 bois, 30 fer, 15 vivres | 0.26 or, 0.25 vivres | 4 |
-| Soldat d’assaut | 13 / 7 / 3 | 3 / 2 | 5 | 70 or, 10 bois, 45 fer, 20 vivres | 0.36 or, 0.25 vivres | 4 |
-| Mitrailleur | 12 / 8 / 2 | 2 / 4 | 5 | 85 or, 20 bois, 55 fer, 20 vivres | 0.45 or, 0.25 vivres | 5 |
-| Tireur des brumes | 7 / 8 / 1 | 3 / 6 | 5 | 95 or, 25 bois, 50 fer, 15 vivres | 0.46 or, 0.25 vivres | 5 |
-| Chasseur de blindés | 9 / 5 / 1 | 2 / 4 | 5 | 100 or, 20 bois, 65 fer, 20 vivres | 0.51 or, 0.25 vivres | 5 |
-| Officier au sabre | 12 / 5 / 3 | 4 / 2 | 5 | 65 or, 15 bois, 30 fer, 25 vivres | 0.34 or, 0.25 vivres | 4 |
-| Moto de reconnaissance | 11 / 4 / 1 | 8 / 2 | 8 | 85 or, 20 bois, 65 fer, 15 vivres | 0.46 or, 0.4 fer, 0.25 vivres | 2 |
-| Automitrailleuse | 19 / 7 / 4 | 6 / 3 | 8 | 130 or, 25 bois, 100 fer, 20 vivres | 0.69 or, 0.55 fer, 0.25 vivres | 4 |
-| Char de rupture | 32 / 10 / 6 | 3 / 4 | 12 | 190 or, 35 bois, 170 fer, 25 vivres | 1.05 or, 0.7 fer, 0.25 vivres | 8 |
-| Canon de campagne | 13 / 8 / 1 | 2 / 6 | 8 | 125 or, 50 bois, 100 fer, 15 vivres | 0.72 or, 0.6 fer, 0.25 vivres | 6 |
-| Batterie de fusées | 16 / 11 / 2 | 2 / 7 | 8 | 220 or, 40 bois, 180 fer, 20 vivres | 1.15 or, 0.75 fer, 0.25 vivres | 13 |
-| Chevalier mécanique | 23 / 9 / 5 | 3 / 1 | 8 | 170 or, 30 bois, 140 fer, 20 vivres | 0.9 or, 0.65 fer, 0.25 vivres | 9 |
-| Paysan | 5 / 0 / 0 | 3 / 1 | 3 | 5 or, 10 bois, 10 vivres | 0.15 or, 0.25 vivres | 1 |
-| Milicien | 7 / 2 / 1 | 3 / 1 | 5 | 12 or, 10 bois, 8 vivres | 0.15 or, 0.25 vivres | 1 |
-| Lancier | 11 / 3 / 3 | 3 / 1 | 5 | 30 or, 20 bois, 12 fer, 12 vivres | 0.18 or, 0.25 vivres | 1 |
-| Arbalétrier | 8 / 5 / 2 | 2 / 3 | 5 | 45 or, 25 bois, 20 fer, 15 vivres | 0.26 or, 0.25 vivres | 3 |
-| Rôdeur | 8 / 4 / 2 | 4 / 3 | 5 | 55 or, 35 bois, 10 fer, 20 vivres | 0.3 or, 0.25 vivres | 1 |
-| Cavalier léger | 9 / 3 / 1 | 6 / 1 | 5 | 50 or, 10 bois, 15 fer, 30 vivres | 0.26 or, 0.65 vivres | 2 |
-| Paladin | 18 / 5 / 5 | 2 / 1 | 5 | 110 or, 10 bois, 60 fer, 35 vivres | 0.54 or, 0.25 vivres | 4 |
-| Bélier | 20 / 1 / 4 | 2 / 1 | 6 | 75 or, 90 bois, 35 fer, 15 vivres | 0.54 or, 0.25 vivres | 1 |
-| Guérisseuse | 7 / 0 / 1 | 3 / 1 | 5 | 45 or, 10 bois, 5 fer, 25 vivres | 0.21 or, 0.25 vivres | 2 |
-| Ingénieur | 9 / 1 / 2 | 3 / 1 | 5 | 45 or, 30 bois, 20 fer, 15 vivres | 0.28 or, 0.25 vivres | 1 |
-| Berserker | 13 / 7 / 0 | 3 / 1 | 5 | 65 or, 10 bois, 30 fer, 30 vivres | 0.34 or, 0.25 vivres | 3 |
-| Acolyte du Vide | 7 / 6 / 0 | 2 / 3 | 5 | 100 or, 20 bois, 30 fer, 25 vivres | 0.44 or, 0.25 vivres | 3 |
-| Éclaireur | 5 / 1 / 0 | 5 / 1 | 5 | 20 or, 12 bois, 8 vivres | 0.15 or, 0.25 vivres | 1 |
-| Fantassin | 10 / 3 / 2 | 3 / 1 | 5 | 30 or, 8 bois, 12 fer, 10 vivres | 0.15 or, 0.25 vivres | 1 |
-| Garde | 15 / 2 / 5 | 2 / 1 | 5 | 45 or, 25 fer, 15 vivres | 0.21 or, 0.25 vivres | 1 |
-| Archer | 7 / 4 / 1 | 2 / 3 | 5 | 35 or, 25 bois, 5 fer, 10 vivres | 0.19 or, 0.25 vivres | 1 |
-| Chevalier | 10 / 5 / 2 | 5 / 1 | 5 | 70 or, 10 bois, 30 fer, 25 vivres | 0.34 or, 0.65 vivres | 2 |
-| Engin de siège | 8 / 3 / 1 | 1 / 4 | 6 | 90 or, 65 bois, 40 fer, 10 vivres | 0.51 or, 0.25 vivres | 2 |
+| Unité | Palier | PV / attaque / défense de base | Attaque avec formation niveau 3 | Déplacement / portée | Places | Coût | Entretien par minute | Infrastructure requise (nombre) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Héros | Civil | 80 / 0 / 6 | 0 | 4 / 0 | 0 | — | — | 0 |
+| Grenadier au radium | Division atomique | 70 / 28 / 8 | 44.8 | 3 / 3 | 7 | 375 or, 40 bois, 175 fer, 60 vivres | 1.08 or, 0.25 vivres | 12 |
+| Sentinelle de cobalt | Division atomique | 112 / 25 / 15 | 40 | 2 / 2 | 7 | 465 or, 45 bois, 250 fer, 65 vivres | 1.38 or, 0.25 vivres | 13 |
+| Tireur isotopique | Division atomique | 55 / 37 / 5 | 59.2 | 3 / 6 | 7 | 515 or, 40 bois, 185 fer, 50 vivres | 1.32 or, 0.25 vivres | 12 |
+| Sapeur atomique | Division atomique | 76 / 24 / 8 | 38.4 | 2 / 3 | 7 | 540 or, 65 bois, 265 fer, 65 vivres | 1.56 or, 0.25 vivres | 12 |
+| Exécuteur blafard | Apocalypse | 135 / 40 / 12 | 64 | 2 / 1 | 7 | 765 or, 45 bois, 360 fer, 115 vivres | 2.14 or, 0.25 vivres | 16 |
+| Templier gamma | Apocalypse | 105 / 34 / 12 | 54.4 | 3 / 4 | 11 | 795 or, 55 bois, 375 fer, 100 vivres | 2.21 or, 0.25 vivres | 16 |
+| Hussard au radium | Division atomique | 82 / 30 / 8 | 48 | 6 / 1 | 8 | 425 or, 45 bois, 150 fer, 115 vivres | 1.23 or, 0.65 vivres | 13 |
+| Lancier isotopique | Division atomique | 95 / 36 / 8 | 57.6 | 5 / 1 | 8 | 490 or, 50 bois, 215 fer, 125 vivres | 1.47 or, 0.65 vivres | 13 |
+| Cuirassier de cobalt | Division atomique | 138 / 30 / 16 | 48 | 4 / 1 | 8 | 590 or, 60 bois, 275 fer, 150 vivres | 1.79 or, 0.65 vivres | 13 |
+| Dragon des cendres | Division atomique | 80 / 29 / 8 | 46.4 | 5 / 4 | 8 | 515 or, 50 bois, 195 fer, 120 vivres | 1.47 or, 0.65 vivres | 13 |
+| Éclaireur blafard | Division atomique | 72 / 26 / 6 | 41.6 | 7 / 3 | 8 | 525 or, 45 bois, 160 fer, 125 vivres | 1.43 or, 0.65 vivres | 17 |
+| Paladin gamma | Apocalypse | 140 / 38 / 14 | 60.8 | 4 / 1 | 12 | 840 or, 75 bois, 375 fer, 210 vivres | 2.5 or, 0.65 vivres | 16 |
+| Estafette au radium | Division atomique | 66 / 24 / 6 | 38.4 | 9 / 3 | 9 | 450 or, 35 bois, 200 fer, 45 vivres | 1.22 or, 0.8 fer, 0.25 vivres | 13 |
+| Moto d’assaut isotopique | Division atomique | 85 / 32 / 8 | 51.2 | 7 / 3 | 9 | 525 or, 40 bois, 250 fer, 50 vivres | 1.44 or, 1 fer, 0.25 vivres | 13 |
+| Side-car de cobalt | Division atomique | 110 / 28 / 14 | 44.8 | 5 / 3 | 9 | 565 or, 50 bois, 290 fer, 60 vivres | 1.61 or, 0.9 fer, 0.25 vivres | 13 |
+| Chasseur blafard motorisé | Division atomique | 72 / 38 / 6 | 60.8 | 7 / 5 | 9 | 625 or, 40 bois, 265 fer, 50 vivres | 1.63 or, 1.15 fer, 0.25 vivres | 13 |
+| Tricycle gamma | Division atomique | 90 / 24 / 8 | 38.4 | 6 / 5 | 9 | 600 or, 45 bois, 290 fer, 50 vivres | 1.64 or, 0.8 fer, 0.25 vivres | 13 |
+| Moto de l’Apocalypse | Apocalypse | 108 / 32 / 10 | 51.2 | 5 / 4 | 13 | 900 or, 70 bois, 420 fer, 75 vivres | 2.44 or, 1 fer, 0.25 vivres | 13 |
+| Automitrailleuse au radium | Division atomique | 105 / 28 / 10 | 44.8 | 7 / 4 | 14 | 615 or, 65 bois, 315 fer, 50 vivres | 1.74 or, 0.9 fer, 0.25 vivres | 13 |
+| Semi-chenillé de cobalt | Division atomique | 142 / 34 / 14 | 54.4 | 4 / 3 | 14 | 725 or, 70 bois, 400 fer, 65 vivres | 2.1 or, 1.05 fer, 0.25 vivres | 14 |
+| Chasseur de chars isotopique | Division atomique | 120 / 36 / 10 | 57.6 | 3 / 5 | 14 | 865 or, 65 bois, 465 fer, 70 vivres | 2.44 or, 1.1 fer, 0.25 vivres | 14 |
+| Char Mausolée | Apocalypse | 220 / 40 / 18 | 64 | 2 / 3 | 14 | 1350 or, 105 bois, 780 fer, 115 vivres | 3.92 or, 1.2 fer, 0.25 vivres | 15 |
+| Chenillé Flak gamma | Division atomique | 125 / 24 / 12 | 38.4 | 3 / 6 | 14 | 825 or, 60 bois, 440 fer, 65 vivres | 2.32 or, 0.8 fer, 0.25 vivres | 17 |
+| Chenillé de l’Apocalypse | Apocalypse | 156 / 36 / 12 | 57.6 | 2 / 6 | 18 | 1470 or, 120 bois, 825 fer, 105 vivres | 4.2 or, 1.1 fer, 0.25 vivres | 15 |
+| Épervier au radium | Division atomique | 68 / 19 / 6 | 30.4 | 12 / 3 | 14 | 650 or, 65 bois, 300 fer, 45 vivres | 1.77 or, 0.68 fer, 0.25 vivres | 15 |
+| Intercepteur isotopique | Division atomique | 92 / 31 / 8 | 49.6 | 10 / 4 | 14 | 815 or, 70 bois, 425 fer, 60 vivres | 2.28 or, 0.98 fer, 0.25 vivres | 15 |
+| Avion d’assaut cobalt | Division atomique | 128 / 40 / 14 | 64 | 6 / 3 | 14 | 950 or, 90 bois, 515 fer, 70 vivres | 2.71 or, 1.2 fer, 0.25 vivres | 15 |
+| Chasseur nocturne blafard | Division atomique | 82 / 36 / 8 | 57.6 | 8 / 5 | 14 | 975 or, 75 bois, 465 fer, 60 vivres | 2.63 or, 1.1 fer, 0.25 vivres | 15 |
+| Bombardier gamma | Division atomique | 140 / 30 / 10 | 48 | 5 / 4 | 14 | 1190 or, 115 bois, 625 fer, 85 vivres | 3.36 or, 0.95 fer, 0.25 vivres | 17 |
+| Aile de l’Apocalypse | Apocalypse | 180 / 40 / 14 | 64 | 4 / 5 | 18 | 1875 or, 180 bois, 1020 fer, 135 vivres | 5.35 or, 1.2 fer, 0.25 vivres | 18 |
+| Autogire au radium | Division atomique | 75 / 24 / 6 | 38.4 | 9 / 3 | 12 | 640 or, 50 bois, 300 fer, 45 vivres | 1.73 or, 0.8 fer, 0.25 vivres | 15 |
+| Hélicoptère isotopique | Division atomique | 95 / 34 / 8 | 54.4 | 7 / 4 | 12 | 800 or, 65 bois, 415 fer, 60 vivres | 2.23 or, 1.05 fer, 0.25 vivres | 15 |
+| Canonnière cobalt | Division atomique | 145 / 40 / 16 | 64 | 4 / 3 | 12 | 1015 or, 85 bois, 540 fer, 75 vivres | 2.86 or, 1.2 fer, 0.25 vivres | 15 |
+| Hélicoptère Chasseur blafard | Division atomique | 86 / 40 / 6 | 64 | 6 / 5 | 12 | 1025 or, 65 bois, 490 fer, 65 vivres | 2.74 or, 1.2 fer, 0.25 vivres | 15 |
+| Hélicoptère Flak gamma | Division atomique | 105 / 25 / 10 | 40 | 6 / 5 | 12 | 925 or, 70 bois, 465 fer, 65 vivres | 2.54 or, 0.82 fer, 0.25 vivres | 17 |
+| Hélicoptère de l’Apocalypse | Apocalypse | 165 / 38 / 12 | 60.8 | 4 / 4 | 16 | 1650 or, 145 bois, 870 fer, 120 vivres | 4.64 or, 1.15 fer, 0.25 vivres | 17 |
+| Die Glocke I — Vril | Projet Glocke | 200 / 52 / 10 | 83.2 | 5 / 4 | 18 | 1800 or, 200 bois, 1100 fer, 150 vivres | 5.42 or, 1.5 fer, 0.25 vivres | 18 |
+| Die Glocke II — Nacht | Projet Glocke | 260 / 60 / 14 | 96 | 4 / 5 | 22 | 2600 or, 280 bois, 1600 fer, 200 vivres | 7.8 or, 1.7 fer, 0.25 vivres | 18 |
+| Die Glocke III — Götterdämmerung | Projet Glocke | 320 / 64 / 16 | 102.4 | 3 / 6 | 26 | 3800 or, 360 bois, 2400 fer, 260 vivres | 11.37 or, 1.8 fer, 0.25 vivres | 18 |
+| Terrassier arcanique | Fondations | 28 / 0 / 4 | 0 | 3 / 1 | 5 | 60 or, 35 bois, 30 fer, 20 vivres | 0.24 or, 0.25 vivres | 1 |
+| Avion de reconnaissance | Guerre industrielle | 32 / 6 / 2 | 9.6 | 10 / 2 | 8 | 165 or, 45 bois, 105 fer, 20 vivres | 0.56 or, 0.35 fer, 0.25 vivres | 4 |
+| Chasseur Nachtjäger | Guerre industrielle | 62 / 27 / 5 | 43.2 | 8 / 3 | 8 | 255 or, 50 bois, 175 fer, 25 vivres | 0.84 or, 0.88 fer, 0.25 vivres | 8 |
+| Bombardier funèbre | Guerre industrielle | 78 / 20 / 5 | 32 | 5 / 3 | 12 | 335 or, 70 bois, 245 fer, 35 vivres | 1.14 or, 0.7 fer, 0.25 vivres | 9 |
+| Dirigeable de guerre | Guerre industrielle | 120 / 24 / 8 | 38.4 | 4 / 4 | 12 | 415 or, 115 bois, 255 fer, 50 vivres | 1.39 or, 0.8 fer, 0.25 vivres | 10 |
+| Dragon du Reich noir | Guerre occulte | 150 / 36 / 12 | 57.6 | 5 / 2 | 12 | 625 or, 75 bois, 315 fer, 190 vivres | 2.01 or, 2 vivres | 13 |
+| Canon antiaérien Flak | Guerre industrielle | 54 / 12 / 5 | 19.2 | 2 / 5 | 8 | 150 or, 35 bois, 115 fer, 25 vivres | 0.54 or, 0.5 fer, 0.25 vivres | 7 |
+| Voltigeur Tesla | Guerre occulte | 44 / 24 / 6 | 38.4 | 2 / 3 | 5 | 150 or, 25 bois, 100 fer, 35 vivres | 0.52 or, 0.25 vivres | 7 |
+| Chasseur de maléfices | Guerre occulte | 36 / 23 / 4 | 36.8 | 4 / 3 | 5 | 125 or, 45 bois, 50 fer, 35 vivres | 0.42 or, 0.25 vivres | 9 |
+| Médecin de la peste | Civil | 28 / 4 / 4 | 6.4 | 3 / 1 | 5 | 85 or, 20 bois, 20 fer, 35 vivres | 0.27 or, 0.25 vivres | 3 |
+| Grenadier revenant | Guerre occulte | 54 / 22 / 7 | 35.2 | 2 / 2 | 5 | 120 or, 20 bois, 75 fer, 25 vivres | 0.4 or, 0.25 vivres | 9 |
+| Cavalier spectral | Guerre occulte | 58 / 26 / 7 | 41.6 | 5 / 1 | 5 | 200 or, 35 bois, 90 fer, 50 vivres | 0.63 or, 0.65 vivres | 9 |
+| Marcheur de siège | Guerre occulte | 100 / 27 / 10 | 43.2 | 2 / 4 | 12 | 275 or, 75 bois, 225 fer, 40 vivres | 1.02 or, 0.88 fer, 0.25 vivres | 10 |
+| Char possédé | Guerre occulte | 140 / 34 / 15 | 54.4 | 2 / 3 | 12 | 375 or, 85 bois, 315 fer, 60 vivres | 1.39 or, 1.05 fer, 0.25 vivres | 10 |
+| Section de mortier | Guerre industrielle | 30 / 16 / 2 | 25.6 | 2 / 5 | 6 | 130 or, 50 bois, 90 fer, 25 vivres | 0.49 or, 0.25 vivres | 6 |
+| Fusilier | Guerre industrielle | 34 / 14 / 4 | 22.4 | 3 / 4 | 5 | 55 or, 20 bois, 35 fer, 20 vivres | 0.22 or, 0.25 vivres | 4 |
+| Soldat d’assaut | Guerre industrielle | 44 / 19 / 6 | 30.4 | 3 / 2 | 5 | 85 or, 15 bois, 55 fer, 25 vivres | 0.3 or, 0.25 vivres | 4 |
+| Mitrailleur | Guerre industrielle | 38 / 22 / 4 | 35.2 | 2 / 4 | 5 | 100 or, 25 bois, 65 fer, 25 vivres | 0.36 or, 0.25 vivres | 5 |
+| Tireur des brumes | Guerre industrielle | 26 / 24 / 2 | 38.4 | 3 / 6 | 5 | 110 or, 30 bois, 60 fer, 20 vivres | 0.37 or, 0.25 vivres | 5 |
+| Chasseur de blindés | Guerre industrielle | 34 / 12 / 3 | 19.2 | 2 / 4 | 5 | 115 or, 25 bois, 75 fer, 25 vivres | 0.4 or, 0.25 vivres | 5 |
+| Officier au sabre | Guerre industrielle | 42 / 16 / 6 | 25.6 | 4 / 2 | 5 | 75 or, 20 bois, 35 fer, 30 vivres | 0.27 or, 0.25 vivres | 4 |
+| Moto de reconnaissance | Guerre industrielle | 34 / 12 / 3 | 19.2 | 8 / 2 | 8 | 100 or, 25 bois, 75 fer, 20 vivres | 0.37 or, 0.5 fer, 0.25 vivres | 2 |
+| Automitrailleuse | Guerre industrielle | 64 / 20 / 7 | 32 | 6 / 3 | 8 | 150 or, 30 bois, 115 fer, 25 vivres | 0.53 or, 0.7 fer, 0.25 vivres | 4 |
+| Char de rupture | Guerre industrielle | 110 / 28 / 12 | 44.8 | 3 / 4 | 12 | 220 or, 45 bois, 200 fer, 30 vivres | 0.82 or, 0.9 fer, 0.25 vivres | 8 |
+| Canon de campagne | Guerre industrielle | 40 / 22 / 3 | 35.2 | 2 / 6 | 8 | 145 or, 60 bois, 115 fer, 20 vivres | 0.57 or, 0.75 fer, 0.25 vivres | 6 |
+| Batterie de fusées | Guerre industrielle | 52 / 30 / 4 | 48 | 2 / 7 | 8 | 255 or, 50 bois, 210 fer, 25 vivres | 0.9 or, 0.95 fer, 0.25 vivres | 13 |
+| Chevalier mécanique | Guerre occulte | 82 / 28 / 10 | 44.8 | 3 / 1 | 8 | 215 or, 40 bois, 175 fer, 25 vivres | 0.76 or, 0.9 fer, 0.25 vivres | 9 |
+| Paysan | Civil | 12 / 0 / 0 | 0 | 3 / 1 | 3 | 5 or, 10 bois, 10 vivres | 0.15 or, 0.25 vivres | 1 |
+| Milicien | Fondations | 22 / 6 / 2 | 9.6 | 3 / 1 | 5 | 15 or, 10 bois, 10 vivres | 0.15 or, 0.25 vivres | 1 |
+| Lancier | Fondations | 32 / 8 / 5 | 12.8 | 3 / 1 | 5 | 30 or, 20 bois, 15 fer, 15 vivres | 0.15 or, 0.25 vivres | 1 |
+| Arbalétrier | Armée médiévale | 26 / 13 / 3 | 20.8 | 2 / 3 | 5 | 45 or, 25 bois, 20 fer, 15 vivres | 0.17 or, 0.25 vivres | 3 |
+| Rôdeur | Armée médiévale | 26 / 11 / 4 | 17.6 | 4 / 3 | 5 | 55 or, 35 bois, 10 fer, 20 vivres | 0.2 or, 0.25 vivres | 1 |
+| Cavalier léger | Armée médiévale | 30 / 9 / 3 | 14.4 | 6 / 1 | 5 | 50 or, 10 bois, 15 fer, 30 vivres | 0.17 or, 0.65 vivres | 2 |
+| Paladin | Armée médiévale | 60 / 16 / 9 | 25.6 | 2 / 1 | 5 | 110 or, 10 bois, 60 fer, 35 vivres | 0.36 or, 0.25 vivres | 4 |
+| Bélier | Armée médiévale | 70 / 4 / 7 | 6.4 | 2 / 1 | 6 | 75 or, 90 bois, 35 fer, 15 vivres | 0.36 or, 0.25 vivres | 1 |
+| Guérisseuse | Civil | 20 / 0 / 2 | 0 | 3 / 1 | 5 | 45 or, 10 bois, 5 fer, 25 vivres | 0.15 or, 0.25 vivres | 2 |
+| Ingénieur | Civil | 26 / 3 / 4 | 3 | 3 / 1 | 5 | 45 or, 30 bois, 20 fer, 15 vivres | 0.18 or, 0.25 vivres | 1 |
+| Berserker | Armée médiévale | 38 / 19 / 1 | 30.4 | 3 / 1 | 5 | 65 or, 10 bois, 30 fer, 30 vivres | 0.23 or, 0.25 vivres | 3 |
+| Acolyte du Vide | Guerre occulte | 30 / 22 / 3 | 35.2 | 2 / 3 | 5 | 125 or, 25 bois, 40 fer, 35 vivres | 0.38 or, 0.25 vivres | 3 |
+| Éclaireur | Fondations | 16 / 3 / 1 | 4.8 | 5 / 1 | 5 | 20 or, 15 bois, 10 vivres | 0.15 or, 0.25 vivres | 1 |
+| Fantassin | Fondations | 30 / 8 / 4 | 12.8 | 3 / 1 | 5 | 25 or, 10 bois, 10 fer, 10 vivres | 0.15 or, 0.25 vivres | 1 |
+| Garde | Fondations | 46 / 6 / 8 | 9.6 | 2 / 1 | 5 | 45 or, 25 fer, 15 vivres | 0.15 or, 0.25 vivres | 1 |
+| Archer | Fondations | 22 / 10 / 2 | 16 | 2 / 3 | 5 | 30 or, 25 bois, 10 vivres | 0.15 or, 0.25 vivres | 1 |
+| Chevalier | Armée médiévale | 48 / 14 / 6 | 22.4 | 5 / 1 | 5 | 70 or, 10 bois, 30 fer, 25 vivres | 0.23 or, 0.65 vivres | 2 |
+| Engin de siège | Armée médiévale | 30 / 7 / 2 | 11.2 | 1 / 4 | 6 | 90 or, 65 bois, 40 fer, 10 vivres | 0.34 or, 0.25 vivres | 2 |
 
 ## Bâtiments
 
-| Bâtiment | PV | Coût | Production brute / minute | Terrains | Prérequis |
-| --- | --- | --- | --- | --- | --- |
-| Laboratoire des isotopes | 85 | 220 or, 80 bois, 100 pierre, 150 fer | — | PLAIN, HILL, RUINS | Laboratoire des cendres, Manufacture de munitions |
-| Réacteur noir | 140 | 400 or, 100 bois, 200 pierre, 280 fer | 8 or | PLAIN, HILL, RUINS | Laboratoire des isotopes, Raffinerie |
-| Héliport occulte | 95 | 280 or, 90 bois, 120 pierre, 180 fer | — | PLAIN, RUINS | Laboratoire des isotopes, Garage militaire, Relais radio |
-| Fonderie atomique | 125 | 520 or, 140 bois, 180 pierre, 360 fer | — | PLAIN, HILL, RUINS | Réacteur noir, Usine de blindés |
-| Aérodrome militaire | 75 | 160 or, 100 bois, 70 pierre, 100 fer | — | PLAIN, RUINS | Garage militaire, Relais radio |
-| Chantier de dirigeables | 95 | 210 or, 130 bois, 90 pierre, 150 fer | — | PLAIN, RUINS | Aérodrome militaire, Raffinerie |
-| Sanctuaire draconique | 110 | 260 or, 100 bois, 160 pierre, 140 fer | — | HILL, MOUNTAIN, RUINS, CORRUPTION | Observatoire noir, Caserne des revenants |
-| École de défense antiaérienne | 80 | 100 or, 50 bois, 65 pierre, 85 fer | — | PLAIN, HILL, RUINS | Manufacture de munitions, Relais radio |
-| Palissade en bois | 30 | 30 bois | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | — |
-| Rempart de pierre | 65 | 45 pierre | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | Évolution uniquement : palissade en bois (2 PA, coût sans réduction) |
-| Mur en acier | 100 | 45 fer | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | Évolution uniquement : rempart de pierre (2 PA, coût sans réduction) |
-| Tour Tesla | 95 | 90 or, 45 bois, 70 pierre, 90 fer | — | PLAIN, HILL, RUINS | Forge, Laboratoire des cendres |
-| Caserne des revenants | 75 | 100 or, 60 bois, 65 pierre, 50 fer | — | PLAIN, HILL, RUINS | Caserne, Laboratoire des cendres |
-| Fonderie alchimique | 65 | 130 or, 70 bois, 50 pierre, 80 fer | 5 or | PLAIN, HILL, RUINS | Raffinerie, Laboratoire des cendres |
-| Observatoire noir | 55 | 140 or, 80 bois, 60 pierre, 65 fer | — | PLAIN, HILL, RUINS | Bibliothèque des astres, Relais radio |
-| Carrière de pierre | 30 | 25 or, 30 bois, 5 fer | 4 pierre | HILL, MOUNTAIN | — |
-| Arsenal | 50 | 70 or, 65 bois, 35 pierre, 35 fer | — | PLAIN, HILL, RUINS | Caserne, Forge |
-| Bunker | 100 | 70 or, 35 bois, 80 pierre, 100 fer | — | PLAIN, HILL, RUINS | Forge |
-| Garage militaire | 50 | 80 or, 65 bois, 55 fer | — | PLAIN, HILL, RUINS | Atelier |
-| Usine de blindés | 75 | 160 or, 100 bois, 65 pierre, 130 fer | — | PLAIN, HILL, RUINS | Garage militaire, Raffinerie |
-| Raffinerie | 45 | 100 or, 70 bois, 35 pierre, 70 fer | 4 or | PLAIN, HILL, RUINS | Forge |
-| Manufacture de munitions | 45 | 85 or, 65 bois, 25 pierre, 60 fer | — | PLAIN, HILL, RUINS | Arsenal |
-| Relais radio | 35 | 75 or, 40 bois, 15 pierre, 65 fer | — | PLAIN, HILL, RUINS | Atelier |
-| Hôpital militaire | 50 | 65 or, 65 bois, 20 pierre, 25 fer, 30 vivres | — | PLAIN, HILL, RUINS | Chaumière, Monastère |
-| Batterie fortifiée | 85 | 110 or, 60 bois, 50 pierre, 100 fer | — | PLAIN, HILL, RUINS | Manufacture de munitions |
-| Laboratoire des cendres | 60 | 150 or, 80 bois, 60 pierre, 100 fer | — | PLAIN, HILL, RUINS | Bibliothèque des astres, Forge |
-| Rampe de lancement | 65 | 170 or, 80 bois, 60 pierre, 140 fer | — | PLAIN, HILL, RUINS | Usine de blindés, Laboratoire des cendres |
-| Dépôt ferroviaire | 55 | 90 or, 90 bois, 30 pierre, 75 fer | 3 or | PLAIN, HILL, RUINS | Atelier, Entrepôt |
-| Campement | 30 | 25 bois | 1 or, 3 vivres | PLAIN, HILL, FOREST, RUINS | — |
-| Chaumière | 20 | 20 bois | — | PLAIN, HILL, FOREST, RUINS | — |
-| Grenier | 25 | 15 or, 40 bois | — | PLAIN, HILL, FOREST, RUINS | — |
-| Cabane de chasse | 20 | 20 bois | 4 vivres | FOREST | — |
-| Pêcherie | 20 | 10 or, 30 bois | 8 vivres | RIVER, MARSH | — |
-| Écurie | 35 | 55 or, 60 bois, 15 fer, 25 vivres | — | PLAIN, HILL | Caserne |
-| Archerie | 30 | 40 or, 55 bois, 10 fer, 10 vivres | — | PLAIN, HILL, FOREST, RUINS | — |
-| Monastère | 45 | 80 or, 60 bois, 40 pierre, 30 fer, 20 vivres | 2 or, 2 vivres | PLAIN, HILL, RUINS | Chaumière |
-| Forge | 40 | 65 or, 45 bois, 20 pierre, 35 fer | — | PLAIN, HILL, RUINS | Atelier |
-| Bibliothèque des astres | 35 | 100 or, 70 bois, 30 pierre, 30 fer, 20 vivres | 3 or | PLAIN, HILL, RUINS | Monastère |
-| Boulangerie | 25 | 25 or, 35 bois, 10 pierre, 5 fer, 10 vivres | 7 vivres | PLAIN, HILL, FOREST, RUINS | Ferme |
-| Puits | 30 | 5 or, 20 bois, 10 pierre | 2 vivres | PLAIN, HILL, FOREST, RUINS | — |
-| Avant-poste | 35 | 35 or, 35 bois, 5 fer | 1 or, 3 vivres | PLAIN, HILL, FOREST, RUINS | — |
-| Village | 35 | 60 or, 50 bois, 20 pierre, 10 fer, 25 vivres | 3 or, 4 vivres | PLAIN, HILL, FOREST, RUINS | — |
-| Ferme | 15 | 20 or, 25 bois | 6 vivres | PLAIN | — |
-| Scierie | 20 | 25 or, 20 bois, 5 fer | 5 bois | FOREST | — |
-| Mine | 25 | 35 or, 35 bois, 5 fer | 4 fer | HILL | — |
-| Marché | 25 | 50 or, 35 bois, 10 fer, 10 vivres | 5 or | PLAIN, HILL, RUINS | — |
-| Entrepôt | 30 | 35 or, 45 bois, 15 pierre, 10 fer | — | PLAIN, HILL, FOREST, RUINS | — |
-| Atelier | 30 | 65 or, 45 bois, 15 pierre, 25 fer | 2 or | PLAIN, HILL, RUINS | — |
-| Caserne | 40 | 60 or, 45 bois, 20 pierre, 25 fer, 10 vivres | — | PLAIN, HILL, RUINS | — |
-| Fort | 65 | 90 or, 45 bois, 65 pierre, 65 fer | — | PLAIN, HILL, RUINS | — |
-| Tour de guet | 40 | 45 or, 25 bois, 25 pierre, 30 fer | — | PLAIN, HILL, FOREST, RUINS | — |
+| Bâtiment | PV de base | Coût initial | Production brute / minute niveau 1 | Production brute / minute niveau 3 | Terrains | Prérequis |
+| --- | --- | --- | --- | --- | --- | --- |
+| Complexe des cloches | 750 | 2200 or, 500 bois, 700 pierre, 1200 fer | — | — | PLAIN, RUINS | Réacteur noir, Fonderie atomique, Observatoire noir |
+| Laboratoire des isotopes | 385 | 440 or, 160 bois, 200 pierre, 300 fer | — | — | PLAIN, HILL, RUINS | Laboratoire des cendres, Manufacture de munitions |
+| Réacteur noir | 630 | 800 or, 200 bois, 400 pierre, 560 fer | 16 or | 38.4 or | PLAIN, HILL, RUINS | Laboratoire des isotopes, Raffinerie |
+| Héliport occulte | 430 | 560 or, 180 bois, 240 pierre, 360 fer | — | — | PLAIN, RUINS | Laboratoire des isotopes, Garage militaire, Relais radio |
+| Fonderie atomique | 625 | 1250 or, 340 bois, 435 pierre, 865 fer | — | — | PLAIN, HILL, RUINS | Réacteur noir, Usine de blindés |
+| Aérodrome militaire | 265 | 225 or, 140 bois, 100 pierre, 140 fer | — | — | PLAIN, RUINS | Garage militaire, Relais radio |
+| Chantier de dirigeables | 380 | 360 or, 225 bois, 155 pierre, 255 fer | — | — | PLAIN, RUINS | Aérodrome militaire, Raffinerie |
+| Sanctuaire draconique | 440 | 445 or, 170 bois, 275 pierre, 240 fer | — | — | HILL, MOUNTAIN, RUINS, CORRUPTION | Observatoire noir, Caserne des revenants |
+| École de défense antiaérienne | 280 | 140 or, 70 bois, 95 pierre, 120 fer | — | — | PLAIN, HILL, RUINS | Manufacture de munitions, Relais radio |
+| Palissade en bois | 100 | 30 bois | — | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | — |
+| Rempart de pierre | 240 | 65 pierre | — | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | Évolution uniquement : palissade en bois (2 PA, coût sans réduction) |
+| Mur en acier | 480 | 90 fer | — | — | PLAIN, HILL, FOREST, RUINS, MOUNTAIN | Évolution uniquement : rempart de pierre (2 PA, coût sans réduction) |
+| Tour Tesla | 380 | 155 or, 80 bois, 120 pierre, 155 fer | — | — | PLAIN, HILL, RUINS | Forge, Laboratoire des cendres |
+| Caserne des revenants | 300 | 170 or, 105 bois, 115 pierre, 85 fer | — | — | PLAIN, HILL, RUINS | Caserne, Laboratoire des cendres |
+| Fonderie alchimique | 260 | 225 or, 120 bois, 85 pierre, 140 fer | 10 or | 24 or | PLAIN, HILL, RUINS | Raffinerie, Laboratoire des cendres |
+| Observatoire noir | 220 | 240 or, 140 bois, 105 pierre, 115 fer | — | — | PLAIN, HILL, RUINS | Bibliothèque des astres, Relais radio |
+| Carrière de pierre | 75 | 20 or, 30 bois | 6 pierre | 14.4 pierre | HILL, MOUNTAIN | — |
+| Arsenal | 175 | 100 or, 95 bois, 50 pierre, 50 fer | — | — | PLAIN, HILL, RUINS | Caserne, Forge |
+| Bunker | 350 | 100 or, 50 bois, 115 pierre, 140 fer | — | — | PLAIN, HILL, RUINS | Forge |
+| Garage militaire | 175 | 115 or, 95 bois, 80 fer | — | — | PLAIN, HILL, RUINS | Atelier |
+| Usine de blindés | 265 | 225 or, 140 bois, 95 pierre, 185 fer | — | — | PLAIN, HILL, RUINS | Garage militaire, Raffinerie |
+| Raffinerie | 160 | 140 or, 100 bois, 50 pierre, 100 fer | 6 or | 14.4 or | PLAIN, HILL, RUINS | Forge |
+| Manufacture de munitions | 160 | 120 or, 95 bois, 35 pierre, 85 fer | — | — | PLAIN, HILL, RUINS | Arsenal |
+| Relais radio | 125 | 105 or, 60 bois, 25 pierre, 95 fer | — | — | PLAIN, HILL, RUINS | Atelier |
+| Hôpital militaire | 175 | 95 or, 95 bois, 30 pierre, 35 fer, 45 vivres | — | — | PLAIN, HILL, RUINS | Chaumière, Monastère |
+| Batterie fortifiée | 300 | 155 or, 85 bois, 70 pierre, 140 fer | — | — | PLAIN, HILL, RUINS | Manufacture de munitions |
+| Laboratoire des cendres | 240 | 255 or, 140 bois, 105 pierre, 170 fer | — | — | PLAIN, HILL, RUINS | Bibliothèque des astres, Forge |
+| Rampe de lancement | 260 | 290 or, 140 bois, 105 pierre, 240 fer | — | — | PLAIN, HILL, RUINS | Usine de blindés, Laboratoire des cendres |
+| Dépôt ferroviaire | 195 | 130 or, 130 bois, 45 pierre, 105 fer | 5 or | 12 or | PLAIN, HILL, RUINS | Atelier, Entrepôt |
+| Campement | 75 | 25 bois | 2 or, 4 vivres | 4.8 or, 9.6 vivres | PLAIN, HILL, FOREST, RUINS | — |
+| Chaumière | 50 | 20 bois | — | — | PLAIN, HILL, FOREST, RUINS | — |
+| Grenier | 65 | 15 or, 40 bois | — | — | PLAIN, HILL, FOREST, RUINS | — |
+| Cabane de chasse | 50 | 20 bois | 5 vivres | 12 vivres | FOREST | — |
+| Pêcherie | 50 | 10 or, 30 bois | 10 vivres | 24 vivres | RIVER, MARSH | — |
+| Écurie | 105 | 65 or, 70 bois, 20 fer, 30 vivres | — | — | PLAIN, HILL | Caserne |
+| Archerie | 90 | 35 or, 50 bois, 10 pierre, 10 vivres | — | — | PLAIN, HILL, FOREST, RUINS | — |
+| Monastère | 135 | 90 or, 70 bois, 45 pierre, 35 fer, 25 vivres | 3 or, 3 vivres | 7.2 or, 7.2 vivres | PLAIN, HILL, RUINS | Chaumière |
+| Forge | 140 | 95 or, 65 bois, 30 pierre, 50 fer | — | — | PLAIN, HILL, RUINS | Atelier |
+| Bibliothèque des astres | 105 | 115 or, 80 bois, 35 pierre, 35 fer, 25 vivres | 4 or | 9.6 or | PLAIN, HILL, RUINS | Monastère |
+| Boulangerie | 75 | 30 or, 40 bois, 15 pierre, 10 fer, 15 vivres | 14 vivres | 33.6 vivres | PLAIN, HILL, FOREST, RUINS | Ferme |
+| Puits | 75 | 5 or, 20 bois, 10 pierre | 3 vivres | 7.2 vivres | PLAIN, HILL, FOREST, RUINS | — |
+| Avant-poste | 90 | 35 or, 35 bois, 5 fer | 3 or, 5 vivres | 7.2 or, 12 vivres | PLAIN, HILL, FOREST, RUINS | — |
+| Village | 105 | 70 or, 60 bois, 25 pierre, 15 fer, 30 vivres | 6 or, 6 vivres | 18 or, 18 vivres | PLAIN, HILL, FOREST, RUINS | — |
+| Ferme | 40 | 20 or, 25 bois | 8 vivres | 19.2 vivres | PLAIN | — |
+| Scierie | 50 | 15 or, 25 bois | 8 bois | 19.2 bois | FOREST | — |
+| Mine | 65 | 30 or, 35 bois, 10 pierre | 5 fer | 12 fer | HILL | — |
+| Marché | 75 | 60 or, 40 bois, 15 fer, 15 vivres | 8 or | 19.2 or | PLAIN, HILL, RUINS | — |
+| Entrepôt | 90 | 40 or, 50 bois, 20 pierre, 15 fer | — | — | PLAIN, HILL, FOREST, RUINS | — |
+| Atelier | 90 | 75 or, 50 bois, 20 pierre, 30 fer | 2 or | 4.8 or | PLAIN, HILL, RUINS | — |
+| Caserne | 120 | 35 or, 45 bois, 15 pierre, 10 vivres | — | — | PLAIN, HILL, RUINS | — |
+| Fort | 195 | 100 or, 50 bois, 75 pierre, 75 fer | — | — | PLAIN, HILL, RUINS | — |
+| Tour de guet | 120 | 50 or, 30 bois, 30 pierre, 35 fer | — | — | PLAIN, HILL, FOREST, RUINS | — |
 
 ## Tourelles de rempart
 
@@ -164,6 +172,35 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 
 | Arme | Mur minimal | Attaque / portée | Bonus antiaérien | Coût de cette étape |
 | --- | --- | --- | --- | --- |
-| Arbalète de rempart | Palissade en bois | 7 / 3 | 0 | 60 or, 50 bois, 20 fer |
-| Canon de rempart | Rempart de pierre | 13 / 4 | 0 | 120 or, 60 pierre, 50 fer |
-| Tourelle Tesla occulte | Mur en acier | 20 / 5 | 8 | 220 or, 40 pierre, 120 fer |
+| Arbalète de rempart | Palissade en bois | 16 / 3 | 0 | 60 or, 50 bois, 20 fer |
+| Canon de rempart | Rempart de pierre | 30 / 4 | 0 | 120 or, 60 pierre, 50 fer |
+| Tourelle Tesla occulte | Mur en acier | 48 / 5 | 18 | 220 or, 40 pierre, 120 fer |
+
+## Comparatif de tirs sur plaine
+
+Cibles à pleine santé, sans rareté, remparts, trêves ni ripostes. Le nombre de tirs utilise le minimum des dégâts : il ne représente pas une victoire garantie en duel. Les bonus indiquent le niveau d’entraînement, pas un niveau individuel acquis par expérience.
+
+| Attaquant | Entraînement | Cible | Entraînement | Dégâts par tir | Tirs nécessaires au maximum |
+| --- | --- | --- | --- | --- | --- |
+| Fantassin | +0 % | Milicien | +0 % | 5–7 | 5 |
+| Fusilier | +0 % | Milicien | +0 % | 11–13 | 2 |
+| Char de rupture | +0 % | Milicien | +0 % | 25–27 | 1 |
+| Char Mausolée | +60 % | Milicien | +0 % | 61–63 | 1 |
+| Fusilier | +25 % | Char Mausolée | +60 % | 1–2 | 352 |
+| Chasseur de blindés | +25 % | Char Mausolée | +60 % | 37–39 | 10 |
+| Chasseur de chars isotopique | +60 % | Char Mausolée | +60 % | 97–99 | 4 |
+| Fusilier | +60 % | Aile de l’Apocalypse | +60 % | 1–2 | 288 |
+| Canon antiaérien Flak | +60 % | Aile de l’Apocalypse | +60 % | 42–44 | 7 |
+
+## Coût des filières de recrutement
+
+Chaque prérequis est compté une seule fois, au coût de construction de base. Hors évolutions de bâtiments, habitat, entretien, recrutement, routes et PA. Ces montants servent à comparer les filières ; ils ne sont pas des durées de progression.
+
+| Recrue visée | Infrastructure minimale retenue | Investissement initial |
+| --- | --- | --- |
+| Fantassin | Caserne | 35 or, 45 bois, 15 pierre, 10 vivres |
+| Chevalier | Caserne, Écurie | 100 or, 115 bois, 15 pierre, 20 fer, 40 vivres |
+| Char de rupture | Usine de blindés, Garage militaire, Atelier, Raffinerie, Forge, Manufacture de munitions, Arsenal, Caserne | 905 or, 685 bois, 295 pierre, 580 fer, 10 vivres |
+| Char possédé | Fonderie alchimique, Raffinerie, Forge, Atelier, Laboratoire des cendres, Bibliothèque des astres, Monastère, Chaumière, Usine de blindés, Garage militaire | 1335 or, 880 bois, 465 pierre, 825 fer, 50 vivres |
+| Char Mausolée | Réacteur noir, Laboratoire des isotopes, Laboratoire des cendres, Bibliothèque des astres, Monastère, Chaumière, Forge, Atelier, Manufacture de munitions, Arsenal, Caserne, Raffinerie, Fonderie atomique, Usine de blindés, Garage militaire | 3855 or, 1695 bois, 1515 pierre, 2545 fer, 60 vivres |
+| Aile de l’Apocalypse | Réacteur noir, Laboratoire des isotopes, Laboratoire des cendres, Bibliothèque des astres, Monastère, Chaumière, Forge, Atelier, Manufacture de munitions, Arsenal, Caserne, Raffinerie, Fonderie atomique, Usine de blindés, Garage militaire, Chantier de dirigeables, Aérodrome militaire, Relais radio | 4545 or, 2120 bois, 1795 pierre, 3035 fer, 60 vivres |

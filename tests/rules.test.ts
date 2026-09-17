@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RULES } from '@voidmarch/config';
+import { RULES, UNITS } from '@voidmarch/config';
 import {
   accrueEconomy,
   chunkOf,
@@ -288,12 +288,16 @@ describe('visibilité, défaite et IA', () => {
   it('ne restaure un royaume vaincu qu’après le délai', () => {
     const s = fixture();
     defeat(s, s.realms.a, now);
+    s.archives.a.units = [];
     expect(execute(s, 'a', command('RESPAWN', 'a', {}), now + 1).result.accepted).toBe(false);
     const result = execute(s, 'a', command('RESPAWN', 'a', {}), now + RULES.defeatCooldown + 1);
     expect(result.result.accepted).toBe(true);
     expect(result.state.realms.a.defeatedAt).toBeUndefined();
     expect(result.state.realms.a.capital).not.toEqual({ q: 0, r: 0 });
     expect(result.state.realms.a.wallet.GOLD).toBe(240);
+    const survivor = Object.values(result.state.units).find((u) => u.ownerId === 'a')!;
+    expect(survivor.kind).toBe('INFANTRY');
+    expect(survivor.hp).toBe(UNITS.INFANTRY.hp);
   });
   it('endort les bots sans humain, puis les réveille', () => {
     const s = fixture(),

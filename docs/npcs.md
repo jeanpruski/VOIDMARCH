@@ -13,11 +13,11 @@ Les PNJ sont des rencontres PvE facultatives. Ils restent sur place et ne décle
 
 | Profil               | PV de base | Attaque | Défense | Portée | Butin de base             |
 | -------------------- | ---------: | ------: | ------: | -----: | ------------------------- |
-| Déserteur des brumes |         12 |       4 |       1 |      2 | 25 or, 20 nourriture      |
-| Pillard cuirassé     |         18 |       5 |       2 |      1 | 30 or, 25 bois, 15 pierre |
-| Cultiste des ondes   |         16 |       6 |       1 |      3 | 40 or, 20 fer             |
-| Égaré irradié        |         24 |       7 |       2 |      1 | 35 fer, 25 nourriture     |
-| Motard des cendres   |         20 |       6 |       2 |      2 | 35 or, 25 fer, 15 bois    |
+| Déserteur des brumes |         26 |       7 |       2 |      2 | 25 or, 20 nourriture      |
+| Pillard cuirassé     |         40 |       9 |       4 |      1 | 30 or, 25 bois, 15 pierre |
+| Cultiste des ondes   |         34 |      11 |       3 |      3 | 40 or, 20 fer             |
+| Égaré irradié        |         54 |      12 |       5 |      1 | 35 fer, 25 nourriture     |
+| Motard des cendres   |         42 |      10 |       4 |      2 | 35 or, 25 fer, 15 bois    |
 
 À l’apparition : PV ±2, attaque/défense ±1, ressources ±20 %. Les statistiques exactes sont visibles avant le combat. Les rencontres dangereuses demandent des troupes préparées ; attaquer hors de portée empêche la riposte.
 

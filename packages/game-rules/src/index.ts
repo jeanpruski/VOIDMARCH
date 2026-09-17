@@ -1,6 +1,9 @@
 import {
   BUILDINGS,
+  heroAura,
+  BALANCE_VERSION,
   NPCS,
+  INDIRECT_FIRE_UNITS,
   TURRETS,
   WALL_KINDS,
   type TurretLevel,
@@ -29,6 +32,23 @@ import {
 } from '@voidmarch/config';
 import type { Building, GameState, Hex, Realm, Tile, Unit, ViewTile } from '@voidmarch/shared';
 export const key = (p: Hex) => `${p.q},${p.r}`;
+/** Shared by the authoritative action, catalogue and optimistic preview. */
+export function recruitmentRequirement(
+  kind: UnitKind,
+  building: Building,
+  owned: readonly Building[],
+): string {
+  const profile = UNIT_PROFILES[kind];
+  if (profile.hero) return 'Le héros est unique et ne peut pas être recruté.';
+  if (!profile.recruitAt.includes(building.kind))
+    return `Formation : ${BUILDINGS[profile.recruitAt[0]].name}`;
+  if (building.level < (profile.minRecruitLevel ?? 1))
+    return `${BUILDINGS[building.kind].name} niveau ${profile.minRecruitLevel} nécessaire`;
+  const missing = profile.requires.find(
+    (k) => !owned.some((b) => b.ownerId === building.ownerId && b.kind === k && b.hp > 0),
+  );
+  return missing ? `${BUILDINGS[missing].name} nécessaire pour cette unité.` : '';
+}
 export const unkey = (s: string): Hex => {
   const [q, r] = s.split(',').map(Number);
   return { q, r };
@@ -575,11 +595,7 @@ export function attackStats(attacker: Unit | Building) {
 }
 export const attackCost = (attacker: Unit | Building) =>
   'population' in attacker ? 1 : UNIT_PROFILES[attacker.kind].siege ? 2 : 1;
-export function attackBlockReason(
-  attacker: Unit | Building,
-  target: Unit | Building,
-  wall?: Building,
-) {
+export function attackBlockReason(attacker: Unit | Building, target: Unit | Building) {
   const building = 'population' in attacker;
   if (building && !turretStats(attacker)) return 'Ce bâtiment ne possède pas de tourelle.';
   if (building && attacker.hp <= 0) return 'Ce rempart est détruit.';
@@ -593,49 +609,135 @@ export function attackBlockReason(
     UNITS[attacker.kind].range <= 1
   )
     return 'Cette unité terrestre ne peut pas atteindre une cible aérienne. Utilisez une unité à distance.';
-  if (
-    !flyingTarget &&
-    target.id !== wall?.id &&
-    wallBlocks(wall, attacker.ownerId, building ? undefined : attacker.kind)
-  )
-    return 'Détruisez d’abord le rempart qui protège cette unité.';
   return '';
+}
+export function attackTrajectory(attacker: Unit | Building) {
+  if ('population' in attacker) return 'elevated';
+  if (UNIT_PROFILES[attacker.kind].flying) return 'air';
+  if (INDIRECT_FIRE_UNITS.includes(attacker.kind)) return 'indirect';
+  return attackStats(attacker).range <= 1 ? 'melee' : 'direct';
+}
+
+/** Clip the centre-to-centre segment against a hex's six half-planes.
+ * Edge/corner contact counts as cover, symmetrically in both directions. */
+function wallEntry(from: Hex, to: Hex, wall: Hex): number | undefined {
+  const x = from.q - wall.q + (from.r - wall.r) / 2;
+  const y = ((from.r - wall.r) * Math.sqrt(3)) / 2;
+  const dx = to.q - from.q + (to.r - from.r) / 2;
+  const dy = ((to.r - from.r) * Math.sqrt(3)) / 2;
+  let enter = 0,
+    leave = 1;
+  for (const d of DIRECTIONS) {
+    const nx = d.q + d.r / 2,
+      ny = (d.r * Math.sqrt(3)) / 2;
+    const origin = x * nx + y * ny,
+      delta = dx * nx + dy * ny;
+    if (Math.abs(delta) < 1e-9) {
+      if (origin > 0.5 + 1e-9) return;
+    } else {
+      const t = (0.5 - origin) / delta;
+      if (delta > 0) leave = Math.min(leave, t);
+      else enter = Math.max(enter, t);
+      if (enter > leave + 1e-9) return;
+    }
+  }
+  return enter;
+}
+
+/** One authoritative target resolver, also used by previews, bots and projectiles. */
+export function resolveAttack(
+  attacker: Unit | Building,
+  intended: Unit | Building,
+  buildings: Iterable<Building>,
+) {
+  const reason = attackBlockReason(attacker, intended);
+  const trajectory = attackTrajectory(attacker);
+  if (
+    reason ||
+    ['indirect', 'air', 'elevated'].includes(trajectory) ||
+    (!('population' in intended) && UNIT_PROFILES[intended.kind].flying)
+  )
+    return { target: intended, intercepted: undefined, reason };
+  const walls = [...buildings]
+    .filter((b) => isWall(b.kind) && b.hp > 0)
+    .map((wall) => ({ wall, t: wallEntry(attacker, intended, wall) }))
+    .filter((v): v is { wall: Building; t: number } => v.t !== undefined)
+    .sort((a, b) => a.t - b.t || a.wall.q - b.wall.q || a.wall.r - b.wall.r);
+  const wall = walls[0]?.wall;
+  return {
+    target: wall ?? intended,
+    intercepted: wall && wall.id !== intended.id ? wall : undefined,
+    reason:
+      wall?.ownerId === attacker.ownerId
+        ? 'Votre rempart bloque cette attaque. Utilisez une tourelle, un tir en cloche ou une unité aérienne.'
+        : '',
+  };
 }
 export const targetTerrainDefense = (target: Unit | Building, terrain: Terrain) =>
   !('population' in target) && UNIT_PROFILES[target.kind].flying ? 0 : TERRAINS[terrain].defense;
 
-export function estimateDamage(attacker: Unit | Building, target: Unit | Building, tile: Tile) {
+export function estimateDamage(
+  attacker: Unit | Building,
+  target: Unit | Building,
+  tile: Tile,
+  units: readonly Unit[] = [],
+) {
   const a = attackStats(attacker);
+  const aura = (actor: Unit | Building) =>
+    'population' in actor || actor.kind === 'HERO'
+      ? 0
+      : Math.max(
+          0,
+          ...units
+            .filter(
+              (u) =>
+                u.kind === 'HERO' &&
+                u.hp > 0 &&
+                u.ownerId === actor.ownerId &&
+                distance(u, actor) <= 2,
+            )
+            .map((u) => heroAura(u.hero?.xp)),
+        );
   const atk = 'population' in target && 'buildingAttack' in a ? a.buildingAttack : a.attack;
   const defense =
     'population' in target
       ? Math.floor(target.level / 2) + (BUILDING_DEFENSE[target.kind] ?? 0)
       : unitStats(target).defense;
-  const bonus =
-    !('population' in target) && attacker.kind === 'BAZOOKA' && UNIT_PROFILES[target.kind].armored
-      ? 6
+  const counterMultiplier =
+    'population' in attacker
+      ? 1
+      : 1 + ((attacker.trainingBonus ?? 0) + (attacker.rareBonus ?? 0)) / 100;
+  const antiArmor =
+    !('population' in attacker) &&
+    ['BAZOOKA', 'ISOTOPE_TANK_HUNTER'].includes(attacker.kind) &&
+    !('population' in target) &&
+    UNIT_PROFILES[target.kind].armored;
+  const antiAir =
+    !('population' in target) && UNIT_PROFILES[target.kind].flying
+      ? ('population' in attacker
+          ? (turretStats(attacker)?.antiAir ?? 0)
+          : (UNIT_PROFILES[attacker.kind].antiAir ?? 0)) * counterMultiplier
+      : 0;
+  const bonus = antiArmor
+    ? (attacker.kind === 'BAZOOKA' ? 24 : 30) * counterMultiplier
+    : !('population' in target) &&
+        attacker.kind === 'SPEARMAN' &&
+        UNIT_PROFILES[target.kind].mounted
+      ? 12 * counterMultiplier
       : !('population' in target) &&
-          attacker.kind === 'SPEARMAN' &&
-          UNIT_PROFILES[target.kind].mounted
-        ? 3
-        : !('population' in target) &&
-            attacker.kind === 'CROSSBOW' &&
-            ['GUARD', 'PALADIN', 'KNIGHT'].includes(target.kind)
-          ? 2
-          : 0;
+          attacker.kind === 'CROSSBOW' &&
+          ['GUARD', 'PALADIN', 'KNIGHT'].includes(target.kind)
+        ? 6 * counterMultiplier
+        : 0;
   const cover =
     !('population' in target) && target.kind === 'RANGER' && tile.terrain === 'FOREST' ? 2 : 0;
   const base = Math.max(
     1,
     Math.round(
-      atk +
+      atk * (1 + aura(attacker)) +
         bonus +
-        (!('population' in target) && UNIT_PROFILES[target.kind].flying
-          ? 'population' in attacker
-            ? (turretStats(attacker)?.antiAir ?? 0)
-            : (UNIT_PROFILES[attacker.kind].antiAir ?? 0)
-          : 0) -
-        defense -
+        antiAir -
+        defense * (1 + aura(target)) * (antiArmor ? 0.25 : antiAir > 0 ? 0.5 : 1) -
         cover -
         targetTerrainDefense(target, tile.terrain),
     ),
@@ -698,6 +800,7 @@ export function createRealm(
 export function createState(seed: string, now: number): GameState {
   return {
     version: 1,
+    balanceVersion: BALANCE_VERSION,
     seed,
     createdAt: now,
     realms: {},

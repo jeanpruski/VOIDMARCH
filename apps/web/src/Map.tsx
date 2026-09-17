@@ -1,3 +1,5 @@
+import { HERO_SHEETS, loadHeroSheet, heroArtKey, heroCanvas, heroStarPoints } from './hero-art';
+import type { HeroPart } from '@voidmarch/config';
 import { unitStats, turretStats, attackStats } from '@voidmarch/game-rules';
 import { worldEffects, type WorldEffect } from './world-effects';
 import { useEffect, useRef } from 'react';
@@ -102,12 +104,15 @@ class WorldScene extends Phaser.Scene {
     super('World');
   }
   preload() {
+    for (const name of Object.values(HERO_SHEETS)) this.load.image(name, `/assets/${name}.png`);
     this.load.image('wall-materials', '/assets/wall-materials.png');
     for (const name of Object.keys(SPRITE_ATLASES))
       this.load.image(`${name}-source`, `/assets/${name}.png`);
     this.load.spritesheet('terrain', '/assets/terrain.png', { frameWidth: 362, frameHeight: 362 });
   }
   create() {
+    for (const [part, name] of Object.entries(HERO_SHEETS))
+      loadHeroSheet(part as HeroPart, this.textures.get(name).getSourceImage() as HTMLImageElement);
     setWallMaterials(this.textures.get('wall-materials').getSourceImage() as HTMLImageElement);
     for (const name of Object.keys(SPRITE_ATLASES)) {
       const source = this.textures.get(`${name}-source`).getSourceImage() as HTMLImageElement;
@@ -512,13 +517,7 @@ class WorldScene extends Phaser.Scene {
         return;
       }
       const target =
-        wallBlocks(
-          tile?.building,
-          this.view.player.id,
-          'population' in attacker ? undefined : attacker.kind,
-        ) && !(unit && UNIT_PROFILES[unit.kind].flying)
-          ? tile?.building
-          : (unit ?? tile?.building);
+        unit?.ownerId !== this.view.player.id ? (unit ?? tile?.building) : tile?.building;
       if (target && target.ownerId !== this.view.player.id)
         useGame.setState({ combatTarget: target.id });
       else notify('Sélectionnez une cible ennemie visible.', true);
@@ -825,6 +824,31 @@ class WorldScene extends Phaser.Scene {
       )
         continue;
       const origin = p;
+      if (u.npc) {
+        // A warm beacon distinguishes encounters from faction rings and rare-unit auras.
+        const halo = this.add
+          .graphics({ x: p.x, y: p.y + 9 })
+          .setDepth(depth(6600, p.y))
+          .setName(`npc-halo:${u.id}`);
+        halo.fillStyle(0xffb642, 0.08);
+        halo.fillEllipse(0, 0, 86, 43);
+        halo.fillStyle(0xffc65c, 0.18);
+        halo.fillEllipse(0, 0, 70, 34);
+        halo.lineStyle(6, 0xffb642, 0.18);
+        halo.strokeEllipse(0, 0, 63, 30);
+        halo.lineStyle(2.4 / Math.min(1, this.cameras.main.zoom), 0xffd47b, 0.95);
+        halo.strokeEllipse(0, 0, 63, 30);
+        this.pieces.push(halo);
+        if (!world.player.settings.reducedMotion)
+          this.tweens.add({
+            targets: halo,
+            alpha: 0.6,
+            duration: 1200,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+          });
+      }
       const parts: {
         object: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | Phaser.GameObjects.Text;
         x: number;
@@ -843,20 +867,37 @@ class WorldScene extends Phaser.Scene {
         .graphics({ x: origin.x, y: origin.y - 20 })
         .setDepth(depth(6400, p.y))
         .setName(`unit-owner:${u.id}`);
-      marker.fillStyle(0x080b08, 0.45);
-      marker.fillEllipse(0, 30, markerWidth, markerHeight);
-      marker.lineStyle(4, 0x080b08, 0.85);
-      marker.strokeEllipse(0, 30, markerWidth, markerHeight);
-      marker.lineStyle(2, factionColor(u.ownerId), 1);
-      marker.strokeEllipse(0, 30, markerWidth, markerHeight);
+      if (u.kind === 'HERO') {
+        const star = heroStarPoints(0, 30, 72, 38);
+        marker.fillStyle(0x080b08, 0.85);
+        marker.fillPoints(star, true);
+        marker.lineStyle(9, factionColor(u.ownerId), 0.22);
+        marker.strokePoints(star, true);
+        marker.lineStyle(6, 0x080b08, 0.95);
+        marker.strokePoints(star, true);
+        marker.fillStyle(factionColor(u.ownerId), 0.3);
+        marker.fillPoints(star, true);
+        marker.lineStyle(3, factionColor(u.ownerId), 1);
+        marker.strokePoints(star, true);
+      } else {
+        marker.fillStyle(0x080b08, 0.45);
+        marker.fillEllipse(0, 30, markerWidth, markerHeight);
+        marker.lineStyle(4, 0x080b08, 0.85);
+        marker.strokeEllipse(0, 30, markerWidth, markerHeight);
+        marker.lineStyle(2, factionColor(u.ownerId), 1);
+        marker.strokeEllipse(0, 30, markerWidth, markerHeight);
+      }
       this.pieces.push(marker);
       parts.push({ object: marker, x: 0, y: -20, layer: 6400 });
+      const heroTexture = u.hero ? `${heroArtKey(u.hero.appearance)}:map` : undefined;
+      if (heroTexture && !this.textures.exists(heroTexture))
+        this.textures.addCanvas(heroTexture, heroCanvas(u.hero!.appearance, false));
       const sprite = this.add
         .image(
           origin.x,
           origin.y - 20,
-          miniatureTexture(unitFrame(u)),
-          miniatureFrame(unitFrame(u)),
+          heroTexture ?? miniatureTexture(unitFrame(u)),
+          heroTexture ? undefined : miniatureFrame(unitFrame(u)),
         )
         .setDisplaySize(
           UNIT_PROFILES[u.kind].siege ? 75 : 67,
@@ -875,6 +916,23 @@ class WorldScene extends Phaser.Scene {
         y: -20,
         layer: UNIT_PROFILES[u.kind].flying ? 8500 : 7000,
       });
+      if (u.hero) {
+        const tag = this.add
+          .text(p.x, p.y - 59, u.hero.name, {
+            fontSize: '12px',
+            fontStyle: 'bold',
+            color: '#e9ddac',
+            backgroundColor: '#101914',
+            stroke: '#101914',
+            strokeThickness: 3,
+          })
+          .setOrigin(0.5)
+          .setScale(1 / Math.min(1, this.cameras.main.zoom))
+          .setDepth(depth(14500, p.y))
+          .setName(`hero-name:${u.id}`);
+        this.pieces.push(tag);
+        parts.push({ object: tag, x: 0, y: -59, layer: 14500 });
+      }
       if (u.rareBonus) {
         const aura = this.add
           .graphics({ x: p.x, y: p.y + 8 })
@@ -919,14 +977,17 @@ class WorldScene extends Phaser.Scene {
       if (!u.npc) drawBanner(u.ownerId, 20, -26, 1, banner);
       else {
         const tag = this.add
-          .text(p.x, p.y - 55, 'PNJ', {
-            fontSize: '9px',
-            color: '#e9c68a',
-            backgroundColor: '#222b21',
-            padding: { x: 4, y: 2 },
+          .text(p.x, p.y - 55, '◆ PNJ', {
+            fontSize: '11px',
+            fontStyle: 'bold',
+            color: '#20190d',
+            backgroundColor: '#f0c56c',
+            padding: { x: 5, y: 3 },
           })
           .setOrigin(0.5)
-          .setDepth(13500);
+          .setScale(Math.max(1, 1 / this.cameras.main.zoom))
+          .setDepth(13500)
+          .setName(`npc-tag:${u.id}`);
         this.pieces.push(tag);
       }
       this.pieces.push(banner);

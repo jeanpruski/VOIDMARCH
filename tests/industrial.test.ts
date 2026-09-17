@@ -43,7 +43,7 @@ describe('guerre industrielle', () => {
       IRON: 490,
       FOOD: 500,
     });
-    expect(result.state.units.TANK.hp).toBe(21);
+    expect(result.state.units.TANK.hp).toBe(60);
   });
   it('les soins biologiques ne réparent pas un char', () => {
     const s = fixture();
@@ -62,7 +62,7 @@ describe('guerre industrielle', () => {
     expect(vision(s, r).has(key({ q: 10, r: 1 }))).toBe(true);
     const before = storage(s, r.id);
     addBuilding(s, r, { q: 1, r: 0 }, 'RAIL_DEPOT', now);
-    expect(storage(s, r.id)).toBe(before + 1200);
+    expect(storage(s, r.id)).toBe(before + 1500);
   });
   it('les fusées exigent deux PA et un ennemi visible à portée', () => {
     const s = fixture();
@@ -84,6 +84,6 @@ describe('guerre industrielle', () => {
     );
     expect(result.result.accepted).toBe(true);
     expect(result.state.realms.human.ap).toBe(0);
-    expect(result.state.units.target.hp).toBeLessThan(32);
+    expect(result.state.units.target.hp).toBeLessThan(UNITS.TANK.hp);
   });
 });

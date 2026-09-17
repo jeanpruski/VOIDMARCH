@@ -106,7 +106,7 @@ describe('économie et progression', () => {
     expect(income(s, 'p').IRON).toBe(0);
     expect(income(s, 'p').STONE).toBe(0);
     addBuilding(s, s.realms.p, { q: 1, r: 0 }, 'LUMBER', now);
-    expect(income(s, 'p').WOOD).toBe(5);
+    expect(income(s, 'p').WOOD).toBe(8);
     writeTile(s, { q: 1, r: 0 }, { terrain: 'PLAIN' });
     expect(income(s, 'p').WOOD).toBe(0);
   });
@@ -117,8 +117,8 @@ describe('économie et progression', () => {
     addBuilding(s, s.realms.p, { q: 0, r: 1 }, 'MINE', now);
     writeTile(s, { q: 0, r: 1 }, { terrain: 'HILL' });
     addBuilding(s, s.realms.p, { q: -1, r: 0 }, 'FORGE', now);
-    expect(income(s, 'p').STONE).toBe(4);
-    expect(income(s, 'p').IRON).toBe(4);
+    expect(income(s, 'p').STONE).toBe(6);
+    expect(income(s, 'p').IRON).toBe(5);
   });
   it('conserve des stocks finis et positifs sur deux heures et borne la croissance des chaumières', () => {
     const s = fixture(),
@@ -145,14 +145,14 @@ describe('économie et progression', () => {
         if ((BUILDING_REQUIREMENTS[kind] ?? []).every((req) => available.has(req)))
           available.add(kind);
     expect(available.size).toBe(Object.keys(BUILDINGS).length);
-    for (const profile of Object.values(UNIT_PROFILES)) {
+    for (const profile of Object.values(UNIT_PROFILES).filter(p=>!p.hero)) {
       expect(profile.recruitAt.some((kind) => available.has(kind))).toBe(true);
       expect(profile.requires.every((kind) => available.has(kind))).toBe(true);
     }
     expect(BUILDINGS.OUTPOST.hp).toBeGreaterThanOrEqual(BUILDINGS.CAMP.hp);
     expect(BUILDINGS.VILLAGE.hp).toBeGreaterThanOrEqual(BUILDINGS.OUTPOST.hp);
     expect(BUILDINGS.QUARRY.cost.STONE).toBe(0);
-    expect(Object.keys(UNITS)).toHaveLength(81);
+    expect(Object.keys(UNITS)).toHaveLength(85);
   });
   it('complète les anciennes sauvegardes et les accords sans modifier les anciens stocks', () => {
     const wallet = { GOLD: 12, WOOD: 8, IRON: 4, FOOD: 20 };

@@ -52,7 +52,17 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('ABILITY'),
     actorId: id,
-    payload: z.object({ ability: z.enum(['RALLY', 'SURVEY', 'MEND', 'RESTORE']) }),
+    payload: z.object({
+      ability: z.enum([
+        'RALLY',
+        'SURVEY',
+        'MEND',
+        'RESTORE',
+        'HERO_MEND',
+        'HERO_RESTORE',
+        'HERO_SURVEY',
+      ]),
+    }),
   }),
   z.object({
     type: z.literal('PROPOSE'),
@@ -84,7 +94,24 @@ export const usernameSchema = z
   .min(3, 'Au moins 3 caractères.')
   .max(24, '24 caractères maximum.')
   .regex(/^[\p{L}\p{N} _'-]+$/u, 'Ce nom contient des caractères non autorisés.');
+export const heroAppearanceSchema = z
+  .object({
+    head: z.number().int().min(0).max(14),
+    armor: z.number().int().min(0).max(14),
+    boots: z.number().int().min(0).max(14),
+    weapon: z.number().int().min(0).max(14),
+    colors: z
+      .object({
+        head: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+        armor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+        boots: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+        weapon: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      })
+      .strict(),
+  })
+  .strict();
 export const authSchema = z.object({
+  heroAppearance: heroAppearanceSchema.optional(),
   username: usernameSchema,
   password: z.string().min(10).max(128),
   email: z.string().email().max(254).optional(),

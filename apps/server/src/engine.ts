@@ -1,3 +1,5 @@
+import { incapacitateHero, heroPower } from './heroes';
+import type { HeroPower } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { rollRareBonus } from './rarity';
 import { npcRewards } from './npcs';
@@ -30,6 +32,7 @@ import {
 } from '@voidmarch/config';
 import {
   accrueEconomy,
+  recruitmentRequirement,
   turretStats,
   turretUpgradeReason,
   nextTurretLevel,
@@ -46,7 +49,7 @@ import {
   wallBlocks,
   demolitionRefund,
   estimateDamage,
-  attackBlockReason,
+  resolveAttack,
   unitStats,
   findPath,
   roadPaths,
@@ -271,6 +274,7 @@ export function restartRealm(s: GameState, id: string, now: number) {
   for (const [caravanId, caravan] of Object.entries(s.caravans))
     if (caravan.ownerId === id || caravan.partnerId === id) delete s.caravans[caravanId];
   const fresh = createRealm(id, previous.name, previous.faction, previous.capital, now);
+  fresh.hero = previous.hero;
   fresh.settings = {
     ...previous.settings,
     tutorialCompleted: false,
@@ -527,27 +531,28 @@ export function applyAction(
     }
     case 'ATTACK': {
       const u = s.units[a.actorId] ? ownedUnit(s, r, a.actorId) : ownedBuilding(s, r, a.actorId),
-        target = targetAt(s, a.payload.targetId);
+        intended = targetAt(s, a.payload.targetId);
       const stats = attackStats(u);
       requireRule(stats.attack > 0, 'Cette unité ou ce bâtiment ne peut pas attaquer.');
-      requireRule(target && vision(s, r).has(key(target)), 'Cible indisponible.');
+      requireRule(intended && vision(s, r).has(key(intended)), 'Cible indisponible.');
+      requireRule(distance(u, intended) <= stats.range, 'La cible est hors de portée.');
+      const resolution = resolveAttack(u, intended, Object.values(s.buildings));
+      requireRule(!resolution.reason, resolution.reason);
+      const target = resolution.target;
       const npc = 'npc' in target && target.npc ? (target as Unit) : undefined;
       requireRule(!npc || npc.npc!.expiresAt > now, 'Cette rencontre est terminée.');
-      const cover = tileAt(s, target).buildingId;
-      const coveringWall = cover ? s.buildings[cover] : undefined;
-      const obstruction = attackBlockReason(u, target, coveringWall);
-      requireRule(!obstruction, obstruction);
-      requireRule(distance(u, target) <= stats.range, 'La cible est hors de portée.');
-      if (!npc) hostile(s, r, target.ownerId, now, options);
+      // Both the intended kingdom and an intervening third-party wall retain treaty protection.
+      if (!('npc' in intended && intended.npc)) hostile(s, r, intended.ownerId, now, options);
+      if (target.ownerId !== intended.ownerId) hostile(s, r, target.ownerId, now, options);
       spendAction(attackCost(u));
-      const bounds = estimateDamage(u, target, tileAt(s, target)),
+      const bounds = estimateDamage(u, target, tileAt(s, target), Object.values(s.units)),
         damage = bounds.min + Math.floor(hash(a.actionId) * (bounds.max - bounds.min + 1));
       if (npc)
         npc.npc!.contributions[id] =
           (npc.npc!.contributions[id] ?? 0) + Math.min(target.hp, damage);
       target.hp = Math.round((target.hp - damage) * 100) / 100;
       target.updatedAt = now;
-      message = `${stats.name} inflige ${damage} dégâts.`;
+      message = `${resolution.intercepted ? 'Rempart sur la trajectoire : ' : ''}${stats.name} inflige ${damage} dégâts${resolution.intercepted ? ' au rempart' : ''}.`;
       log(
         s,
         `${r.name} attaque ${npc ? unitStats(npc).name : (s.realms[target.ownerId]?.name ?? 'une fortification')} : ${damage} dégâts.`,
@@ -567,9 +572,12 @@ export function applyAction(
           delete s.buildings[target.id];
           writeTile(s, target, { buildingId: undefined });
           updateDefeat(s, target.ownerId, target, now);
-        } else delete s.units[target.id];
+        } else if (!incapacitateHero(s, target, now)) delete s.units[target.id];
         r.progression.battles++;
-        message += ' Cible détruite.';
+        message +=
+          target.kind === 'HERO'
+            ? ' Héros hors combat : retour dans 5 minutes.'
+            : ' Cible détruite.';
         if (npc) {
           for (const reward of npcRewards(s, npc, now)) {
             const loot = `${unitStats(npc).name} vaincu : ${rewardText(reward.resources)}${reward.ap ? ` · +${reward.ap} PA` : ''}.`;
@@ -578,31 +586,44 @@ export function applyAction(
               message += ` Butin : ${rewardText(reward.resources)}${reward.ap ? ` · +${reward.ap} PA` : ''}.`;
           }
         }
-      } else if (
-        npc &&
-        distance(npc, u) <= unitStats(npc).range &&
-        !attackBlockReason(npc, u, s.buildings[tileAt(s, u).buildingId ?? ''])
-      ) {
-        const retaliation = estimateDamage(npc, u, tileAt(s, u));
+      } else if (npc && distance(npc, u) <= unitStats(npc).range) {
+        const reply = resolveAttack(npc, u, Object.values(s.buildings));
+        if (reply.reason) break;
+        const recipient = reply.target;
+        const retaliation = estimateDamage(
+          npc,
+          recipient,
+          tileAt(s, recipient),
+          Object.values(s.units),
+        );
         const dealt =
           retaliation.min +
           Math.floor(hash(`${a.actionId}:riposte`) * (retaliation.max - retaliation.min + 1));
-        u.hp = Math.round((u.hp - dealt) * 100) / 100;
-        u.updatedAt = now;
-        message += ` Riposte : ${dealt} dégâts${u.hp <= 0 ? ', votre unité ou rempart est détruit' : ''}.`;
-        log(s, `${unitStats(npc).name} riposte : ${dealt} dégâts.`, 'COMBAT', now, [id], u, {
-          from: { q: npc.q, r: npc.r },
-          unitKind: npc.kind,
-          targetAirborne: !('population' in u) && !!UNIT_PROFILES[u.kind].flying,
-        });
-        if (u.hp <= 0) {
-          if ('population' in u) {
-            delete s.buildings[u.id];
-            writeTile(s, u, { buildingId: undefined });
-            updateDefeat(s, id, u, now);
-          } else delete s.units[u.id];
+        recipient.hp = Math.round((recipient.hp - dealt) * 100) / 100;
+        recipient.updatedAt = now;
+        message += ` Riposte : ${dealt} dégâts${reply.intercepted ? ' au rempart qui intercepte le tir' : ''}${recipient.hp <= 0 ? ', cible détruite' : ''}.`;
+        log(
+          s,
+          `${unitStats(npc).name} riposte : ${dealt} dégâts${reply.intercepted ? ' au rempart' : ''}.`,
+          'COMBAT',
+          now,
+          [id, recipient.ownerId],
+          recipient,
+          {
+            from: { q: npc.q, r: npc.r },
+            unitKind: npc.kind,
+            targetAirborne: !('population' in recipient) && !!UNIT_PROFILES[recipient.kind].flying,
+          },
+        );
+        if (recipient.hp <= 0) {
+          if ('population' in recipient) {
+            delete s.buildings[recipient.id];
+            writeTile(s, recipient, { buildingId: undefined });
+            updateDefeat(s, recipient.ownerId, recipient, now);
+          } else if (!incapacitateHero(s, recipient, now)) delete s.units[recipient.id];
         }
       }
+
       break;
     }
     case 'CAPTURE': {
@@ -729,14 +750,8 @@ export function applyAction(
     case 'RECRUIT': {
       const b = ownedBuilding(s, r, a.actorId);
       const profile = UNIT_PROFILES[a.payload.kind];
-      requireRule(profile.recruitAt.includes(b.kind), 'Ce bâtiment ne forme pas cette unité.');
-      const missing = profile.requires.find(
-        (kind) => !realmBuildings(s, id).some((x) => x.kind === kind),
-      );
-      requireRule(
-        !missing,
-        missing ? `${BUILDINGS[missing].name} nécessaire pour cette unité.` : '',
-      );
+      const recruitmentError = recruitmentRequirement(a.payload.kind, b, realmBuildings(s, id));
+      requireRule(!recruitmentError, recruitmentError);
       const freePeasant =
         a.payload.kind === 'PEASANT' && !realmUnits(s, id).some((u) => u.kind === 'PEASANT');
       const population = realmBuildings(s, id).reduce((v, x) => v + x.population, 0);
@@ -910,6 +925,14 @@ export function applyAction(
     }
     case 'ABILITY': {
       const u = ownedUnit(s, r, a.actorId);
+      if (a.payload.ability.startsWith('HERO_')) {
+        const outcome = heroPower(s, u, a.payload.ability as HeroPower, now);
+        requireRule(outcome.ok, outcome.message);
+        message = outcome.message;
+        log(s, message, 'REALM', now, [id], u);
+        break;
+      }
+      requireRule(u.kind !== 'HERO', 'Utilisez les pouvoirs spécifiques de votre héros.');
       if (a.payload.ability === 'MEND') {
         requireRule(UNIT_PROFILES[u.kind].healer, 'Cette unité ne peut pas soigner les autres.');
         const allies = realmUnits(s, id).filter(
@@ -1168,7 +1191,12 @@ export function applyAction(
       }
       if (!realmBuildings(s, id).some((b) => distance(b, position) === 0))
         addBuilding(s, r, position, 'VILLAGE', now);
-      for (const u of saved.units.slice(0, Math.max(1, Math.floor(saved.units.length * 0.75)))) {
+      for (const u of saved.units
+        .filter((u) => u.kind !== 'HERO')
+        .slice(
+          0,
+          Math.max(1, Math.floor(saved.units.filter((u) => u.kind !== 'HERO').length * 0.75)),
+        )) {
         const uid = randomUUID();
         s.units[uid] = { ...u, ...translate(u), id: uid, hp: unitStats(u).hp, updatedAt: now };
       }
@@ -1179,7 +1207,7 @@ export function applyAction(
           id: uid,
           ownerId: id,
           kind: 'INFANTRY',
-          hp: 10,
+          hp: UNITS.INFANTRY.hp,
           createdAt: now,
           updatedAt: now,
         };

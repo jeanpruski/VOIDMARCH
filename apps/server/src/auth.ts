@@ -1,3 +1,4 @@
+import { randomHeroAppearance } from '@voidmarch/config';
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -58,6 +59,7 @@ export async function registerAuth(app: FastifyInstance, onLogout: (userId: stri
           username: data.username,
           usernameNormalized: normalize(data.username),
           faction: data.faction,
+          settings: JSON.parse(JSON.stringify({ heroAppearance: randomHeroAppearance() })),
         },
       });
       return sendSession(user, reply);
@@ -86,7 +88,14 @@ export async function registerAuth(app: FastifyInstance, onLogout: (userId: stri
       };
       const user = current
         ? await prisma.user.update({ where: { id: current }, data: fields })
-        : await prisma.user.create({ data: fields });
+        : await prisma.user.create({
+            data: {
+              ...fields,
+              settings: JSON.parse(
+                JSON.stringify({ heroAppearance: data.heroAppearance ?? randomHeroAppearance() }),
+              ),
+            },
+          });
       return sendSession(user, reply);
     },
   );

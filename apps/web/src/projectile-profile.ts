@@ -1,4 +1,4 @@
-import { UNIT_PROFILES, type UnitKind } from '@voidmarch/config';
+import { INDIRECT_FIRE_UNITS, UNIT_PROFILES, type UnitKind } from '@voidmarch/config';
 export type ProjectileKind =
   | 'arrow'
   | 'bolt'
@@ -12,6 +12,9 @@ export type ProjectileKind =
   | 'flame';
 /** Deliberate weapon assignments: new ranged troops must choose their ammunition. */
 export const PROJECTILE_WEAPONS = {
+  GLOCKE_VRIL: 'lightning',
+  GLOCKE_NACHT: 'orb',
+  GLOCKE_APOCALYPSE: 'lightning',
   ARCHER: 'arrow',
   RANGER: 'arrow',
   CROSSBOW: 'bolt',
@@ -92,21 +95,24 @@ export function projectileProfile(unit: UnitKind, targetAirborne = false) {
   // Aircraft use defensive guns against other aircraft, not falling bombs.
   if (kind === 'bomb' && targetAirborne) kind = 'bullet';
   const radioactive = !!UNIT_PROFILES[unit].radioactive;
-  const color = radioactive
-    ? 0xbaff55
-    : kind === 'orb'
-      ? 0xc08cff
-      : kind === 'lightning'
-        ? 0x98eaff
-        : kind === 'flame'
-          ? 0x87e76a
-          : 0xffd69a;
+  const color =
+    unit === 'GLOCKE_APOCALYPSE' || unit === 'GLOCKE_VRIL'
+      ? 0xbaff55
+      : radioactive
+        ? 0xbaff55
+        : kind === 'orb'
+          ? 0xc08cff
+          : kind === 'lightning'
+            ? 0x98eaff
+            : kind === 'flame'
+              ? 0x87e76a
+              : 0xffd69a;
   const arc = targetAirborne
     ? 0
-    : kind === 'stone' || unit === 'MORTAR' || unit === 'ATOMIC_SAPPER'
+    : INDIRECT_FIRE_UNITS.includes(unit)
       ? 100
       : kind === 'shell'
-        ? 45
+        ? 0
         : kind === 'bomb'
           ? 65
           : kind === 'arrow' || kind === 'bolt'

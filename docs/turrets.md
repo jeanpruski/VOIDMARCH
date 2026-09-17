@@ -6,9 +6,9 @@ La tourelle est un équipement du mur : elle n’occupe pas une nouvelle case, n
 
 | Niveau | Arme                   | Mur minimal | Attaque | Portée  | Prix de cette étape, hors mur    |
 | ------ | ---------------------- | ----------- | ------- | ------- | -------------------------------- |
-| 1      | Arbalète de rempart    | Bois        | 7       | 3 cases | 2 PA, 60 or, 50 bois, 20 fer     |
-| 2      | Canon de rempart       | Pierre      | 13      | 4 cases | 2 PA, 120 or, 60 pierre, 50 fer  |
-| 3      | Tourelle Tesla occulte | Acier       | 20      | 5 cases | 2 PA, 220 or, 40 pierre, 120 fer |
+| 1      | Arbalète de rempart    | Bois        | 16      | 3 cases | 2 PA, 60 or, 50 bois, 20 fer     |
+| 2      | Canon de rempart       | Pierre      | 30      | 4 cases | 2 PA, 120 or, 60 pierre, 50 fer  |
+| 3      | Tourelle Tesla occulte | Acier       | 48      | 5 cases | 2 PA, 220 or, 40 pierre, 120 fer |
 
 Les évolutions du mur et de l’arme sont séparées. Un rempart de pierre peut garder son arbalète ; il faut ensuite améliorer la tourelle pour obtenir le canon. Un mur en acier peut accueillir les trois niveaux. Chaque arme commence au niveau 1, même sur un mur déjà amélioré. Les évolutions de tourelle ne demandent pas de bâtisseur et ne réparent pas le mur.
 
@@ -16,7 +16,7 @@ Les évolutions du mur et de l’arme sont séparées. Un rempart de pierre peut
 
 Sélectionner le rempart équipé, cliquer sur **Tirer avec la tourelle · 1 PA**, puis choisir une cible ennemie dans la portée surlignée. La confirmation indique les dégâts estimés. Chaque tir coûte 1 PA, à tous les niveaux. Aucun tir automatique n’a lieu, même lorsqu’un ennemi entre dans la zone.
 
-Le tir est possible de 1 case jusqu’à la portée indiquée, jamais sur la case de la tourelle. Les unités et bâtiments ennemis sont ciblables ; les trêves, la protection initiale et la couverture des remparts restent appliquées. La tourelle révèle les cases dans sa portée. Les cibles aériennes sont accessibles, avec un bonus de 8 dégâts pour le Tesla. Les dégâts réels tiennent compte de la défense de la cible et de son terrain.
+Le tir est possible de 1 case jusqu’à la portée indiquée, jamais sur la case de la tourelle. Les unités et bâtiments ennemis sont ciblables ; les trêves et la protection initiale restent appliquées. Le tir élevé franchit les remparts. La tourelle révèle les cases dans sa portée. Les cibles aériennes sont accessibles, avec un bonus de 18 dégâts pour le Tesla. Les dégâts réels tiennent compte de la défense de la cible et de son terrain.
 
 Les projectiles partent du sommet du mur : carreau, obus puis décharge électrique. L’option de réduction des animations reste respectée.
 

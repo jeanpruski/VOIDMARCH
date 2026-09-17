@@ -56,15 +56,18 @@ describe('remparts en bois, pierre et acier', () => {
     const id = tileAt(s, { q: 1, r: 0 }).buildingId!;
     expect(s.realms.a.wallet.WOOD).toBe(970);
     for (const [kind, resource, hp] of [
-      ['STONE_WALL', 'STONE', 65],
-      ['STEEL_WALL', 'IRON', 100],
+      ['STONE_WALL', 'STONE', 240],
+      ['STEEL_WALL', 'IRON', 480],
     ] as const) {
       const before = structuredClone(s.realms.a.wallet);
       const upgraded = execute(s, a.id, order('UPGRADE', id), now);
       expect(upgraded.result.accepted, upgraded.result.reason).toBe(true);
       s = upgraded.state;
       expect(s.buildings[id]).toMatchObject({ kind, hp, level: 1 });
-      expect(s.realms.a.wallet).toEqual({ ...before, [resource]: before[resource] - 45 });
+      expect(s.realms.a.wallet).toEqual({
+        ...before,
+        [resource]: before[resource] - (resource === 'STONE' ? 65 : 90),
+      });
     }
     expect(s.realms.a.ap).toBe(25);
     expect(buildingUpgrade('STEEL_WALL', 1)).toBeNull();
@@ -152,9 +155,10 @@ describe('remparts en bois, pierre et acier', () => {
     const { s, a } = fixture();
     const wall = addBuilding(s, a, { q: 1, r: 0 }, 'WOOD_WALL', now);
     s.units.friend.q = 1;
-    expect(
-      execute(s, 'b', order('ATTACK', 'enemy', { targetId: 'friend' }), now).result.reason,
-    ).toContain('rempart');
+    const intercepted = execute(s, 'b', order('ATTACK', 'enemy', { targetId: 'friend' }), now);
+    expect(intercepted.result.accepted).toBe(true);
+    expect(intercepted.state.units.friend.hp).toBe(s.units.friend.hp);
+    expect(intercepted.state.buildings[wall.id].hp).toBeLessThan(wall.hp);
     delete s.units.friend;
     wall.hp = 1;
     const attack = execute(s, 'b', order('ATTACK', 'enemy', { targetId: wall.id }), now);

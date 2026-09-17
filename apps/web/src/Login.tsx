@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Shield, LoaderCircle } from 'lucide-react';
+import { HeroCreator } from './Hero';
+import { randomHeroAppearance } from '@voidmarch/config';
 import { FACTIONS, type Faction } from '@voidmarch/config';
 import type { AuthUser } from '@voidmarch/shared';
 import { acceptSession, api } from './store';
@@ -12,6 +14,7 @@ export function Login() {
     [faction, setFaction] = useState<Faction>('ASH'),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
+  const [heroAppearance, setHeroAppearance] = useState(() => randomHeroAppearance());
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -21,6 +24,7 @@ export function Login() {
         username,
         ...(mode === 'guest' ? {} : { password, ...(email ? { email } : {}) }),
         faction,
+        ...(mode === 'register' ? { heroAppearance } : {}),
       });
       acceptSession(session);
     } catch (e) {
@@ -37,7 +41,7 @@ export function Login() {
           V<span>O</span>IDMARCH
         </a>
       </header>
-      <div className="login-content">
+      <div className={`login-content ${mode === 'register' ? 'hero-registration' : ''}`}>
         <form onSubmit={submit}>
           <div className="login-tabs">
             {(
@@ -119,6 +123,9 @@ export function Login() {
               <p className="faction-description">{FACTIONS[faction].bonus}</p>
             </>
           )}
+          {mode === 'register' && (
+            <HeroCreator value={heroAppearance} onChange={setHeroAppearance} name={username} />
+          )}
           {error && (
             <p className="form-error" role="alert">
               {error}
@@ -136,7 +143,7 @@ export function Login() {
           </button>
           <p className="login-note">
             {mode === 'guest'
-              ? 'Compte invité : après 24 h sans connexion, votre compte, votre royaume, vos bâtiments et vos unités seront supprimés. Enregistrez votre compte pour les conserver.'
+              ? 'Votre héros sera généré aléatoirement et conservé. Compte invité : après 24 h sans connexion, votre compte, votre royaume, vos bâtiments et vos unités seront supprimés. Enregistrez votre compte pour les conserver.'
               : 'Votre royaume vous attend au même endroit.'}
           </p>
         </form>

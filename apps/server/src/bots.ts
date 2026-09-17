@@ -15,7 +15,7 @@ import {
   armyPopulation,
   movementCost,
   wallBlocks,
-  attackBlockReason,
+  resolveAttack,
   canAfford,
   createRealm,
   distance,
@@ -202,19 +202,32 @@ export class BotDirector {
         )
       )
         add({ type: 'REPAIR', actorId: u.id, payload: {} }, 85);
-      for (const enemy of [...Object.values(s.units), ...Object.values(s.buildings)])
+      for (const enemy of [...Object.values(s.units), ...Object.values(s.buildings)]) {
         if (
-          enemy.ownerId !== r.id &&
-          !attackBlockReason(u, enemy, s.buildings[tileAt(s, enemy).buildingId ?? '']) &&
-          s.realms[enemy.ownerId] &&
-          seen.has(key(enemy)) &&
-          distance(u, enemy) <= UNITS[u.kind].range &&
-          !hostileReason(s, r, s.realms[enemy.ownerId], now, this.options.offlineProtection)
+          enemy.ownerId === r.id ||
+          !s.realms[enemy.ownerId] ||
+          !seen.has(key(enemy)) ||
+          distance(u, enemy) > UNITS[u.kind].range ||
+          hostileReason(s, r, s.realms[enemy.ownerId], now, this.options.offlineProtection)
         )
-          add(
-            { type: 'ATTACK', actorId: u.id, payload: { targetId: enemy.id } },
-            r.personality === 'AGGRESSIVE' ? 110 : 55,
-          );
+          continue;
+        const resolved = resolveAttack(u, enemy, Object.values(s.buildings));
+        if (
+          resolved.reason ||
+          hostileReason(
+            s,
+            r,
+            s.realms[resolved.target.ownerId],
+            now,
+            this.options.offlineProtection,
+          )
+        )
+          continue;
+        add(
+          { type: 'ATTACK', actorId: u.id, payload: { targetId: enemy.id } },
+          r.personality === 'AGGRESSIVE' ? 110 : 55,
+        );
+      }
       for (const e of Object.values(s.events))
         if (!e.claimedBy && e.endsAt > now && seen.has(key(e)) && distance(u, e) <= 1)
           add({ type: 'INTERACT', actorId: u.id, payload: { eventId: e.id } }, 100);

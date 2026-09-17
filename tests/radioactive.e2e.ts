@@ -24,6 +24,7 @@ test('division atomique : catalogue, recrutement depuis les bâtiments existants
     addBuilding(state, realm, positions[i], kind, now),
   );
   buildings.forEach((b) => (b.population = 100));
+  buildings.find((b) => b.kind === 'ARSENAL')!.level = 3;
   const airfield = buildings.find((b) => b.kind === 'AERODROME')!;
   state.realms.enemy = createRealm('enemy', 'Rivaux', 'IRON', { q: 5, r: 0 }, now);
   state.realms.enemy.protectedUntil = 0;
@@ -103,6 +104,11 @@ test('division atomique : catalogue, recrutement depuis les bâtiments existants
       .filter({ has: page.getByRole('heading', { name, exact: true }) });
     await expect(card).toContainText('Division atomique');
     await expect(card).toContainText('Réacteur noir');
+    await expect(card).toContainText('Palier');
+    if (buildingKind === 'ARSENAL') {
+      await expect(card).toContainText('+60 %');
+      await expect(card).toContainText('ATQ 44,8');
+    }
     await card.getByRole('button', { name: 'Recruter · 1 PA', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect

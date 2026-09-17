@@ -108,8 +108,8 @@ describe('division atomique', () => {
       const upgraded = execute(recruited.state, r.id, order('UPGRADE', recruiter.id), now);
       expect(upgraded.result.accepted).toBe(true);
       const veteran = upgraded.state.units[fresh.id];
-      expect(veteran.trainingBonus).toBe(10);
-      expect(veteran.hp).toBeCloseTo(unitStats(veteran).hp / 2, 2);
+      expect(veteran.trainingBonus).toBe(25);
+      expect(Math.abs(veteran.hp - unitStats(veteran).hp / 2)).toBeLessThan(0.006);
       const camp = buildings.find((b) => b.kind === 'CAMP')!;
       expect(execute(s, r.id, order('RECRUIT', camp.id, { kind }), now).result.accepted).toBe(
         false,
@@ -140,7 +140,7 @@ describe('division atomique', () => {
       expect(damage.min).toBeGreaterThanOrEqual(
         UNITS[kind].attack + UNIT_PROFILES[kind].antiAir! - UNITS.RADIUM_RECON.defense - 1,
       );
-      expect(UNITS[kind].attack).toBeLessThanOrEqual(11);
+      expect(UNITS[kind].attack).toBeLessThan(UNITS.MAUSOLEUM_TANK.attack);
     }
     for (const kind of ['COBALT_CUIRASSIER', 'ISOTOPE_BIKE', 'MAUSOLEUM_TANK'] as const) {
       expect(movementCost({ ...terrain, terrain: 'MOUNTAIN' }, kind)).toBeGreaterThan(

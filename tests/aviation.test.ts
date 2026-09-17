@@ -118,7 +118,9 @@ describe('aviation et défense antiaérienne', () => {
     for (const kind of ['FLAK_CANNON', 'FIGHTER'] as const) {
       const attacker = unit(kind);
       const damage = estimateDamage(attacker, target, { q: 0, r: 0, terrain: 'PLAIN' });
-      expect(damage.min).toBe(UNITS[kind].attack + UNIT_PROFILES[kind].antiAir! - 1);
+      expect(damage.min).toBe(
+        UNITS[kind].attack + UNIT_PROFILES[kind].antiAir! - UNITS.RECON_PLANE.defense / 2 - 1,
+      );
     }
     expect(
       estimateDamage(unit('FLAK_CANNON'), unit('INFANTRY'), { q: 0, r: 0, terrain: 'PLAIN' }).max,
@@ -128,7 +130,7 @@ describe('aviation et défense antiaérienne', () => {
     const { s, b } = fixture('BOMBER');
     const wall = addBuilding(s, b, { q: 1, r: 0 }, 'STEEL_WALL', now);
     s.units.target = unit('INFANTRY', 'target', 'b', 1);
-    expect(attackBlockReason(s.units.pilot, s.units.target, wall)).toBe('');
+    expect(attackBlockReason(s.units.pilot, s.units.target)).toBe('');
     const attacked = execute(s, 'a', order('ATTACK', 'pilot', { targetId: 'target' }), now);
     expect(attacked.result.accepted).toBe(true);
     expect(attacked.state.realms.a.ap).toBe(28);
@@ -177,8 +179,8 @@ describe('aviation et défense antiaérienne', () => {
     s.units.pilot.hp = 9;
     const upgraded = execute(s, 'a', order('UPGRADE', airfield.id), now);
     expect(upgraded.result.accepted).toBe(true);
-    expect(upgraded.state.units.pilot.trainingBonus).toBe(10);
-    expect(upgraded.state.units.pilot.hp).toBe(9.9);
+    expect(upgraded.state.units.pilot.trainingBonus).toBe(25);
+    expect(upgraded.state.units.pilot.hp).toBe(11.25);
     const recruited = execute(
       upgraded.state,
       'a',
@@ -188,7 +190,7 @@ describe('aviation et défense antiaérienne', () => {
     );
     expect(recruited.result.accepted, recruited.result.reason).toBe(true);
     const fresh = Object.values(recruited.state.units).find((u) => u.id !== 'pilot')!;
-    expect(fresh.trainingBonus).toBe(10);
+    expect(fresh.trainingBonus).toBe(25);
     expect(fresh.hp).toBe(unitStats(fresh).hp);
   });
   it('démolition du nouvel aérodrome rembourse la construction initiale', () => {

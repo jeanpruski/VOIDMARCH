@@ -70,13 +70,13 @@ describe('fondation sans ressources', () => {
     result = execute(s, 'founder', action('GATHER', peasant.id, { resource: 'WOOD' }), now);
     expect(result.result.accepted).toBe(true);
     s = result.state;
-    expect(s.realms.founder.wallet.WOOD).toBe(20);
+    expect(s.realms.founder.wallet.WOOD).toBe(24);
     const p = neighbors(camp)[0];
     result = execute(s, 'founder', action('BUILD', peasant.id, { ...p, kind: 'HOUSE' }), now);
     expect(result.result.accepted).toBe(true);
     s = result.state;
     expect(realmBuildings(s, 'founder').map((b) => b.kind)).toEqual(['CAMP', 'HOUSE']);
-    expect(s.realms.founder.wallet.WOOD).toBe(2);
+    expect(s.realms.founder.wallet.WOOD).toBe(6);
     expect(s.realms.founder.ap).toBe(26);
     expect(realmTiles(s, 'founder')).toHaveLength(2);
   });
@@ -119,13 +119,14 @@ describe('fondation sans ressources', () => {
 });
 
 describe('catalogue étendu', () => {
-  it.each(Object.keys(UNITS) as UnitKind[])(
+  it.each(Object.keys(UNITS).filter(k=>k!=='HERO') as UnitKind[])(
     'recrute %s avec ses prérequis et son bâtiment',
     (kind) => {
       const s = established(),
         r = s.realms.founder,
         profile = UNIT_PROFILES[kind];
       const b = addBuilding(s, r, { q: 8, r: 0 }, profile.recruitAt[0], now);
+      b.level = profile.minRecruitLevel ?? 1;
       for (const p of neighbors(b)) writeTile(s, p, { terrain: 'PLAIN', ownerId: r.id });
       profile.requires.forEach((k, i) => addBuilding(s, r, { q: 12 + i, r: 0 }, k, now));
       const before = realmUnits(s, r.id).length;
@@ -182,8 +183,8 @@ describe('catalogue étendu', () => {
     a.kind = 'SPEARMAN';
     t.kind = 'LIGHT_CAVALRY';
     const mounted = estimateDamage(a, t, { q: 0, r: 0, terrain: 'PLAIN' });
-    t.kind = 'MILITIA'; // Same defense, no mounted bonus.
+    t.kind = 'CROSSBOW'; // Same defense, no mounted bonus.
     const foot = estimateDamage(a, t, { q: 0, r: 0, terrain: 'PLAIN' });
-    expect(mounted.max - foot.max).toBe(3);
+    expect(mounted.max - foot.max).toBe(12);
   });
 });

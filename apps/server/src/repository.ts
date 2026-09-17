@@ -1,3 +1,4 @@
+import { ensureHeroes } from './heroes';
 import { createHash } from 'node:crypto';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { createState } from '@voidmarch/game-rules';
@@ -5,7 +6,7 @@ import type { Action } from '@voidmarch/protocol';
 import type { ActionResult, GameState } from '@voidmarch/shared';
 import { execute, refreshEnclosures, type EngineOptions } from './engine.js';
 import { initialEvents } from './simulation.js';
-import { migrateResourceWallets } from './migrations.js';
+import { migrateResourceWallets, migrateProgression } from './migrations.js';
 export const prisma = new PrismaClient();
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 export class WorldRepository {
@@ -34,11 +35,13 @@ export class WorldRepository {
                 ? (existing.data as unknown as GameState)
                 : createState(process.env.WORLD_SEED ?? 'voidmarch-vhal-01', Date.now());
             migrateResourceWallets(state);
+            migrateProgression(state);
             if (!existing) initialEvents(state, Date.now());
             const previousArchives = Object.fromEntries(
               Object.entries(state.archives).map(([id, s]) => [id, s.createdAt]),
             );
             const result = await fn(state, tx);
+            ensureHeroes(state, Date.now());
             await tx.worldState.upsert({
               where: { id: this.worldId },
               create: { id: this.worldId, revision: state.revision, data: json(state) },

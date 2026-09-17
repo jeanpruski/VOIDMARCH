@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createState, disk, writeTile } from '@voidmarch/game-rules';
-import { NPCS, type NpcKind } from '@voidmarch/config';
+import { NPCS, UNITS, type NpcKind } from '@voidmarch/config';
 import { addPlayer, execute, worldView } from '../apps/server/src/engine';
 import { createNpc } from '../apps/server/src/npcs';
 import { actionSchema } from '@voidmarch/protocol';
@@ -33,7 +33,7 @@ test('PNJ : cinq figurines, aperçu, riposte, butin et disparition', async ({ pa
     createNpc(state, positions[i], kind, now),
   );
   const target = npcs[0];
-  target.hp = 7;
+  target.hp = UNITS.RIFLEMAN.attack + 4;
   target.npc!.defense = 0;
   target.npc!.bonusAP = 2;
   target.npc!.reward = { GOLD: 35 };
