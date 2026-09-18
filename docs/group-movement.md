@@ -1,0 +1,13 @@
+# Déplacements groupés
+
+Sélectionner une unité, puis utiliser **Maj + clic** sur d’autres troupes du royaume pour les ajouter ou les retirer. Le bouton **Sélection multiple** permet la même opération sans clavier. Les types peuvent être mélangés, dans une limite de 10 troupes. Sélectionner normalement une autre pièce quitte le groupe ; Échap annule le mode et la sélection multiple.
+
+**Déplacer (D)** puis un clic sur une destination prépare un aperçu, sans ordre au serveur. Les trajets et les cases d’arrivée de chaque troupe sont dessinés sur la carte. Le panneau récapitule leurs coordonnées, les distances, les troupes immobiles et le coût total. Un autre clic change la destination. **Confirmer** est nécessaire pour partir.
+
+Chaque troupe conserve son budget de déplacement, les coûts des terrains et ses restrictions (montures, véhicules, aviation). Hors réseau, un ordre conserve la limite de 12 hexagones. Sur un réseau continu de routes et de terres propres explorées, elle conserve le déplacement sans limite pour 1 PA. Le groupe ne confère ni vitesse ni réduction de coût : chaque troupe déplacée consomme 1 PA. Une troupe bloquée ou déjà en position reste sur place pour 0 PA.
+
+Les troupes cherchent un point commun de progression accessible à la plus limitée des unités mobiles, puis se répartissent sur les cases libres les plus proches de ce point et des arrivées déjà réservées. Les plus rapides peuvent donc ralentir ou se rapprocher des autres au lieu de foncer seules vers la destination. Une unité complètement bloquée ne retient pas tout le groupe. Les obstacles peuvent imposer un espacement ; aucune unité ne dépasse sa mobilité ni ne partage sa case d’arrivée. Une troupe déjà bien placée reste immobile pour 0 PA. Les terrains inconnus ne sont pas utilisés ; seuls les terrains chargés et explorés permettent de préparer les trajets.
+
+Le protocole `MOVE_GROUP` contient exclusivement des ordres `MOVE` et `MOVE_ROAD` (une occurrence par unité). Le serveur vérifie le total de PA puis applique les validations habituelles dans une copie transactionnelle. Si les PA manquent ou si un seul trajet n’est plus valide, **aucune position ni dépense du groupe n’est conservée**. Les trajets confirmés sont retournés individuellement pour les animations. La prévisualisation optimiste réserve les PA et anime toutes les troupes ; un refus rétablit l’état serveur.
+
+Validation : tests moteur des groupes mixtes, chemins étroits, réseaux routiers et territoriaux, destinations réservées, unités immobiles, manque de PA, propriété, obstacles, distances, doublons et validation du protocole. Vérification navigateur sur la carte avec Maj + clic, confirmation, animations, bouton sans clavier et affichage mobile.

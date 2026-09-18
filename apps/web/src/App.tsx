@@ -1,3 +1,4 @@
+import { GroupMovement } from './GroupMovement';
 import { TerrainAffinities } from './TerrainAffinities';
 import { unitCombatStats } from '@voidmarch/game-rules';
 import { constructionSiteReason } from './construction';
@@ -12,6 +13,7 @@ import { NpcInfo, AttackNpc } from './NpcInfo';
 import { unitFrame } from './ui';
 import { turretStats } from '@voidmarch/game-rules';
 import {
+  Award,
   ArrowDownLeft,
   ArrowRight,
   ArrowUpRight,
@@ -107,11 +109,13 @@ import {
 } from './ui';
 const nav: { panel: Panel; label: string; icon: typeof Crown }[] = [
   { panel: 'realm', label: 'Royaume', icon: Crown },
+  { panel: 'rank', label: 'Les royaumes', icon: Flag },
   { panel: 'army', label: 'Armées', icon: Swords },
   { panel: 'cities', label: 'Villes & domaines', icon: Castle },
   { panel: 'economy', label: 'Économie', icon: TrendingUp },
   { panel: 'trade', label: 'Commerce & diplomatie', icon: Handshake },
   { panel: 'missions', label: 'Missions', icon: Swords },
+  { panel: 'trophies', label: 'Salle des trophées', icon: Award },
 ];
 import { CapitalRadar } from './CapitalRadar';
 let booted = false;
@@ -197,6 +201,9 @@ export function App() {
       if ((code.startsWith('y') || code.startsWith('h')) && /^[a-z]$/i.test(e.key)) return;
       if (e.key === 'Escape')
         useGame.setState({
+          selectedUnitIds: [],
+          groupTarget: null,
+          multiSelect: false,
           panel: null,
           combatTarget: null,
           mode: 'inspect',
@@ -494,11 +501,6 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             {n.panel === 'trade' && pending > 0 ? <b className="nav-count">{pending}</b> : null}
           </button>
         ))}
-        <div className="nav-separator" />
-        <button onClick={() => useGame.setState({ panel: 'rank', menuOpen: false })}>
-          <Flag size={17} />
-          <span>Les royaumes</span>
-        </button>
       </nav>
       <div className="sidebar-bottom">
         {p.protectedUntil > now && (
@@ -645,6 +647,8 @@ function TileHint() {
   );
 }
 function SelectionPanel() {
+  const selectedUnitIds = useGame((s) => s.selectedUnitIds);
+  const multiSelect = useGame((s) => s.multiSelect);
   const w = useGame((s) => s.world)!,
     selection = useGame((s) => s.selection),
     mode = useGame((s) => s.mode),
@@ -692,7 +696,17 @@ function SelectionPanel() {
       observer.disconnect();
       board.style.removeProperty('--minimap-bottom');
     };
-  }, [visible, selection?.kind, selection?.id, mode]);
+  }, [visible, selection?.kind, selection?.id, mode, selectedUnitIds.length]);
+  if (selectedUnitIds.length > 1)
+    return (
+      <section
+        ref={panelRef}
+        className="selection-panel group-selection-panel"
+        aria-label="Sélection de troupes"
+      >
+        <GroupMovement />
+      </section>
+    );
   if (!selection || !visible) return null;
   const name = u
       ? (u.nickname ?? unitStats(u).name)
@@ -838,7 +852,13 @@ function SelectionPanel() {
                   shortcut="D"
                   className={`primary ${mode === 'move' ? 'chosen' : ''}`}
                   disabled={pending || (!w.player.unlimitedAP && w.player.ap < 1)}
-                  onClick={() => useGame.setState({ mode: mode === 'move' ? 'inspect' : 'move' })}
+                  onClick={() =>
+                    useGame.setState({
+                      mode: mode === 'move' ? 'inspect' : 'move',
+                      multiSelect: false,
+                      groupTarget: null,
+                    })
+                  }
                   title={
                     'Distance illimitée pour 1 PA sur un trajet continu de vos terres et de routes explorées. Ailleurs : portée normale. Les obstacles et terrains impraticables restent bloquants.'
                   }
@@ -847,6 +867,21 @@ function SelectionPanel() {
                   {mode === 'move' ? 'Choisir une destination' : 'Déplacer'}
                   <small>1 PA</small>
                 </ActionButton>
+                <button
+                  disabled={pending}
+                  aria-pressed={multiSelect}
+                  title="Maj + clic sur vos troupes, ou activez ce bouton puis cliquez sur les unités à ajouter."
+                  onClick={() =>
+                    useGame.setState({
+                      multiSelect: !multiSelect,
+                      mode: 'inspect',
+                      constructionBuilderId: null,
+                    })
+                  }
+                >
+                  <Users size={15} />{' '}
+                  {multiSelect ? 'Sélection multiple active' : 'Sélection multiple'}
+                </button>
                 {(tile?.road || tile?.ownerId === w.player.id) && (
                   <span className="road-status">
                     Vos terres + routes : distance illimitée · 1 PA
@@ -1167,6 +1202,9 @@ function SelectionPanel() {
         onClick={() =>
           useGame.setState({
             selection: null,
+            selectedUnitIds: [],
+            groupTarget: null,
+            multiSelect: false,
             constructionBuilderId: null,
             mode: 'inspect',
             combatTarget: null,

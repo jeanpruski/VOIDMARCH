@@ -1,3 +1,4 @@
+import { MAX_GROUP_UNITS } from './group-movement';
 import { isBuilderSite } from './construction';
 import { create } from 'zustand';
 import { supportsWorldCatalog } from './catalog-compatibility';
@@ -19,6 +20,7 @@ export type Command = Action extends infer A
   : never;
 export type Panel =
   | 'missions'
+  | 'trophies'
   | 'realm'
   | 'army'
   | 'cities'
@@ -46,6 +48,9 @@ interface GameStore {
   cameraViewport: CameraViewport | null;
   status: 'loading' | 'offline' | 'connecting' | 'online';
   selection: Selection | null;
+  selectedUnitIds: string[];
+  groupTarget: Hex | null;
+  multiSelect: boolean;
   constructionBuilderId: string | null;
   mode: 'inspect' | 'move' | 'attack' | 'road' | 'terraform';
   roadTool: 'build' | 'remove';
@@ -75,6 +80,9 @@ export const useGame = create<GameStore>((set) => ({
   cameraViewport: null,
   status: 'loading',
   selection: null,
+  selectedUnitIds: [],
+  groupTarget: null,
+  multiSelect: false,
   constructionBuilderId: null,
   mode: 'inspect',
   roadTool: 'build',
@@ -204,7 +212,11 @@ function publishWorld(world: WorldView, effectPolicy: GameStore['effectPolicy'] 
     Object.entries(previous.movements).filter(([id, animation]) => {
       const unit = world.units.find((u) => u.id === id);
       if (!unit || world.player.settings.reducedMotion) return false;
-      if (previous.pendingMovement?.unitId === id) return true;
+      if (
+        previous.pendingMovement?.unitId === id ||
+        activeOrder?.prediction?.movements?.some((m) => m.unitId === id)
+      )
+        return true;
       if (world.revision < animation.revision) return true;
       return (
         unit.q === animation.destination.q &&
@@ -218,6 +230,9 @@ function publishWorld(world: WorldView, effectPolicy: GameStore['effectPolicy'] 
     status: 'online',
     now: world.serverTimestamp,
     selection,
+    selectedUnitIds: previous.selectedUnitIds.filter((id) =>
+      world.units.some((u) => u.id === id && u.ownerId === world.player.id),
+    ),
     constructionBuilderId,
     ...(existing && !selection
       ? { mode: 'inspect' as const, combatTarget: null, terraformTarget: undefined }
@@ -245,6 +260,7 @@ function finishOrder(order: PendingOrder, accepted: boolean) {
   const state = useGame.getState();
   const movements = { ...state.movements };
   if (!accepted && order.prediction?.movement) delete movements[order.prediction.movement.unitId];
+  if (!accepted) for (const m of order.prediction?.movements ?? []) delete movements[m.unitId];
   useGame.setState({
     pending: false,
     ...(accepted && order.action.type === 'BUILD' ? { constructionBuilderId: null } : {}),
@@ -408,7 +424,27 @@ export async function send(command: Command) {
         }
       : {}),
     ...(closePanel ? { panel: null } : {}),
+    groupTarget: null,
     pendingMovement: movement ? { unitId: movement.unitId, from: movement.from } : null,
+    ...(prediction?.movements?.length && !state.world.player.settings.reducedMotion
+      ? {
+          movements: {
+            ...state.movements,
+            ...Object.fromEntries(
+              prediction.movements.map((m) => [
+                m.unitId,
+                animateMovement(
+                  m,
+                  action.actionId,
+                  state.world!.revision + 1,
+                  Date.now(),
+                  state.movements[m.unitId],
+                ),
+              ]),
+            ),
+          },
+        }
+      : {}),
     ...(movement && !state.world.player.settings.reducedMotion
       ? {
           movements: {
@@ -453,6 +489,31 @@ export async function send(command: Command) {
                     Date.now(),
                     movement ? undefined : existing,
                   ),
+          },
+        });
+      }
+      if (result.movements?.length && !current.world?.player.settings.reducedMotion) {
+        useGame.setState({
+          movements: {
+            ...useGame.getState().movements,
+            ...Object.fromEntries(
+              result.movements.map((m) => {
+                const predicted = prediction?.movements?.find((p) => p.unitId === m.unitId);
+                const existing = current.movements[m.unitId];
+                return [
+                  m.unitId,
+                  existing && JSON.stringify(predicted) === JSON.stringify(m)
+                    ? { ...existing, revision: result.revision ?? existing.revision }
+                    : animateMovement(
+                        m,
+                        result.actionId,
+                        result.revision ?? 0,
+                        Date.now(),
+                        existing,
+                      ),
+                ];
+              }),
+            ),
           },
         });
       }
@@ -538,6 +599,9 @@ export async function logout() {
     movements: {},
     pendingMovement: null,
     status: 'offline',
+    selectedUnitIds: [],
+    groupTarget: null,
+    multiSelect: false,
     selection: null,
     constructionBuilderId: null,
     panel: null,
@@ -568,6 +632,9 @@ export function focusHero() {
     showUnits: true,
     constructionBuilderId: null,
     selection: { kind: 'unit', id: hero.id, q: hero.q, r: hero.r },
+    selectedUnitIds: [hero.id],
+    groupTarget: null,
+    multiSelect: false,
     mode: 'inspect',
     combatTarget: null,
     terraformTarget: undefined,
@@ -575,6 +642,34 @@ export function focusHero() {
 }
 export const mapCommand = (command: string) =>
   window.dispatchEvent(new CustomEvent('vm:camera', { detail: { command } }));
+export function toggleUnitSelection(id: string) {
+  const state = useGame.getState(),
+    world = state.world;
+  if (!world || state.pending) return;
+  const unit = world.units.find((u) => u.id === id && u.ownerId === world.player.id);
+  if (!unit) return;
+  const base = state.selectedUnitIds.length
+    ? state.selectedUnitIds
+    : state.selection?.kind === 'unit' &&
+        world.units.some((u) => u.id === state.selection?.id && u.ownerId === world.player.id)
+      ? [state.selection.id!]
+      : [];
+  if (!base.includes(id) && base.length >= MAX_GROUP_UNITS) {
+    notify(`Maximum ${MAX_GROUP_UNITS} troupes par groupe.`, true);
+    return;
+  }
+  const ids = base.includes(id) ? base.filter((x) => x !== id) : [...base, id];
+  const primary = world.units.find((u) => u.id === ids[0]);
+  useGame.setState({
+    selectedUnitIds: ids,
+    groupTarget: null,
+    constructionBuilderId: null,
+    selection: primary ? { kind: 'unit', id: primary.id, q: primary.q, r: primary.r } : null,
+    mode: 'inspect',
+    combatTarget: null,
+    terraformTarget: undefined,
+  });
+}
 export function select(selection: Selection) {
   const state = useGame.getState(),
     world = state.world;
@@ -592,6 +687,10 @@ export function select(selection: Selection) {
         : null;
   useGame.setState({
     selection,
+    selectedUnitIds:
+      selectedUnit?.ownerId === world?.player.id && selectedUnit ? [selectedUnit.id] : [],
+    groupTarget: null,
+    multiSelect: false,
     constructionBuilderId,
     mode: 'inspect',
     ...(selection.kind === 'unit' ? { showUnits: true } : {}),
@@ -610,6 +709,9 @@ export function toggleMapLayer(layer: 'showUnits' | 'showBuildings') {
       : state.selection;
   useGame.setState({
     [layer]: visible,
+    ...(layer === 'showUnits' && !visible
+      ? { selectedUnitIds: [], groupTarget: null, multiSelect: false }
+      : {}),
     constructionBuilderId: null,
     selection,
     mode: 'inspect',

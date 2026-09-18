@@ -59,6 +59,9 @@ export function AttackNpc({ unit }: { unit: Unit }) {
       className="secondary"
       onClick={() =>
         useGame.setState({
+          selectedUnitIds: [],
+          groupTarget: null,
+          multiSelect: false,
           selection: {
             kind: 'population' in attacker ? 'building' : 'unit',
             id: attacker.id,

@@ -1,10 +1,18 @@
-import { useState } from 'react';
-import { Flag, MapPin, Shield, Swords } from 'lucide-react';
-import { BUILDINGS, UNITS, formatNumber } from '@voidmarch/config';
-import { canAfford } from '@voidmarch/game-rules';
+import { useMemo, useState } from 'react';
+import { Flag, MapPin, Shield, Swords, Clock3 } from 'lucide-react';
+import { BUILDINGS, UNITS, UNIT_PROFILES, UNIT_CATEGORY, formatNumber } from '@voidmarch/config';
+import {
+  canAfford,
+  missionReward,
+  missionWallCount,
+  distance,
+  unitStats,
+} from '@voidmarch/game-rules';
 import type { MissionOffer } from '@voidmarch/shared';
 import { focusMap, send, useGame } from './store';
-import { Cost } from './ui';
+import { Cost, Duration } from './ui';
+import { missionDifficulty, missionTravel } from './mission-guidance';
+import type { Hex, WorldView } from '@voidmarch/shared';
 
 function OfferDetails({ offer }: { offer: MissionOffer }) {
   const roster = [...new Set(offer.units)];
@@ -19,23 +27,141 @@ function OfferDetails({ offer }: { offer: MissionOffer }) {
       <p>
         {offer.buildings.length} bâtiments · {offer.units.length} combattant
         {offer.units.length > 1 ? 's' : ''} ·{' '}
-        {offer.wall ? BUILDINGS[offer.wall].name : 'Sans remparts'}
+        {offer.wall
+          ? `${missionWallCount(offer)} × ${BUILDINGS[offer.wall].name}`
+          : 'Sans remparts'}
       </p>
       <p className="muted">{offer.buildings.map((k) => BUILDINGS[k].name).join(' · ')}</p>
-      <p className="muted">
-        {roster
-          .map((k) => `${offer.units.filter((x) => x === k).length} × ${UNITS[k].name}`)
-          .join(' · ')}
+      <p className="mission-army-summary">
+        {offer.units.filter((k) => UNIT_PROFILES[k].flying).length} unités aériennes ·{' '}
+        {offer.units.filter((k) => UNIT_PROFILES[k].armored).length} blindés ·{' '}
+        {offer.units.filter((k) => UNIT_PROFILES[k].siege).length} unités de siège
       </p>
+      <details className="mission-roster-details">
+        <summary>Voir les {offer.units.length} unités et préparer les contres</summary>
+        <ul>
+          {roster.map((k) => (
+            <li key={k}>
+              <strong>
+                {offer.units.filter((x) => x === k).length} × {UNITS[k].name}
+              </strong>
+              <span>
+                {UNIT_CATEGORY[k]} · {UNIT_PROFILES[k].role}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </details>
+      {offer.units.some((k) => UNIT_PROFILES[k].flying) && (
+        <p className="muted">
+          Aviation repérée : prévois une DCA ou des unités capables d’attaquer les airs.
+        </p>
+      )}
+      {offer.difficulty === 'Grande campagne' && (
+        <p className="muted">
+          Prévue pour toi et tes alliés. Le commanditaire reçoit le butin et les survivants.
+        </p>
+      )}
     </>
+  );
+}
+function MissionDifficulty({ offer }: { offer: MissionOffer }) {
+  const difficulty = missionDifficulty(offer);
+  return (
+    <div className="mission-difficulty">
+      <span className={`mission-difficulty-badge mission-difficulty-${difficulty.tone}`}>
+        Difficulté : {difficulty.label}
+      </span>
+      <small>
+        {difficulty.advice} Indication pour une armée de niveau {offer.level} ; la composition et
+        les renforts alliés comptent aussi.
+      </small>
+    </div>
+  );
+}
+function MissionJourney({ world, target }: { world: WorldView; target: Hex }) {
+  const selection = useGame((s) => s.selection);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const units = world.units.filter((u) => u.ownerId === world.player.id && u.hp > 0);
+  const selected = units.find((u) => u.id === (chosen ?? selection?.id));
+  const travel = useMemo(
+    () => (selected ? missionTravel(world, target, selected) : undefined),
+    [world, target.q, target.r, selected],
+  );
+  return (
+    <div className="mission-journey">
+      <strong>Distance et trajet</strong>
+      <span>
+        Depuis ta capitale : {formatNumber(distance(world.player.capital, target))} cases.
+      </span>
+      {units.length > 0 ? (
+        <>
+          <label>
+            Estimer depuis une unité
+            <select value={selected?.id ?? ''} onChange={(e) => setChosen(e.target.value)}>
+              <option value="">Choisir une unité</option>
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nickname ?? unitStats(u).name} · {u.q}, {u.r} ·{' '}
+                  {formatNumber(distance(u, target))} cases
+                </option>
+              ))}
+            </select>
+          </label>
+          {travel && (
+            <div className="mission-travel-result">
+              <strong>
+                Depuis cette unité : {formatNumber(travel.cases)} cases en ligne directe.
+              </strong>
+              <span>
+                {travel.basis === 'near'
+                  ? 'Déjà aux abords de l’objectif · 0 PA de trajet.'
+                  : travel.pa === null
+                    ? 'Cette unité ne peut pas se déplacer.'
+                    : travel.basis === 'road'
+                      ? 'Réseau connu jusqu’aux abords · 1 PA.'
+                      : travel.basis === 'known'
+                        ? `Trajet connu : environ ${formatNumber(travel.pa)} PA.`
+                        : `Repère en terrain ouvert : environ ${formatNumber(travel.pa)} PA, sans routes ni obstacles.`}
+              </span>
+              <small>
+                {travel.basis === 'unknown'
+                  ? 'Aucun trajet complet calculable sur la carte connue : le terrain, les routes et les remparts peuvent changer fortement cette estimation.'
+                  : 'Estimation avec les terrains, routes et obstacles connus ; la situation peut changer pendant le voyage.'}{' '}
+                Combats et brèches non compris.
+              </small>
+            </div>
+          )}
+        </>
+      ) : (
+        <small>
+          Recrute une unité pour estimer son trajet. La distance indiquée est directe, sans les
+          détours.
+        </small>
+      )}
+    </div>
+  );
+}
+function MissionRewards({ offer }: { offer: MissionOffer }) {
+  return (
+    <div className="mission-rewards">
+      <strong>Récompenses de victoire</strong>
+      <Cost cost={missionReward(offer)} />
+      <small>
+        Une médaille, le butin garanti et les unités, bâtiments et remparts survivants. Les troupes
+        ralliées comptent dans ta population et ton entretien.
+      </small>
+    </div>
   );
 }
 export function Missions() {
   const w = useGame((s) => s.world)!,
-    pending = useGame((s) => s.pending);
+    pending = useGame((s) => s.pending),
+    now = useGame((s) => s.now);
   const [confirmAbandon, setConfirmAbandon] = useState<string | null>(null);
   const missions = w.missions,
     active = missions?.active;
+  const offersExpired = !!missions?.offersRefreshAt && now >= missions.offersRefreshAt;
   if (!missions)
     return <p>Les missions seront disponibles après la prochaine synchronisation du serveur.</p>;
   return (
@@ -45,7 +171,7 @@ export function Missions() {
         <div>
           <h3>Une campagne, un objectif, une nouvelle place forte.</h3>
           <p>
-            Choisis une mission : sa forteresse apparaît à 40–60 cases de ta capitale. Seuls toi et
+            Choisis une mission : sa forteresse apparaît à 20–40 cases de ta capitale. Seuls toi et
             tes alliés pouvez l’attaquer.
           </p>
         </div>
@@ -61,7 +187,9 @@ export function Missions() {
             MISSION EN COURS · {active.difficulty} · NIVEAU {active.level}
           </span>
           <h3>{active.title}</h3>
+          <MissionDifficulty offer={active} />
           <OfferDetails offer={active} />
+          <MissionRewards offer={active} />
           <div className="mission-progress">
             <strong>Objectif : {formatNumber(active.objectiveHp)} PV</strong>
             <span>
@@ -69,6 +197,7 @@ export function Missions() {
               encore debout
             </span>
           </div>
+          <MissionJourney world={w} target={active.objectivePosition} />
           <button className="primary" onClick={() => focusMap(active.objectivePosition)}>
             <MapPin size={17} /> Localiser l’objectif · {active.distance} cases de la capitale
           </button>
@@ -118,12 +247,42 @@ export function Missions() {
                 {missions.lastResult.outcome === 'VICTORY' ? 'Victoire' : 'Mission abandonnée'} ·{' '}
                 {missions.lastResult.title}
               </strong>
+              {missions.lastResult.trophyId && (
+                <button
+                  className="mission-trophy-link"
+                  onClick={() => useGame.setState({ panel: 'trophies' })}
+                >
+                  Médaille obtenue · Ouvrir la salle des trophées
+                </button>
+              )}
+              {missions.lastResult.outcome === 'VICTORY' && missions.lastResult.reward && (
+                <div className="mission-rewards">
+                  <strong>Ressources reçues</strong>
+                  <Cost cost={missions.lastResult.reward} />
+                </div>
+              )}
               {missions.lastResult.outcome === 'VICTORY' && (
                 <p>
                   Ralliés : {missions.lastResult.units} unité(s), {missions.lastResult.buildings}{' '}
                   bâtiment(s), {missions.lastResult.walls} rempart(s).
                 </p>
               )}
+            </div>
+          )}
+          {missions.offersRefreshAt && (
+            <div className="mission-refresh" role="timer" aria-label="Renouvellement des missions">
+              <Clock3 size={18} aria-hidden="true" />
+              {offersExpired ? (
+                <strong>Renouvellement des offres en cours…</strong>
+              ) : (
+                <span>
+                  Nouvelles missions dans{' '}
+                  <strong>
+                    <Duration until={missions.offersRefreshAt} />
+                  </strong>
+                </span>
+              )}
+              <small>Les offres non acceptées changent toutes les 10 minutes.</small>
             </div>
           )}
           <div className="mission-offers">
@@ -133,14 +292,19 @@ export function Missions() {
                   {offer.difficulty} · NIVEAU {offer.level}
                 </span>
                 <h3>{offer.title}</h3>
+                <MissionDifficulty offer={offer} />
+                <p className="mission-offer-distance">
+                  À 20–40 cases de ta capitale après acceptation.
+                </p>
                 <OfferDetails offer={offer} />
+                <MissionRewards offer={offer} />
                 <div className="mission-price">
                   <small>Si tu abandonnes ensuite :</small>
                   <Cost cost={offer.abandonmentCost} />
                 </div>
                 <button
                   className="primary"
-                  disabled={pending}
+                  disabled={pending || offersExpired}
                   onClick={() =>
                     send({
                       type: 'MISSION_ACCEPT',
@@ -156,8 +320,11 @@ export function Missions() {
           </div>
           <p className="muted">
             Une seule mission à la fois. L’acceptation est gratuite. Prépare ton armée avant le
-            départ : l’abandon est payant. Les offres se renouvellent après une victoire ou un
-            abandon et s’adaptent à tes bâtiments militaires.
+            départ : l’abandon est payant. Les offres se renouvellent toutes les 10 minutes, ainsi
+            qu’après une victoire ou un abandon, et s’adaptent à tes bâtiments militaires. Une
+            mission acceptée reste active sans limite de temps. Avec un allié et un bâtiment
+            militaire de niveau 3 minimum, la troisième offre alterne entre siège et grande campagne
+            toutes les 10 minutes.
           </p>
         </>
       )}
@@ -167,14 +334,20 @@ export function Missions() {
             <Shield size={18} /> Campagnes de tes alliés
           </h3>
           {missions.allied.map((m) => (
-            <button key={m.id} onClick={() => focusMap(m)}>
-              <MapPin size={16} /> {m.title} ·{' '}
-              {w.realms.find((r) => r.id === m.realmId)?.name ?? 'Allié'}
-            </button>
+            <article key={m.id}>
+              <h4>
+                {m.title} · {w.realms.find((r) => r.id === m.realmId)?.name ?? 'Allié'}
+              </h4>
+              <MissionDifficulty offer={m} />
+              <MissionJourney world={w} target={m} />
+              <button onClick={() => focusMap(m)}>
+                <MapPin size={16} /> Localiser la mission alliée
+              </button>
+            </article>
           ))}
           <p className="muted">
-            Les survivants rallient le royaume qui a accepté la mission, même si un allié porte le
-            coup décisif.
+            Le butin et les survivants reviennent au royaume qui a accepté la mission, même si un
+            allié porte le coup décisif.
           </p>
         </section>
       )}

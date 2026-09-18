@@ -97,6 +97,9 @@ export function DemolishBuilding({ building: b }: { building: Building }) {
                     if (result?.accepted) {
                       setOpen(false);
                       useGame.setState({
+                        selectedUnitIds: [],
+                        groupTarget: null,
+                        multiSelect: false,
                         selection: { kind: 'tile', q: b.q, r: b.r },
                         mode: 'inspect',
                       });

@@ -119,6 +119,11 @@ describe('les remparts interceptent les attaques', () => {
     expect(result.state.units.shooter.hp).toBe(100);
     expect(result.state.buildings[wall.id].hp).toBeLessThan(wall.hp);
     expect(result.result.message).toContain('rempart qui intercepte');
+    expect(result.state.journal.at(-1)?.damage).toMatchObject({
+      amount: wall.hp - result.state.buildings[wall.id].hp,
+      targetKind: 'building',
+      retaliation: true,
+    });
   });
   it('une tourelle tire depuis le haut du mur et franchit le rempart suivant', () => {
     const { s, wall } = fixture();

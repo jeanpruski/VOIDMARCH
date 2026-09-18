@@ -17,6 +17,7 @@ import { rollRareBonus } from './rarity';
 import { npcRewards } from './npcs';
 import {
   ACTION_COST,
+  MAX_GROUP_UNITS,
   TURRETS,
   TERRAFORM_COST,
   isWall,
@@ -127,6 +128,7 @@ export function log(
   realmIds?: string[],
   p?: Hex,
   shot?: JournalEntry['shot'],
+  damage?: JournalEntry['damage'],
 ) {
   s.journal.push({
     id: randomUUID(),
@@ -136,6 +138,7 @@ export function log(
     realmIds,
     ...(p ? { q: p.q, r: p.r } : {}),
     ...(shot ? { shot } : {}),
+    ...(damage ? { damage } : {}),
   });
   if (s.journal.length > 1000) s.journal.splice(0, s.journal.length - 1000);
 }
@@ -461,8 +464,39 @@ export function applyAction(
   );
   let message = 'Ordre exécuté.';
   let movement: ActionResult['movement'];
+  let movements: ActionResult['movements'];
   const spendAction = (override?: number) => spend(r, override ?? ACTION_COST[a.type]);
   switch (a.type) {
+    case 'MOVE_GROUP': {
+      requireRule(a.actorId === id, 'Cet ordre doit appartenir à votre royaume.');
+      const orders = a.payload.orders;
+      requireRule(
+        orders.length > 0 && orders.length <= MAX_GROUP_UNITS,
+        `Sélectionnez entre 1 et ${MAX_GROUP_UNITS} troupes.`,
+      );
+      requireRule(
+        new Set(orders.map((o) => o.actorId)).size === orders.length,
+        'Une troupe ne peut se déplacer qu’une fois par ordre.',
+      );
+      const totalCost = orders.reduce((total, o) => total + ACTION_COST[o.type], 0);
+      requireRule(
+        r.unlimitedAP || r.ap >= totalCost,
+        `Ce déplacement groupé demande ${totalCost} PA. Aucune troupe n’a bougé.`,
+      );
+      movements = [];
+      for (const order of orders) {
+        const result = applyAction(
+          s,
+          id,
+          { ...order, actionId: a.actionId, clientTimestamp: a.clientTimestamp },
+          now,
+          options,
+        );
+        if (result.movement) movements.push(result.movement);
+      }
+      message = `${orders.length} troupe(s) déplacée(s) · ${orders.reduce((total, o) => total + ACTION_COST[o.type], 0)} PA.`;
+      break;
+    }
     case 'MOVE_ROAD': {
       const u = ownedUnit(s, r, a.actorId);
       requireRule(
@@ -604,6 +638,13 @@ export function applyAction(
           ...('population' in u && isWall(u.kind) ? { wallKind: u.kind } : {}),
           targetAirborne: !('population' in target) && !!UNIT_PROFILES[target.kind].flying,
         },
+        {
+          amount: damage,
+          targetOwnerId: target.ownerId,
+          targetKind: 'population' in target ? 'building' : 'unit',
+          airborne: !('population' in target) && !!UNIT_PROFILES[target.kind].flying,
+          retaliation: false,
+        },
       );
       if (target.hp <= 0) {
         if ('population' in target) {
@@ -663,6 +704,13 @@ export function applyAction(
             from: { q: npc.q, r: npc.r },
             unitKind: npc.kind,
             targetAirborne: !('population' in recipient) && !!UNIT_PROFILES[recipient.kind].flying,
+          },
+          {
+            amount: dealt,
+            targetOwnerId: recipient.ownerId,
+            targetKind: 'population' in recipient ? 'building' : 'unit',
+            airborne: !('population' in recipient) && !!UNIT_PROFILES[recipient.kind].flying,
+            retaliation: true,
           },
         );
         if (recipient.hp <= 0) {
@@ -1350,6 +1398,7 @@ export function applyAction(
     newActionPoints: r.ap,
     revision: s.revision,
     ...(movement ? { movement } : {}),
+    ...(movements ? { movements } : {}),
   };
 }
 // Callers commit only the returned copy. Rejected commands never retain partial mutations.
@@ -1429,7 +1478,7 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
   }));
   const onlineHumans = realms.filter((x) => !x.bot && x.online).length;
   return {
-    missions: missionsView(s, id),
+    missions: missionsView(s, id, now),
     strategy: strategyView(s, id, now, visible),
     revision: s.revision,
     serverTimestamp: now,

@@ -4,6 +4,7 @@ import type { Hex, WorldView } from '@voidmarch/shared';
 import type { Prediction } from './optimistic-actions';
 
 const labels: Record<Action['type'], string> = {
+  MOVE_GROUP: 'Déplacement du groupe en cours',
   MISSION_ACCEPT: 'Préparation de la campagne',
   MISSION_ABANDON: 'Abandon de la mission',
   ALLIANCE_CREATE: 'Création de l’alliance',
@@ -91,6 +92,7 @@ export function pendingWorld(source: WorldView, prediction: Prediction): WorldVi
   return {
     ...source,
     player: { ...source.player, ap: prediction.world.player.ap, wallet },
-    units: prediction.movement ? prediction.world.units : source.units,
+    units:
+      prediction.movement || prediction.movements?.length ? prediction.world.units : source.units,
   };
 }

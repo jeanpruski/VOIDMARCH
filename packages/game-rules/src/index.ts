@@ -31,7 +31,16 @@ import {
   type Wallet,
   type Terrain,
 } from '@voidmarch/config';
-import type { Building, GameState, Hex, Realm, Tile, Unit, ViewTile } from '@voidmarch/shared';
+import type {
+  Building,
+  GameState,
+  Hex,
+  MissionOffer,
+  Realm,
+  Tile,
+  Unit,
+  ViewTile,
+} from '@voidmarch/shared';
 export const key = (p: Hex) => `${p.q},${p.r}`;
 /** Shared by the authoritative action, catalogue and optimistic preview. */
 export function recruitmentRequirement(
@@ -227,6 +236,23 @@ export const canAfford = (wallet: Wallet, cost: Partial<Wallet>) =>
   Object.entries(cost).every(([k, v]) => wallet[k as keyof Wallet] >= v);
 export function transfer(wallet: Wallet, amount: Partial<Wallet>, sign = 1) {
   for (const [k, v] of Object.entries(amount)) wallet[k as keyof Wallet] += v * sign;
+}
+/** Honour accepted quotes; legacy campaigns receive the same reward as new offers. */
+export const missionWallCount = (offer: Pick<MissionOffer, 'wall' | 'wallRadius'>) =>
+  offer.wall ? 6 * (offer.wallRadius ?? 2) : 0;
+export function missionReward(
+  offer: Pick<MissionOffer, 'difficulty' | 'abandonmentCost' | 'reward'>,
+): Partial<Wallet> {
+  if (offer.reward) return { ...offer.reward };
+  const multiplier = { Escarmouche: 2, Assaut: 2.5, Siège: 3, 'Grande campagne': 3 }[
+    offer.difficulty
+  ];
+  return Object.fromEntries(
+    Object.entries(offer.abandonmentCost).map(([resource, cost]) => [
+      resource,
+      Math.round(cost * multiplier * 10) / 10,
+    ]),
+  );
 }
 export const amount = (w: Partial<Wallet>) => Object.values(w).reduce((a, b) => a + b, 0);
 export const alliedRealmIds = (s: GameState, id: string): string[] =>

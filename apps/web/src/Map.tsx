@@ -1,3 +1,4 @@
+import { groupMovementPreview } from './group-movement';
 import { isBuilderSite } from './construction';
 import { drawStrategicOperations, drawAmbient } from './strategy-art';
 import { buildingAtlas, buildingTextureKey, buildingEvolutionFrame } from './building-art';
@@ -13,6 +14,8 @@ import {
 } from './hero-art';
 import { unitStats, turretStats, attackStats } from '@voidmarch/game-rules';
 import { worldEffects, type WorldEffect } from './world-effects';
+import { combatDamage } from './combat-damage';
+import { DamageNumbers } from './damage-numbers';
 import { useEffect, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import Phaser from 'phaser';
@@ -42,7 +45,7 @@ import {
 import type { Hex, Unit, ViewTile, WorldView } from '@voidmarch/shared';
 import { BUILDING_FRAMES, UNIT_FRAMES, unitFrame, miniatureTexture, miniatureFrame } from './ui';
 import { normalizedAtlas, SPRITE_CELL, SPRITE_ATLASES, spriteAssetUrl } from './sprite-atlas';
-import { api, notify, select, send, subscribe, useGame } from './store';
+import { api, notify, select, toggleUnitSelection, send, subscribe, useGame } from './store';
 import {
   SIZE,
   Y_SCALE,
@@ -114,6 +117,7 @@ class WorldScene extends Phaser.Scene {
   private strategic = false;
   private strategicWorld?: WorldView;
   private strategicTiles: StrategicTile[] = [];
+  private damageNumbers = new DamageNumbers(this);
   private impactGroups = new Set<Phaser.GameObjects.Container>();
   private viewportWidth = 0;
   private viewportHeight = 0;
@@ -163,6 +167,7 @@ class WorldScene extends Phaser.Scene {
   private createWorld() {
     // Register cleanup before the first render, including when initialization fails.
     const cleanup = () => {
+      this.damageNumbers.clear();
       this.unsubscribe?.();
       this.unsubscribe = undefined;
       for (const cancel of this.projectiles.values()) cancel();
@@ -249,6 +254,15 @@ class WorldScene extends Phaser.Scene {
           this.centerSet = true;
         }
         this.renderMap();
+        // Journal damage is authoritative even when speculative effects are suppressed.
+        if (previous.world)
+          for (const hit of combatDamage(previous.world, s.world))
+            this.damageNumbers.show(
+              hit,
+              s.world.player.id,
+              s.world.player.settings.reducedMotion,
+              !this.strategic && (hit.targetKind === 'unit' ? s.showUnits : s.showBuildings),
+            );
         if (previous.world && !s.world.player.settings.reducedMotion && s.effectPolicy !== 'none')
           for (const effect of worldEffects(previous.world, s.world))
             if (
@@ -266,6 +280,7 @@ class WorldScene extends Phaser.Scene {
         s.showBuildings !== previous.showBuildings
       ) {
         if (s.showUnits !== previous.showUnits || s.showBuildings !== previous.showBuildings) {
+          this.damageNumbers.clear();
           for (const cancel of [...this.projectiles.values()]) cancel();
           for (const group of this.impactGroups) {
             this.tweens.killTweensOf(group.list);
@@ -278,6 +293,8 @@ class WorldScene extends Phaser.Scene {
       if (
         s.constructionBuilderId !== previous.constructionBuilderId ||
         s.selection !== previous.selection ||
+        s.selectedUnitIds !== previous.selectedUnitIds ||
+        s.groupTarget !== previous.groupTarget ||
         s.mode !== previous.mode ||
         s.roadTool !== previous.roadTool ||
         s.hover !== previous.hover
@@ -334,7 +351,7 @@ class WorldScene extends Phaser.Scene {
         !pointer.rightButtonReleased()
       ) {
         const p = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-        this.click(pixelToHex(p.x, p.y));
+        this.click(pixelToHex(p.x, p.y), !!(pointer.event as MouseEvent).shiftKey);
       }
       this.down = undefined;
       this.subscribeVisible();
@@ -639,7 +656,7 @@ class WorldScene extends Phaser.Scene {
       u.kind,
     );
   }
-  private click(p: Hex) {
+  private click(p: Hex, additive = false) {
     if (!this.view) return;
     if (this.strategic) {
       const target = hexToPixel(p);
@@ -653,6 +670,18 @@ class WorldScene extends Phaser.Scene {
       tile = this.tileMap.get(key(p)),
       own = this.getUnit(),
       unit = state.showUnits ? this.view.units.find((u) => key(u) === key(p)) : undefined;
+    if (
+      (additive || state.multiSelect) &&
+      unit?.ownerId === this.view.player.id &&
+      !state.pending
+    ) {
+      toggleUnitSelection(unit.id);
+      return;
+    }
+    if (state.mode === 'move' && state.selectedUnitIds.length > 1) {
+      if (!state.pending) useGame.setState({ groupTarget: p });
+      return;
+    }
     if (state.mode === 'terraform') {
       if (state.pending || state.terraformTarget) return;
       const reason = terraformOrderReason(this.view, tile, own);
@@ -872,6 +901,7 @@ class WorldScene extends Phaser.Scene {
     const previousStrategic = this.strategic;
     this.strategic = strategicAtZoom(this.cameras.main.zoom, this.strategic);
     if (this.strategic && !previousStrategic) {
+      this.damageNumbers.clear();
       for (const cancel of [...this.projectiles.values()]) cancel();
       for (const group of this.impactGroups) {
         this.tweens.killTweensOf(group.list);
@@ -1516,6 +1546,41 @@ class WorldScene extends Phaser.Scene {
     const state = useGame.getState(),
       selection = state.selection,
       u = this.getUnit();
+    if (state.selectedUnitIds.length > 1) {
+      for (const unit of this.view.units.filter((u) => state.selectedUnitIds.includes(u.id))) {
+        const p = this.visualPosition(unit);
+        g.lineStyle(3, 0xf2e6bc, 1);
+        g.strokePoints(points(p, SIZE - 5), true);
+      }
+      if (state.mode === 'move' && state.groupTarget) {
+        const preview = groupMovementPreview(this.view, state.selectedUnitIds, state.groupTarget);
+        for (let i = 0; i < preview.journeys.length; i++) {
+          const journey = preview.journeys[i],
+            color = [0xffdaa0, 0x9fddd5, 0xc4b2ec, 0xa6d88b][i % 4];
+          let prev = hexToPixel(journey.from);
+          for (const step of journey.path) {
+            const p = hexToPixel(step);
+            g.lineStyle(5, 0x16211b, 0.8);
+            g.lineBetween(prev.x, prev.y, p.x, p.y);
+            g.lineStyle(2, color, 1);
+            g.lineBetween(prev.x, prev.y, p.x, p.y);
+            prev = p;
+          }
+          g.fillStyle(color, 0.25);
+          g.fillPoints(points(prev, SIZE - 4), true);
+          g.lineStyle(3, color, 1);
+          g.strokePoints(points(prev, SIZE - 4), true);
+        }
+        for (const stopped of preview.stationary) {
+          const unit = this.view.units.find((u) => u.id === stopped.unitId);
+          if (unit) {
+            g.lineStyle(3, 0xd98576, 1);
+            g.strokePoints(points(hexToPixel(unit), SIZE - 5), true);
+          }
+        }
+      }
+      return;
+    }
     const attacker = this.getAttacker();
     if (state.mode === 'attack' && attacker?.ownerId === this.view.player.id) {
       for (const t of this.view.tiles) {

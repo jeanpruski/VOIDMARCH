@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { UNITS, STRATEGY, isWall } from '@voidmarch/config';
+import { UNITS, UNIT_PROFILES, STRATEGY, isWall } from '@voidmarch/config';
 import {
+  missionReward,
+  missionWallCount,
+  movementCost,
+  accrueEconomy,
+  income,
+  storage,
   createState,
   createRealm,
   distance,
@@ -38,16 +44,16 @@ function fixture(seed = 'missions') {
   strategy(s, now);
   return s;
 }
-function run(s: GameState, type: string, actorId: string, payload = {}, realm = 'a') {
+function run(s: GameState, type: string, actorId: string, payload = {}, realm = 'a', at = now) {
   return execute(
     s,
     realm,
-    actionSchema.parse({ type, actorId, payload, actionId: randomUUID(), clientTimestamp: now }),
-    now,
+    actionSchema.parse({ type, actorId, payload, actionId: randomUUID(), clientTimestamp: at }),
+    at,
   );
 }
 function accept(s: GameState, index = 0) {
-  const result = run(s, 'MISSION_ACCEPT', 'a', { offerId: missionOffers(s, 'a')[index].id });
+  const result = run(s, 'MISSION_ACCEPT', 'a', { offerId: missionOffers(s, 'a', now)[index].id });
   expect(result.result.accepted, result.result.reason).toBe(true);
   return result.state;
 }
@@ -86,41 +92,145 @@ function allies(s: GameState) {
 }
 
 describe('missions de campagne', () => {
+  it.each([1, 2, 3, 4, 5])(
+    'propose des effectifs et spécialités cohérents au niveau %i',
+    (level) => {
+      const s = fixture(`mixed-${level}`);
+      addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'BARRACKS', now, level);
+      const offers = missionOffers(s, 'a', now);
+      const ranges = [
+        [2, 5],
+        [6, 10],
+        [12, 20],
+      ];
+      offers.forEach((offer, i) => {
+        expect(offer.units.length).toBeGreaterThanOrEqual(ranges[i][0]);
+        expect(offer.units.length).toBeLessThanOrEqual(ranges[i][1]);
+        expect(offer.units.some((k) => UNIT_PROFILES[k].hero || UNIT_PROFILES[k].builder)).toBe(
+          false,
+        );
+        expect(offer.units.some((k) => UNIT_PROFILES[k].flying)).toBe(level >= 3 && i > 0);
+        if (i > 0)
+          expect(
+            offer.units.some((k) => UNIT_PROFILES[k].mechanical || UNIT_PROFILES[k].mounted),
+          ).toBe(true);
+        if (level < 5) expect(offer.units.some((k) => UNIT_PROFILES[k].radioactive)).toBe(false);
+      });
+    },
+  );
+  it.each([3, 4, 5])(
+    'installe une grande campagne de niveau %i sans collision ni terrain impraticable',
+    (level) => {
+      const s = fixture(`large-${level}`);
+      allies(s);
+      addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'BARRACKS', now, level);
+      const at = now + 600000;
+      const offer = missionOffers(s, 'a', at)[2];
+      expect(offer.difficulty).toBe('Grande campagne');
+      expect(offer.units.length).toBeGreaterThanOrEqual(20);
+      expect(offer.units.length).toBeLessThanOrEqual(30);
+      const accepted = run(s, 'MISSION_ACCEPT', 'a', { offerId: offer.id }, 'a', at);
+      expect(accepted.result.accepted, accepted.result.reason).toBe(true);
+      const m = activeMissions(accepted.state)[0];
+      const units = Object.values(accepted.state.units).filter((u) => u.ownerId === m.ownerId);
+      expect(units).toHaveLength(offer.units.length);
+      expect(new Set(units.map(key)).size).toBe(units.length);
+      expect(units.some((u) => UNIT_PROFILES[u.kind].flying)).toBe(true);
+      for (const u of units) {
+        expect(Number.isFinite(u.q) && Number.isFinite(u.r)).toBe(true);
+        expect(tileAt(accepted.state, u).buildingId).toBeUndefined();
+        expect(movementCost(tileAt(accepted.state, u), u.kind)).toBeLessThanOrEqual(
+          UNITS[u.kind].move,
+        );
+        expect(distance(u, m)).toBeLessThan(m.wallRadius!);
+      }
+      const wallCount = Object.values(accepted.state.buildings).filter(
+        (b) => b.ownerId === m.ownerId && isWall(b.kind),
+      ).length;
+      expect(wallCount).toBe(24);
+      expect(missionWallCount(m)).toBe(wallCount);
+      delete accepted.state.units[m.objectiveId];
+      delete accepted.state.buildings[m.objectiveId];
+      reconcileMissions(accepted.state, at + 1);
+      const trophy = accepted.state.missions!.a.trophies![0];
+      expect(trophy.medal.metal).toBe('gold');
+      expect(trophy.mission.difficulty).toBe('Grande campagne');
+      expect(trophy.mission.wallRadius).toBe(4);
+      expect(trophy.destroyed.walls).toBe(0);
+      expect(trophy.captured.walls).toBe(24);
+      expect(trophy.reward).toEqual(offer.reward);
+    },
+  );
+  it('peut placer une garnison complète de 30 unités dans son enceinte', () => {
+    const s = fixture('full-campaign');
+    allies(s);
+    addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'BARRACKS', now, 5);
+    const at = now + 600000;
+    for (let generation = 0; generation < 200; generation += 2) {
+      (s.missions ??= {}).a = { generation };
+      if (missionOffers(s, 'a', at)[2].units.length === 30) break;
+    }
+    const offer = missionOffers(s, 'a', at)[2];
+    expect(offer.units).toHaveLength(30);
+    const accepted = run(s, 'MISSION_ACCEPT', 'a', { offerId: offer.id }, 'a', at);
+    expect(accepted.result.accepted, accepted.result.reason).toBe(true);
+    const m = activeMissions(accepted.state)[0];
+    const units = Object.values(accepted.state.units).filter((u) => u.ownerId === m.ownerId);
+    expect(units).toHaveLength(30);
+    expect(new Set(units.map(key)).size).toBe(30);
+    expect(units.every((u) => distance(u, m) < m.wallRadius!)).toBe(true);
+  });
+  it('réserve les grandes campagnes aux royaumes avancés alliés et invalide une offre après rupture', () => {
+    const s = fixture();
+    allies(s);
+    expect(missionOffers(s, 'a', now + 600000)[2].difficulty).toBe('Siège');
+    addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'BARRACKS', now, 3);
+    expect(missionOffers(s, 'a', now)[2].difficulty).toBe('Siège');
+    const offer = missionOffers(s, 'a', now + 600000)[2];
+    expect(offer.difficulty).toBe('Grande campagne');
+    s.strategy!.alliances.team.members = ['a'];
+    expect(missionOffers(s, 'a', now + 600000)[2].difficulty).toBe('Siège');
+    const result = run(s, 'MISSION_ACCEPT', 'a', { offerId: offer.id }, 'a', now + 600000);
+    expect(result.result.accepted).toBe(false);
+    expect(result.state).toBe(s);
+  });
+
   it('propose trois offres déterministes, sans création de forteresse ni mutation de sauvegarde', () => {
     const s = fixture(),
       before = JSON.stringify(s);
-    const first = missionsView(s, 'a');
+    const first = missionsView(s, 'a', now);
     expect(first.offers).toHaveLength(3);
     expect(new Set(first.offers.map((m) => m.title)).size).toBe(3);
     expect(first.offers.filter((o) => o.objective === 'COMMANDER')).toHaveLength(1);
-    expect(missionsView(s, 'a')).toEqual(first);
+    expect(missionsView(s, 'a', now)).toEqual(first);
     expect(JSON.stringify(s)).toBe(before);
     for (const offer of first.offers) {
-      expect(offer.units.length).toBeGreaterThanOrEqual(1);
-      expect(offer.units.length).toBeLessThanOrEqual(5);
+      expect(offer.units.length).toBeGreaterThanOrEqual(2);
+      expect(offer.units.length).toBeLessThanOrEqual(20);
       expect(offer.buildings.length).toBeGreaterThanOrEqual(2);
       expect(offer.buildings.length).toBeLessThanOrEqual(3);
     }
   });
   it.each(['missions', 'campaign-2', 'campaign-3', 'campaign-4'])(
-    'place une forteresse libre à 40–60 cases, sans ajouter de bot (%s)',
+    'place une forteresse libre à 20–40 cases, sans ajouter de bot (%s)',
     (seed) => {
       const original = fixture(seed);
       const s = accept(original, 2),
         m = activeMissions(s)[0];
-      expect(distance(m, s.realms.a.capital)).toBeGreaterThanOrEqual(40);
-      expect(distance(m, s.realms.a.capital)).toBeLessThanOrEqual(60);
+      expect(distance(m, s.realms.a.capital)).toBeGreaterThanOrEqual(20);
+      expect(distance(m, s.realms.a.capital)).toBeLessThanOrEqual(40);
       expect(Object.keys(s.realms)).toEqual(['a']);
       expect(Object.values(s.units).filter((u) => u.ownerId === m.ownerId)).toHaveLength(
         m.units.length,
       );
       expect(
         Object.values(s.buildings).filter((b) => b.ownerId === m.ownerId && isWall(b.kind)),
-      ).toHaveLength(12);
-      for (const p of disk(m, 2)) expect(tileAt(original, p).ownerId).toBeUndefined();
+      ).toHaveLength(24);
+      for (const p of disk(m, m.wallRadius ?? 2))
+        expect(tileAt(original, p).ownerId).toBeUndefined();
       expect(s.realms.a.wallet).toEqual(original.realms.a.wallet);
       expect(s.realms.a.ap).toBe(original.realms.a.ap);
-      expect(missionsView(s, 'a').offers).toHaveLength(0);
+      expect(missionsView(s, 'a', now).offers).toHaveLength(0);
       const duplicate = run(s, 'MISSION_ACCEPT', 'a', { offerId: 'offer:0:1:0' });
       expect(duplicate.result.accepted).toBe(false);
       expect(duplicate.state).toBe(s);
@@ -128,17 +238,17 @@ describe('missions de campagne', () => {
   );
   it('suit le niveau militaire sans offrir des unités atomiques à un nouveau royaume', () => {
     const s = fixture();
-    expect(missionOffers(s, 'a')[0].level).toBe(1);
+    expect(missionOffers(s, 'a', now)[0].level).toBe(1);
     addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'HOUSE', now, 5);
-    expect(missionOffers(s, 'a')[0].level).toBe(1);
+    expect(missionOffers(s, 'a', now)[0].level).toBe(1);
     addBuilding(s, s.realms.a, { q: 2, r: 0 }, 'BARRACKS', now, 3);
-    expect(missionOffers(s, 'a').every((m) => m.level === 3)).toBe(true);
+    expect(missionOffers(s, 'a', now).every((m) => m.level === 3)).toBe(true);
   });
   it('refuse une offre périmée ou un site entièrement occupé sans mutation', () => {
     const s = fixture();
     expect(run(s, 'MISSION_ACCEPT', 'a', { offerId: 'invented' }).state).toBe(s);
-    for (const p of disk(s.realms.a.capital, 63)) writeTile(s, p, { ownerId: 'blocked' });
-    const result = run(s, 'MISSION_ACCEPT', 'a', { offerId: missionOffers(s, 'a')[0].id });
+    for (const p of disk(s.realms.a.capital, 43)) writeTile(s, p, { ownerId: 'blocked' });
+    const result = run(s, 'MISSION_ACCEPT', 'a', { offerId: missionOffers(s, 'a', now)[0].id });
     expect(result.result.accepted).toBe(false);
     expect(result.state).toBe(s);
   });
@@ -146,19 +256,21 @@ describe('missions de campagne', () => {
     let s = accept(fixture());
     const m = activeMissions(s)[0];
     const own = unit(s, m),
-      oldOffers = missionOffers(fixture(), 'a').map((o) => o.id);
+      oldOffers = missionOffers(fixture(), 'a', now).map((o) => o.id);
     const b = Object.values(s.buildings).find((b) => b.ownerId === m.ownerId)!;
     s.realms.a.explored[key(b)] = { ...tileAt(s, b), visibility: 'EXPLORED', building: b };
     const before = structuredClone(s.realms.a.wallet);
     s = run(s, 'MISSION_ABANDON', 'a', { missionId: m.id }).state;
     expect(activeMissions(s)).toHaveLength(0);
+    expect(s.missions!.a.lastResult?.reward).toBeUndefined();
+    expect(s.missions!.a.trophies ?? []).toHaveLength(0);
     expect(s.units[own.id]).toBeDefined();
     expect(Object.values(s.buildings).some((b) => b.ownerId === m.ownerId)).toBe(false);
     expect(Object.values(s.tiles).some((t) => t.ownerId === m.ownerId)).toBe(false);
     expect(s.realms.a.explored[key(b)].building).toBeUndefined();
     expect(s.realms.a.wallet.GOLD).toBe(before.GOLD - m.abandonmentCost.GOLD!);
     expect(s.realms.a.wallet.FOOD).toBe(before.FOOD - m.abandonmentCost.FOOD!);
-    expect(missionOffers(s, 'a').some((o) => oldOffers.includes(o.id))).toBe(false);
+    expect(missionOffers(s, 'a', now).some((o) => oldOffers.includes(o.id))).toBe(false);
     expect(run(s, 'MISSION_ABANDON', 'a', { missionId: m.id }).result.accepted).toBe(false);
   });
   it('refuse un abandon sans ressources ou avec un autre identifiant', () => {
@@ -172,7 +284,7 @@ describe('missions de campagne', () => {
     'rallie les survivants avec leur santé après destruction de l’objectif %s',
     (type) => {
       const initial = fixture();
-      const index = missionOffers(initial, 'a').findIndex((o) => o.objective === type);
+      const index = missionOffers(initial, 'a', now).findIndex((o) => o.objective === type);
       let s = accept(initial, index);
       const m = activeMissions(s)[0];
       // Remove an unrelated wall if present to isolate objective combat from interception.
@@ -192,11 +304,29 @@ describe('missions de campagne', () => {
         (b) => b.ownerId === m.ownerId && b.id !== m.objectiveId,
       );
       buildings.forEach((b) => (b.hp = 19));
+      const walletBefore = structuredClone(s.realms.a.wallet);
+      const quotedReward = missionReward(m);
       const shooter = unit(s, neighbors(objective)[0]);
       const result = run(s, 'ATTACK', shooter.id, { targetId: objective.id });
       expect(result.result.accepted, result.result.reason).toBe(true);
       expect(result.result.message).toContain('Victoire');
+      expect(result.result.message).toContain('Butin reçu');
       s = result.state;
+      expect(s.realms.a.wallet.GOLD).toBe(walletBefore.GOLD + quotedReward.GOLD!);
+      expect(s.realms.a.wallet.FOOD).toBe(walletBefore.FOOD + quotedReward.FOOD!);
+      expect(s.missions!.a.lastResult?.reward).toEqual(quotedReward);
+      expect(s.missions!.a.trophies).toHaveLength(1);
+      const trophy = s.missions!.a.trophies![0];
+      expect(trophy.id).toBe(m.id);
+      expect(trophy.captured.units).toBe(survivors.length);
+      expect(trophy.captured.buildings).toBe(buildings.length);
+      expect(trophy.reward).toEqual(quotedReward);
+      expect(s.missions!.a.lastResult?.trophyId).toBe(trophy.id);
+      expect(result.result.message).toContain('Médaille');
+      const paidWallet = structuredClone(s.realms.a.wallet);
+      reconcileMissions(s, now + 1);
+      expect(s.realms.a.wallet).toEqual(paidWallet);
+      expect(s.missions!.a.trophies).toHaveLength(1);
       expect(s.units[objective.id] ?? s.buildings[objective.id]).toBeUndefined();
       expect(activeMissions(s)).toHaveLength(0);
       for (const u of survivors) {
@@ -223,12 +353,18 @@ describe('missions de campagne', () => {
     expect(
       run(s, 'ATTACK', outsider.id, { targetId: objective.id }, 'outsider').result.reason,
     ).toContain('réservée');
-    expect(missionsView(s, 'outsider').allied).toHaveLength(0);
-    expect(missionsView(s, 'ally').allied).toHaveLength(1);
+    expect(missionsView(s, 'outsider', now).allied).toHaveLength(0);
+    expect(missionsView(s, 'ally', now).allied).toHaveLength(1);
+    const allyWallet = structuredClone(s.realms.ally.wallet);
+    const ownerGold = s.realms.a.wallet.GOLD;
     const ally = unit(s, neighbors(objective)[1], 'ally');
     const result = run(s, 'ATTACK', ally.id, { targetId: objective.id }, 'ally');
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.state.missions!.a.lastResult?.outcome).toBe('VICTORY');
+    expect(result.state.realms.a.wallet.GOLD).toBe(ownerGold + missionReward(m).GOLD!);
+    expect(result.state.realms.ally.wallet).toEqual(allyWallet);
+    expect(missionsView(result.state, 'a', now).trophies).toHaveLength(1);
+    expect(missionsView(result.state, 'ally', now).trophies).toHaveLength(0);
     expect(
       Object.values(result.state.buildings)
         .filter((b) => distance(b, m) <= 2)
@@ -261,6 +397,13 @@ describe('missions de campagne', () => {
     const result = run(s, 'ATTACK', attacker.id, { targetId: b.id });
     expect(result.result.accepted).toBe(true);
     expect(result.result.message).toContain('défend la garnison');
+    expect(
+      [...result.state.journal].reverse().find((j) => j.damage?.retaliation)?.damage,
+    ).toMatchObject({
+      amount: attacker.hp - result.state.units[attacker.id].hp,
+      targetOwnerId: 'a',
+      targetKind: 'unit',
+    });
     expect(result.state.units[attacker.id].hp).toBeLessThan(attacker.hp);
     expect(key(result.state.units[guard.id])).toBe(key(guard));
     expect(activeMissions(result.state)).toHaveLength(1);
@@ -300,7 +443,7 @@ describe('missions de campagne', () => {
   it('conserve la mission et ses identifiants après sérialisation de la sauvegarde', () => {
     const s = accept(fixture()),
       loaded: GameState = JSON.parse(JSON.stringify(s));
-    expect(missionsView(loaded, 'a')).toEqual(missionsView(s, 'a'));
+    expect(missionsView(loaded, 'a', now)).toEqual(missionsView(s, 'a', now));
     expect(worldView(loaded, 'a', now).missions?.active?.id).toBe(activeMissions(s)[0].id);
   });
   it('évite les captures illégales et les erreurs des bots sur les terrains de mission', () => {
@@ -342,5 +485,120 @@ describe('missions de campagne', () => {
     expect(s.units[m.objectiveId] ?? s.buildings[m.objectiveId]).toBeUndefined();
     expect(activeMissions(s)).toHaveLength(0);
     expect(tileAt(s, objective).terrain).toBe('SCORCHED');
+  });
+  it.each([
+    [0, 2],
+    [1, 2.5],
+    [2, 3],
+  ])('annonce et verse le multiplicateur de la mission %i', (index, multiplier) => {
+    let s = fixture();
+    addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'BARRACKS', now, 5);
+    const offer = missionOffers(s, 'a', now)[index];
+    expect(offer.reward).toEqual({
+      GOLD: offer.abandonmentCost.GOLD! * multiplier,
+      FOOD: offer.abandonmentCost.FOOD! * multiplier,
+    });
+    s = accept(s, index);
+    const m = activeMissions(s)[0];
+    s.realms.a.wallet.GOLD = 1_000_000;
+    const before = structuredClone(s.realms.a.wallet);
+    delete s.units[m.objectiveId];
+    delete s.buildings[m.objectiveId];
+    reconcileMissions(s, now);
+    expect(s.realms.a.wallet.GOLD).toBe(before.GOLD + offer.reward!.GOLD!);
+    expect(s.realms.a.wallet.FOOD).toBe(before.FOOD + offer.reward!.FOOD!);
+    // Above-cap loot persists; normal upkeep for the inherited army still applies.
+    expect(s.realms.a.wallet.GOLD).toBeGreaterThan(storage(s, 'a'));
+    const goldIncome = income(s, 'a').GOLD;
+    accrueEconomy(s, s.realms.a, now + 1000);
+    expect(s.realms.a.wallet.GOLD).toBeCloseTo(
+      before.GOLD + offer.reward!.GOLD! + Math.min(0, goldIncome) / 60,
+      8,
+    );
+  });
+  it('rémunère une ancienne mission en cours sans changer son devis après amélioration', () => {
+    let s = accept(fixture(), 1);
+    const m = activeMissions(s)[0];
+    delete m.reward; // Save from before mission loot existed.
+    m.abandonmentCost = { GOLD: 100, FOOD: 60 };
+    const quote = missionsView(s, 'a', now).active!.reward!;
+    expect(quote).toEqual({ GOLD: 250, FOOD: 150 });
+    addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'BARRACKS', now, 5);
+    expect(missionsView(s, 'a', now).active!.reward).toEqual(quote);
+    const before = structuredClone(s.realms.a.wallet);
+    delete s.units[m.objectiveId];
+    delete s.buildings[m.objectiveId];
+    reconcileMissions(s, now);
+    expect(s.realms.a.wallet.GOLD).toBe(before.GOLD + 250);
+    expect(s.realms.a.wallet.FOOD).toBe(before.FOOD + 150);
+  });
+  it('renouvelle les offres à dix minutes exactement sans créer de forteresse', () => {
+    const s = fixture(),
+      before = JSON.stringify(s);
+    const first = missionsView(s, 'a', now);
+    expect(first.offersRefreshAt).toBe(now + 600_000);
+    expect(missionsView(s, 'a', now + 599_999).offers).toEqual(first.offers);
+    const next = missionsView(s, 'a', now + 600_000);
+    expect(next.offersRefreshAt).toBe(now + 1_200_000);
+    expect(next.offers).toHaveLength(3);
+    next.offers.forEach((offer, i) => {
+      expect(offer.id).not.toBe(first.offers[i].id);
+      expect(offer.title).not.toBe(first.offers[i].title);
+    });
+    expect(JSON.stringify(s)).toBe(before);
+    const loaded: GameState = JSON.parse(before);
+    expect(missionsView(loaded, 'a', now + 600_500)).toEqual(next);
+    expect(missionsView(loaded, 'a', now + 3_600_000).offersRefreshAt).toBe(now + 4_200_000);
+  });
+  it('refuse une ancienne offre après échéance, mais accepte celle du nouveau lot', () => {
+    const s = fixture(),
+      offer = missionOffers(s, 'a', now)[0];
+    const expired = run(s, 'MISSION_ACCEPT', 'a', { offerId: offer.id }, 'a', now + 600_000);
+    expect(expired.result.accepted).toBe(false);
+    expect(expired.state).toBe(s);
+    expect(expired.result.reason).toContain('offre a changé');
+    const current = missionOffers(s, 'a', now + 600_000)[0];
+    const result = run(s, 'MISSION_ACCEPT', 'a', { offerId: current.id }, 'a', now + 600_000);
+    expect(result.result.accepted, result.result.reason).toBe(true);
+    expect(result.state.missions!.a.active?.title).toBe(current.title);
+  });
+  it('préserve une mission acceptée au-delà de plusieurs renouvellements et masque son compteur', () => {
+    const s = accept(fixture(), 1);
+    const initial = missionsView(s, 'a', now);
+    expect(initial.offersRefreshAt).toBeUndefined();
+    expect(missionsView(s, 'a', now + 3_600_000)).toEqual(initial);
+    const at = now + 1_234_000;
+    const abandoned = run(s, 'MISSION_ABANDON', 'a', { missionId: initial.active!.id }, 'a', at);
+    expect(abandoned.result.accepted).toBe(true);
+    expect(missionsView(abandoned.state, 'a', at).offersRefreshAt).toBe(at + 600_000);
+  });
+  it('accorde dix minutes complètes aux offres qui suivent une victoire', () => {
+    const s = accept(fixture()),
+      m = activeMissions(s)[0];
+    delete s.units[m.objectiveId];
+    delete s.buildings[m.objectiveId];
+    reconcileMissions(s, now + 987_000);
+    expect(missionsView(s, 'a', now + 987_000).offersRefreshAt).toBe(now + 1_587_000);
+  });
+  it('conserve toutes les victoires après une nouvelle mission, une reconnexion et un redémarrage du royaume', () => {
+    let s = fixture();
+    for (let i = 0; i < 2; i++) {
+      s = accept(s, i);
+      const m = activeMissions(s)[0];
+      delete s.units[m.objectiveId];
+      delete s.buildings[m.objectiveId];
+      reconcileMissions(s, now);
+    }
+    const trophies = structuredClone(s.missions!.a.trophies!);
+    expect(trophies).toHaveLength(2);
+    s = JSON.parse(JSON.stringify(s));
+    expect(missionsView(s, 'a', now + 900000).trophies).toEqual(trophies);
+    s = accept(s);
+    s = run(s, 'MISSION_ABANDON', 'a', { missionId: activeMissions(s)[0].id }).state;
+    expect(s.missions!.a.trophies).toEqual(trophies);
+    restartRealm(s, 'a', now);
+    expect(s.missions!.a.trophies).toEqual(trophies);
+    removeGuestRealm(s, 'a');
+    expect(s.missions?.a).toBeUndefined();
   });
 });

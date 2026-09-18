@@ -43,12 +43,33 @@ import type { ActionResult, WorldView } from '@voidmarch/shared';
 export interface Prediction {
   world: WorldView;
   movement?: ActionResult['movement'];
+  movements?: ActionResult['movements'];
 }
 
 /** Visual prediction only, using the player's visible information. Never grants vision,
  * rolls rare units, resolves combat or changes the authoritative state. */
 export function predictAction(source: WorldView, action: Action): Prediction | undefined {
   if (source.player.defeatedAt) return;
+  if (action.type === 'MOVE_GROUP') {
+    if (
+      action.actorId !== source.player.id ||
+      new Set(action.payload.orders.map((o) => o.actorId)).size !== action.payload.orders.length
+    )
+      return;
+    let current = source;
+    const movements: NonNullable<ActionResult['movements']> = [];
+    for (const order of action.payload.orders) {
+      const next = predictAction(current, {
+        ...order,
+        actionId: action.actionId,
+        clientTimestamp: action.clientTimestamp,
+      });
+      if (!next?.movement) return;
+      current = next.world;
+      movements.push(next.movement);
+    }
+    return { world: current, movements };
+  }
   const world = structuredClone(source),
     player = world.player,
     id = player.id;

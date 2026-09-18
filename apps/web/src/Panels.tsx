@@ -1,3 +1,4 @@
+import { TrophyRoom } from './TrophyRoom';
 import { Missions } from './Missions';
 import { TerrainAffinities } from './TerrainAffinities';
 import { terrainCombatBonus } from '@voidmarch/game-rules';
@@ -105,6 +106,7 @@ export function Panels() {
   if (!panel) return null;
   const titles = {
     missions: 'Missions',
+    trophies: 'Salle des trophées',
     realm: 'Votre royaume',
     army: 'Les armées',
     cities: 'Villes & domaines',
@@ -123,9 +125,13 @@ export function Panels() {
       title={titles[panel]}
       className={['build', 'recruit'].includes(panel) ? 'catalog-modal' : undefined}
       toolbar={['build', 'recruit'].includes(panel) ? <CatalogResources /> : undefined}
-      wide={['missions', 'trade', 'economy', 'build', 'recruit', 'rank'].includes(panel)}
+      wide={['trophies', 'missions', 'trade', 'economy', 'build', 'recruit', 'rank'].includes(
+        panel,
+      )}
     >
-      {panel === 'missions' ? (
+      {panel === 'trophies' ? (
+        <TrophyRoom />
+      ) : panel === 'missions' ? (
         <Missions />
       ) : panel === 'realm' ? (
         <RealmPanel />
@@ -814,6 +820,9 @@ function Events() {
                 onClick={() => {
                   focusMap(npc);
                   useGame.setState({
+                    selectedUnitIds: [],
+                    groupTarget: null,
+                    multiSelect: false,
                     selection: { kind: 'unit', id: npc.id, q: npc.q, r: npc.r },
                     mode: 'inspect',
                   });

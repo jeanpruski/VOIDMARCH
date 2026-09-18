@@ -1,4 +1,4 @@
-import { UNITS, BUILDINGS, RESOURCES, RULES } from '@voidmarch/config';
+import { UNITS, BUILDINGS, RESOURCES, RULES, MAX_GROUP_UNITS } from '@voidmarch/config';
 import { z } from 'zod';
 const hex = z
   .object({
@@ -21,6 +21,29 @@ const building = z.enum(
 );
 const id = z.string().min(1).max(80);
 export const commandSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('MOVE_GROUP'),
+    actorId: id,
+    payload: z
+      .object({
+        orders: z
+          .array(
+            z.discriminatedUnion('type', [
+              z
+                .object({
+                  type: z.literal('MOVE'),
+                  actorId: id,
+                  payload: z.object({ path: z.array(hex).min(1).max(12) }).strict(),
+                })
+                .strict(),
+              z.object({ type: z.literal('MOVE_ROAD'), actorId: id, payload: hex }).strict(),
+            ]),
+          )
+          .min(1)
+          .max(MAX_GROUP_UNITS),
+      })
+      .strict(),
+  }),
   z.object({
     type: z.literal('MISSION_ACCEPT'),
     actorId: id,

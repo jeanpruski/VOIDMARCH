@@ -74,7 +74,10 @@ export const RULES = {
   maxTruce: 7 * 86_400_000,
   tradeDuration: 3_600_000,
 };
+export const MAX_GROUP_UNITS = 10;
+
 export const ACTION_COST = {
+  MOVE_GROUP: 0, // Each nested movement pays its ordinary cost.
   MISSION_ACCEPT: 0,
   MISSION_ABANDON: 0,
   ALLIANCE_CREATE: 0,

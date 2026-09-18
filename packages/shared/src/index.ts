@@ -1,5 +1,12 @@
 import type { MissionBoard, MissionsView } from './missions';
-export type { MissionOffer, ActiveMission, MissionBoard, MissionsView } from './missions';
+export type {
+  MissionOffer,
+  ActiveMission,
+  MissionBoard,
+  MissionsView,
+  MissionTrophy,
+  MissionMedal,
+} from './missions';
 import type { StrategyState, StrategyView } from './strategy';
 export * from './strategy';
 import type {
@@ -189,6 +196,14 @@ export interface CombatShot {
 }
 export interface JournalEntry {
   shot?: CombatShot;
+  /** Confirmed strike damage, retained even when the target is destroyed. */
+  damage?: {
+    amount: number;
+    targetOwnerId: string;
+    targetKind: 'unit' | 'building';
+    airborne: boolean;
+    retaliation: boolean;
+  };
   id: string;
   at: number;
   text: string;
@@ -285,6 +300,7 @@ export interface WorldView {
 export interface ActionResult {
   /** Actual accepted route, returned only to the player issuing the movement. */
   movement?: { unitId: string; from: Hex; path: Hex[] };
+  movements?: { unitId: string; from: Hex; path: Hex[] }[];
   actionId: string;
   accepted: boolean;
   reason?: string;

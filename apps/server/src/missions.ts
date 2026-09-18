@@ -1,5 +1,10 @@
+import { missionRoster, missionPlacementOrder } from './mission-rosters';
+import { createMissionTrophy } from './mission-trophies';
 import { randomUUID } from 'node:crypto';
 import {
+  formatNumber,
+  RESOURCE_NAMES,
+  type Resource,
   BUILDINGS,
   BUILDING_POPULATION,
   nuclearStrikeRadius,
@@ -12,6 +17,8 @@ import {
 import {
   alliedRealmIds,
   canAfford,
+  missionReward,
+  movementCost,
   disk,
   distance,
   estimateDamage,
@@ -61,13 +68,6 @@ const militaryRecruiters = new Set(
     .filter((p) => !p.builder && !p.hero)
     .flatMap((p) => p.recruitAt ?? []),
 );
-const garrisons: UnitKind[][] = [
-  ['MILITIA', 'ARCHER', 'GUARD', 'SPEARMAN', 'INFANTRY'],
-  ['MUSKETEER', 'CROSSBOW', 'IMPERIAL_GRENADIER', 'KNIGHT', 'BERSERKER'],
-  ['RIFLEMAN', 'MACHINE_GUNNER', 'OFFICER', 'STORMTROOPER', 'BAZOOKA'],
-  ['COMMANDO', 'TESLA_TROOPER', 'IRON_REVENANT', 'HEX_HUNTER', 'DRONE_OPERATOR'],
-  ['RADIUM_GRENADIER', 'COBALT_SENTINEL', 'ISOTOPE_SNIPER', 'NEUTRON_GUARD', 'ATOMIC_SAPPER'],
-];
 const titles = [
   'Le relais des Cendres',
   'Le bastion du Corbeau',
@@ -76,8 +76,15 @@ const titles = [
   'La garnison du Voile',
   'La tour du Dernier Serment',
 ];
-/** Deterministic offers: opening/reloading the panel never rerolls them or spawns assets. */
-export function missionOffers(s: GameState, realmId: string): MissionOffer[] {
+const OFFER_REFRESH_MS = 10 * 60_000;
+/** Derived from saved dates: reloads and server restarts never reset the countdown. */
+function offerWindow(s: GameState, realmId: string, now: number) {
+  const anchor = Math.max(s.realms[realmId].createdAt, s.missions?.[realmId]?.lastResult?.at ?? 0);
+  const slot = Math.floor(Math.max(0, now - anchor) / OFFER_REFRESH_MS);
+  return { anchor, slot, refreshAt: anchor + (slot + 1) * OFFER_REFRESH_MS };
+}
+/** Three stable offers within each ten-minute window; no assets until acceptance. */
+export function missionOffers(s: GameState, realmId: string, now: number): MissionOffer[] {
   if (s.missions?.[realmId]?.active) return [];
   const generation = s.missions?.[realmId]?.generation ?? 0;
   const level = Math.min(
@@ -89,16 +96,38 @@ export function missionOffers(s: GameState, realmId: string): MissionOffer[] {
         .map((b) => b.level),
     ),
   );
-  const seed = `${s.seed}:${realmId}:missions:${generation}:${level}`;
-  const offset = Math.floor(hash(seed) * titles.length);
+  const { anchor, slot } = offerWindow(s, realmId, now);
+  const baseSeed = `${s.seed}:${realmId}:missions:${generation}:${level}:${anchor}`;
+  const seed = `${baseSeed}:${slot}`;
+  // At least the title changes for each card, even if random roster rolls repeat.
+  const offset = (Math.floor(hash(baseSeed) * titles.length) + slot) % titles.length;
   return [0, 1, 2].map((i) => {
-    const roster = garrisons[level - 1];
-    const count = Math.min(5, 1 + i * 2 + Math.floor(hash(`${seed}:${i}:size`) * 2));
-    const start = Math.floor(hash(`${seed}:${i}:roster`) * roster.length);
+    const campaign =
+      i === 2 &&
+      level >= 3 &&
+      alliedRealmIds(s, realmId).some((id) => !s.realms[id]?.defeatedAt && s.realms[id]) &&
+      (slot + generation) % 2 === 1;
+    const difficulty: MissionOffer['difficulty'] = campaign
+      ? 'Grande campagne'
+      : (['Escarmouche', 'Assaut', 'Siège'] as const)[i];
+    const units = missionRoster(level, difficulty, `${seed}:${i}`);
+    const specialist =
+      units.find((k) => UNIT_PROFILES[k].flying) ??
+      units.find((k) => UNIT_PROFILES[k].mechanical || UNIT_PROFILES[k].mounted);
+    const recruiter = specialist ? UNIT_PROFILES[specialist].recruitAt[0] : undefined;
+    const scale = { Escarmouche: 1, Assaut: 3, Siège: 8, 'Grande campagne': 16 }[difficulty];
+    const armyGold = units.reduce((sum, k) => sum + (UNITS[k].cost.GOLD ?? 0), 0);
+    const armyFood = units.reduce((sum, k) => sum + (UNITS[k].cost.FOOD ?? 0), 0);
+    const abandonmentCost = {
+      GOLD: Math.ceil(50 * level * level * scale + armyGold * 0.02),
+      FOOD: Math.ceil(30 * level * level * scale + armyFood * 0.02),
+    };
     return {
-      id: `offer:${generation}:${level}:${i}`,
-      title: titles[(offset + i) % titles.length],
-      difficulty: (['Escarmouche', 'Assaut', 'Siège'] as const)[i],
+      id: `offer:v2:${generation}:${level}:${anchor.toString(36)}:${slot}:${i}:${campaign ? 'campaign' : 'standard'}`,
+      title: campaign
+        ? `Grande campagne · ${titles[(offset + i) % titles.length]}`
+        : titles[(offset + i) % titles.length],
+      difficulty,
       level,
       objective: i === Math.floor(hash(`${seed}:objective`) * 3) ? 'COMMANDER' : 'BUILDING',
       buildings:
@@ -106,20 +135,28 @@ export function missionOffers(s: GameState, realmId: string): MissionOffer[] {
           ? [level === 1 ? 'OUTPOST' : 'VILLAGE', 'HOUSE']
           : [
               level === 1 ? 'OUTPOST' : 'VILLAGE',
-              hash(`${seed}:${i}:building`) > 0.5 ? 'BARRACKS' : 'ARCHERY',
+              recruiter ?? (hash(`${seed}:${i}:building`) > 0.5 ? 'BARRACKS' : 'ARCHERY'),
               hash(`${seed}:${i}:civil`) > 0.5 ? 'HOUSE' : 'FARM',
             ],
-      units: Array.from({ length: count }, (_, n) => roster[(start + n) % roster.length]),
+      units,
+      wallRadius: i === 0 ? 2 : i === 1 ? 3 : 4,
       wall:
         i === 2 || (i === 1 && hash(`${seed}:wall`) > 0.5)
           ? WALL_KINDS[Math.min(level - 1, 4)]
           : undefined,
-      abandonmentCost: { GOLD: 50 * level * level * (i + 1), FOOD: 30 * level * level * (i + 1) },
+      abandonmentCost,
+      reward: missionReward({ difficulty, abandonmentCost }),
     };
   });
 }
 
-function missionSite(s: GameState, realmId: string, salt: string): Hex {
+function missionSite(
+  s: GameState,
+  realmId: string,
+  salt: string,
+  offer: MissionOffer,
+): { center: Hex; spots: Hex[] } {
+  const radius = offer.wallRadius ?? 2;
   const capital = s.realms[realmId].capital;
   const occupied = new Set(
     [
@@ -133,20 +170,21 @@ function missionSite(s: GameState, realmId: string, salt: string): Hex {
       .filter((b) => wallBlocks(b, realmId, 'INFANTRY', alliedRealmIds(s, realmId)))
       .map(key),
   );
-  const ring = disk(capital, 60).filter((p) => distance(p, capital) >= 40);
+  const ring = disk(capital, 40).filter((p) => distance(p, capital) >= 20);
   const offset = Math.floor(hash(salt) * ring.length);
-  for (let i = 0; i < Math.min(ring.length, 300); i++) {
+  for (let i = 0; i < ring.length; i++) {
     const p = ring[(offset + i * 37) % ring.length];
     if (Object.values(s.realms).some((r) => !r.defeatedAt && distance(r.capital, p) < 12)) continue;
-    if (activeMissions(s).some((m) => distance(m, p) < 8)) continue;
+    if (activeMissions(s).some((m) => distance(m, p) <= (m.wallRadius ?? 2) + radius + 2)) continue;
     if (
       Object.values(s.strategy?.strikes ?? {}).some(
-        (strike) => !strike.resolvedAt && distance(strike, p) <= nuclearStrikeRadius(strike) + 3,
+        (strike) =>
+          !strike.resolvedAt && distance(strike, p) <= nuclearStrikeRadius(strike) + radius + 1,
       )
     )
       continue;
     if (
-      disk(p, 3).some((h) => {
+      disk(p, radius + 1).some((h) => {
         const t = tileAt(s, h);
         return (
           t.ownerId ||
@@ -166,18 +204,52 @@ function missionSite(s: GameState, realmId: string, salt: string): Hex {
       !findPath(
         capital,
         p,
-        (h) => (distance(h, capital) <= 70 ? tileAt(s, h) : undefined),
+        (h) => (distance(h, capital) <= 50 ? tileAt(s, h) : undefined),
         250,
         blocked,
         'INFANTRY',
       )
     )
       continue;
-    return p;
+    const reserved = new Set(
+      [p, neighbors(p)[0], neighbors(p)[3]].slice(0, offer.buildings.length).map(key),
+    );
+    const interior = disk(p, radius - 1).filter((h) => !reserved.has(key(h)));
+    const traversable = new Map<UnitKind, Set<string>>();
+    const spots: Hex[] = [];
+    for (const { kind, index } of missionPlacementOrder(offer.units)) {
+      let connected = traversable.get(kind);
+      if (!connected) {
+        connected = new Set([key(p)]);
+        const queue = [p];
+        for (let n = 0; n < queue.length; n++)
+          for (const h of neighbors(queue[n])) {
+            if (
+              distance(h, p) >= radius ||
+              connected.has(key(h)) ||
+              movementCost(tileAt(s, h), kind) >= 99
+            )
+              continue;
+            connected.add(key(h));
+            queue.push(h);
+          }
+        traversable.set(kind, connected);
+      }
+      const spot = interior.find(
+        (h) =>
+          !reserved.has(key(h)) &&
+          connected!.has(key(h)) &&
+          movementCost(tileAt(s, h), kind) <= UNITS[kind].move,
+      );
+      if (!spot) break;
+      spots[index] = spot;
+      reserved.add(key(spot));
+    }
+    if (spots.filter(Boolean).length === offer.units.length) return { center: p, spots };
   }
   requireRule(
     false,
-    'Aucun emplacement libre et accessible entre 40 et 60 cases. Réessayez après une évolution du territoire.',
+    'Aucun emplacement libre et accessible entre 20 et 40 cases. Réessayez après une évolution du territoire.',
   );
 }
 
@@ -212,9 +284,9 @@ export function missionAction(
     return message;
   }
   requireRule(!board.active, 'Terminez ou abandonnez votre mission avant d’en accepter une autre.');
-  const offer = missionOffers(s, realmId).find((o) => o.id === action.payload.offerId);
+  const offer = missionOffers(s, realmId, now).find((o) => o.id === action.payload.offerId);
   requireRule(offer, 'Cette offre a changé. Consultez les nouvelles missions.');
-  const p = missionSite(s, realmId, `${s.seed}:${realmId}:${offer.id}`);
+  const { center: p, spots } = missionSite(s, realmId, `${s.seed}:${realmId}:${offer.id}`, offer);
   const id = randomUUID();
   const m: ActiveMission = {
     ...offer,
@@ -246,7 +318,8 @@ export function missionAction(
     writeTile(s, h, { ownerId: m.ownerId, buildingId: b.id });
     return b;
   }
-  for (const h of disk(p, 2)) writeTile(s, h, { ownerId: m.ownerId });
+  const radius = offer.wallRadius ?? 2;
+  for (const h of disk(p, radius)) writeTile(s, h, { ownerId: m.ownerId });
   offer.buildings.forEach((kind, i) => {
     const b = building(kind, positions[i], offer.level);
     if (i === 0 && offer.objective === 'BUILDING') {
@@ -255,8 +328,8 @@ export function missionAction(
     }
   });
   if (offer.wall)
-    for (const h of disk(p, 2).filter((h) => distance(h, p) === 2)) building(offer.wall, h, 1);
-  const spots = neighbors(p);
+    for (const h of disk(p, radius).filter((h) => distance(h, p) === radius))
+      building(offer.wall, h, 1);
   offer.units.forEach((kind, i) => {
     const u: Unit = {
       ...spots[i],
@@ -334,15 +407,38 @@ export function reconcileMissions(s: GameState, now: number) {
     board.active = undefined;
     board.generation++;
     const walls = buildings.filter((b) => isWall(b.kind)).length;
+    const reward = missionReward(m);
+    // Mission rewards are loot: paid in full, even above passive production capacity.
+    transfer(r.wallet, reward);
+    const trophies = (board.trophies ??= []);
+    const trophy =
+      trophies.find((t) => t.id === m.id) ??
+      createMissionTrophy(
+        m,
+        now,
+        { units: units.length, buildings: buildings.length - walls, walls },
+        reward,
+      );
+    if (!trophies.some((t) => t.id === m.id)) trophies.push(trophy);
     board.lastResult = {
       title: m.title,
       outcome: 'VICTORY',
+      trophyId: trophy.id,
+      reward,
       units: units.length,
       buildings: buildings.length - walls,
       walls,
       at: now,
     };
-    const message = `Victoire · ${m.title} : ${units.length} unité(s), ${buildings.length - walls} bâtiment(s) et ${walls} rempart(s) survivants rejoignent votre royaume, avec leurs dégâts actuels.`;
+    const message = `Victoire · ${m.title} : ${units.length} unité(s), ${buildings.length - walls} bâtiment(s) et ${walls} rempart(s) survivants rejoignent votre royaume, avec leurs dégâts actuels. Butin reçu par ${r.name} : ${Object.entries(
+      reward,
+    )
+      .filter(([, value]) => value > 0)
+      .map(
+        ([resource, value]) =>
+          `+${formatNumber(value)} ${RESOURCE_NAMES[resource as Resource].toLowerCase()}`,
+      )
+      .join(' · ')}. Médaille « ${trophy.medal.name} » décernée à ${r.name}.`;
     log(s, message, 'REALM', now, [m.realmId, ...alliedRealmIds(s, m.realmId)], m);
     completed.push(message);
     refreshEnclosures(s, now);
@@ -384,11 +480,26 @@ export function retaliateMission(
     target.hp = Math.round((target.hp - damage) * 100) / 100;
     target.updatedAt = now;
     const message = `${unitStats(guard).name} défend la garnison : ${damage} dégâts${reply.intercepted ? ' au rempart' : ''}.`;
-    log(s, message, 'COMBAT', now, [attacker.ownerId, m.realmId], target, {
-      from: { q: guard.q, r: guard.r },
-      unitKind: guard.kind,
-      targetAirborne: !('population' in target) && !!UNIT_PROFILES[target.kind].flying,
-    });
+    log(
+      s,
+      message,
+      'COMBAT',
+      now,
+      [attacker.ownerId, m.realmId],
+      target,
+      {
+        from: { q: guard.q, r: guard.r },
+        unitKind: guard.kind,
+        targetAirborne: !('population' in target) && !!UNIT_PROFILES[target.kind].flying,
+      },
+      {
+        amount: damage,
+        targetOwnerId: target.ownerId,
+        targetKind: 'population' in target ? 'building' : 'unit',
+        airborne: !('population' in target) && !!UNIT_PROFILES[target.kind].flying,
+        retaliation: true,
+      },
+    );
     if (target.hp <= 0) {
       if ('population' in target) {
         delete s.buildings[target.id];
@@ -401,15 +512,18 @@ export function retaliateMission(
   }
   return '';
 }
-export function missionsView(s: GameState, realmId: string): MissionsView {
+export function missionsView(s: GameState, realmId: string, now: number): MissionsView {
   const board = s.missions?.[realmId];
   const m = board?.active;
   const objective = m ? (s.units[m.objectiveId] ?? s.buildings[m.objectiveId]) : undefined;
   return {
-    offers: missionOffers(s, realmId),
+    trophies: board?.trophies ?? [],
+    offers: missionOffers(s, realmId, now),
+    ...(!m ? { offersRefreshAt: offerWindow(s, realmId, now).refreshAt } : {}),
     active: m
       ? {
           ...m,
+          reward: missionReward(m),
           remainingUnits: Object.values(s.units).filter((u) => u.ownerId === m.ownerId).length,
           remainingBuildings: Object.values(s.buildings).filter(
             (b) => b.ownerId === m.ownerId && !isWall(b.kind),
@@ -418,9 +532,9 @@ export function missionsView(s: GameState, realmId: string): MissionsView {
           objectivePosition: objective ? { q: objective.q, r: objective.r } : m,
         }
       : undefined,
-    allied: activeMissions(s).filter(
-      (m) => m.realmId !== realmId && canFightMission(s, realmId, m),
-    ),
+    allied: activeMissions(s)
+      .filter((m) => m.realmId !== realmId && canFightMission(s, realmId, m))
+      .map((m) => ({ ...m, reward: missionReward(m) })),
     lastResult: board?.lastResult,
   };
 }
