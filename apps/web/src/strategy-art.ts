@@ -91,6 +91,10 @@ export function drawStrategicOperations(
     );
   return objects;
 }
+// JS remainder (%) can be negative west of the world origin. Particle phases
+// must stay in [0, 1) so smoke radii and opacity remain valid on Canvas.
+const cyclePhase = (value: number) => value - Math.floor(value);
+
 /** One reusable graphics layer, capped and culled. No particles/timers accumulate per frame. */
 export function drawAmbient(
   g: Phaser.GameObjects.Graphics,
@@ -134,7 +138,7 @@ export function drawAmbient(
       }
       if (smoke || damaged)
         for (let i = 0; i < 3; i++) {
-          const phase = reduced ? i / 3 : (time / 3600 + i / 3 + p.x * 0.001) % 1;
+          const phase = reduced ? i / 3 : cyclePhase(time / 3600 + i / 3 + p.x * 0.001);
           g.fillStyle(damaged ? 0x28342b : 0x8c9585, (1 - phase) * 0.24);
           g.fillCircle(p.x + 8 + Math.sin(phase * 3) * 8, p.y - 39 - phase * 26, 3 + phase * 6);
         }
@@ -178,7 +182,7 @@ export function drawAmbient(
       }
       if (isMoving) {
         for (let i = 0; i < 3; i++) {
-          const phase = (time / 550 + i / 3) % 1;
+          const phase = cyclePhase(time / 550 + i / 3);
           g.fillStyle(0xa89c78, (1 - phase) * 0.25);
           g.fillCircle(p.x - 15 - phase * 13, p.y + 8 + Math.sin(i) * 4, 2 + phase * 3);
         }

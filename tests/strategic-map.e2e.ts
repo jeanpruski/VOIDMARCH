@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { resolve } from 'node:path';
 import { createState, createRealm, disk, key } from '@voidmarch/game-rules';
-import { addPlayer, worldView } from '../apps/server/src/engine';
+import { addPlayer, addBuilding, worldView } from '../apps/server/src/engine';
 import type { ViewTile } from '@voidmarch/shared';
 
 test('vue stratégique : territoires, rendu léger, zoom et navigation', async ({ page }) => {
@@ -15,6 +15,11 @@ test('vue stratégique : territoires, rendu léger, zoom et navigation', async (
   state.realms.c = createRealm('c', 'Les Astres pâles', 'MASK', { q: -9, r: 7 }, now);
   state.realms.c.settings.bannerColor = '#d0b15a';
   state.realms.secret = createRealm('secret', 'Royaume inconnu', 'IRON', { q: 80, r: 80 }, now);
+  // Smoke at negative world coordinates used to throw Canvas IndexSizeError
+  // on the first frame, leaving the loading overlay stuck indefinitely.
+  addBuilding(state, realm, { q: -8, r: 0 }, 'FORGE', now);
+  const damaged = addBuilding(state, realm, { q: -7, r: -1 }, 'HOUSE', now);
+  damaged.hp = 1;
   const world = worldView(state, 'a', now);
   const owners = new Map<string, string>();
   for (const [id, radius] of [

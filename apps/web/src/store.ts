@@ -284,6 +284,9 @@ function connect() {
   socket = io({
     auth: { token: useGame.getState().token, codeSessionId },
     transports: ['polling', 'websocket'],
+    // N0C serves polling successfully but rejects the WebSocket upgrade.
+    // Keep HTTP transport in production; local development can still upgrade.
+    upgrade: !import.meta.env.PROD,
     reconnection: true,
   });
   socket.on('connect', () => {
