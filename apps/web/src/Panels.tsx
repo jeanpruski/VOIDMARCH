@@ -1,3 +1,4 @@
+import { UNIT_FAMILIES, unitUniverse } from '@voidmarch/config';
 import { constructionSiteReason } from './construction';
 import { DiplomacyHub } from './Strategy';
 import { buildingEra, BUILDING_AGES, UNIT_ERAS } from '@voidmarch/config';
@@ -1256,6 +1257,7 @@ function Build() {
   );
 }
 function Recruit() {
+  const [family, setFamily] = useState<'all' | keyof typeof UNIT_FAMILIES>('all');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<UnitTab>('Toutes');
   const [atomicOnly, setAtomicOnly] = useState(false);
@@ -1274,6 +1276,11 @@ function Recruit() {
   );
   const atomicCount = recruits.filter(([kind]) => UNIT_PROFILES[kind].radioactive).length;
   const ownUnits = w.units.filter((u) => u.ownerId === w.player.id);
+  const ownedInfrastructure = new Set(
+    w.tiles.flatMap((t) =>
+      t.building?.ownerId === w.player.id && t.building.hp > 0 ? [t.building.kind] : [],
+    ),
+  );
   const capacity = Math.max(15, w.player.population);
   const mobilized = armyPopulation(ownUnits);
   const recruitReason = (kind: UnitKind) => {
@@ -1290,6 +1297,22 @@ function Recruit() {
     if (!w.player.unlimitedAP && w.player.ap < 1) return '1 PA nécessaire';
     return '';
   };
+  const catalogue = recruits
+    .sort(
+      (a, b) =>
+        Number(!!recruitReason(a[0])) - Number(!!recruitReason(b[0])) ||
+        Number(!canAfford(w.player.wallet, UNITS[a[0]].cost)) -
+          Number(!canAfford(w.player.wallet, UNITS[b[0]].cost)) ||
+        compareRecruits(a, b),
+    )
+    .filter(([kind]) => category === 'Toutes' || UNIT_CATEGORY[kind] === category)
+    .filter(([kind]) => !atomicOnly || UNIT_PROFILES[kind].radioactive)
+    .filter(([kind]) => family === 'all' || unitUniverse(kind)?.family === family)
+    .filter(([kind, u]) =>
+      `${u.name} ${unitUniverse(kind) ? UNIT_FAMILIES[unitUniverse(kind)!.family] : ''} ${kind in UNIT_ERAS ? BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1] : ''} ${UNIT_PROFILES[kind].radioactive ? 'atomique radioactif' : ''} ${UNIT_PROFILES[kind].recruitAt.map((k) => BUILDINGS[k].name).join(' ')}`
+        .toLocaleLowerCase()
+        .includes(query.toLocaleLowerCase()),
+    );
   return (
     <>
       <p className="panel-intro">
@@ -1326,6 +1349,28 @@ function Recruit() {
           production active.
         </p>
       </ContextHelp>
+      {recruits.some(([kind]) => unitUniverse(kind)) && (
+        <div className="catalog-tabs" role="group" aria-label="Univers des unités">
+          <button aria-pressed={family === 'all'} onClick={() => setFamily('all')}>
+            Tous les univers
+          </button>
+          {(Object.keys(UNIT_FAMILIES) as (keyof typeof UNIT_FAMILIES)[])
+            .filter((f) => recruits.some(([kind]) => unitUniverse(kind)?.family === f))
+            .map((f) => (
+              <button
+                key={f}
+                aria-pressed={family === f}
+                onClick={() => {
+                  setFamily(f);
+                  setCategory('Toutes');
+                  setAtomicOnly(false);
+                }}
+              >
+                {UNIT_FAMILIES[f]}
+              </button>
+            ))}
+        </div>
+      )}
       {atomicCount > 0 && (
         <label className="atomic-filter">
           <input
@@ -1363,108 +1408,134 @@ function Recruit() {
           placeholder="Nom d’une unité ou d’un bâtiment…"
         />
       </label>
+      <p className="catalog-order-hint" role="status">
+        {catalogue.length} unité{catalogue.length === 1 ? '' : 's'} affichée
+        {catalogue.length === 1 ? '' : 's'}
+      </p>
+      {!catalogue.length && (
+        <p className="empty-line">Aucune unité ne correspond à ces filtres dans ce bâtiment.</p>
+      )}
       <div className="catalog">
-        {recruits
-          .sort(
-            (a, b) =>
-              Number(!!recruitReason(a[0])) - Number(!!recruitReason(b[0])) ||
-              Number(!canAfford(w.player.wallet, UNITS[a[0]].cost)) -
-                Number(!canAfford(w.player.wallet, UNITS[b[0]].cost)) ||
-              compareRecruits(a, b),
-          )
-          .filter(([kind]) => category === 'Toutes' || UNIT_CATEGORY[kind] === category)
-          .filter(([kind]) => !atomicOnly || UNIT_PROFILES[kind].radioactive)
-          .filter(([kind, u]) =>
-            `${u.name} ${kind in UNIT_ERAS ? BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1] : ''} ${UNIT_PROFILES[kind].radioactive ? 'atomique radioactif' : ''} ${UNIT_PROFILES[kind].recruitAt.map((k) => BUILDINGS[k].name).join(' ')}`
-              .toLocaleLowerCase()
-              .includes(query.toLocaleLowerCase()),
-          )
-          .map(([kind, u]) => {
-            const profile = UNIT_PROFILES[kind],
-              free = kind === 'PEASANT' && !ownUnits.some((x) => x.kind === 'PEASANT');
-            const cost = free ? { STONE: 0, GOLD: 0, WOOD: 0, IRON: 0, FOOD: 0 } : u.cost;
-            const reason = recruitReason(kind);
-            const training = profile.builder
-              ? 0
-              : Math.max(
-                  0,
-                  ...w.tiles
-                    .filter(
-                      (t) =>
-                        t.building?.ownerId === w.player.id &&
-                        profile.recruitAt.includes(t.building.kind),
-                    )
-                    .map((t) => trainingBonusAt(t.building!.kind, t.building!.level)),
-                );
-            const trainedStats = unitStats({ kind, trainingBonus: training });
-            return (
-              <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
-                <span className="catalog-status">
-                  {reason ? 'Conditions à remplir' : 'Prêt à recruter'}
+        {catalogue.map(([kind, u]) => {
+          const profile = UNIT_PROFILES[kind],
+            free = kind === 'PEASANT' && !ownUnits.some((x) => x.kind === 'PEASANT');
+          const cost = free ? { STONE: 0, GOLD: 0, WOOD: 0, IRON: 0, FOOD: 0 } : u.cost;
+          const reason = recruitReason(kind);
+          const training = profile.builder
+            ? 0
+            : Math.max(
+                0,
+                ...w.tiles
+                  .filter(
+                    (t) =>
+                      t.building?.ownerId === w.player.id &&
+                      profile.recruitAt.includes(t.building.kind),
+                  )
+                  .map((t) => trainingBonusAt(t.building!.kind, t.building!.level)),
+              );
+          const trainedStats = unitStats({ kind, trainingBonus: training });
+          return (
+            <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
+              <span className={`catalog-status${reason ? ' recruitment-missing' : ''}`}>
+                {reason ? 'Conditions à remplir' : 'Prêt à recruter'}
+              </span>
+              <Miniature frame={UNIT_FRAMES[kind]} size={90} />
+              <h4>{u.name}</h4>
+              <span className="building-stage">
+                {kind in UNIT_ERAS
+                  ? `${BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1]} · recrutement niveau ${UNIT_ERAS[kind as keyof typeof UNIT_ERAS]}`
+                  : `${UNIT_TIERS[kind] ? `Palier ${UNIT_TIERS[kind]} · ` : ''}${TIER_NAMES[UNIT_TIERS[kind]]}`}
+              </span>
+              {unitUniverse(kind) && (
+                <span className="elite-family-badge" data-family={unitUniverse(kind)!.family}>
+                  {UNIT_FAMILIES[unitUniverse(kind)!.family]}
                 </span>
-                <Miniature frame={UNIT_FRAMES[kind]} size={90} />
-                <h4>{u.name}</h4>
-                <span className="building-stage">
-                  {kind in UNIT_ERAS
-                    ? `${BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1]} · recrutement niveau ${UNIT_ERAS[kind as keyof typeof UNIT_ERAS]}`
-                    : `${UNIT_TIERS[kind] ? `Palier ${UNIT_TIERS[kind]} · ` : ''}${TIER_NAMES[UNIT_TIERS[kind]]}`}
-                </span>
-                {profile.radioactive && <span className="atomic-badge">☢ Division atomique</span>}
-                <p>{profile.role}</p>
-                {building && !profile.builder && (
-                  <p>
-                    Entraînement de votre royaume : +{format(training)} % aux PV, attaque et
-                    défense.
-                  </p>
-                )}
+              )}
+              {profile.radioactive && <span className="atomic-badge">☢ Division atomique</span>}
+              <p>{profile.role}</p>
+              {building && !profile.builder && (
                 <p>
-                  {unitPopulation(kind)} places · Entretien / min :{' '}
-                  {RESOURCES.filter((resource) => unitUpkeep(kind)[resource] > 0)
-                    .map(
-                      (resource) =>
-                        `${format(unitUpkeep(kind)[resource])} ${RESOURCE_NAMES[resource].toLowerCase()}`,
-                    )
-                    .join(' · ')}
+                  Entraînement de votre royaume : +{format(training)} % aux PV, attaque et défense.
                 </p>
-                <p>
-                  {format(trainedStats.hp)} PV · ATQ {format(trainedStats.attack)} · DÉF{' '}
-                  {format(trainedStats.defense)}
-                  <br />
-                  MOUV {u.move} · VISION {u.vision} · PORTÉE {u.range}
-                </p>
-                <Cost cost={cost} wallet={w.player.wallet} />
-                <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
-                {reason && <p className="catalog-unavailable">{reason}</p>}
-                {free && <p>Gratuit en ressources</p>}
+              )}
+              <p>
+                {unitPopulation(kind)} places · Entretien / min :{' '}
+                {RESOURCES.filter((resource) => unitUpkeep(kind)[resource] > 0)
+                  .map(
+                    (resource) =>
+                      `${format(unitUpkeep(kind)[resource])} ${RESOURCE_NAMES[resource].toLowerCase()}`,
+                  )
+                  .join(' · ')}
+              </p>
+              <p>
+                {format(trainedStats.hp)} PV · ATQ {format(trainedStats.attack)} · DÉF{' '}
+                {format(trainedStats.defense)}
+                <br />
+                MOUV {u.move} · VISION {u.vision} · PORTÉE {u.range}
+              </p>
+              <Cost cost={cost} wallet={w.player.wallet} />
+              <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
+              {reason && <p className="catalog-unavailable recruitment-missing">{reason}</p>}
+              {free && <p>Gratuit en ressources</p>}
 
-                <p>
-                  Formation : {profile.recruitAt.map((k) => BUILDINGS[k].name).join(', ')}
-                  {profile.minRecruitLevel ? ` · niveau ${profile.minRecruitLevel} minimum` : ''}.
-                </p>
-                {profile.requires.length > 0 && (
-                  <p>
-                    Infrastructures : {profile.requires.map((k) => BUILDINGS[k].name).join(', ')}.
-                  </p>
+              <p>
+                Formation : {profile.recruitAt.map((k) => BUILDINGS[k].name).join(', ')}
+                {profile.minRecruitLevel && (
+                  <span
+                    className={
+                      building && building.level < profile.minRecruitLevel
+                        ? 'recruitment-missing'
+                        : undefined
+                    }
+                  >
+                    {' '}
+                    · niveau {profile.minRecruitLevel} minimum
+                  </span>
                 )}
+                .
+              </p>
+              {profile.requires.length > 0 && (
                 <p>
-                  Mobilisation : {mobilized}/{capacity} places occupées, +{unitPopulation(kind)}{' '}
-                  pour cette unité.
+                  Infrastructures :{' '}
+                  {profile.requires.map((k, index) => (
+                    <span key={k}>
+                      {index > 0 && ', '}
+                      <span
+                        className={!ownedInfrastructure.has(k) ? 'recruitment-missing' : undefined}
+                      >
+                        {BUILDINGS[k].name}
+                        {!ownedInfrastructure.has(k) && ' (manquant)'}
+                      </span>
+                    </span>
+                  ))}
+                  .
                 </p>
+              )}
+              <p
+                className={
+                  !free && mobilized + unitPopulation(kind) > capacity
+                    ? 'recruitment-missing'
+                    : undefined
+                }
+              >
+                Mobilisation : {mobilized}/{capacity} places occupées, +{unitPopulation(kind)} pour
+                cette unité.
+              </p>
 
-                <button
-                  className="secondary small"
-                  disabled={pending || !!reason}
-                  title={reason || profile.role}
-                  onClick={() =>
-                    building &&
-                    void send({ type: 'RECRUIT', actorId: building.id, payload: { kind } })
-                  }
-                >
-                  {free ? 'Former le paysan · 1 PA' : 'Recruter · 1 PA'}
-                </button>
-              </article>
-            );
-          })}
+              <button
+                className="secondary small"
+                disabled={pending || !!reason}
+                title={reason || profile.role}
+                onClick={() =>
+                  building &&
+                  void send({ type: 'RECRUIT', actorId: building.id, payload: { kind } })
+                }
+              >
+                {free ? 'Former le paysan · 1 PA' : 'Recruter · 1 PA'}
+              </button>
+            </article>
+          );
+        })}
       </div>
     </>
   );

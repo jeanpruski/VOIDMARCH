@@ -3806,6 +3806,10 @@ button:disabled {
   color: #b7a48d;
   font-size: 11px;
 }
+.catalog .recruitment-missing {
+  color: #f29b8c;
+  font-weight: 600;
+}
 
 .order-progress {
   position: absolute;
@@ -4358,4 +4362,32 @@ button.radar-target {
   font-size: 10px;
   line-height: 1;
   flex-shrink: 0;
+}
+
+.catalog-tabs button[aria-pressed='true'] {
+  background: #76896a33;
+  border-color: #b3bd92;
+  color: #e4e9cd;
+}
+.elite-family-badge {
+  display: block;
+  margin: 6px 0;
+  color: #e0ba74;
+  font-size: 11px;
+}
+.elite-family-badge[data-family='neon'] {
+  color: #8aceda;
+}
+
+.elite-family-badge[data-family='blood'] {
+  color: #e799a9;
+}
+.elite-family-badge[data-family='abyss'] {
+  color: #8fd5cc;
+}
+.elite-family-badge[data-family='briar'] {
+  color: #b1ce8e;
+}
+.elite-family-badge[data-family='frost'] {
+  color: #add9ed;
 }

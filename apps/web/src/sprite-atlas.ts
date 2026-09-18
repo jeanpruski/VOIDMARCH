@@ -1,3 +1,4 @@
+import { ELITE_SHEETS, CAMPAIGN_SHEETS } from '@voidmarch/config';
 /** The generated sheets are loosely aligned. Connected silhouettes, rather than
  * rigid source rectangles, determine ownership of pixels in the rendered atlas. */
 export function isolateSprites(
@@ -86,6 +87,9 @@ export const SPRITE_CELL = 256;
 export const SPRITE_MARGIN = 20;
 /** Source grids; all are packed into the same 6 × 4 rendering format. */
 export const SPRITE_ATLASES: Record<string, { columns: number; rows: number }> = {
+  ...Object.fromEntries(
+    [...ELITE_SHEETS, ...CAMPAIGN_SHEETS].map((name) => [name, { columns: 3, rows: 2 }]),
+  ),
   ...Object.fromEntries(
     ['medieval', 'empire', 'industrial', 'modern', 'atomic'].map((age) => [
       'reinforcements-' + age,

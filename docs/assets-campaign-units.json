@@ -1,0 +1,630 @@
+{
+  "tool": "image_gen built-in",
+  "atlases": [
+    {
+      "asset": "blood-empire-troops",
+      "theme": "vampire imperial nobility, burgundy velvet coats and capes, blackened iron, antique silver trim, pale faces, bat-wing crests, elegant sinister aristocracy",
+      "items": [
+        {
+          "kind": "SANG_MUSKET",
+          "name": "Mousquetaire carmin",
+          "description": "standing infantry soldier shouldering a long flintlock musket, cartridge belt"
+        },
+        {
+          "kind": "SANG_GRENADIER",
+          "name": "Grenadier du calice",
+          "description": "standing grenadier holding a round iron fuse grenade and wearing a tall period military hat"
+        },
+        {
+          "kind": "SANG_PIKE",
+          "name": "Piquier de la Cour sanglante",
+          "description": "armored standing pikeman with a long upright steel pike and a small shield"
+        },
+        {
+          "kind": "SANG_SCOUT",
+          "name": "Éclaireur nocturne",
+          "description": "light mounted scout on a lean horse, hooded rider holding a short cavalry saber"
+        },
+        {
+          "kind": "SANG_LANCER",
+          "name": "Hussard écarlate",
+          "description": "mounted lancer with an angled long lance and narrow pennant, noble cavalry mount"
+        },
+        {
+          "kind": "SANG_CUIRASSIER",
+          "name": "Cuirassier du tombeau",
+          "description": "heavy armored mounted cuirassier carrying a curved saber, large barded mount"
+        }
+      ],
+      "era": 2,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: vampire imperial nobility, burgundy velvet coats and capes, blackened iron, antique silver trim, pale faces, bat-wing crests, elegant sinister aristocracy. Era: Renaissance / Napoleonic black-powder technology; NO modern tanks or aircraft.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Mousquetaire carmin: standing infantry soldier shouldering a long flintlock musket, cartridge belt.\n2. Grenadier du calice: standing grenadier holding a round iron fuse grenade and wearing a tall period military hat.\n3. Piquier de la Cour sanglante: armored standing pikeman with a long upright steel pike and a small shield.\n4. Éclaireur nocturne: light mounted scout on a lean horse, hooded rider holding a short cavalry saber.\n5. Hussard écarlate: mounted lancer with an angled long lance and narrow pennant, noble cavalry mount.\n6. Cuirassier du tombeau: heavy armored mounted cuirassier carrying a curved saber, large barded mount.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-3058df59-5b18-4794-a397-ddf408e091e7.png"
+    },
+    {
+      "asset": "blood-empire-engines",
+      "theme": "vampire imperial nobility, burgundy velvet coats and capes, blackened iron, antique silver trim, pale faces, bat-wing crests, elegant sinister aristocracy",
+      "items": [
+        {
+          "kind": "SANG_CANNON",
+          "name": "Canon reliquaire",
+          "description": "Napoleonic long bronze powder cannon with two wooden spoked wheels, no human crew"
+        },
+        {
+          "kind": "SANG_MORTAR",
+          "name": "Mortier des lamentations",
+          "description": "short wide upward tilted siege mortar on a timber and iron wheeled carriage"
+        },
+        {
+          "kind": "SANG_VOLLEY",
+          "name": "Orgue de la Cour rouge",
+          "description": "Renaissance organ gun with a fan of multiple small barrels on a wooden wheeled carriage"
+        },
+        {
+          "kind": "SANG_WAGON",
+          "name": "Carrosse de chasse",
+          "description": "horse-drawn open gun cart with a mounted swivel gun and a small driver, full horse and cart visible"
+        },
+        {
+          "kind": "SANG_FORT_WAGON",
+          "name": "Fourgon funéraire",
+          "description": "heavy armored four-wheel wooden war wagon with firing slits and a large mounted crossbow"
+        },
+        {
+          "kind": "SANG_BALLOON",
+          "name": "Ballon du crépuscule",
+          "description": "small round cloth hot-air observation balloon with suspended gondola and bomb racks, no airplane parts, complete envelope on transparent flight stand"
+        }
+      ],
+      "era": 2,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: vampire imperial nobility, burgundy velvet coats and capes, blackened iron, antique silver trim, pale faces, bat-wing crests, elegant sinister aristocracy. Era: Renaissance / Napoleonic black-powder technology; NO modern tanks or aircraft.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Canon reliquaire: Napoleonic long bronze powder cannon with two wooden spoked wheels, no human crew.\n2. Mortier des lamentations: short wide upward tilted siege mortar on a timber and iron wheeled carriage.\n3. Orgue de la Cour rouge: Renaissance organ gun with a fan of multiple small barrels on a wooden wheeled carriage.\n4. Carrosse de chasse: horse-drawn open gun cart with a mounted swivel gun and a small driver, full horse and cart visible.\n5. Fourgon funéraire: heavy armored four-wheel wooden war wagon with firing slits and a large mounted crossbow.\n6. Ballon du crépuscule: small round cloth hot-air observation balloon with suspended gondola and bomb racks, no airplane parts, complete envelope on transparent flight stand.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-7ed4ab46-1137-4ed7-af00-34cf129a70ea.png"
+    },
+    {
+      "asset": "abyss-industrial-troops",
+      "theme": "Lovecraftian cursed corsairs and deep sea expeditions, oxidized bronze and copper, rusted dark iron, muted teal coats, antique diving helmets, barnacles and tentacle motifs, waterlogged rope, eerie sea-green glow",
+      "items": [
+        {
+          "kind": "ABYS_RIFLE",
+          "name": "Commando scaphandrier",
+          "description": "standing industrial era rifle infantry in field uniform holding a bolt-action rifle"
+        },
+        {
+          "kind": "ABYS_MG",
+          "name": "Mitrailleur du Léviathan",
+          "description": "heavy infantry operating a portable belt-fed machine gun on a bipod, ammo belts"
+        },
+        {
+          "kind": "ABYS_ANTITANK",
+          "name": "Harponneur antichar",
+          "description": "infantry soldier holding a bulky early shoulder-fired anti-tank rocket launcher"
+        },
+        {
+          "kind": "ABYS_BIKE",
+          "name": "Moto des embruns",
+          "description": "industrial military motorcycle and rider with a compact machine gun mounted ahead"
+        },
+        {
+          "kind": "ABYS_SIDECAR",
+          "name": "Side-car des épaves",
+          "description": "military motorcycle with armored sidecar carrying a mounted machine gun and gunner"
+        },
+        {
+          "kind": "ABYS_DRAGOON",
+          "name": "Dragon des récifs",
+          "description": "industrial era cavalry dragoon in uniform riding an armored mount and holding a carbine"
+        }
+      ],
+      "era": 3,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: Lovecraftian cursed corsairs and deep sea expeditions, oxidized bronze and copper, rusted dark iron, muted teal coats, antique diving helmets, barnacles and tentacle motifs, waterlogged rope, eerie sea-green glow. Era: 1930s/1940s industrial warfare, occult diesel engines; NO futuristic lasers.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Commando scaphandrier: standing industrial era rifle infantry in field uniform holding a bolt-action rifle.\n2. Mitrailleur du Léviathan: heavy infantry operating a portable belt-fed machine gun on a bipod, ammo belts.\n3. Harponneur antichar: infantry soldier holding a bulky early shoulder-fired anti-tank rocket launcher.\n4. Moto des embruns: industrial military motorcycle and rider with a compact machine gun mounted ahead.\n5. Side-car des épaves: military motorcycle with armored sidecar carrying a mounted machine gun and gunner.\n6. Dragon des récifs: industrial era cavalry dragoon in uniform riding an armored mount and holding a carbine.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-2c007b61-7e6b-432c-874a-228cdbc13591.png"
+    },
+    {
+      "asset": "blood-industrial-troops",
+      "theme": "vampire imperial nobility, burgundy velvet coats and capes, blackened iron, antique silver trim, pale faces, bat-wing crests, elegant sinister aristocracy",
+      "items": [
+        {
+          "kind": "SANG_RIFLE",
+          "name": "Fusilier des veines noires",
+          "description": "standing industrial era rifle infantry in field uniform holding a bolt-action rifle"
+        },
+        {
+          "kind": "SANG_MG",
+          "name": "Mitrailleur du caveau",
+          "description": "heavy infantry operating a portable belt-fed machine gun on a bipod, ammo belts"
+        },
+        {
+          "kind": "SANG_ANTITANK",
+          "name": "Briseur de cercueils",
+          "description": "infantry soldier holding a bulky early shoulder-fired anti-tank rocket launcher"
+        },
+        {
+          "kind": "SANG_BIKE",
+          "name": "Moto funéraire",
+          "description": "industrial military motorcycle and rider with a compact machine gun mounted ahead"
+        },
+        {
+          "kind": "SANG_SIDECAR",
+          "name": "Side-car des héritiers",
+          "description": "military motorcycle with armored sidecar carrying a mounted machine gun and gunner"
+        },
+        {
+          "kind": "SANG_DRAGOON",
+          "name": "Dragon sanguinaire",
+          "description": "industrial era cavalry dragoon in uniform riding an armored mount and holding a carbine"
+        }
+      ],
+      "era": 3,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: vampire imperial nobility, burgundy velvet coats and capes, blackened iron, antique silver trim, pale faces, bat-wing crests, elegant sinister aristocracy. Era: 1930s/1940s industrial warfare, occult diesel engines; NO futuristic lasers.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Fusilier des veines noires: standing industrial era rifle infantry in field uniform holding a bolt-action rifle.\n2. Mitrailleur du caveau: heavy infantry operating a portable belt-fed machine gun on a bipod, ammo belts.\n3. Briseur de cercueils: infantry soldier holding a bulky early shoulder-fired anti-tank rocket launcher.\n4. Moto funéraire: industrial military motorcycle and rider with a compact machine gun mounted ahead.\n5. Side-car des héritiers: military motorcycle with armored sidecar carrying a mounted machine gun and gunner.\n6. Dragon sanguinaire: industrial era cavalry dragoon in uniform riding an armored mount and holding a carbine.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-0b43490e-c717-462e-8567-bd32cdb5f727.png"
+    },
+    {
+      "asset": "briar-empire-troops",
+      "theme": "dark forest witchcraft militarized, carved wooden masks, moss-green weathered uniforms, black iron, twisted roots and thorn vines attached to machinery, antler and raven insignias, tiny amber witch lights",
+      "items": [
+        {
+          "kind": "RONC_MUSKET",
+          "name": "Arquebusier des bois noirs",
+          "description": "standing infantry soldier shouldering a long flintlock musket, cartridge belt"
+        },
+        {
+          "kind": "RONC_GRENADIER",
+          "name": "Grenadier des spores",
+          "description": "standing grenadier holding a round iron fuse grenade and wearing a tall period military hat"
+        },
+        {
+          "kind": "RONC_PIKE",
+          "name": "Piquier des épines",
+          "description": "armored standing pikeman with a long upright steel pike and a small shield"
+        },
+        {
+          "kind": "RONC_SCOUT",
+          "name": "Éclaireur des clairières",
+          "description": "light antlered staged scout on a lean antlered stag, hooded rider holding a short cavalry saber"
+        },
+        {
+          "kind": "RONC_LANCER",
+          "name": "Lancier au cerf maudit",
+          "description": "antlered staged lancer with an angled long lance and narrow pennant, noble cavalry antlered stag"
+        },
+        {
+          "kind": "RONC_CUIRASSIER",
+          "name": "Cuirassier des ramures",
+          "description": "heavy armored antlered staged cuirassier carrying a curved saber, large barded antlered stag"
+        }
+      ],
+      "era": 2,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: dark forest witchcraft militarized, carved wooden masks, moss-green weathered uniforms, black iron, twisted roots and thorn vines attached to machinery, antler and raven insignias, tiny amber witch lights. Era: Renaissance / Napoleonic black-powder technology; NO modern tanks or aircraft.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Arquebusier des bois noirs: standing infantry soldier shouldering a long flintlock musket, cartridge belt.\n2. Grenadier des spores: standing grenadier holding a round iron fuse grenade and wearing a tall period military hat.\n3. Piquier des épines: armored standing pikeman with a long upright steel pike and a small shield.\n4. Éclaireur des clairières: light antlered staged scout on a lean antlered stag, hooded rider holding a short cavalry saber.\n5. Lancier au cerf maudit: antlered staged lancer with an angled long lance and narrow pennant, noble cavalry antlered stag.\n6. Cuirassier des ramures: heavy armored antlered staged cuirassier carrying a curved saber, large barded antlered stag.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-2fd3a2ea-e1a9-45c9-b7c5-b091c625dd73.png"
+    },
+    {
+      "asset": "abyss-industrial-engines",
+      "theme": "Lovecraftian cursed corsairs and deep sea expeditions, oxidized bronze and copper, rusted dark iron, muted teal coats, antique diving helmets, barnacles and tentacle motifs, waterlogged rope, eerie sea-green glow",
+      "items": [
+        {
+          "kind": "ABYS_LIGHT_TANK",
+          "name": "Blindé des marées",
+          "description": "small industrial tracked light tank, riveted hull and short turret cannon"
+        },
+        {
+          "kind": "ABYS_HEAVY_TANK",
+          "name": "Char Léviathan",
+          "description": "large industrial heavy tracked tank with thick riveted armor, broad tracks, long turret cannon"
+        },
+        {
+          "kind": "ABYS_HOWITZER",
+          "name": "Obusier du gouffre",
+          "description": "industrial heavy field howitzer on a towable carriage, barrel elevated, no tank hull"
+        },
+        {
+          "kind": "ABYS_FLAK",
+          "name": "DCA des abysses",
+          "description": "industrial four-barrel anti-aircraft gun tilted upwards on a small tracked platform"
+        },
+        {
+          "kind": "ABYS_FIGHTER",
+          "name": "Chasseur Pétrel",
+          "description": "industrial propeller fighter aircraft with machine guns, complete wings and tail, on a transparent flight stand"
+        },
+        {
+          "kind": "ABYS_BOMBER",
+          "name": "Bombardier Albatros",
+          "description": "industrial twin-engine propeller bomber with visible bomb load, complete wings and tail, on a transparent flight stand"
+        }
+      ],
+      "era": 3,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: Lovecraftian cursed corsairs and deep sea expeditions, oxidized bronze and copper, rusted dark iron, muted teal coats, antique diving helmets, barnacles and tentacle motifs, waterlogged rope, eerie sea-green glow. Era: 1930s/1940s industrial warfare, occult diesel engines; NO futuristic lasers.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Blindé des marées: small industrial tracked light tank, riveted hull and short turret cannon.\n2. Char Léviathan: large industrial heavy tracked tank with thick riveted armor, broad tracks, long turret cannon.\n3. Obusier du gouffre: industrial heavy field howitzer on a towable carriage, barrel elevated, no tank hull.\n4. DCA des abysses: industrial four-barrel anti-aircraft gun tilted upwards on a small tracked platform.\n5. Chasseur Pétrel: industrial propeller fighter aircraft with machine guns, complete wings and tail, on a transparent flight stand.\n6. Bombardier Albatros: industrial twin-engine propeller bomber with visible bomb load, complete wings and tail, on a transparent flight stand.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-77c8c883-e5c3-416b-8978-9b8766400893.png"
+    },
+    {
+      "asset": "blood-industrial-engines",
+      "theme": "vampire imperial nobility, burgundy velvet coats and capes, blackened iron, antique silver trim, pale faces, bat-wing crests, elegant sinister aristocracy",
+      "items": [
+        {
+          "kind": "SANG_LIGHT_TANK",
+          "name": "Char Nosferatu",
+          "description": "small industrial tracked light tank, riveted hull and short turret cannon"
+        },
+        {
+          "kind": "SANG_HEAVY_TANK",
+          "name": "Char du sépulcre",
+          "description": "large industrial heavy tracked tank with thick riveted armor, broad tracks, long turret cannon"
+        },
+        {
+          "kind": "SANG_HOWITZER",
+          "name": "Obusier des martyrs",
+          "description": "industrial heavy field howitzer on a towable carriage, barrel elevated, no tank hull"
+        },
+        {
+          "kind": "SANG_FLAK",
+          "name": "DCA des gargouilles",
+          "description": "industrial four-barrel anti-aircraft gun tilted upwards on a small tracked platform"
+        },
+        {
+          "kind": "SANG_FIGHTER",
+          "name": "Chasseur chauve-souris",
+          "description": "industrial propeller fighter aircraft with machine guns, complete wings and tail, on a transparent flight stand"
+        },
+        {
+          "kind": "SANG_BOMBER",
+          "name": "Bombardier du dernier bal",
+          "description": "industrial twin-engine propeller bomber with visible bomb load, complete wings and tail, on a transparent flight stand"
+        }
+      ],
+      "era": 3,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: vampire imperial nobility, burgundy velvet coats and capes, blackened iron, antique silver trim, pale faces, bat-wing crests, elegant sinister aristocracy. Era: 1930s/1940s industrial warfare, occult diesel engines; NO futuristic lasers.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Char Nosferatu: small industrial tracked light tank, riveted hull and short turret cannon.\n2. Char du sépulcre: large industrial heavy tracked tank with thick riveted armor, broad tracks, long turret cannon.\n3. Obusier des martyrs: industrial heavy field howitzer on a towable carriage, barrel elevated, no tank hull.\n4. DCA des gargouilles: industrial four-barrel anti-aircraft gun tilted upwards on a small tracked platform.\n5. Chasseur chauve-souris: industrial propeller fighter aircraft with machine guns, complete wings and tail, on a transparent flight stand.\n6. Bombardier du dernier bal: industrial twin-engine propeller bomber with visible bomb load, complete wings and tail, on a transparent flight stand.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-001e2c95-b8ae-4f26-8e26-ab2b44988e9a.png"
+    },
+    {
+      "asset": "briar-empire-engines",
+      "theme": "dark forest witchcraft militarized, carved wooden masks, moss-green weathered uniforms, black iron, twisted roots and thorn vines attached to machinery, antler and raven insignias, tiny amber witch lights",
+      "items": [
+        {
+          "kind": "RONC_CANNON",
+          "name": "Couleuvrine de ronces",
+          "description": "Napoleonic long bronze powder cannon with two wooden spoked wheels, no human crew"
+        },
+        {
+          "kind": "RONC_MORTAR",
+          "name": "Mortier des souches",
+          "description": "short wide upward tilted siege mortar on a timber and iron wheeled carriage"
+        },
+        {
+          "kind": "RONC_VOLLEY",
+          "name": "Orgue des épines",
+          "description": "Renaissance organ gun with a fan of multiple small barrels on a wooden wheeled carriage"
+        },
+        {
+          "kind": "RONC_WAGON",
+          "name": "Chariot des sorcières",
+          "description": "horse-drawn open gun cart with a mounted swivel gun and a small driver, full horse and cart visible"
+        },
+        {
+          "kind": "RONC_FORT_WAGON",
+          "name": "Fourgon des racines",
+          "description": "heavy armored four-wheel wooden war wagon with firing slits and a large mounted crossbow"
+        },
+        {
+          "kind": "RONC_BALLOON",
+          "name": "Ballon de la chasse sauvage",
+          "description": "small round cloth hot-air observation balloon with suspended gondola and bomb racks, no airplane parts, complete envelope on transparent flight stand"
+        }
+      ],
+      "era": 2,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: dark forest witchcraft militarized, carved wooden masks, moss-green weathered uniforms, black iron, twisted roots and thorn vines attached to machinery, antler and raven insignias, tiny amber witch lights. Era: Renaissance / Napoleonic black-powder technology; NO modern tanks or aircraft.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Couleuvrine de ronces: Napoleonic long bronze powder cannon with two wooden spoked wheels, no human crew.\n2. Mortier des souches: short wide upward tilted siege mortar on a timber and iron wheeled carriage.\n3. Orgue des épines: Renaissance organ gun with a fan of multiple small barrels on a wooden wheeled carriage.\n4. Chariot des sorcières: horse-drawn open gun cart with a mounted swivel gun and a small driver, full horse and cart visible.\n5. Fourgon des racines: heavy armored four-wheel wooden war wagon with firing slits and a large mounted crossbow.\n6. Ballon de la chasse sauvage: small round cloth hot-air observation balloon with suspended gondola and bomb racks, no airplane parts, complete envelope on transparent flight stand.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-5fa6ed29-be54-44c4-b245-28a12963efc7.png"
+    },
+    {
+      "asset": "abyss-empire-troops",
+      "theme": "Lovecraftian cursed corsairs and deep sea expeditions, oxidized bronze and copper, rusted dark iron, muted teal coats, antique diving helmets, barnacles and tentacle motifs, waterlogged rope, eerie sea-green glow",
+      "items": [
+        {
+          "kind": "ABYS_MUSKET",
+          "name": "Fusilier naufragé",
+          "description": "standing infantry soldier shouldering a long flintlock musket, cartridge belt"
+        },
+        {
+          "kind": "ABYS_GRENADIER",
+          "name": "Grenadier des épaves",
+          "description": "standing grenadier holding a round iron fuse grenade and wearing a tall period military hat"
+        },
+        {
+          "kind": "ABYS_PIKE",
+          "name": "Piquier des profondeurs",
+          "description": "armored standing pikeman with a long upright steel pike and a small shield"
+        },
+        {
+          "kind": "ABYS_SCOUT",
+          "name": "Éclaireur des grèves",
+          "description": "light mounted scout on a lean horse, hooded rider holding a short cavalry saber"
+        },
+        {
+          "kind": "ABYS_LANCER",
+          "name": "Lancier des marées",
+          "description": "mounted lancer with an angled long lance and narrow pennant, noble cavalry mount"
+        },
+        {
+          "kind": "ABYS_CUIRASSIER",
+          "name": "Cuirassier du récif",
+          "description": "heavy armored mounted cuirassier carrying a curved saber, large barded mount"
+        }
+      ],
+      "era": 2,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: Lovecraftian cursed corsairs and deep sea expeditions, oxidized bronze and copper, rusted dark iron, muted teal coats, antique diving helmets, barnacles and tentacle motifs, waterlogged rope, eerie sea-green glow. Era: Renaissance / Napoleonic black-powder technology; NO modern tanks or aircraft.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Fusilier naufragé: standing infantry soldier shouldering a long flintlock musket, cartridge belt.\n2. Grenadier des épaves: standing grenadier holding a round iron fuse grenade and wearing a tall period military hat.\n3. Piquier des profondeurs: armored standing pikeman with a long upright steel pike and a small shield.\n4. Éclaireur des grèves: light mounted scout on a lean horse, hooded rider holding a short cavalry saber.\n5. Lancier des marées: mounted lancer with an angled long lance and narrow pennant, noble cavalry mount.\n6. Cuirassier du récif: heavy armored mounted cuirassier carrying a curved saber, large barded mount.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-b931f90a-b4af-404f-850b-36c33f5172c4.png"
+    },
+    {
+      "asset": "briar-industrial-troops",
+      "theme": "dark forest witchcraft militarized, carved wooden masks, moss-green weathered uniforms, black iron, twisted roots and thorn vines attached to machinery, antler and raven insignias, tiny amber witch lights",
+      "items": [
+        {
+          "kind": "RONC_RIFLE",
+          "name": "Tireur des brumes",
+          "description": "standing industrial era rifle infantry in field uniform holding a bolt-action rifle"
+        },
+        {
+          "kind": "RONC_MG",
+          "name": "Mitrailleur des halliers",
+          "description": "heavy infantry operating a portable belt-fed machine gun on a bipod, ammo belts"
+        },
+        {
+          "kind": "RONC_ANTITANK",
+          "name": "Briseur de sève",
+          "description": "infantry soldier holding a bulky early shoulder-fired anti-tank rocket launcher"
+        },
+        {
+          "kind": "RONC_BIKE",
+          "name": "Moto aux racines",
+          "description": "industrial military motorcycle and rider with a compact machine gun mounted ahead"
+        },
+        {
+          "kind": "RONC_SIDECAR",
+          "name": "Side-car des sous-bois",
+          "description": "military motorcycle with armored sidecar carrying a mounted machine gun and gunner"
+        },
+        {
+          "kind": "RONC_DRAGOON",
+          "name": "Dragon des futaies",
+          "description": "industrial era cavalry dragoon in uniform riding an armored antlered stag and holding a carbine"
+        }
+      ],
+      "era": 3,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: dark forest witchcraft militarized, carved wooden masks, moss-green weathered uniforms, black iron, twisted roots and thorn vines attached to machinery, antler and raven insignias, tiny amber witch lights. Era: 1930s/1940s industrial warfare, occult diesel engines; NO futuristic lasers.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Tireur des brumes: standing industrial era rifle infantry in field uniform holding a bolt-action rifle.\n2. Mitrailleur des halliers: heavy infantry operating a portable belt-fed machine gun on a bipod, ammo belts.\n3. Briseur de sève: infantry soldier holding a bulky early shoulder-fired anti-tank rocket launcher.\n4. Moto aux racines: industrial military motorcycle and rider with a compact machine gun mounted ahead.\n5. Side-car des sous-bois: military motorcycle with armored sidecar carrying a mounted machine gun and gunner.\n6. Dragon des futaies: industrial era cavalry dragoon in uniform riding an armored antlered stag and holding a carbine.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-12126179-7923-417b-9406-b67df52e396c.png"
+    },
+    {
+      "asset": "frost-industrial-troops",
+      "theme": "lost polar military expeditions, weathered white-grey heavy uniforms and fur, frost-encrusted iron, glacier-blue relics, snow and ice on bases, wolf and ancient ice runes, diesel machinery, grounded gritty cold atmosphere",
+      "items": [
+        {
+          "kind": "GIVR_RIFLE",
+          "name": "Fantassin du pergélisol",
+          "description": "standing industrial era rifle infantry in field uniform holding a bolt-action rifle"
+        },
+        {
+          "kind": "GIVR_MG",
+          "name": "Mitrailleur du bunker gelé",
+          "description": "heavy infantry operating a portable belt-fed machine gun on a bipod, ammo belts"
+        },
+        {
+          "kind": "GIVR_ANTITANK",
+          "name": "Briseur de glaciers",
+          "description": "infantry soldier holding a bulky early shoulder-fired anti-tank rocket launcher"
+        },
+        {
+          "kind": "GIVR_BIKE",
+          "name": "Moto chenillée",
+          "description": "military half-track snow motorcycle with rider and mounted machine gun"
+        },
+        {
+          "kind": "GIVR_SIDECAR",
+          "name": "Side-car du blizzard",
+          "description": "military motorcycle with armored sidecar carrying a mounted machine gun and gunner"
+        },
+        {
+          "kind": "GIVR_DRAGOON",
+          "name": "Dragon des neiges",
+          "description": "industrial era cavalry dragoon in uniform riding an armored large shaggy wolf and holding a carbine"
+        }
+      ],
+      "era": 3,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: lost polar military expeditions, weathered white-grey heavy uniforms and fur, frost-encrusted iron, glacier-blue relics, snow and ice on bases, wolf and ancient ice runes, diesel machinery, grounded gritty cold atmosphere. Era: 1930s/1940s industrial warfare, occult diesel engines; NO futuristic lasers.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Fantassin du pergélisol: standing industrial era rifle infantry in field uniform holding a bolt-action rifle.\n2. Mitrailleur du bunker gelé: heavy infantry operating a portable belt-fed machine gun on a bipod, ammo belts.\n3. Briseur de glaciers: infantry soldier holding a bulky early shoulder-fired anti-tank rocket launcher.\n4. Moto chenillée: military half-track snow motorcycle with rider and mounted machine gun.\n5. Side-car du blizzard: military motorcycle with armored sidecar carrying a mounted machine gun and gunner.\n6. Dragon des neiges: industrial era cavalry dragoon in uniform riding an armored large shaggy wolf and holding a carbine.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-77648170-0ec1-4470-8645-d04b0f95fc84.png"
+    },
+    {
+      "asset": "abyss-empire-engines",
+      "theme": "Lovecraftian cursed corsairs and deep sea expeditions, oxidized bronze and copper, rusted dark iron, muted teal coats, antique diving helmets, barnacles and tentacle motifs, waterlogged rope, eerie sea-green glow",
+      "items": [
+        {
+          "kind": "ABYS_CANNON",
+          "name": "Canon du Kraken",
+          "description": "Napoleonic long bronze powder cannon with two wooden spoked wheels, no human crew"
+        },
+        {
+          "kind": "ABYS_MORTAR",
+          "name": "Mortier des fosses",
+          "description": "short wide upward tilted siege mortar on a timber and iron wheeled carriage"
+        },
+        {
+          "kind": "ABYS_VOLLEY",
+          "name": "Orgue des naufrages",
+          "description": "Renaissance organ gun with a fan of multiple small barrels on a wooden wheeled carriage"
+        },
+        {
+          "kind": "ABYS_WAGON",
+          "name": "Attelage des contrebandiers",
+          "description": "horse-drawn open gun cart with a mounted swivel gun and a small driver, full horse and cart visible"
+        },
+        {
+          "kind": "ABYS_FORT_WAGON",
+          "name": "Fourgon du bathyscaphe",
+          "description": "heavy armored four-wheel wooden war wagon with firing slits and a large mounted crossbow"
+        },
+        {
+          "kind": "ABYS_BALLOON",
+          "name": "Ballon des brumes salées",
+          "description": "small round cloth hot-air observation balloon with suspended gondola and bomb racks, no airplane parts, complete envelope on transparent flight stand"
+        }
+      ],
+      "era": 2,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: Lovecraftian cursed corsairs and deep sea expeditions, oxidized bronze and copper, rusted dark iron, muted teal coats, antique diving helmets, barnacles and tentacle motifs, waterlogged rope, eerie sea-green glow. Era: Renaissance / Napoleonic black-powder technology; NO modern tanks or aircraft.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Canon du Kraken: Napoleonic long bronze powder cannon with two wooden spoked wheels, no human crew.\n2. Mortier des fosses: short wide upward tilted siege mortar on a timber and iron wheeled carriage.\n3. Orgue des naufrages: Renaissance organ gun with a fan of multiple small barrels on a wooden wheeled carriage.\n4. Attelage des contrebandiers: horse-drawn open gun cart with a mounted swivel gun and a small driver, full horse and cart visible.\n5. Fourgon du bathyscaphe: heavy armored four-wheel wooden war wagon with firing slits and a large mounted crossbow.\n6. Ballon des brumes salées: small round cloth hot-air observation balloon with suspended gondola and bomb racks, no airplane parts, complete envelope on transparent flight stand.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-fb08209d-8d43-45e7-987e-79f693c97df8.png"
+    },
+    {
+      "asset": "briar-industrial-engines",
+      "theme": "dark forest witchcraft militarized, carved wooden masks, moss-green weathered uniforms, black iron, twisted roots and thorn vines attached to machinery, antler and raven insignias, tiny amber witch lights",
+      "items": [
+        {
+          "kind": "RONC_LIGHT_TANK",
+          "name": "Char des taillis",
+          "description": "small industrial tracked light tank, riveted hull and short turret cannon"
+        },
+        {
+          "kind": "RONC_HEAVY_TANK",
+          "name": "Char sylvestre",
+          "description": "large industrial heavy tracked tank with thick riveted armor, broad tracks, long turret cannon"
+        },
+        {
+          "kind": "RONC_HOWITZER",
+          "name": "Obusier des ronces",
+          "description": "industrial heavy field howitzer on a towable carriage, barrel elevated, no tank hull"
+        },
+        {
+          "kind": "RONC_FLAK",
+          "name": "DCA des corbeaux",
+          "description": "industrial four-barrel anti-aircraft gun tilted upwards on a small tracked platform"
+        },
+        {
+          "kind": "RONC_FIGHTER",
+          "name": "Chasseur de la canopée",
+          "description": "industrial propeller fighter aircraft with machine guns, complete wings and tail, on a transparent flight stand"
+        },
+        {
+          "kind": "RONC_BOMBER",
+          "name": "Bombardier des spores",
+          "description": "industrial twin-engine propeller bomber with visible bomb load, complete wings and tail, on a transparent flight stand"
+        }
+      ],
+      "era": 3,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: dark forest witchcraft militarized, carved wooden masks, moss-green weathered uniforms, black iron, twisted roots and thorn vines attached to machinery, antler and raven insignias, tiny amber witch lights. Era: 1930s/1940s industrial warfare, occult diesel engines; NO futuristic lasers.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Char des taillis: small industrial tracked light tank, riveted hull and short turret cannon.\n2. Char sylvestre: large industrial heavy tracked tank with thick riveted armor, broad tracks, long turret cannon.\n3. Obusier des ronces: industrial heavy field howitzer on a towable carriage, barrel elevated, no tank hull.\n4. DCA des corbeaux: industrial four-barrel anti-aircraft gun tilted upwards on a small tracked platform.\n5. Chasseur de la canopée: industrial propeller fighter aircraft with machine guns, complete wings and tail, on a transparent flight stand.\n6. Bombardier des spores: industrial twin-engine propeller bomber with visible bomb load, complete wings and tail, on a transparent flight stand.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-f42fa836-712c-4066-a5f1-fe8a4a7a9748.png"
+    },
+    {
+      "asset": "frost-industrial-engines",
+      "theme": "lost polar military expeditions, weathered white-grey heavy uniforms and fur, frost-encrusted iron, glacier-blue relics, snow and ice on bases, wolf and ancient ice runes, diesel machinery, grounded gritty cold atmosphere",
+      "items": [
+        {
+          "kind": "GIVR_LIGHT_TANK",
+          "name": "Char de la toundra",
+          "description": "small industrial tracked light tank, riveted hull and short turret cannon"
+        },
+        {
+          "kind": "GIVR_HEAVY_TANK",
+          "name": "Char brise-glace",
+          "description": "large industrial heavy tracked tank with thick riveted armor, broad tracks, long turret cannon"
+        },
+        {
+          "kind": "GIVR_HOWITZER",
+          "name": "Obusier des avalanches",
+          "description": "industrial heavy field howitzer on a towable carriage, barrel elevated, no tank hull"
+        },
+        {
+          "kind": "GIVR_FLAK",
+          "name": "DCA de l’aurore",
+          "description": "industrial four-barrel anti-aircraft gun tilted upwards on a small tracked platform"
+        },
+        {
+          "kind": "GIVR_FIGHTER",
+          "name": "Chasseur du blizzard",
+          "description": "industrial propeller fighter aircraft with machine guns, complete wings and tail, on a transparent flight stand"
+        },
+        {
+          "kind": "GIVR_BOMBER",
+          "name": "Bombardier Boréal",
+          "description": "industrial twin-engine propeller bomber with visible bomb load, complete wings and tail, on a transparent flight stand"
+        }
+      ],
+      "era": 3,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: lost polar military expeditions, weathered white-grey heavy uniforms and fur, frost-encrusted iron, glacier-blue relics, snow and ice on bases, wolf and ancient ice runes, diesel machinery, grounded gritty cold atmosphere. Era: 1930s/1940s industrial warfare, occult diesel engines; NO futuristic lasers.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Char de la toundra: small industrial tracked light tank, riveted hull and short turret cannon.\n2. Char brise-glace: large industrial heavy tracked tank with thick riveted armor, broad tracks, long turret cannon.\n3. Obusier des avalanches: industrial heavy field howitzer on a towable carriage, barrel elevated, no tank hull.\n4. DCA de l’aurore: industrial four-barrel anti-aircraft gun tilted upwards on a small tracked platform.\n5. Chasseur du blizzard: industrial propeller fighter aircraft with machine guns, complete wings and tail, on a transparent flight stand.\n6. Bombardier Boréal: industrial twin-engine propeller bomber with visible bomb load, complete wings and tail, on a transparent flight stand.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-fe94e2ac-2ac8-427a-8077-a28c937a40e6.png"
+    },
+    {
+      "asset": "frost-empire-troops",
+      "theme": "lost polar military expeditions, weathered white-grey heavy uniforms and fur, frost-encrusted iron, glacier-blue relics, snow and ice on bases, wolf and ancient ice runes, diesel machinery, grounded gritty cold atmosphere",
+      "items": [
+        {
+          "kind": "GIVR_MUSKET",
+          "name": "Chasseur polaire",
+          "description": "standing infantry soldier shouldering a long flintlock musket, cartridge belt"
+        },
+        {
+          "kind": "GIVR_GRENADIER",
+          "name": "Grenadier des congères",
+          "description": "standing grenadier holding a round iron fuse grenade and wearing a tall period military hat"
+        },
+        {
+          "kind": "GIVR_PIKE",
+          "name": "Piquier du gel noir",
+          "description": "armored standing pikeman with a long upright steel pike and a small shield"
+        },
+        {
+          "kind": "GIVR_SCOUT",
+          "name": "Éclaireur des blizzards",
+          "description": "light large shaggy wolfed scout on a lean large shaggy wolf, hooded rider holding a short cavalry saber"
+        },
+        {
+          "kind": "GIVR_LANCER",
+          "name": "Lancier sur loup",
+          "description": "large shaggy wolfed lancer with an angled long lance and narrow pennant, noble cavalry large shaggy wolf"
+        },
+        {
+          "kind": "GIVR_CUIRASSIER",
+          "name": "Cuirassier du grand hiver",
+          "description": "heavy armored large shaggy wolfed cuirassier carrying a curved saber, large barded large shaggy wolf"
+        }
+      ],
+      "era": 2,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: lost polar military expeditions, weathered white-grey heavy uniforms and fur, frost-encrusted iron, glacier-blue relics, snow and ice on bases, wolf and ancient ice runes, diesel machinery, grounded gritty cold atmosphere. Era: Renaissance / Napoleonic black-powder technology; NO modern tanks or aircraft.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Chasseur polaire: standing infantry soldier shouldering a long flintlock musket, cartridge belt.\n2. Grenadier des congères: standing grenadier holding a round iron fuse grenade and wearing a tall period military hat.\n3. Piquier du gel noir: armored standing pikeman with a long upright steel pike and a small shield.\n4. Éclaireur des blizzards: light large shaggy wolfed scout on a lean large shaggy wolf, hooded rider holding a short cavalry saber.\n5. Lancier sur loup: large shaggy wolfed lancer with an angled long lance and narrow pennant, noble cavalry large shaggy wolf.\n6. Cuirassier du grand hiver: heavy armored large shaggy wolfed cuirassier carrying a curved saber, large barded large shaggy wolf.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-b265a09d-4e28-4cf1-899b-84847467ab39.png"
+    },
+    {
+      "asset": "frost-empire-engines",
+      "theme": "lost polar military expeditions, weathered white-grey heavy uniforms and fur, frost-encrusted iron, glacier-blue relics, snow and ice on bases, wolf and ancient ice runes, diesel machinery, grounded gritty cold atmosphere",
+      "items": [
+        {
+          "kind": "GIVR_CANNON",
+          "name": "Canon de l’hiver",
+          "description": "Napoleonic long bronze powder cannon with two wooden spoked wheels, no human crew"
+        },
+        {
+          "kind": "GIVR_MORTAR",
+          "name": "Mortier des glaces",
+          "description": "short wide upward tilted siege mortar on a timber and iron wheeled carriage"
+        },
+        {
+          "kind": "GIVR_VOLLEY",
+          "name": "Orgue des avalanches",
+          "description": "Renaissance organ gun with a fan of multiple small barrels on a wooden wheeled carriage"
+        },
+        {
+          "kind": "GIVR_WAGON",
+          "name": "Traîneau de guerre",
+          "description": "horse-drawn military war sled with mounted swivel cannon, whole horse and sled on a snow-covered oval base"
+        },
+        {
+          "kind": "GIVR_FORT_WAGON",
+          "name": "Fourgon des banquises",
+          "description": "heavy armored four-wheel wooden war wagon with firing slits and a large mounted crossbow"
+        },
+        {
+          "kind": "GIVR_BALLOON",
+          "name": "Ballon de l’aurore",
+          "description": "small round cloth hot-air observation balloon with suspended gondola and bomb racks, no airplane parts, complete envelope on transparent flight stand"
+        }
+      ],
+      "era": 2,
+      "prompt": "Use case: stylized-concept. Asset type: transparent video game miniature sprite atlas. Create EXACTLY SIX separate finely painted tabletop wargame miniatures for VOIDMARCH. Theme: lost polar military expeditions, weathered white-grey heavy uniforms and fur, frost-encrusted iron, glacier-blue relics, snow and ice on bases, wolf and ancient ice runes, diesel machinery, grounded gritty cold atmosphere. Era: Renaissance / Napoleonic black-powder technology; NO modern tanks or aircraft.\nCOMPOSITION: landscape 1536x1024, strict THREE COLUMNS by TWO ROWS, six equally sized cells. One COMPLETE figurine centered inside each cell, with generous empty transparent margins on all sides, never touching or crossing a cell border. Common 3/4 isometric camera, high detailed realistic hand-painted game miniature rendering. Every figurine has its own matching dark round/oval scenic stone base. Ground shadows only on base; aircraft on slender transparent stand above their base. Full weapons and flags entirely within each cell. No labels, no letters, no watermark, no frame. TRUE RGBA TRANSPARENT BACKGROUND outside the six silhouettes and their bases. No studio backdrop, no haze, no checkerboard, no gradients.\nEXACT ordered contents, read left-to-right top row then bottom row:\n1. Canon de l’hiver: Napoleonic long bronze powder cannon with two wooden spoked wheels, no human crew.\n2. Mortier des glaces: short wide upward tilted siege mortar on a timber and iron wheeled carriage.\n3. Orgue des avalanches: Renaissance organ gun with a fan of multiple small barrels on a wooden wheeled carriage.\n4. Traîneau de guerre: horse-drawn military war sled with mounted swivel cannon, whole horse and sled on a snow-covered oval base.\n5. Fourgon des banquises: heavy armored four-wheel wooden war wagon with firing slits and a large mounted crossbow.\n6. Ballon de l’aurore: small round cloth hot-air observation balloon with suspended gondola and bomb racks, no airplane parts, complete envelope on transparent flight stand.\nAll six are different designs; consistent scale and style. Dark grounded military fantasy compatible with medieval occult WWII game. Keep minute detail readable as a 150px icon.",
+      "source": "/Users/jeanpruski/.codex/generated_images/01a0aa6c-0543-7b73-9066-08f4dfe4531f/exec-567add53-029f-489d-839e-1c518513e680.png"
+    }
+  ],
+  "encoding": "Lossless PNG optimization: invisible RGB values under alpha=0 are zeroed; visible pixels and every alpha value are preserved. Original generated sources are untouched."
+}

@@ -1,3 +1,20 @@
+import {
+  CAMPAIGN_UNITS,
+  CAMPAIGN_PROFILES,
+  CAMPAIGN_CATEGORIES,
+  CAMPAIGN_INDIRECT,
+  CAMPAIGN_RECON,
+} from './campaign-units';
+export * from './campaign-units';
+export * from './unit-universes';
+import {
+  ELITE_UNITS,
+  ELITE_PROFILES,
+  ELITE_CATEGORIES,
+  ELITE_INDIRECT,
+  ELITE_RECON,
+} from './elite-units';
+export * from './elite-units';
 export * from './strategy';
 import { STRATEGY, hexArea } from './strategy';
 import { ERA_REINFORCEMENT_CATEGORIES } from './era-reinforcements';
@@ -137,6 +154,8 @@ export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
   terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
 export const TERRAFORM_COST: Partial<Wallet> = { WOOD: 20, IRON: 10 };
 const UNIT_BASE_CATALOG = {
+  ...ELITE_UNITS,
+  ...CAMPAIGN_UNITS,
   ...EPOCH_UNITS,
   HERO: {
     name: 'Héros',
@@ -668,6 +687,8 @@ export const UNITS = repriceCatalog(UNIT_BASE_CATALOG, (kind) =>
 );
 /** Ground weapons deliberately able to fire over fortifications. */
 export const INDIRECT_FIRE_UNITS: readonly UnitKind[] = [
+  ...ELITE_INDIRECT,
+  ...CAMPAIGN_INDIRECT,
   'LONGBOWMAN',
   'ASSAULT_SAPPER',
   'MISSILE_TANK',
@@ -1265,6 +1286,8 @@ export interface UnitProfile {
   healer?: boolean;
 }
 export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  ...ELITE_PROFILES,
+  ...CAMPAIGN_PROFILES,
   ...EPOCH_PROFILES,
   HERO: {
     hero: true,
@@ -1700,6 +1723,8 @@ export const BUILDING_DEFENSE: Partial<Record<BuildingKind, number>> = {
   GUN_BATTERY: 3,
 };
 export const RECON_UNITS: UnitKind[] = [
+  ...ELITE_RECON,
+  ...CAMPAIGN_RECON,
   ...RADIOACTIVE_RECON,
   'RECON_PLANE',
   'HEX_HUNTER',
@@ -1764,11 +1789,13 @@ export const UNIT_TABS = [
   'Toutes',
   'Civils & soutien',
   'Infanterie médiévale',
+  'Infanterie d’élite',
   'Armes à distance',
   'Cavalerie',
   'Armes à feu',
   'Motos',
   'Véhicules',
+  'Blindés',
   'Aviation',
   'Hélicoptères',
   'Cloches occultes',
@@ -1777,6 +1804,8 @@ export const UNIT_TABS = [
 ] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
+  ...ELITE_CATEGORIES,
+  ...CAMPAIGN_CATEGORIES,
   ...ERA_REINFORCEMENT_CATEGORIES,
   MUSKETEER: 'Armes à feu',
   IMPERIAL_GRENADIER: 'Armes à feu',

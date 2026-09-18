@@ -1,3 +1,11 @@
+import {
+  CAMPAIGN_KINDS,
+  CAMPAIGN_ROSTER,
+  CAMPAIGN_COLORS,
+  CAMPAIGN_AUTOMATIC,
+  campaignUnit,
+} from '@voidmarch/config';
+import { ELITE_KINDS, ELITE_ROSTER, eliteUnit } from '@voidmarch/config';
 import { INDIRECT_FIRE_UNITS, UNIT_PROFILES, type UnitKind } from '@voidmarch/config';
 export type ProjectileKind =
   | 'arrow'
@@ -12,6 +20,18 @@ export type ProjectileKind =
   | 'flame';
 /** Deliberate weapon assignments: new ranged troops must choose their ammunition. */
 export const PROJECTILE_WEAPONS = {
+  ...Object.fromEntries(
+    CAMPAIGN_KINDS.filter((k) => CAMPAIGN_ROSTER[k].weapon !== 'none').map((k) => [
+      k,
+      CAMPAIGN_ROSTER[k].weapon,
+    ]),
+  ),
+  ...Object.fromEntries(
+    ELITE_KINDS.filter((k) => ELITE_ROSTER[k].weapon !== 'none').map((k) => [
+      k,
+      ELITE_ROSTER[k].weapon,
+    ]),
+  ),
   LONGBOWMAN: 'arrow',
   WAR_WAGON: 'bolt',
   BLACK_DRAGOON: 'bullet',
@@ -98,6 +118,7 @@ export const PROJECTILE_WEAPONS = {
   APOCALYPSE_HELICOPTER: 'rocket',
 } satisfies Partial<Record<UnitKind, ProjectileKind>>;
 const automatic = new Set<UnitKind>([
+  ...CAMPAIGN_AUTOMATIC,
   'STEALTH_BIKE',
   'COMMANDO',
   'STORMTROOPER',
@@ -119,18 +140,25 @@ export function projectileProfile(unit: UnitKind, targetAirborne = false) {
   // Aircraft use defensive guns against other aircraft, not falling bombs.
   if (kind === 'bomb' && targetAirborne) kind = 'bullet';
   const radioactive = !!UNIT_PROFILES[unit].radioactive;
-  const color =
-    unit === 'GLOCKE_APOCALYPSE' || unit === 'GLOCKE_VRIL'
-      ? 0xbaff55
-      : radioactive
-        ? 0xbaff55
-        : kind === 'orb'
-          ? 0xc08cff
-          : kind === 'lightning'
-            ? 0x98eaff
-            : kind === 'flame'
-              ? 0x87e76a
-              : 0xffd69a;
+  const family = eliteUnit(unit)?.family;
+  const campaign = campaignUnit(unit);
+  const color = campaign
+    ? CAMPAIGN_COLORS[campaign.family]
+    : family === 'solar'
+      ? 0xffc75b
+      : family === 'neon'
+        ? 0x7aebff
+        : unit === 'GLOCKE_APOCALYPSE' || unit === 'GLOCKE_VRIL'
+          ? 0xbaff55
+          : radioactive
+            ? 0xbaff55
+            : kind === 'orb'
+              ? 0xc08cff
+              : kind === 'lightning'
+                ? 0x98eaff
+                : kind === 'flame'
+                  ? 0x87e76a
+                  : 0xffd69a;
   const arc = targetAirborne
     ? 0
     : INDIRECT_FIRE_UNITS.includes(unit)

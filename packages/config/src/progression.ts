@@ -1,7 +1,11 @@
+import { CAMPAIGN_TIERS } from './campaign-units';
+import { ELITE_TIERS } from './elite-units';
 import { ERA_REINFORCEMENT_TIERS } from './era-reinforcements';
 import type { UnitKind } from './index';
 export const BALANCE_VERSION = 3;
 export const UNIT_TIERS = {
+  ...ELITE_TIERS,
+  ...CAMPAIGN_TIERS,
   ...ERA_REINFORCEMENT_TIERS,
   MUSKETEER: 2,
   IMPERIAL_GRENADIER: 2,

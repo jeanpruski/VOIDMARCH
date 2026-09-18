@@ -1,3 +1,5 @@
+import { CAMPAIGN_ERAS } from './campaign-units';
+import { ELITE_ERAS } from './elite-units';
 import {
   ERA_REINFORCEMENTS,
   ERA_REINFORCEMENT_PROFILES,
@@ -125,6 +127,8 @@ export const EPOCH_PROFILES = {
 } satisfies Record<keyof typeof EPOCH_UNITS, UnitProfile>;
 
 export const UNIT_ERAS = {
+  ...ELITE_ERAS,
+  ...CAMPAIGN_ERAS,
   ...ERA_REINFORCEMENT_AGES,
   MUSKETEER: 2,
   IMPERIAL_GRENADIER: 2,

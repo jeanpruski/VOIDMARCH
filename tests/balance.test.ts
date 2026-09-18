@@ -145,14 +145,14 @@ describe('économie et progression', () => {
         if ((BUILDING_REQUIREMENTS[kind] ?? []).every((req) => available.has(req)))
           available.add(kind);
     expect(available.size).toBe(Object.keys(BUILDINGS).length);
-    for (const profile of Object.values(UNIT_PROFILES).filter(p=>!p.hero)) {
+    for (const profile of Object.values(UNIT_PROFILES).filter((p) => !p.hero)) {
       expect(profile.recruitAt.some((kind) => available.has(kind))).toBe(true);
       expect(profile.requires.every((kind) => available.has(kind))).toBe(true);
     }
     expect(BUILDINGS.OUTPOST.hp).toBeGreaterThanOrEqual(BUILDINGS.CAMP.hp);
     expect(BUILDINGS.VILLAGE.hp).toBeGreaterThanOrEqual(BUILDINGS.OUTPOST.hp);
     expect(BUILDINGS.QUARRY.cost.STONE).toBe(0);
-    expect(Object.keys(UNITS)).toHaveLength(111);
+    expect(Object.keys(UNITS)).toHaveLength(255);
   });
   it('complète les anciennes sauvegardes et les accords sans modifier les anciens stocks', () => {
     const wallet = { GOLD: 12, WOOD: 8, IRON: 4, FOOD: 20 };
