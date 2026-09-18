@@ -75,6 +75,7 @@ import { acceptSession, api, focusMap, notify, saveSettings, select, send, useGa
 import {
   BUILDING_FRAMES,
   Cost,
+  StorageHint,
   Duration,
   format,
   Miniature,
@@ -88,6 +89,7 @@ import {
 export function Panels() {
   const panel = useGame((s) => s.panel),
     world = useGame((s) => s.world),
+    selectionId = useGame((s) => s.selection?.id),
     target = useGame((s) => s.combatTarget);
   if (!world) return null;
   if (target) return <Combat />;
@@ -136,7 +138,7 @@ export function Panels() {
       ) : panel === 'build' ? (
         <Build />
       ) : panel === 'recruit' ? (
-        <Recruit />
+        <Recruit key={selectionId} />
       ) : (
         <Help />
       )}
@@ -277,7 +279,9 @@ function ArmyPanel() {
 }
 function CitiesPanel() {
   const w = useGame((s) => s.world)!,
-    buildings = w.tiles.flatMap((t) => (t.building?.ownerId === w.player.id ? [t.building] : []));
+    buildings = w.tiles.flatMap((t) =>
+      t.building?.ownerId === w.player.id && !isWall(t.building.kind) ? [t.building] : [],
+    );
   return (
     <>
       <p className="panel-intro">
@@ -883,12 +887,18 @@ function Rank() {
 }
 function Build() {
   const [query, setQuery] = useState('');
+  const [hideOwned, setHideOwned] = useState(false);
   const [resource, setResource] = useState<Resource | 'ALL'>('ALL');
   const [category, setCategory] = useState<BuildingTab>('Tous');
   const w = useGame((s) => s.world)!,
     selection = useGame((s) => s.selection),
     pending = useGame((s) => s.pending),
     tile = w.tiles.find((t) => selection && key(t) === key(selection));
+  const ownedCounts: Partial<Record<BuildingKind, number>> = {};
+  for (const { building } of w.tiles) {
+    if (building?.ownerId !== w.player.id || building.id.startsWith('preview:')) continue;
+    ownedCounts[building.kind] = (ownedCounts[building.kind] ?? 0) + 1;
+  }
   const builder =
     tile &&
     w.units.find(
@@ -905,6 +915,7 @@ function Build() {
     Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][]
   ).filter(([kind]) => isBuildable(kind));
   const catalogue = buildable
+    .filter(([kind]) => !hideOwned || !ownedCounts[kind])
     .filter(([kind]) => category === 'Tous' || BUILDING_CATEGORY[kind] === category)
     .filter(([, b]) => resource === 'ALL' || ((b.production as Partial<Wallet>)[resource] ?? 0) > 0)
     .filter(([, b]) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
@@ -1005,6 +1016,13 @@ function Build() {
             : `Producteurs de ${RESOURCE_NAMES[resource].toLowerCase()} · terrains compatibles en premier. Les gains affichés sont bruts, avant entretien.`}
         </p>
       </fieldset>
+      <div className="catalog-tabs catalog-ownership-filter">
+        <button aria-pressed={hideOwned} onClick={() => setHideOwned((hidden) => !hidden)}>
+          {hideOwned
+            ? 'Afficher aussi les bâtiments déjà construits'
+            : 'Masquer les bâtiments déjà construits'}
+        </button>
+      </div>
       <label className="catalog-search">
         Rechercher dans le catalogue
         <input
@@ -1017,10 +1035,13 @@ function Build() {
       <p className="catalog-order-hint" role="status">
         {catalogue.length} bâtiment{catalogue.length > 1 ? 's' : ''} affiché
         {catalogue.length > 1 ? 's' : ''}
+        {hideOwned && ' · Types absents de votre royaume uniquement'}
       </p>
       {!catalogue.length && (
         <p className="empty-line">
-          Aucun bâtiment ne correspond. Essayez une autre ressource ou effacez la recherche.
+          {hideOwned
+            ? 'Aucun nouveau type ne correspond. Affichez aussi les bâtiments déjà construits ou modifiez vos filtres.'
+            : 'Aucun bâtiment ne correspond. Essayez une autre ressource ou effacez la recherche.'}
         </p>
       )}
       <div className="catalog">
@@ -1067,6 +1088,9 @@ function Build() {
               </span>
               <Miniature frame={BUILDING_FRAMES[kind]} size={80} />
               <h4>{b.name}</h4>
+              <span className="building-owned-count">
+                Dans votre royaume : <strong>{ownedCounts[kind] ?? 0}</strong>
+              </span>
               <span className="building-stage">
                 {buildingStage(kind) === 0
                   ? 'Étape 1 · Bâtiment de base'
@@ -1091,6 +1115,7 @@ function Build() {
                             setCategory('Tous');
                             setResource('ALL');
                             setQuery(BUILDINGS[required].name);
+                            setHideOwned(false);
                           }}
                         >
                           {owned ? '✓ ' : '→ '}
@@ -1139,6 +1164,7 @@ function Build() {
               )}
               <p>{b.terrains.map((t) => TERRAINS[t as keyof typeof TERRAINS].name).join(' · ')}</p>
               <Cost cost={cost} wallet={w.player.wallet} />
+              <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
               {reason && <p className="catalog-unavailable">{reason}</p>}
 
               <button
@@ -1172,6 +1198,11 @@ function Build() {
           obstacles et terrains impraticables restent bloquants. Ailleurs, sa portée normale
           s’applique.
         </p>
+        <p>
+          Une route sous un rempart le transforme visuellement en porte, selon son matériau. Elle
+          conserve sa résistance, bloque toujours les ennemis et peut recevoir une tourelle. Retirer
+          la route rétablit l’apparence du mur.
+        </p>
         <RoadAction tile={tile} />
       </div>
     </>
@@ -1185,6 +1216,16 @@ function Recruit() {
     selection = useGame((s) => s.selection),
     pending = useGame((s) => s.pending);
   const building = w.tiles.find((t) => t.building?.id === selection?.id)?.building;
+  const recruits = (Object.entries(UNITS) as [UnitKind, (typeof UNITS)[UnitKind]][]).filter(
+    ([kind]) =>
+      kind !== 'HERO' &&
+      building?.ownerId === w.player.id &&
+      UNIT_PROFILES[kind].recruitAt.includes(building.kind),
+  );
+  const tabs = UNIT_TABS.filter(
+    (tab) => tab === 'Toutes' || recruits.some(([kind]) => UNIT_CATEGORY[kind] === tab),
+  );
+  const atomicCount = recruits.filter(([kind]) => UNIT_PROFILES[kind].radioactive).length;
   const ownUnits = w.units.filter((u) => u.ownerId === w.player.id);
   const capacity = Math.max(15, w.player.population);
   const mobilized = armyPopulation(ownUnits);
@@ -1208,16 +1249,19 @@ function Recruit() {
         {building
           ? `${BUILDINGS[building.kind].name} · ${building.q}, ${building.r}`
           : 'Sélectionnez un bâtiment de recrutement.'}{' '}
-        — {Object.keys(UNITS).filter((k) => k !== 'HERO').length} types d’unités · Mobilisation :{' '}
-        {mobilized}/{capacity} places.
+        — {recruits.length} type{recruits.length === 1 ? '' : 's'} d’unité
+        {recruits.length === 1 ? '' : 's'} dans ce bâtiment · Mobilisation : {mobilized}/{capacity}{' '}
+        places.
       </p>
       <p className="rare-explanation">
         ✦ À chaque recrutement : 1 % de chance d’obtenir une unité rare, avec +10 à +30 % de PV,
         attaque et défense. Sa portée et son déplacement restent identiques.
       </p>
       <p className="muted">
-        Chaque unité indique son bâtiment de formation et les prérequis. Si vous n’avez plus de
-        paysan, son remplacement est gratuit.
+        Seules les unités formées dans ce bâtiment sont affichées. Les ressources et prérequis
+        manquants restent indiqués sur leur fiche.
+        {recruits.some(([kind]) => kind === 'PEASANT') &&
+          ' Si vous n’avez plus de paysan, son remplacement est gratuit.'}
       </p>
       <ContextHelp title="Comment choisir et former une unité ?">
         <p>
@@ -1235,15 +1279,16 @@ function Recruit() {
           production active.
         </p>
       </ContextHelp>
-      <label className="atomic-filter">
-        <input
-          type="checkbox"
-          checked={atomicOnly}
-          onChange={(e) => setAtomicOnly(e.target.checked)}
-        />
-        ☢ Division atomique · {Object.values(UNIT_PROFILES).filter((p) => p.radioactive).length}{' '}
-        unités d’élite
-      </label>
+      {atomicCount > 0 && (
+        <label className="atomic-filter">
+          <input
+            type="checkbox"
+            checked={atomicOnly}
+            onChange={(e) => setAtomicOnly(e.target.checked)}
+          />
+          ☢ Division atomique · {atomicCount} unités d’élite
+        </label>
+      )}
       {atomicOnly && (
         <p className="muted">
           Laboratoire des isotopes → Réacteur noir. Recrutez ensuite dans les bâtiments indiqués ;
@@ -1251,7 +1296,7 @@ function Recruit() {
         </p>
       )}
       <div className="catalog-tabs" role="tablist" aria-label="Types d’unités">
-        {UNIT_TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab}
             role="tab"
@@ -1272,8 +1317,7 @@ function Recruit() {
         />
       </label>
       <div className="catalog">
-        {(Object.entries(UNITS) as [UnitKind, (typeof UNITS)[UnitKind]][])
-          .filter(([kind]) => kind !== 'HERO')
+        {recruits
           .sort(
             (a, b) =>
               Number(!!recruitReason(a[0])) - Number(!!recruitReason(b[0])) ||
@@ -1339,6 +1383,7 @@ function Recruit() {
                   MOUV {u.move} · VISION {u.vision} · PORTÉE {u.range}
                 </p>
                 <Cost cost={cost} wallet={w.player.wallet} />
+                <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
                 {reason && <p className="catalog-unavailable">{reason}</p>}
                 {free && <p>Gratuit en ressources</p>}
 
@@ -1437,6 +1482,7 @@ function Combat() {
             frame={'population' in attacker ? BUILDING_FRAMES[attacker.kind] : unitFrame(attacker)}
             size={115}
             turretLevel={'population' in attacker ? attacker.turretLevel : undefined}
+            gate={'population' in attacker && !!w.tiles.find((t) => key(t) === key(attacker))?.road}
           />
           <strong>{attackStats(attacker).name}</strong>
           <span>{attacker.hp} PV</span>
@@ -1447,6 +1493,7 @@ function Combat() {
             heroAppearance={'population' in target ? undefined : target.hero?.appearance}
             frame={'population' in target ? BUILDING_FRAMES[target.kind] : unitFrame(target)}
             turretLevel={'population' in target ? target.turretLevel : undefined}
+            gate={'population' in target && !!w.tiles.find((t) => key(t) === key(target))?.road}
             size={115}
           />
           <strong>
@@ -1809,6 +1856,18 @@ function Help() {
           </div>
         </li>
       </ol>
+      <ContextHelp title="Que signifie le niveau à gauche des drapeaux ?">
+        <p>
+          Le chiffre indique le niveau du bâtiment. La flèche ↑ indique qu’une évolution existe ;
+          sélectionnez le bâtiment pour consulter son coût et ses prérequis. La coche dorée ✓
+          indique que son niveau maximal est atteint.
+        </p>
+        <p>
+          Pour les remparts : 1 = bois, 2 = pierre, 3 = acier. Les tourelles s’améliorent
+          séparément. Les indicateurs disparaissent avec les bâtiments masqués et dans la vue
+          stratégique au dézoom maximal.
+        </p>
+      </ContextHelp>
       <ContextHelp title="Comment les remparts protègent-ils mes troupes ?">
         <p>
           Un fusil, une mitrailleuse, une arbalète, un bazooka ou un canon à tir tendu touche le

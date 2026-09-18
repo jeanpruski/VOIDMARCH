@@ -12,25 +12,36 @@ test('les trois matériaux couvrent les 64 raccords sans dépasser de leur image
     }),
   );
   await page.goto('/wall-review');
-  await expect(page.getByRole('img')).toHaveCount(57);
+  await expect(page.getByRole('img')).toHaveCount(75);
   await page.screenshot({ path: 'test-results/walls-orientations.png', fullPage: true });
   const results = await page.evaluate(async () => {
     // @ts-expect-error Vite serves this source module directly in the browser.
-    const { wallCanvas } = await import('/src/wall-art.ts');
+    const { wallCanvas, wallGateAxis } = await import('/src/wall-art.ts');
     const results: { id: string; pixels: number; edge: number }[] = [];
     for (const kind of ['WOOD_WALL', 'STONE_WALL', 'STEEL_WALL'])
       for (let mask = 0; mask < 64; mask++) {
-        const canvas = wallCanvas(kind, mask);
-        const data = canvas.getContext('2d')!.getImageData(0, 0, 256, 256).data;
-        let pixels = 0,
-          edge = 0;
-        for (let y = 0; y < 256; y++)
-          for (let x = 0; x < 256; x++)
-            if (data[(y * 256 + x) * 4 + 3]) {
-              pixels++;
-              if (x < 4 || y < 4 || x >= 252 || y >= 252) edge++;
-            }
-        results.push({ id: `${kind}:${mask}`, pixels, edge });
+        for (const roadMask of [undefined, 9, 18, 36]) {
+          const gateAxis = roadMask === undefined ? undefined : wallGateAxis(mask, roadMask);
+          const turret =
+            roadMask === undefined
+              ? undefined
+              : kind === 'WOOD_WALL'
+                ? 1
+                : kind === 'STONE_WALL'
+                  ? 2
+                  : 3;
+          const canvas = wallCanvas(kind, mask, turret, gateAxis);
+          const data = canvas.getContext('2d')!.getImageData(0, 0, 256, 256).data;
+          let pixels = 0,
+            edge = 0;
+          for (let y = 0; y < 256; y++)
+            for (let x = 0; x < 256; x++)
+              if (data[(y * 256 + x) * 4 + 3]) {
+                pixels++;
+                if (x < 4 || y < 4 || x >= 252 || y >= 252) edge++;
+              }
+          results.push({ id: `${kind}:${mask}:${roadMask ?? 'wall'}`, pixels, edge });
+        }
       }
     return results;
   });

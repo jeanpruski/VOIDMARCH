@@ -1,4 +1,7 @@
 import { GLOCKE_UNITS, GLOCKE_PROFILES } from './glocke';
+import { UNIT_TIERS } from './progression';
+import { BUILDING_ECONOMIC_TIERS, PRICE_MULTIPLIERS, repriceCatalog, scaleCost } from './economy';
+export { BUILDING_ECONOMIC_TIERS, PRICE_MULTIPLIERS } from './economy';
 import { RESOURCE_BUILDINGS } from './resource-buildings';
 export { RESOURCE_BUILDINGS } from './resource-buildings';
 export { GLOCKE_UNITS } from './glocke';
@@ -112,14 +115,14 @@ export type Terrain = keyof typeof TERRAINS;
 export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
   terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
 export const TERRAFORM_COST: Partial<Wallet> = { WOOD: 20, IRON: 10 };
-export const UNITS = {
+const UNIT_BASE_CATALOG = {
   HERO: {
     name: 'Héros',
     hp: 80,
     attack: 0,
     buildingAttack: 0,
     defense: 6,
-    move: 4,
+    move: 6,
     vision: 5,
     range: 0,
     capture: 0,
@@ -636,7 +639,11 @@ export const UNITS = {
     cost: { STONE: 0, GOLD: 90, WOOD: 65, IRON: 40, FOOD: 10 },
   },
 } as const;
-export type UnitKind = keyof typeof UNITS;
+export type UnitKind = keyof typeof UNIT_BASE_CATALOG;
+export const UNITS = repriceCatalog(UNIT_BASE_CATALOG, (kind) =>
+  // Civil specialists and the starting army retain their entry prices.
+  UNIT_TIERS[kind] <= 1 ? 1 : PRICE_MULTIPLIERS[UNIT_TIERS[kind]],
+);
 /** Ground weapons deliberately able to fire over fortifications. */
 export const INDIRECT_FIRE_UNITS: readonly UnitKind[] = [
   'ARCHER',
@@ -645,7 +652,7 @@ export const INDIRECT_FIRE_UNITS: readonly UnitKind[] = [
   'MORTAR',
   'ATOMIC_SAPPER',
 ];
-export const BUILDINGS = {
+const BUILDING_BASE_CATALOG = {
   ...RESOURCE_BUILDINGS,
   GLOCKE_COMPLEX: {
     name: 'Complexe des cloches',
@@ -1076,7 +1083,14 @@ export const BUILDINGS = {
     terrains: string[];
   }
 >;
-export type BuildingKind = keyof typeof BUILDINGS;
+export type BuildingKind = keyof typeof BUILDING_BASE_CATALOG;
+export const BUILDINGS = repriceCatalog(
+  BUILDING_BASE_CATALOG,
+  (kind) => PRICE_MULTIPLIERS[BUILDING_ECONOMIC_TIERS[kind]],
+);
+export const ECONOMY_V2_BUILDING_COSTS = Object.fromEntries(
+  Object.entries(BUILDING_BASE_CATALOG).map(([kind, building]) => [kind, { ...building.cost }]),
+) as Record<BuildingKind, Wallet>;
 export const WALL_KINDS = ['WOOD_WALL', 'STONE_WALL', 'STEEL_WALL'] as const;
 export type WallKind = (typeof WALL_KINDS)[number];
 export type TurretLevel = 1 | 2 | 3;
@@ -1527,9 +1541,9 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   FLAK_BATTERY:
     'Recrute les canons antiaériens Flak et les chenillés Flak gamma avec la filière atomique. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +25 % puis +60 % aux canons existants et futurs.',
   WOOD_WALL:
-    'Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec 65 pierre, puis 90 fer pour l’acier (2 PA par évolution). Sélectionnez le mur pour y installer une tourelle à tir manuel.',
+    `Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec ${BUILDINGS.STONE_WALL.cost.STONE} pierre, puis ${BUILDINGS.STEEL_WALL.cost.IRON} fer pour l’acier (2 PA par évolution). Sélectionnez le mur pour y installer une tourelle à tir manuel.`,
   STONE_WALL:
-    'Remplace une palissade : 240 PV, défense 6. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec 90 fer et 2 PA. Peut porter une tourelle de niveau 1 ou 2.',
+    `Remplace une palissade : 240 PV, défense 6. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec ${BUILDINGS.STEEL_WALL.cost.IRON} fer et 2 PA. Peut porter une tourelle de niveau 1 ou 2.`,
   STEEL_WALL:
     'Dernière évolution : 480 PV, défense 12. Bloque les ennemis terrestres, même sur une route. L’acier est construit à partir de votre réserve de fer. Peut porter la tourelle Tesla de niveau 3.',
   TESLA_COIL:
@@ -1798,7 +1812,8 @@ export const unitPopulation = (kind: UnitKind) =>
           : 5);
 export function unitUpkeep(kind: UnitKind): Wallet {
   if (kind === 'HERO') return { GOLD: 0, WOOD: 0, STONE: 0, IRON: 0, FOOD: 0 };
-  const cost = Object.values(UNITS[kind].cost).reduce<number>((a, b) => a + b, 0);
+  // Recruitment inflation is an investment, not a retroactive ×15 upkeep bill.
+  const cost = Object.values(UNIT_BASE_CATALOG[kind].cost).reduce<number>((a, b) => a + b, 0);
   return {
     GOLD: Math.max(0.15, cost / 600),
     WOOD: 0,
@@ -1827,7 +1842,7 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
       kind: 'OUTPOST' as BuildingKind,
       level: 1,
       name: BUILDINGS.OUTPOST.name,
-      cost: { GOLD: 10, WOOD: 30, FOOD: 15 } as Partial<Wallet>,
+      cost: { GOLD: 20, WOOD: 60, FOOD: 30 } as Partial<Wallet>,
       population: 0,
       minimumPopulation: 10,
     };
@@ -1836,7 +1851,7 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
       kind: 'VILLAGE' as BuildingKind,
       level: 1,
       name: CITY_LEVELS[1],
-      cost: { STONE: 20, GOLD: 40, WOOD: 45, IRON: 10, FOOD: 20 } as Partial<Wallet>,
+      cost: { STONE: 60, GOLD: 120, WOOD: 135, IRON: 30, FOOD: 60 } as Partial<Wallet>,
       population: 10,
       minimumPopulation: 15,
     };
@@ -1846,12 +1861,7 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
       kind,
       level: level + 1,
       name: `${BUILDINGS[kind].name} · niveau ${level + 1}`,
-      cost: Object.fromEntries(
-        Object.entries(BUILDINGS[kind].cost).map(([r, value]) => [
-          r,
-          Math.ceil(value * (level === 1 ? 1 : 1.6)),
-        ]),
-      ) as Partial<Wallet>,
+      cost: scaleCost(BUILDINGS[kind].cost, level === 1 ? 2.5 : 5),
       population: 0,
       minimumPopulation: 0,
     };
@@ -1861,13 +1871,16 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
     kind: 'VILLAGE' as BuildingKind,
     level: level + 1,
     name: CITY_LEVELS[level + 1],
-    cost: {
-      STONE: 20 * level,
-      GOLD: 50 * level,
-      WOOD: 40 * level,
-      IRON: 20 * level,
-      FOOD: 25 * level,
-    } as Partial<Wallet>,
+    cost: scaleCost(
+      {
+        STONE: 20 * level,
+        GOLD: 50 * level,
+        WOOD: 40 * level,
+        IRON: 20 * level,
+        FOOD: 25 * level,
+      },
+      level === 1 ? 6 : 12,
+    ),
     population: level * 25,
     minimumPopulation: 0,
   };
@@ -1879,9 +1892,18 @@ export const trainingBonusAt = (kind: BuildingKind, level: number) =>
   Object.values(UNIT_PROFILES).some((p) => p.recruitAt.includes(kind) && !p.builder)
     ? [0, 25, 60][Math.max(0, Math.min(2, level - 1))]
     : 0;
-export const storageBonus = (kind: BuildingKind, level: number) =>
-  (kind === 'WAREHOUSE' ? 1000 : kind === 'GRANARY' ? 500 : kind === 'RAIL_DEPOT' ? 1500 : 0) *
-  productionMultiplier(kind, level);
+export const storageBonus = (kind: BuildingKind, level: number) => {
+  const index = Math.max(0, Math.min(2, level - 1));
+  return (
+    kind === 'WAREHOUSE'
+      ? [1000, 4000, 16000]
+      : kind === 'GRANARY'
+        ? [500, 2000, 8000]
+        : kind === 'RAIL_DEPOT'
+          ? [1500, 7500, 30000]
+          : [0, 0, 0]
+  )[index];
+};
 export const populationCapacity = (kind: BuildingKind, level: number) =>
   (BUILDING_POPULATION[kind] ?? 0) *
   (kind === 'VILLAGE' ? level + 1 : 2 * productionMultiplier(kind, level));

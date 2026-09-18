@@ -1,5 +1,19 @@
 # Assets
 
+## Correction des poches de damier — 18 septembre 2026
+
+La carte et les vignettes utilisent désormais `apps/web/public/assets/expansion-clean.png`, via `spriteAssetUrl`. Le nouveau nom évite de conserver l'ancienne image dans le cache du navigateur. `expansion.png` reste intact.
+
+Le premier détourage n'atteignait que le fond relié aux bords. Des poches opaques subsistaient entre les piliers du puits, sous le grenier, entre les cibles de l'archerie et autour du filet de la pêcherie. La reprise utilise les points et ouvertures vérifiés dans `scripts/sprite-background-fixes.json`, avec protection de la broderie du drapeau de l'archerie. Elle corrige aussi les interstices du campement, du chasseur, de l'écurie, de la forge, de la boulangerie et de l'ancien rôdeur de cette planche. Les unités actuelles avec socle utilisent leurs propres planches.
+
+Les dimensions, positions et couleurs RGB sont conservées ; seul le canal alpha est corrigé. Le script contrôle l'empreinte SHA-256 de sa source avant d'appliquer les retouches locales. Ce traitement prolonge le détourage local déjà autorisé pour cet atlas ; aucune régénération des dessins.
+
+```sh
+python3 scripts/remove-sprite-background.py apps/web/public/assets/expansion.png apps/web/public/assets/expansion-clean.png --seeds scripts/sprite-background-fixes.json
+```
+
+Contrôle visuel sur fond vert contrasté : planches `miniatures`, `expansion`, `industrial`, `occult`, `aviation`, `rad-buildings`, `resource-buildings`, `units-civil`, `units-medieval`, `units-industrial`. Les retouches sont limitées aux défauts identifiés sur `expansion`.
+
 Le nouvel accueil lovecraftien et son prompt sont documentés dans [assets-cosmic.md](assets-cosmic.md).
 
 Le rendu des figurines passe désormais par `apps/web/src/sprite-atlas.ts` : les silhouettes sont isolées par leurs pixels transparents, attribuées à leur case principale puis ajustées proportionnellement dans des cellules de 256 pixels avec une marge de 20 pixels. Phaser et les vignettes HTML utilisent ces mêmes atlas préparés en mémoire. Les PNG originaux sont conservés. Les positions CSS sont proportionnelles à la taille des vignettes, y compris sur mobile.

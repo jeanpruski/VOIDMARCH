@@ -5,8 +5,8 @@ Choix validé : chaque tronçon occupe une case, comme un bâtiment. Construire 
 | Palier            | Matériau à payer            | PA  | PV  | Défense propre |
 | ----------------- | --------------------------- | --- | --- | -------------- |
 | Palissade en bois | 30 bois (27 pour la Cendre) | 1   | 100 | 0              |
-| Rempart de pierre | 65 pierre                   | 2   | 240 | 6              |
-| Mur en acier      | 90 fer                      | 2   | 480 | 12             |
+| Rempart de pierre | 98 pierre                   | 2   | 240 | 6              |
+| Mur en acier      | 225 fer                      | 2   | 480 | 12             |
 
 La ressource fer sert à produire l’acier ; aucune sixième ressource n’est ajoutée. Les paliers pierre et acier sont des évolutions du même tronçon, et ne se construisent pas directement. L’évolution répare intégralement le mur, conformément aux autres améliorations. Le coût initial de la palissade reste enregistré pour la démolition : les améliorations ne sont pas remboursées.
 

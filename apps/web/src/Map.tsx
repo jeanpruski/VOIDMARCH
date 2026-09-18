@@ -18,6 +18,8 @@ import {
   BUILDINGS,
   UNIT_PROFILES,
   isWall,
+  buildingUpgrade,
+  WALL_KINDS,
   WALL_HEIGHTS,
 } from '@voidmarch/config';
 import {
@@ -34,7 +36,7 @@ import {
 } from '@voidmarch/game-rules';
 import type { Hex, Unit, ViewTile, WorldView } from '@voidmarch/shared';
 import { BUILDING_FRAMES, UNIT_FRAMES, unitFrame, miniatureTexture, miniatureFrame } from './ui';
-import { normalizedAtlas, SPRITE_CELL, SPRITE_ATLASES } from './sprite-atlas';
+import { normalizedAtlas, SPRITE_CELL, SPRITE_ATLASES, spriteAssetUrl } from './sprite-atlas';
 import { api, notify, select, send, subscribe, useGame } from './store';
 import {
   SIZE,
@@ -45,7 +47,7 @@ import {
   MAP_ZOOM,
   viewportChunks,
 } from './map-geometry';
-import { wallCanvas, setWallMaterials } from './wall-art';
+import { wallCanvas, setWallMaterials, wallGateAxis } from './wall-art';
 import { roadOrderReason } from './roads';
 import { terraformOrderReason } from './terraform';
 import { roadCanvas } from './road-art';
@@ -125,7 +127,7 @@ class WorldScene extends Phaser.Scene {
     for (const name of Object.values(HERO_SHEETS)) this.load.image(name, `/assets/${name}.png`);
     this.load.image('wall-materials', '/assets/wall-materials.png');
     for (const name of Object.keys(SPRITE_ATLASES))
-      this.load.image(`${name}-source`, `/assets/${name}.png`);
+      this.load.image(`${name}-source`, spriteAssetUrl(name));
     this.load.spritesheet('terrain', '/assets/terrain.png', { frameWidth: 362, frameHeight: 362 });
   }
   create() {
@@ -167,9 +169,11 @@ class WorldScene extends Phaser.Scene {
     this.details = this.add.graphics().setDepth(1);
     // Keep the optional grid above scenery and roads, below buildings and units.
     this.grid = this.add.graphics().setName('hex-grid').setDepth(2500);
-    this.territories = this.add.graphics().setDepth(11000);
+    // Ground overlays cover roads/scenery, but stay below every building and unit
+    // (their lowest depth is 5000, with a bounded Y offset of less than 158).
+    this.territories = this.add.graphics().setName('territory-borders').setDepth(3000);
     this.banners = this.add.graphics().setDepth(13000);
-    this.highlights = this.add.graphics().setDepth(15000);
+    this.highlights = this.add.graphics().setName('hex-highlights').setDepth(3500);
     this.pendingMarker = this.add
       .graphics()
       .setDepth(17000)
@@ -955,7 +959,35 @@ class WorldScene extends Phaser.Scene {
           ink = factionColor(t.ownerId),
           opacity = t.visibility === 'EXPLORED' ? 0.35 : 1,
           borders = this.territories;
-        if (showBuildings && t.building) drawBanner(t.ownerId, p.x - 25, p.y + 4, opacity);
+        if (showBuildings && t.building) {
+          drawBanner(t.ownerId, p.x - 25, p.y + 4, opacity);
+          const b = t.building;
+          if (!b.id.startsWith('preview:')) {
+            // Material upgrades keep walls at level 1 internally: show their tier.
+            const level = isWall(b.kind) ? WALL_KINDS.indexOf(b.kind) + 1 : b.level;
+            const maxLevel = !buildingUpgrade(b.kind, b.level);
+            const x = p.x - 41.5,
+              y = p.y + 10;
+            this.banners.fillStyle(0x111c18, 0.95 * opacity);
+            this.banners.fillRoundedRect(x - 13.5, y - 8, 27, 16, 3);
+            this.banners.lineStyle(0.8, maxLevel ? 0xd6ba79 : ink, opacity);
+            this.banners.strokeRoundedRect(x - 13.5, y - 8, 27, 16, 3);
+            const badge = this.add
+              .text(x, y, `${level} ${maxLevel ? '✓' : '↑'}`, {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '10px',
+                fontStyle: 'bold',
+                color: maxLevel ? '#edcf8e' : '#e1e5d2',
+                resolution: 2,
+              })
+              .setOrigin(0.5)
+              .setDepth(13001)
+              .setAlpha(opacity)
+              .setName(`building-level:${b.id}`)
+              .setData({ level, maxLevel });
+            this.pieces.push(badge);
+          }
+        }
         // Outline the territory as a whole. Full-size vertices join adjacent
         // boundary segments without drawing seams between the realm's cells.
         neighbors(t).forEach((n, i) => {
@@ -985,15 +1017,24 @@ class WorldScene extends Phaser.Scene {
           size = b.kind === 'VILLAGE' ? 105 : 78;
         if (isWall(b.kind)) {
           const connections = wallConnections(b, (p) => this.tileMap.get(key(p))?.building);
-          const texture = `wall:${b.kind}:${connections}:${b.turretLevel ?? 0}`;
+          const roads = neighbors(t).reduce(
+            (mask, n, i) => (this.tileMap.get(key(n))?.road ? mask | (1 << i) : mask),
+            0,
+          );
+          const gateAxis = t.road ? wallGateAxis(connections, roads) : undefined;
+          const texture = `wall:${b.kind}:${connections}:${b.turretLevel ?? 0}:${gateAxis ?? 'wall'}`;
           if (!this.textures.exists(texture))
-            this.textures.addCanvas(texture, wallCanvas(b.kind, connections, b.turretLevel));
+            this.textures.addCanvas(
+              texture,
+              wallCanvas(b.kind, connections, b.turretLevel, gateAxis),
+            );
           const sprite = this.add
             .image(p.x, p.y, texture)
             .setDisplaySize(128, 128)
             .setOrigin(0.5, 152 / 256)
             .setDepth(depth(5000, p.y))
-            .setName(`wall:${b.id}`);
+            .setName(`wall:${b.id}`)
+            .setData('gate', t.road === true);
           if (t.visibility === 'EXPLORED') sprite.setTint(0x777f75).setAlpha(0.7);
           this.pieces.push(sprite);
           if (t.visibility === 'VISIBLE')

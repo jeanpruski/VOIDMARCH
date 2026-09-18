@@ -1,5 +1,5 @@
 import type { UnitKind } from './index';
-export const BALANCE_VERSION = 2;
+export const BALANCE_VERSION = 3;
 export const UNIT_TIERS = {
   HERO: 0,
   GLOCKE_VRIL: 7,

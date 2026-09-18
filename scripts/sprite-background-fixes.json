@@ -1,0 +1,121 @@
+{
+  "source_sha256": "cd245362615bcb7096ee9b2e77cd0238212fb6d896b042c9f9ef75b9f4215bdc",
+  "size": [1536, 1024],
+  "regions": [
+    {
+      "name": "Puits : ouvertures et lanterne",
+      "points": [
+        [1384, 840],
+        [1379, 861],
+        [1419, 872],
+        [1476, 845]
+      ],
+      "openings": [
+        [1378, 838, 1452, 890],
+        [1473, 842, 1480, 872]
+      ],
+      "tolerance": 18
+    },
+    {
+      "name": "Archerie : entre les cibles et leurs pieds",
+      "points": [
+        [150, 820],
+        [107, 815],
+        [47, 853],
+        [90, 814],
+        [194, 824],
+        [164, 892],
+        [118, 893],
+        [95, 904],
+        [136, 910],
+        [207, 907],
+        [179, 917],
+        [49, 899]
+      ],
+      "openings": [
+        [46, 812, 210, 928],
+        [217, 890, 233, 931]
+      ],
+      "tolerance": 18,
+      "preserve": [[56, 816, 81, 861]]
+    },
+    {
+      "name": "Grenier : sous les pilotis et derrière le portique",
+      "points": [
+        [599, 665],
+        [705, 641],
+        [676, 657],
+        [722, 651]
+      ],
+      "openings": [
+        [568, 661, 621, 686],
+        [670, 655, 692, 670],
+        [700, 640, 728, 678]
+      ],
+      "tolerance": 18
+    },
+    {
+      "name": "Pêcherie : autour du filet, entre les pilotis et derrière le bâtiment",
+      "points": [
+        [1058, 640],
+        [1082, 628],
+        [1112, 625],
+        [1102, 656],
+        [1085, 695],
+        [1065, 689],
+        [1051, 648],
+        [1230, 633]
+      ],
+      "openings": [
+        [1054, 627, 1116, 670],
+        [1050, 683, 1100, 719],
+        [1230, 632, 1233, 651]
+      ],
+      "tolerance": 18
+    },
+    {
+      "name": "Campement : cordages arrière",
+      "points": [
+        [154, 599],
+        [166, 617],
+        [196, 651]
+      ]
+    },
+    {
+      "name": "Cabane de chasse : séchoir et clôture",
+      "points": [
+        [800, 659],
+        [806, 651],
+        [821, 653],
+        [965, 635],
+        [788, 704]
+      ]
+    },
+    {
+      "name": "Écurie : derrière la bannière",
+      "points": [[1483, 602]]
+    },
+    {
+      "name": "Forge : portique arrière",
+      "points": [
+        [728, 873],
+        [719, 874]
+      ]
+    },
+    {
+      "name": "Boulangerie : sous l'auvent et derrière la bannière",
+      "points": [
+        [1049, 884],
+        [1227, 837],
+        [1254, 909]
+      ]
+    },
+    {
+      "name": "Ancien rôdeur : intérieur de l'arc",
+      "points": [
+        [1194, 71],
+        [1172, 149]
+      ]
+    }
+  ]
+}

@@ -17,7 +17,7 @@ test('aviation : catalogue, recrutement, figurines et explication des attaques a
   let state = createState('aviation-browser', now);
   const id = 'pilot';
   const realm = addPlayer(state, id, 'Escadrille noire', 'ASH', now);
-  realm.wallet = { GOLD: 5000, WOOD: 5000, STONE: 5000, IRON: 5000, FOOD: 5000 };
+  realm.wallet = { GOLD: 50000, WOOD: 50000, STONE: 50000, IRON: 50000, FOOD: 50000 };
   realm.protectedUntil = 0;
   const positions = disk({ q: 0, r: 0 }, 5).filter((p) => p.q !== 0 || p.r !== 0);
   const buildings = (Object.keys(BUILDINGS) as BuildingKind[]).map((kind, i) =>
@@ -94,7 +94,8 @@ test('aviation : catalogue, recrutement, figurines et explication des attaques a
     }, building);
   await recruitFrom(airfield);
   await page.getByRole('tab', { name: 'Aviation', exact: true }).click();
-  await expect(page.getByRole('dialog').locator('article')).toHaveCount(11);
+  await expect(page.getByRole('dialog').locator('article')).toHaveCount(8);
+  await expect(page.getByRole('tab', { name: 'Cavalerie', exact: true })).toHaveCount(0);
   const fighter = page
     .getByRole('dialog')
     .locator('article')

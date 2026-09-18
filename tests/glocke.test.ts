@@ -40,7 +40,8 @@ const specimen = (kind: UnitKind, ownerId = 'a', q = 0): Unit => ({
 function fixture(prerequisites = true) {
   const s = createState('glocke-test', now),
     r = addPlayer(s, 'a', 'Cloches', 'ASH', now);
-  r.wallet = { GOLD: 20000, WOOD: 20000, STONE: 20000, IRON: 20000, FOOD: 20000 };
+  // Late-game fixture: enough to pay the new six-figure complex upgrades.
+  r.wallet = { GOLD: 200000, WOOD: 200000, STONE: 200000, IRON: 200000, FOOD: 200000 };
   r.protectedUntil = 0;
   Object.values(s.buildings).forEach((b) => (b.population = 1000));
   for (const p of disk(r.capital, 8)) writeTile(s, p, { terrain: 'PLAIN' });

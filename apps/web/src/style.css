@@ -3113,7 +3113,8 @@ input[type='color'] {
   border: 1px solid #4b4a40;
   border-radius: 2px;
 }
-.catalog-tabs button[aria-selected='true'] {
+.catalog-tabs button[aria-selected='true'],
+.catalog-ownership-filter button[aria-pressed='true'] {
   background: #514431;
   color: #f0dbb4;
   border-color: #bd9569;
@@ -3279,6 +3280,16 @@ input[type='color'] {
 }
 .upgrade-preview table {
   width: 100%;
+}
+.upgrade-deficit {
+  display: block;
+}
+@media (max-width: 600px) {
+  .upgrade-preview th,
+  .upgrade-preview td {
+    padding: 10px 4px;
+    letter-spacing: 0;
+  }
 }
 
 .sidebar-toggle {
@@ -3738,6 +3749,16 @@ button:disabled {
 .building-stage {
   color: #ceb986;
   font-size: 10px;
+}
+.building-owned-count {
+  display: block;
+  margin: 0 0 6px;
+  color: #c5b58c;
+  font-size: 12px;
+}
+.building-owned-count strong {
+  color: #f0e5c7;
+  font-variant-numeric: tabular-nums;
 }
 .catalog-order-hint {
   color: #c5b58c;

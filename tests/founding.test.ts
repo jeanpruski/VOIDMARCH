@@ -125,6 +125,7 @@ describe('catalogue étendu', () => {
       const s = established(),
         r = s.realms.founder,
         profile = UNIT_PROFILES[kind];
+      r.wallet = { ...UNITS[kind].cost };
       const b = addBuilding(s, r, { q: 8, r: 0 }, profile.recruitAt[0], now);
       b.level = profile.minRecruitLevel ?? 1;
       for (const p of neighbors(b)) writeTile(s, p, { terrain: 'PLAIN', ownerId: r.id });
@@ -143,6 +144,7 @@ describe('catalogue étendu', () => {
     const s = established(),
       r = s.realms.founder,
       p = { q: 8, r: 0 };
+    r.wallet = { ...BUILDINGS[kind].cost };
     writeTile(s, p, { terrain: BUILDINGS[kind].terrains[0] as Terrain, ownerId: r.id });
     (BUILDING_REQUIREMENTS[kind] ?? []).forEach((k, i) =>
       addBuilding(s, r, { q: 12 + i, r: 0 }, k, now),

@@ -1,6 +1,6 @@
 import { WALL_KINDS, WALL_HEIGHTS, type WallKind, type TurretLevel } from '@voidmarch/config';
 import { DIRECTIONS } from '@voidmarch/game-rules';
-import { hexToPixel } from './map-geometry';
+import { hexToPixel, Y_SCALE } from './map-geometry';
 
 type Point = { x: number; y: number };
 const palettes = {
@@ -49,14 +49,34 @@ export function loadWallMaterials(): Promise<void> {
   })());
 }
 
+/** Keep straight walls aligned; at corners/junctions favour the axis crossing
+ * the road. Opposite directions share one of three stable gate orientations. */
+export function wallGateAxis(connections: number, roads: number): number {
+  const scores = [0, 1, 2].map((axis) => {
+    const p = hexToPixel(DIRECTIONS[axis]);
+    const angle = Math.atan2(p.y / Y_SCALE, p.x);
+    let crossing = 0;
+    DIRECTIONS.forEach((direction, side) => {
+      if (!(roads & (1 << side))) return;
+      const road = hexToPixel(direction);
+      crossing += Math.abs(Math.sin(Math.atan2(road.y / Y_SCALE, road.x) - angle));
+    });
+    const joins =
+      Number(!!(connections & (1 << axis))) + Number(!!(connections & (1 << (axis + 3))));
+    return joins * 8 + crossing;
+  });
+  return scores.indexOf(Math.max(...scores));
+}
+
 /** Joined geometry is drawn in the same hex projection as the map, so every
  * rotation, terminal, corner and junction meets exactly at the shared boundary. */
 export function wallCanvas(
   kind: WallKind,
   connections = 9,
   turretLevel?: TurretLevel,
+  gateAxis?: number,
 ): HTMLCanvasElement {
-  const id = `${kind}:${connections}:${turretLevel ?? 0}`;
+  const id = `${kind}:${connections}:${turretLevel ?? 0}:${gateAxis ?? 'wall'}`;
   const previous = cache.get(id);
   if (previous) return previous;
   const canvas = document.createElement('canvas');
@@ -65,7 +85,7 @@ export function wallCanvas(
   ctx.translate(128, 152);
   ctx.scale(2, 2);
   const palette = palettes[kind];
-  const poly = (points: Point[], fill: string, stroke = palette.line) => {
+  const poly = (points: Point[], fill: string, stroke = palette.line, textured = true) => {
     ctx.beginPath();
     points.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
     ctx.closePath();
@@ -78,7 +98,7 @@ export function wallCanvas(
         ? (points[1].x - points[0].x) * (points[3].y - points[0].y) -
           (points[1].y - points[0].y) * (points[3].x - points[0].x)
         : 0;
-    if (materials && points.length === 4 && Math.abs(area) > 0.001) {
+    if (textured && materials && points.length === 4 && Math.abs(area) > 0.001) {
       // Project the painted material onto this exact parallelogram; geometry,
       // end caps and adjacency remain deterministic in every orientation.
       const a = points[0],
@@ -119,7 +139,13 @@ export function wallCanvas(
     ctx.stroke();
   };
   const arms = DIRECTIONS.flatMap((direction, side) => {
-    if (connections ? !(connections & (1 << side)) : side !== 0 && side !== 3) return [];
+    const isolatedAxis = gateAxis ?? 0;
+    if (
+      connections
+        ? !(connections & (1 << side))
+        : side !== isolatedAxis && side !== isolatedAxis + 3
+    )
+      return [];
     const p = hexToPixel(direction),
       fraction = connections ? 0.5 : 0.29;
     return [{ x: p.x * fraction, y: p.y * fraction, side }];
@@ -242,41 +268,145 @@ export function wallCanvas(
       }
     }
   }
-  for (const end of arms) beam(end);
-  // A compact joining pier closes multi-direction corners and exposed end caps.
-  const width = palette.width * 0.63,
-    h = palette.height + 2;
-  poly(
-    [
-      { x: -width, y: 0 },
-      { x: 0, y: 3 },
-      { x: 0, y: 3 - h },
-      { x: -width, y: -h },
-    ],
-    palette.side,
-  );
-  poly(
-    [
-      { x: 0, y: 3 },
-      { x: width, y: 0 },
-      { x: width, y: -h },
-      { x: 0, y: 3 - h },
-    ],
-    palette.face,
-  );
-  poly(
-    [
-      { x: -width, y: -h },
-      { x: 0, y: -h - 3 },
-      { x: width, y: -h },
-      { x: 0, y: -h + 3 },
-    ],
-    palette.top,
-  );
-  // Subtle ageing at the foot of the central pier.
-  for (let i = 0; i < 5; i++) {
-    ctx.fillStyle = i % 2 ? '#78816a' : '#3c4735';
-    ctx.fillRect(-5 + i * 2, 2 + (i % 2), 1.8, 0.8);
+  if (gateAxis !== undefined) {
+    // A gatehouse replaces the central pier. Its axes use the map projection,
+    // so road surfaces remain visible at its feet and every wall arm still joins.
+    const axis = hexToPixel(DIRECTIONS[gateAxis]);
+    const length = Math.hypot(axis.x, axis.y / Y_SCALE);
+    const ux = axis.x / length,
+      uy = axis.y / Y_SCALE / length;
+    const point = (x: number, y: number, z = 0): Point => ({
+      x: ux * x - uy * y,
+      y: (uy * x + ux * y) * Y_SCALE - z,
+    });
+    const h = palette.height + 2;
+    const block = (
+      x: number,
+      y: number,
+      width: number,
+      depth: number,
+      z: number,
+      height: number,
+    ) => {
+      const corners = [
+        point(x - width / 2, y - depth / 2, z),
+        point(x + width / 2, y - depth / 2, z),
+        point(x + width / 2, y + depth / 2, z),
+        point(x - width / 2, y + depth / 2, z),
+      ];
+      for (let i = 0; i < 4; i++) {
+        const a = corners[i],
+          b = corners[(i + 1) % 4];
+        if (b.x >= a.x) continue;
+        poly(
+          [a, b, { x: b.x, y: b.y - height }, { x: a.x, y: a.y - height }],
+          i % 2 ? palette.side : palette.face,
+        );
+      }
+      poly(
+        corners.map((p) => ({ x: p.x, y: p.y - height })),
+        palette.top,
+      );
+    };
+    const drawArm = (end: Point) => {
+      const x = end.x * ux + (end.y / Y_SCALE) * uy;
+      const y = -end.x * uy + (end.y / Y_SCALE) * ux;
+      // Clip each arm to the gatehouse footprint, retaining the exact outer end.
+      const fraction = Math.min(
+        0.85,
+        16 / Math.max(Math.abs(x), 0.001),
+        5 / Math.max(Math.abs(y), 0.001),
+      );
+      const start = { x: end.x * fraction, y: end.y * fraction };
+      ctx.save();
+      ctx.translate(start.x, start.y);
+      beam({ x: end.x - start.x, y: end.y - start.y });
+      ctx.restore();
+    };
+    for (const end of arms.filter((p) => p.y < 0)) drawArm(end);
+    // Closed double leaves: wood with iron braces, iron grille in masonry,
+    // or riveted armoured steel. Their appearance never changes collision rules.
+    const front = ux >= 0 ? 1 : -1;
+    const door = (x: number, z: number) => point(x, front * 3.5, z);
+    poly(
+      [door(-10, 1), door(10, 1), door(10, h - 5), door(-10, h - 5)],
+      kind === 'WOOD_WALL' ? '#51402c' : '#1b2520',
+      palette.line,
+      kind !== 'STONE_WALL',
+    );
+    const stroke = (x1: number, z1: number, x2: number, z2: number, ink: string, width = 0.8) =>
+      line(door(x1, z1), door(x2, z2), ink, width);
+    if (kind === 'WOOD_WALL') {
+      for (let x = -8; x < 10; x += 3) stroke(x, 1, x, h - 5, '#231d16', 0.7);
+      for (const z of [5, h - 9]) stroke(-10, z, 10, z, '#292d27', 2.2);
+      stroke(-9, 5, -1, h - 9, '#a08a61', 1.6);
+      stroke(1, h - 9, 9, 5, '#a08a61', 1.6);
+    } else if (kind === 'STONE_WALL') {
+      for (let x = -8; x <= 8; x += 4) {
+        stroke(x, 1, x, h - 5, '#7f8c7e', 1.6);
+        stroke(x - 0.6, 1, x - 0.6, h - 5, '#242e29', 0.6);
+      }
+      for (const z of [6, 13, h - 7]) stroke(-10, z, 10, z, '#9a9e87', 1.2);
+    } else {
+      poly(
+        [door(-10, 1), door(10, 1), door(10, h - 5), door(-10, h - 5)],
+        '#0c1c1877',
+        '#879583',
+        false,
+      );
+      for (const x of [-8, -2, 2, 8])
+        for (const z of [4, h - 8]) stroke(x, z, x, z + 0.7, '#bec0a0', 1.3);
+      for (const x of [-6, 6]) {
+        stroke(x - 2, h - 12, x + 2, h - 12, '#17261c', 3);
+        stroke(x - 1.5, h - 12, x + 1.5, h - 12, '#9cbe86', 0.8);
+      }
+      stroke(-9, 5, -2, 12, '#303e34', 1.8);
+      stroke(2, 12, 9, 5, '#303e34', 1.8);
+    }
+    stroke(0, 1, 0, h - 5, '#111b16', 1.4);
+    // Two stone/wood/steel jambs, then a load-bearing lintel for the turret.
+    for (const x of [-13, 13].sort((a, b) => point(a, 0).y - point(b, 0).y))
+      block(x, 0, 6, 12, 0, h);
+    block(0, 0, 32, 12, h - 5, 5);
+    for (const x of [-13, 13]) block(x, 0, 7, 13, h, kind === 'WOOD_WALL' ? 2 : 3);
+    for (const end of arms.filter((p) => p.y >= 0)) drawArm(end);
+  } else {
+    for (const end of arms) beam(end);
+    // A compact joining pier closes multi-direction corners and exposed end caps.
+    const width = palette.width * 0.63,
+      h = palette.height + 2;
+    poly(
+      [
+        { x: -width, y: 0 },
+        { x: 0, y: 3 },
+        { x: 0, y: 3 - h },
+        { x: -width, y: -h },
+      ],
+      palette.side,
+    );
+    poly(
+      [
+        { x: 0, y: 3 },
+        { x: width, y: 0 },
+        { x: width, y: -h },
+        { x: 0, y: 3 - h },
+      ],
+      palette.face,
+    );
+    poly(
+      [
+        { x: -width, y: -h },
+        { x: 0, y: -h - 3 },
+        { x: width, y: -h },
+        { x: 0, y: -h + 3 },
+      ],
+      palette.top,
+    );
+    // Subtle ageing at the foot of the central pier.
+    for (let i = 0; i < 5; i++) {
+      ctx.fillStyle = i % 2 ? '#78816a' : '#3c4735';
+      ctx.fillRect(-5 + i * 2, 2 + (i % 2), 1.8, 0.8);
+    }
   }
   if (turretLevel) {
     ctx.save();
@@ -401,11 +531,16 @@ export function wallCanvas(
   return canvas;
 }
 
-export function wallImageUrl(kind: WallKind, connections = 9, turretLevel?: TurretLevel): string {
-  const id = `${kind}:${connections}:${turretLevel ?? 0}`;
+export function wallImageUrl(
+  kind: WallKind,
+  connections = 9,
+  turretLevel?: TurretLevel,
+  gateAxis?: number,
+): string {
+  const id = `${kind}:${connections}:${turretLevel ?? 0}:${gateAxis ?? 'wall'}`;
   let url = urls.get(id);
   if (!url) {
-    url = wallCanvas(kind, connections, turretLevel).toDataURL();
+    url = wallCanvas(kind, connections, turretLevel, gateAxis).toDataURL();
     urls.set(id, url);
   }
   return url;

@@ -17,7 +17,7 @@ test('division atomique : catalogue, recrutement depuis les bâtiments existants
   let state = createState('aviation-browser', now);
   const id = 'pilot';
   const realm = addPlayer(state, id, 'Escadrille noire', 'ASH', now);
-  realm.wallet = { GOLD: 5000, WOOD: 5000, STONE: 5000, IRON: 5000, FOOD: 5000 };
+  realm.wallet = { GOLD: 100000, WOOD: 100000, STONE: 100000, IRON: 100000, FOOD: 100000 };
   realm.protectedUntil = 0;
   const positions = disk({ q: 0, r: 0 }, 5).filter((p) => p.q !== 0 || p.r !== 0);
   const buildings = (Object.keys(BUILDINGS) as BuildingKind[]).map((kind, i) =>
@@ -97,7 +97,17 @@ test('division atomique : catalogue, recrutement depuis les bâtiments existants
     await recruitFrom(buildings.find((b) => b.kind === buildingKind)!);
     const filter = page.getByRole('checkbox', { name: /Division atomique/ });
     await filter.check();
-    await expect(page.getByRole('dialog').locator('article')).toHaveCount(36);
+    const atomicCounts = {
+      ARSENAL: 2,
+      STABLE: 4,
+      GARAGE: 7,
+      TANK_FACTORY: 2,
+      AERODROME: 5,
+      HELIPAD: 6,
+    };
+    await expect(page.getByRole('dialog').locator('article')).toHaveCount(
+      atomicCounts[buildingKind as keyof typeof atomicCounts],
+    );
     const card = page
       .getByRole('dialog')
       .locator('article')
@@ -127,6 +137,7 @@ test('division atomique : catalogue, recrutement depuis les bâtiments existants
   await expect(page.getByRole('dialog').locator('article')).toHaveCount(6);
   await page.screenshot({ path: 'test-results/atomic-helicopters.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
+  await recruitFrom(buildings.find((b) => b.kind === 'GARAGE')!);
   await page.getByRole('tab', { name: 'Motos', exact: true }).click();
   await page.getByRole('checkbox', { name: /Division atomique/ }).check();
   await expect(page.getByRole('dialog').locator('article')).toHaveCount(6);

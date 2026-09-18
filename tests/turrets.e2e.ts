@@ -3,7 +3,7 @@ import { createState, createRealm, disk, writeTile } from '@voidmarch/game-rules
 import { addPlayer, addBuilding, execute, worldView } from '../apps/server/src/engine';
 import { actionSchema } from '@voidmarch/protocol';
 
-test('tourelle : pose sur rempart, trois évolutions, ciblage et projectile', async ({ page }) => {
+test('porte : tourelle, trois évolutions, tir et retour au mur sans route', async ({ page }) => {
   const now = Date.now();
   let state = createState('turret-browser', now);
   const realm = addPlayer(state, 'a', 'Les Remparts', 'ASH', now);
@@ -14,6 +14,7 @@ test('tourelle : pose sur rempart, trois évolutions, ciblage et projectile', as
   state.realms.b.protectedUntil = 0;
   for (const p of disk({ q: 0, r: 0 }, 6)) writeTile(state, p, { terrain: 'PLAIN' });
   const wall = addBuilding(state, realm, { q: 1, r: 0 }, 'WOOD_WALL', now);
+  writeTile(state, wall, { road: true });
   const second = addBuilding(state, realm, { q: 1, r: 1 }, 'STONE_WALL', now);
   second.turretLevel = 2;
   const third = addBuilding(state, realm, { q: 2, r: -1 }, 'WOOD_WALL', now);
@@ -51,7 +52,7 @@ test('tourelle : pose sur rempart, trois évolutions, ciblage et projectile', as
     state = r.state;
     return { result: r.result, world: view() };
   });
-  await page.route('**/src/Map.tsx', async (route) => {
+  await page.route(/\/src\/Map\.tsx(?:\?.*)?$/, async (route) => {
     const response = await route.fetch();
     const body = (await response.text()).replace(
       /\bcreate\(\)\s*\{/,
@@ -78,7 +79,9 @@ test('tourelle : pose sur rempart, trois évolutions, ciblage et projectile', as
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
-  await page.waitForFunction(() => (window as any).__turretScene?.view);
+  await page.waitForFunction(() => (window as any).__turretScene?.view, undefined, {
+    timeout: 20000,
+  });
   await page.evaluate(async (b) => {
     // @ts-expect-error Vite source module.
     const { useGame, focusMap } = await import('/src/store.ts');
@@ -88,6 +91,15 @@ test('tourelle : pose sur rempart, trois évolutions, ciblage et projectile', as
       mode: 'inspect',
     });
   }, wall);
+  await expect(page.getByRole('heading', { name: 'Porte · Palissade en bois' })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (id) => (window as any).__turretScene.children.getByName(`wall:${id}`)?.getData('gate'),
+        wall.id,
+      ),
+    )
+    .toBe(true);
   await page.getByRole('button', { name: 'Installer une tourelle · 2 PA', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Arbalète de rempart');
   await page.getByRole('button', { name: 'Installer la tourelle · 2 PA', exact: true }).click();
@@ -138,6 +150,31 @@ test('tourelle : pose sur rempart, trois évolutions, ciblage et projectile', as
   await page.evaluate(() => {
     (window as any).__turretScene.tweens.timeScale = 1;
   });
+  // A route controls only the appearance, even after installing/upgrading/firing.
+  for (const type of ['REMOVE_ROAD', 'ROAD'] as const) {
+    await page.evaluate(
+      async ({ type, wall }) => {
+        // @ts-expect-error Vite source module.
+        const { send, useGame } = await import('/src/store.ts');
+        useGame.setState({
+          selection: { kind: 'building', id: wall.id, q: wall.q, r: wall.r },
+          mode: 'inspect',
+        });
+        await send({ type, actorId: 'a', payload: { q: wall.q, r: wall.r } });
+      },
+      { type, wall },
+    );
+    await expect
+      .poll(() =>
+        page.evaluate(
+          (id) => (window as any).__turretScene.children.getByName(`wall:${id}`)?.getData('gate'),
+          wall.id,
+        ),
+      )
+      .toBe(type === 'ROAD');
+    expect(state.buildings[wall.id]).toMatchObject({ kind: 'STEEL_WALL', turretLevel: 3 });
+  }
+  await expect(page.getByRole('heading', { name: 'Porte · Mur en acier' })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/turrets-mobile.png' });

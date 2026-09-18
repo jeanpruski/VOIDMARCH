@@ -679,7 +679,7 @@ function SelectionPanel() {
       : b
         ? b.kind === 'VILLAGE'
           ? CITY_LEVELS[b.level]
-          : BUILDINGS[b.kind].name
+          : `${tile?.road && isWall(b.kind) ? 'Porte · ' : ''}${BUILDINGS[b.kind].name}`
         : tile?.terrain
           ? TERRAINS[tile.terrain].name
           : 'Terres inconnues',
@@ -699,6 +699,7 @@ function SelectionPanel() {
             frame={frame}
             size={88}
             turretLevel={b?.turretLevel}
+            gate={!!tile?.road && !!b && isWall(b.kind)}
           />
         ) : (
           <div className="tile-symbol">

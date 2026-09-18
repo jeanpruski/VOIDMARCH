@@ -66,7 +66,7 @@ describe('remparts en bois, pierre et acier', () => {
       expect(s.buildings[id]).toMatchObject({ kind, hp, level: 1 });
       expect(s.realms.a.wallet).toEqual({
         ...before,
-        [resource]: before[resource] - (resource === 'STONE' ? 65 : 90),
+        [resource]: before[resource] - (resource === 'STONE' ? 98 : 225),
       });
     }
     expect(s.realms.a.ap).toBe(25);

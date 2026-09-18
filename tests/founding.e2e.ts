@@ -107,17 +107,17 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   await upgradePreview.getByRole('button', { name: 'Fermer', exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.getByRole('button', { name: 'Recruter', exact: true }).click();
-  await expect(page.getByRole('dialog').locator('article')).toHaveCount(44);
+  await expect(page.getByRole('dialog').locator('article')).toHaveCount(1);
+  await expect(page.getByRole('dialog').locator('article h4')).toHaveText('Paysan');
+  await expect(page.getByRole('dialog').locator('.panel-intro')).toContainText('1 type d’unité');
   await page.getByText('Comment choisir et former une unité ?', { exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('budget de déplacement');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Recruter', exact: true }).click();
   await expect(page.locator('.purchase-details')).toHaveCount(0);
-  await expect(page.locator('.cost-insufficient').first()).toBeAttached();
-  await page.getByRole('tab', { name: 'Véhicules', exact: true }).click();
-  await expect(page.getByRole('dialog').locator('article')).toHaveCount(5);
-  await page.getByRole('tab', { name: 'Toutes', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Véhicules', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: /Division atomique/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Former le paysan · 1 PA' }).click();
   await expect.poll(() => realmUnits(state, id).length).toBe(1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -238,7 +238,7 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
     .getByRole('button', { name: /Garage militaire/ })
     .click();
   await page.getByRole('button', { name: 'Recruter', exact: true }).click();
-  await page.getByRole('searchbox').fill('Moto');
+  await page.getByRole('searchbox').fill('Moto de reconnaissance');
   await expect(page.getByRole('dialog').locator('article')).toHaveCount(1);
   await page.getByRole('dialog').locator('article').getByRole('button').click();
   await expect.poll(() => realmUnits(state, id).some((u) => u.kind === 'MOTORCYCLE')).toBe(true);

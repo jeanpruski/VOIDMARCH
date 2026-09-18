@@ -19,7 +19,7 @@ import {
   trainingBonusAt,
 } from '@voidmarch/config';
 import type { ViewTile } from '@voidmarch/shared';
-import { Modal, format } from './ui';
+import { Modal, format, StorageHint } from './ui';
 import { send, useGame } from './store';
 
 export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTile['building']> }) {
@@ -136,7 +136,11 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                   </li>
                 )}
               </ul>
-              <h3>Coût de l’amélioration</h3>
+              <h3>À payer pour cette amélioration</h3>
+              <p>
+                Les {costAP} PA et les ressources ci-dessous sont déduits de votre stock à la
+                confirmation. Les habitants requis restent dans le bâtiment.
+              </p>
               <p
                 className={
                   !world.player.unlimitedAP && world.player.ap < costAP ? 'upgrade-missing' : ''
@@ -151,23 +155,37 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                     <th>Ressource</th>
                     <th>Coût</th>
                     <th>Stock</th>
-                    <th>Manque</th>
+                    <th>Après paiement</th>
                   </tr>
                 </thead>
                 <tbody>
                   {RESOURCES.filter((r) => (upgrade.cost[r] ?? 0) > 0).map((r) => (
                     <tr key={r} className={missing.includes(r) ? 'upgrade-missing' : ''}>
                       <td>{RESOURCE_NAMES[r]}</td>
-                      <td>{upgrade.cost[r]}</td>
-                      <td>{format(world.player.wallet[r])}</td>
+                      <td>{format(upgrade.cost[r] ?? 0)}</td>
                       <td>
-                        {Math.ceil(Math.max(0, (upgrade.cost[r] ?? 0) - world.player.wallet[r])) ||
-                          '—'}
+                        {format(world.player.wallet[r])}
+                        {missing.includes(r) && (
+                          <small className="upgrade-deficit">
+                            Manque{' '}
+                            {format(Math.ceil((upgrade.cost[r] ?? 0) - world.player.wallet[r]))}
+                          </small>
+                        )}
+                      </td>
+                      <td>
+                        {missing.includes(r)
+                          ? '—'
+                          : format(world.player.wallet[r] - (upgrade.cost[r] ?? 0))}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <StorageHint
+                cost={upgrade.cost}
+                wallet={world.player.wallet}
+                capacity={world.player.capacity}
+              />
               {upgrade.population > 0 && (
                 <p className={populationMissing ? 'upgrade-missing' : ''}>
                   Population requise dans ce bâtiment : {upgrade.population} habitants ·{' '}

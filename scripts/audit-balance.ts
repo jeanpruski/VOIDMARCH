@@ -13,6 +13,8 @@ import {
   UNIT_TIERS,
   TIER_NAMES,
   productionMultiplier,
+  buildingUpgrade,
+  storageBonus,
   type BuildingKind,
   type UnitKind,
   type Wallet,
@@ -24,7 +26,7 @@ const wallet = (values: Partial<Wallet>) =>
     .map((r) => `${Number(values[r]!.toFixed(2))} ${RESOURCE_NAMES[r].toLowerCase()}`)
     .join(', ') || '—';
 function infrastructure(kind: UnitKind) {
-  if(kind==='HERO')return [];
+  if (kind === 'HERO') return [];
   const seen = new Set<BuildingKind>();
   const visit = (building: BuildingKind) => {
     if (seen.has(building)) return;
@@ -36,7 +38,7 @@ function infrastructure(kind: UnitKind) {
   return [...seen];
 }
 const lines = [
-  '# Audit d’équilibrage — progression v0.4',
+  '# Audit d’équilibrage — économie v0.5',
   '',
   'Rapport reproductible : `node --import tsx scripts/audit-balance.ts`. Les coûts sont ceux de base, avant le bonus de construction de la Cendre. Le premier bâtiment de recrutement est utilisé pour calculer la chaîne d’infrastructure ; d’autres accès peuvent exister.',
   '',
@@ -48,7 +50,9 @@ const lines = [
   '- Récolte uniquement sur la case occupée, jamais sur une voisine ni sur une terre adverse. Bois : forêt ; pierre : colline/montagne ; fer : colline ; vivres : plaine/rivière/marais ; or : ruines. Les vestiges cosmiques se fouillent par leur action dédiée.',
   '- Pierre ajoutée aux stocks, échanges, coûts et sauvegardes. Carrière accessible sans coût initial en pierre. La mine extrait le fer sur colline ; la carrière extrait la pierre sur colline ou montagne.',
   '- Aucun revenu brut par simple propriété d’une case. Le campement ne produit plus de bois, les forges/ateliers/raffineries/manufactures ne génèrent plus de fer sans mine. Le grenier stocke sans générer de vivres.',
-  '- Entretien proportionné au prix des unités ; les machines consomment aussi du fer. Mobilisation unifiée entre recrutement, interface et croissance : paysan 3, soldats 5, siège médiéval 6, machines légères 8, chars / bombardiers / dirigeables / dragons 12 ; division atomique de 7 à 18 places selon le modèle.',
+  '- Prix progressifs : bâtiments intermédiaires ×1,5 / ×2,5 / ×4 / ×7 ; fin de progression ×10 / ×12 / ×15 par rapport à v0.4. Unités médiévales ×2,5, industrielles ×4, occultes ×7, atomiques ×10, Apocalypse ×12 et Glocke ×15. Fondations et civils ordinaires conservés.',
+  '- Améliorations ordinaires : 2 PA et débit de 2,5 fois le nouveau coût de construction pour le niveau 2, puis 5 fois pour le niveau 3. Campements, villes et murs ont leurs devis spécifiques. Les coûts de chaque étape ne sont pas cumulatifs.',
+  '- Entretien conservé aux valeurs v0.4, séparé du nouveau prix de recrutement ; les machines consomment aussi du fer. Mobilisation : paysan 3, soldats 5, siège médiéval 6, machines légères 8, chars / bombardiers / dirigeables / dragons 12 ; division atomique de 7 à 18 places selon le modèle.',
   '- Croissance bornée selon le bâtiment : un campement ou une chaumière ne finit plus avec la capacité d’une ville. Les populations existantes ne sont pas supprimées.',
   '- Montagne accessible au paysan pour la pierre ; véhicules et cavaliers ont besoin de routes en montagne ou marais. Les machines terrestres ralentissent en forêt. Les unités volantes survolent tous les terrains et les remparts pour un point de déplacement par case.',
   '- L’amélioration campement → avant-poste ne réduit plus la résistance ni la production de vivres. Les améliorations de villes en pierre utilisent désormais cette ressource.',
@@ -80,6 +84,26 @@ for (const [kind, building] of Object.entries(BUILDINGS) as [
   lines.push(
     `| ${building.name} | ${building.hp} | ${wallet(building.cost)} | ${wallet(building.production)} | ${wallet(Object.fromEntries(RESOURCES.map((r) => [r, (building.production[r] ?? 0) * productionMultiplier(kind, 3)])))} | ${building.terrains.join(', ')} | ${!isBuildable(kind) ? `Évolution uniquement : ${kind === 'STONE_WALL' ? 'palissade en bois' : 'rempart de pierre'} (2 PA, coût sans réduction)` : (BUILDING_REQUIREMENTS[kind] ?? []).map((k) => BUILDINGS[k].name).join(', ') || '—'} |`,
   );
+lines.push(
+  '',
+  '## Dépenses d’évolution',
+  '',
+  'Chaque ligne est un paiement supplémentaire réel, en plus de 2 PA. Les habitants requis ne sont pas consommés.',
+  '',
+  '| Bâtiment actuel | Évolution | Ressources débitées | Stockage total ajouté après évolution |',
+  '| --- | --- | --- | --- |',
+);
+for (const kind of Object.keys(BUILDINGS) as BuildingKind[]) {
+  for (const level of ['CAMP', 'OUTPOST', 'WOOD_WALL', 'STONE_WALL', 'STEEL_WALL'].includes(kind)
+    ? [1]
+    : [1, 2]) {
+    const upgrade = buildingUpgrade(kind, level);
+    if (!upgrade) continue;
+    lines.push(
+      `| ${BUILDINGS[kind].name} · ${level} | ${upgrade.name} | ${wallet(upgrade.cost)} | ${storageBonus(upgrade.kind, upgrade.level)} par ressource |`,
+    );
+  }
+}
 lines.push(
   '',
   '## Tourelles de rempart',

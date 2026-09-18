@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { BUILDINGS, UNITS, type BuildingKind } from '@voidmarch/config';
+import { BUILDINGS, UNITS, RESOURCES, buildingUpgrade, type BuildingKind } from '@voidmarch/config';
 import { createState, createRealm, disk, realmUnits, writeTile } from '@voidmarch/game-rules';
 import {
   addBuilding,
@@ -15,7 +15,7 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
   let state = createState('aviation-browser', now);
   const id = 'pilot';
   const realm = addPlayer(state, id, 'Escadrille noire', 'ASH', now);
-  realm.wallet = { GOLD: 30000, WOOD: 30000, STONE: 30000, IRON: 30000, FOOD: 30000 };
+  realm.wallet = { GOLD: 500000, WOOD: 500000, STONE: 500000, IRON: 500000, FOOD: 500000 };
   realm.protectedUntil = 0;
   const positions = disk({ q: 0, r: 0 }, 5).filter((p) => p.q !== 0 || p.r !== 0);
   const buildings = (Object.keys(BUILDINGS) as BuildingKind[]).map((kind, i) =>
@@ -48,7 +48,7 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
   };
   for (const p of disk({ q: 0, r: 0 }, 6)) writeTile(state, p, { terrain: 'PLAIN' });
   const view = () =>
-    worldView(state, id, Date.now(), [
+    worldView(state, id, now, [
       { q: -1, r: -1 },
       { q: -1, r: 0 },
       { q: 0, r: -1 },
@@ -58,7 +58,8 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
   page.on('pageerror', (e) => errors.push(e.message));
   await page.exposeFunction('fixtureSnapshot', view);
   await page.exposeFunction('fixtureCommand', (raw: unknown) => {
-    const r = execute(state, id, actionSchema.parse(raw), Date.now(), {
+    // Freeze economic time so assertions isolate payments from passive upkeep.
+    const r = execute(state, id, actionSchema.parse(raw), now, {
       ...defaultOptions,
       recruitBonus: () => 0,
     });
@@ -105,12 +106,46 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
   await expect(page.getByRole('dialog')).toContainText('niveau 3 nécessaire');
   for (let i = 0; i < 3; i++) {
     if (i) {
-      await page.evaluate(async (id) => {
+      await page.evaluate(async (b) => {
         // @ts-expect-error Vite fixture import.
-        const { send } = await import('/src/store.ts');
-        await send({ type: 'UPGRADE', actorId: id, payload: {} });
-      }, complex.id);
-      expect(state.buildings[complex.id].level).toBe(i + 1);
+        const { useGame } = await import('/src/store.ts');
+        useGame.setState({
+          panel: null,
+          selection: { kind: 'building', id: b.id, q: b.q, r: b.r },
+        });
+      }, complex);
+      const before = { ...state.realms[id].wallet };
+      const quote = buildingUpgrade('GLOCKE_COMPLEX', i)!;
+      await page.getByRole('button', { name: 'Améliorer · 2 PA', exact: true }).click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toContainText('À payer pour cette amélioration');
+      await expect(dialog.getByRole('columnheader', { name: 'Après paiement' })).toBeVisible();
+      const gold = dialog
+        .getByRole('row')
+        .filter({ has: page.getByRole('cell', { name: 'Or', exact: true }) });
+      await expect(gold.getByRole('cell').nth(1)).toHaveText(
+        quote.cost.GOLD!.toLocaleString('fr-FR'),
+      );
+      await expect(gold.getByRole('cell').nth(3)).toHaveText(
+        Math.floor(before.GOLD - quote.cost.GOLD!).toLocaleString('fr-FR'),
+      );
+      if (i === 2) {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await expect(dialog).toBeVisible();
+        expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+        await gold.scrollIntoViewIfNeeded();
+        await page.screenshot({ path: '.data/economy-review/upgrade-mobile.png' });
+      }
+      await dialog
+        .getByRole('button', { name: 'Confirmer l’amélioration · 2 PA', exact: true })
+        .click();
+      await expect.poll(() => state.buildings[complex.id].level).toBe(i + 1);
+      for (const resource of RESOURCES)
+        expect(state.realms[id].wallet[resource]).toBeCloseTo(
+          before[resource] - (quote.cost[resource] ?? 0),
+          3,
+        );
+      await page.setViewportSize({ width: 1440, height: 960 });
       await open();
     }
     const card = page
@@ -123,9 +158,15 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
       await card.scrollIntoViewIfNeeded();
       await page.screenshot({ path: 'test-results/glocke-catalogue.png' });
     }
+    const beforeRecruit = { ...state.realms[id].wallet };
     await card.getByRole('button', { name: 'Recruter · 1 PA', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect.poll(() => realmUnits(state, id).some((u) => u.kind === kinds[i])).toBe(true);
+    for (const resource of RESOURCES)
+      expect(state.realms[id].wallet[resource]).toBeCloseTo(
+        beforeRecruit[resource] - UNITS[kinds[i]].cost[resource],
+        3,
+      );
   }
   await page.screenshot({ path: 'test-results/glocke-world.png' });
   await open();

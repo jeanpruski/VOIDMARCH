@@ -3,13 +3,20 @@
 Dependency-free PNG reader/writer for this 8-bit RGB/RGBA asset. Original colors
 are preserved; only alpha changes. Always write to a separate output path.
 """
+import argparse
+import hashlib
+import json
 import struct
-import sys
 import zlib
 from collections import deque
 from pathlib import Path
 
-source, destination = map(Path, sys.argv[1:3])
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('source', type=Path)
+parser.add_argument('destination', type=Path)
+parser.add_argument('--seeds', type=Path, help='Reviewed enclosed background regions (JSON).')
+args = parser.parse_args()
+source, destination = args.source, args.destination
 assert source.resolve() != destination.resolve(), "Preserve the source image."
 data = source.read_bytes()
 assert data[:8] == b"\x89PNG\r\n\x1a\n"
@@ -70,6 +77,30 @@ for x in range(width):
 for y in range(height):
     visit(y*width)
     visit(y*width+width-1)
+if args.seeds:
+    recipe = json.loads(args.seeds.read_text())
+    assert recipe['source_sha256'] == hashlib.sha256(data).hexdigest(), 'Wrong source image.'
+    assert recipe['size'] == [width, height], 'Wrong image dimensions.'
+    # Interior openings cannot be reached from the outside. Seed only the
+    # visually reviewed pockets, never all neutral pixels (metal/stone/fabric).
+    for region in recipe['regions']:
+        # Tiny disconnected remnants inside reviewed openings need their own
+        # seeds. The tolerance is local: never key out grey across the atlas.
+        for left, top, right, bottom in region.get('openings', []):
+            assert 0 <= left <= right < width and 0 <= top <= bottom < height
+            for y in range(top, bottom + 1):
+                for x in range(left, right + 1):
+                    if any(l <= x <= r and t <= y <= b for l, t, r, b in region.get('preserve', [])):
+                        continue
+                    i = y*width+x
+                    rgb = pixels[i*channels:i*channels+3]
+                    if min(rgb) >= 112 and max(rgb)-min(rgb) <= region.get('tolerance', 8):
+                        candidate[i] = 1
+                        visit(i)
+        for x, y in region['points']:
+            assert 0 <= x < width and 0 <= y < height, region['name']
+            assert candidate[y*width+x], f"Not neutral background: {region['name']} ({x}, {y})"
+            visit(y*width+x)
 while queue:
     i = queue.popleft()
     if i % width:

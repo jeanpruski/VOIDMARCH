@@ -95,6 +95,27 @@ export function Cost({ cost, wallet }: { cost: Partial<Wallet>; wallet?: Wallet 
     </span>
   );
 }
+export function StorageHint({
+  cost,
+  wallet,
+  capacity,
+}: {
+  cost: Partial<Wallet>;
+  wallet: Wallet;
+  capacity: number;
+}) {
+  const needed = Math.max(
+    0,
+    ...RESOURCES.filter((r) => (cost[r] ?? 0) > wallet[r]).map((r) => cost[r] ?? 0),
+  );
+  if (needed <= capacity) return null;
+  return (
+    <p className="catalog-unavailable">
+      Stockage insuffisant pour économiser ce coût : {format(capacity)} par ressource, contre{' '}
+      {format(needed)} nécessaires. Construisez ou améliorez vos entrepôts, greniers ou gares.
+    </p>
+  );
+}
 export function Modal({
   title,
   eyebrow,
@@ -391,16 +412,18 @@ export function Miniature({
   frame,
   size = 76,
   turretLevel,
+  gate = false,
 }: {
   heroAppearance?: HeroAppearance;
   frame: number;
   size?: number;
   turretLevel?: import('@voidmarch/config').TurretLevel;
+  gate?: boolean;
 }) {
   if (heroAppearance) return <HeroPortrait appearance={heroAppearance} size={size} />;
   const wall = WALL_KINDS[frame - 84];
   return wall ? (
-    <WallMiniature wall={wall} size={size} turretLevel={turretLevel} />
+    <WallMiniature wall={wall} size={size} turretLevel={turretLevel} gate={gate} />
   ) : (
     <AtlasMiniature frame={frame} size={size} />
   );
@@ -409,10 +432,12 @@ function WallMiniature({
   wall,
   size,
   turretLevel,
+  gate,
 }: {
   wall: WallKind;
   size: number;
   turretLevel?: import('@voidmarch/config').TurretLevel;
+  gate: boolean;
 }) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -433,7 +458,9 @@ function WallMiniature({
       style={{
         width: size,
         height: size,
-        backgroundImage: ready ? `url(${wallImageUrl(wall, 9, turretLevel)})` : 'none',
+        backgroundImage: ready
+          ? `url(${wallImageUrl(wall, 9, turretLevel, gate ? 0 : undefined)})`
+          : 'none',
         backgroundSize: '100% 100%',
       }}
     />

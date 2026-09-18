@@ -116,6 +116,10 @@ export const SPRITE_ATLASES: Record<string, { columns: number; rows: number }> =
 const canvases = new Map<string, HTMLCanvasElement>();
 const urls = new Map<string, Promise<string>>();
 
+/** Shared by map sprites and menu thumbnails; a new filename avoids stale PNG caches. */
+export const spriteAssetUrl = (name: string) =>
+  `/assets/${name === 'expansion' ? 'expansion-clean' : name}.png`;
+
 /** Common rendering source for Phaser and the HTML thumbnails. Originals stay intact. */
 export function normalizedAtlas(name: string, source: HTMLImageElement): HTMLCanvasElement {
   const cached = canvases.get(name);
@@ -166,7 +170,7 @@ export function miniatureAtlasUrl(name: string): Promise<string> {
       let canvas = canvases.get(name);
       if (!canvas) {
         const source = new Image();
-        source.src = `/assets/${name}.png`;
+        source.src = spriteAssetUrl(name);
         await source.decode();
         canvas = normalizedAtlas(name, source);
       }

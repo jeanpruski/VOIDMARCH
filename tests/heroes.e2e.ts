@@ -163,9 +163,11 @@ test('héros : ancien compte, accès direct, pouvoirs et protection des versions
     .toBe(true);
   await page.screenshot({ path: 'test-results/hero-world-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  // Keep the transport's subsequent snapshots in convalescence too; camera
+  // subscriptions must not restore the old, healthy fixture halfway through.
+  delete state.units[hero.id];
+  state.realms[id].hero = { ...state.realms[id].hero!, recoverAt: Date.now() + 60_000 };
   const recovering = view();
-  recovering.units = recovering.units.filter((u) => u.kind !== 'HERO');
-  recovering.player.hero = { ...recovering.player.hero!, recoverAt: Date.now() + 60_000 };
   await page.evaluate((w) => (window as any).fixturePushSnapshot(w), recovering);
   await page.getByRole('button', { name: 'Aller à mon héros', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Convalescence');

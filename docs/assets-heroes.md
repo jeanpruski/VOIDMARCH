@@ -1,5 +1,9 @@
 # Figurines modulaires des héros
 
+## Proportions — version 2
+
+Le rendu commun à la carte, au portrait et au créateur allonge le bas du corps de 96 à 112 pixels et remonte le torse. Les jambes visibles sous la tenue passent de 57 à 73 pixels environ, sans déplacer les pieds sur le socle. Les quinze variantes utilisent ces mêmes ancrages ; les planches, couleurs et choix des joueurs sont conservés. La clé des textures inclut cette version pour éviter de réutiliser une ancienne composition.
+
 ## Socle peint — version 2
 
 Fichier final : `apps/web/public/assets/hero-base-v2.png`.
