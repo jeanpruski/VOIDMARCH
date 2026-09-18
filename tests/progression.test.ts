@@ -31,9 +31,12 @@ const unit = (kind: Unit['kind'], trainingBonus = 0): Unit => ({
   trainingBonus,
 });
 describe('progression économique et militaire', () => {
-  it('distingue cinq fois la puissance de base, huit fois après entraînement complet', () => {
-    expect(UNITS.MAUSOLEUM_TANK.attack / UNITS.INFANTRY.attack).toBe(5);
-    expect(unitStats(unit('MAUSOLEUM_TANK', 60)).attack / UNITS.INFANTRY.attack).toBe(8);
+  it('conserve une élite cinq à huit fois plus puissante après entraînement complet', () => {
+    const ratio =
+      unitStats(unit('MAUSOLEUM_TANK', trainingBonusAt('ATOMIC_FOUNDRY', 5))).attack /
+      UNITS.INFANTRY.attack;
+    expect(ratio).toBeGreaterThanOrEqual(5);
+    expect(ratio).toBeLessThanOrEqual(8);
     expect(UNITS.RIFLEMAN.attack).toBeGreaterThan(UNITS.INFANTRY.attack);
     expect(UNITS.TANK.attack).toBeGreaterThan(UNITS.RIFLEMAN.attack);
     expect(UNITS.MAUSOLEUM_TANK.hp).toBeGreaterThan(UNITS.TANK.hp);
@@ -59,15 +62,15 @@ describe('progression économique et militaire', () => {
     expect(BUILDINGS.QUARRY.cost.STONE).toBe(0);
     expect(BUILDINGS.QUARRY.cost.IRON).toBe(0);
     expect(BUILDINGS.MINE.cost.IRON).toBe(0);
-    expect(productionMultiplier('MINE', 2)).toBe(1.6);
-    expect(productionMultiplier('MINE', 3)).toBe(2.4);
+    expect(productionMultiplier('MINE', 2)).toBe(1.8);
+    expect(productionMultiplier('MINE', 3)).toBe(3);
     const s = createState('income-progression', now),
       r = addPlayer(s, 'a', 'Mineurs', 'ASH', now);
     const mine = addBuilding(s, r, { q: 1, r: 0 }, 'MINE', now);
     writeTile(s, mine, { terrain: 'HILL' });
     expect(income(s, 'a').IRON).toBe(5);
     mine.level = 3;
-    expect(income(s, 'a').IRON).toBe(12);
+    expect(income(s, 'a').IRON).toBe(15);
     writeTile(s, mine, { terrain: 'PLAIN' });
     expect(income(s, 'a').IRON).toBe(0);
   });

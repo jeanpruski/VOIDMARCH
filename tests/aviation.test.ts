@@ -119,7 +119,9 @@ describe('aviation et défense antiaérienne', () => {
       const attacker = unit(kind);
       const damage = estimateDamage(attacker, target, { q: 0, r: 0, terrain: 'PLAIN' });
       expect(damage.min).toBe(
-        UNITS[kind].attack + UNIT_PROFILES[kind].antiAir! - UNITS.RECON_PLANE.defense / 2 - 1,
+        Math.round(
+          UNITS[kind].attack + UNIT_PROFILES[kind].antiAir! - UNITS.RECON_PLANE.defense / 2,
+        ) - 1,
       );
     }
     expect(

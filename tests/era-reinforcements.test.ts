@@ -108,17 +108,30 @@ describe('renforts des cinq époques', () => {
     for (const kind of ['HALBERDIER', 'IMPERIAL_PIKEMAN'] as const) {
       const target = unit('LIGHT_CAVALRY');
       expect(estimateDamage(unit(kind), target, tile).min).toBe(
-        UNITS[kind].attack + UNIT_PROFILES[kind].antiCavalry! - UNITS.LIGHT_CAVALRY.defense - 1,
+        Math.round(
+          UNITS[kind].attack + UNIT_PROFILES[kind].antiCavalry! - UNITS.LIGHT_CAVALRY.defense,
+        ) - 1,
       );
     }
     const hunter = unit('CASEMATE_HUNTER'),
       tank = unit('REACTOR_DREADNOUGHT');
-    expect(estimateDamage(hunter, tank, tile).min).toBe(Math.round(25 + 34 - 24 * 0.25) - 1);
+    expect(estimateDamage(hunter, tank, tile).min).toBe(
+      Math.round(
+        UNITS.CASEMATE_HUNTER.attack +
+          UNIT_PROFILES.CASEMATE_HUNTER.antiArmor! -
+          UNITS.REACTOR_DREADNOUGHT.defense * 0.25,
+      ) - 1,
+    );
     hunter.trainingBonus = 100;
-    expect(estimateDamage(hunter, tank, tile).min).toBe(Math.round(50 + 68 - 24 * 0.25) - 1);
+    expect(estimateDamage(hunter, tank, tile).min).toBe(
+      Math.round(
+        (UNITS.CASEMATE_HUNTER.attack + UNIT_PROFILES.CASEMATE_HUNTER.antiArmor!) * 2 -
+          UNITS.REACTOR_DREADNOUGHT.defense * 0.25,
+      ) - 1,
+    );
     expect(
       estimateDamage(unit('GAMMA_INTERCEPTOR'), unit('DIVE_BOMBER'), tile).min,
-    ).toBeGreaterThan(80);
+    ).toBeGreaterThan(UNITS.GAMMA_INTERCEPTOR.attack * 1.5);
   });
   it('respecte mobilité, coût des sièges et trajectoires des armes', () => {
     for (const kind of kinds) {
@@ -144,6 +157,6 @@ describe('renforts des cinq époques', () => {
       expect(average).toBeGreaterThan(previous * 2);
       previous = average;
     }
-    expect(UNITS.REACTOR_DREADNOUGHT.attack).toBeGreaterThan(UNITS.CASEMATE_HUNTER.attack * 2);
+    expect(UNITS.REACTOR_DREADNOUGHT.attack).toBeGreaterThan(UNITS.CASEMATE_HUNTER.attack * 1.4);
   });
 });

@@ -41,16 +41,14 @@ describe('cinq niveaux et époques', () => {
     }
     expect(buildingUpgrade(kind, 5)).toBeNull();
   });
-  it('le haut niveau renforce les producteurs et ajoute un stockage local sans changer les anciens bonus', () => {
-    expect([1, 2, 3, 4, 5].map((l) => productionMultiplier('MINE', l))).toEqual([
-      1, 1.6, 2.4, 3.6, 5.2,
-    ]);
+  it('le haut niveau renforce les producteurs et ajoute un stockage local à chaque étape', () => {
+    expect([1, 2, 3, 4, 5].map((l) => productionMultiplier('MINE', l))).toEqual([1, 1.8, 3, 5, 8]);
     const s = createState('ages', now),
       r = addPlayer(s, 'p', 'Âges', 'MASK', now);
     const mine = addBuilding(s, r, { q: 1, r: 0 }, 'MINE', now);
     writeTile(s, mine, { terrain: 'HILL' });
     mine.level = 5;
-    expect(income(s, r.id).IRON).toBe(26);
+    expect(income(s, r.id).IRON).toBe(40);
     expect(storageBonus('MINE', 5)).toBe(8000);
     const saved = structuredClone(s);
     expect(migrateProgression(s, now)).toBe(false);

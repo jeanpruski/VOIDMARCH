@@ -1,5 +1,7 @@
 # Économie v0.5 — investissements et fin de progression
 
+> Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
+
 Les améliorations prélevaient déjà les ressources côté serveur. Ce changement augmente leurs prix et rend le débit explicite dans la fenêtre de confirmation : coût, stock actuel, manque éventuel et stock après paiement. L’affichage anticipé et le serveur partagent le même devis. Les PA illimités ne dispensent jamais du paiement en ressources.
 
 ## Prix de construction et recrutement

@@ -402,7 +402,7 @@ export const ERA_REINFORCEMENT_PROFILES = {
     mechanical: true,
     siege: true,
     population: 8,
-    role: 'Canon à poudre en tir tendu : 44 attaque contre les bâtiments, portée 4. Tir : 2 PA ; le premier mur intercepte le boulet.',
+    role: 'Canon à poudre en tir tendu : attaque renforcée contre les bâtiments, portée 4. Tir : 2 PA ; le premier mur intercepte le boulet.',
   },
   WAR_BALLOON: {
     recruitAt: ['WORKSHOP'],
@@ -420,7 +420,7 @@ export const ERA_REINFORCEMENT_PROFILES = {
     minRecruitLevel: 3,
     siege: true,
     population: 6,
-    role: 'Charges explosives lancées en cloche : 48 attaque contre les bâtiments à 2 cases. Attaque : 2 PA.',
+    role: 'Charges explosives lancées en cloche : attaque renforcée contre les bâtiments à 2 cases. Attaque : 2 PA.',
   },
   ASH_FLAMETHROWER: {
     recruitAt: ['ARSENAL'],
@@ -447,7 +447,7 @@ export const ERA_REINFORCEMENT_PROFILES = {
     mechanical: true,
     siege: true,
     population: 12,
-    role: 'Bombardier en piqué : 53 attaque contre les bâtiments. Survole les remparts, sans capture ; attaque : 2 PA.',
+    role: 'Bombardier en piqué : attaque renforcée contre les bâtiments. Survole les remparts, sans capture ; attaque : 2 PA.',
   },
   RAIL_SNIPER: {
     recruitAt: ['ARSENAL'],
@@ -472,7 +472,7 @@ export const ERA_REINFORCEMENT_PROFILES = {
     armored: true,
     siege: true,
     population: 16,
-    role: 'Missiles en trajectoire plongeante : portée 6, 76 attaque contre les bâtiments. Passe les remparts ; attaque : 2 PA.',
+    role: 'Missiles en trajectoire plongeante : portée 6, attaque renforcée contre les bâtiments. Passe les remparts ; attaque : 2 PA.',
   },
   NIGHT_INTERCEPTOR: {
     recruitAt: ['AERODROME'],
@@ -493,7 +493,7 @@ export const ERA_REINFORCEMENT_PROFILES = {
     radioactive: true,
     siege: true,
     population: 20,
-    role: 'Char superlourd atomique : 102 attaque contre les bâtiments, tir neutronique direct. Très lent, coûteux, vulnérable aux armes antichars. Attaque : 2 PA.',
+    role: 'Char superlourd atomique : attaque renforcée contre les bâtiments, tir neutronique direct. Très lent, coûteux, vulnérable aux armes antichars. Attaque : 2 PA.',
   },
   GAMMA_INTERCEPTOR: {
     recruitAt: ['AERODROME'],
@@ -514,7 +514,7 @@ export const ERA_REINFORCEMENT_PROFILES = {
     radioactive: true,
     siege: true,
     population: 14,
-    role: 'Siège atomique : 118 attaque contre les bâtiments à 7 cases, tir en cloche. Fragile et très lent ; attaque : 2 PA.',
+    role: 'Siège atomique : attaque renforcée contre les bâtiments à 7 cases, tir en cloche. Fragile et très lent ; attaque : 2 PA.',
   },
   REACTOR_SERAPH: {
     recruitAt: ['DRAGON_ROOST'],

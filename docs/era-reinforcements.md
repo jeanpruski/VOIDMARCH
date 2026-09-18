@@ -1,5 +1,7 @@
 # Renforts des cinq époques
 
+> Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
+
 20 nouvelles unités, quatre par époque, ajoutées aux 91 unités précédentes : 111 types au total. Les anciennes recrues et leurs accès sont conservés. Les nouveaux modèles utilisent les bâtiments existants, au niveau minimal de leur époque (1 à 5), plus leurs prérequis industriels. Une infrastructure possédée ne permet pas de contourner le niveau du bâtiment recruteur.
 
 Le catalogue indique l’époque, le niveau, les infrastructures, le coût, l’entretien, la population mobilisée et les statistiques avec entraînement. Les unités étrangères au bâtiment sélectionné restent cachées.

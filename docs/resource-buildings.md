@@ -1,5 +1,7 @@
 # Exploitations de bois, pierre et fer
 
+> Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
+
 Six bâtiments supplémentaires : trois producteurs par matériau en comptant le bâtiment de base. Avec la nouvelle mine d’or : 59 bâtiments, dont deux évolutions de remparts.
 
 | Ressource | Base | Industrie | Occulte avancé |

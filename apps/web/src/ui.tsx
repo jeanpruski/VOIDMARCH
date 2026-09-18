@@ -128,6 +128,7 @@ export function Modal({
   onClose,
   children,
   wide = false,
+  className = '',
 }: {
   title: string;
   eyebrow?: string;
@@ -135,6 +136,7 @@ export function Modal({
   onClose?: () => void;
   children: ReactNode;
   wide?: boolean;
+  className?: string;
 }) {
   const dialog = useRef<HTMLElement>(null);
   const close = useRef(onClose);
@@ -195,7 +197,7 @@ export function Modal({
       <section
         ref={dialog}
         tabIndex={-1}
-        className={`modal ${wide ? 'wide' : ''}`}
+        className={`modal ${wide ? 'wide' : ''} ${className}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}

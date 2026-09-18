@@ -60,7 +60,7 @@ La [direction artistique actualisée](docs/direction-artistique-v02.md) mêle ch
 
 Construire atelier et forge, puis caserne et arsenal ouvre les armes à feu. Le garage ouvre les motos ; raffinerie et usine ouvrent les blindés. Le laboratoire et la rampe ouvrent les fusées. Les panneaux affichent chaque prérequis et permettent une recherche par nom. Les véhicules se réparent avec or et fer, les guérisseuses soignent les unités vivantes. Une carrière assure la production de pierre et les onglets trient les catalogues par rôle. La raffinerie utilise les ressources existantes ; il n’y a pas de jauge de carburant distincte.
 
-Un [audit reproductible des coûts, productions et de la mobilisation](docs/balance-audit.md) détaille le catalogue actuel et les limites de la validation.
+Un [audit reproductible des coûts, productions et de la mobilisation](docs/balance-audit.md) détaille le catalogue actuel et les limites de la validation. Les [choix d’équilibrage v0.7](docs/balance-v07.md) sont accompagnés de [simulations économiques et militaires](docs/balance-simulations.md).
 
 ## Architecture
 

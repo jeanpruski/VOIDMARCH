@@ -1,5 +1,7 @@
 # Progression v0.4 — économie et puissance militaire
 
+> Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
+
 Historique : les tarifs et le stockage de cette version sont remplacés par [l’économie v0.5](economy-v05.md). Les statistiques de combat, rendements et bonus d’entraînement restent valables.
 
 Choix du joueur : un écart marqué, d’environ cinq à huit fois la puissance d’une unité de base pour les meilleures unités, avec des contres accessibles. Les 81 unités et les 51 bâtiments existants ont été revus ; aucun nouveau système de jeu n’est ajouté par ce rééquilibrage.

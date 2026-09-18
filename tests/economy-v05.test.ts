@@ -47,8 +47,8 @@ describe('économie v0.5 : dépenses et accès au très haut niveau', () => {
     expect(BUILDINGS.GLOCKE_COMPLEX.cost.GOLD).toBe(33000);
     expect(UNITS.GLOCKE_APOCALYPSE.cost.GOLD).toBe(57000);
     expect(UNITS.GLOCKE_APOCALYPSE.cost.IRON).toBe(36000);
-    expect(buildingUpgrade('GLOCKE_COMPLEX', 1)?.cost.GOLD).toBe(82500);
-    expect(buildingUpgrade('GLOCKE_COMPLEX', 2)?.cost.GOLD).toBe(165000);
+    expect(buildingUpgrade('GLOCKE_COMPLEX', 1)?.cost.GOLD).toBe(66000);
+    expect(buildingUpgrade('GLOCKE_COMPLEX', 2)?.cost.GOLD).toBe(132000);
   });
 
   it.each(upgrades)(

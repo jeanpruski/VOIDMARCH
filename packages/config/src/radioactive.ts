@@ -463,7 +463,7 @@ export const RADIOACTIVE_PROFILES = {
     recruitAt: ['WORKSHOP'],
     requires: ['NUCLEAR_REACTOR'],
     siege: true,
-    role: 'Démolit les fortifications avec une attaque de bâtiment de 28 ; tir à 3 cases, 2 PA. Ne construit pas.',
+    role: 'Démolit les fortifications avec de lourds dégâts de siège ; tir à 3 cases, 2 PA. Ne construit pas.',
   },
   PALE_EXECUTIONER: {
     radioactive: true,
@@ -577,7 +577,7 @@ export const RADIOACTIVE_PROFILES = {
     requires: ['NUCLEAR_REACTOR'],
     mechanical: true,
     siege: true,
-    role: 'Side-car lance-fusées : attaque 30 contre les bâtiments, portée 4 ; attaque à 2 PA.',
+    role: 'Side-car lance-fusées : attaque renforcée contre les bâtiments, portée 4 ; attaque à 2 PA.',
   },
   RADIUM_SCOUT_CAR: {
     radioactive: true,
@@ -634,7 +634,7 @@ export const RADIOACTIVE_PROFILES = {
     mechanical: true,
     armored: true,
     siege: true,
-    role: 'Batterie de siège : attaque 40 contre les bâtiments à 6 cases, 2 PA ; mobilité réduite.',
+    role: 'Batterie de siège : attaque renforcée contre les bâtiments à 6 cases, 2 PA ; mobilité réduite.',
   },
   RADIUM_RECON: {
     radioactive: true,
@@ -683,7 +683,7 @@ export const RADIOACTIVE_PROFILES = {
     mechanical: true,
     flying: true,
     siege: true,
-    role: 'Bombardement lourd : attaque 36 contre les bâtiments, portée 4, 2 PA. Survole les terrains et remparts, sans capture.',
+    role: 'Bombardement lourd : attaque renforcée contre les bâtiments, portée 4, 2 PA. Survole les terrains et remparts, sans capture.',
   },
   APOCALYPSE_WING: {
     radioactive: true,
@@ -693,7 +693,7 @@ export const RADIOACTIVE_PROFILES = {
     mechanical: true,
     flying: true,
     siege: true,
-    role: 'Aile volante de siège : attaque 44 contre les bâtiments à 5 cases, 2 PA ; coût et entretien extrêmes. Survole les terrains et remparts, sans capture.',
+    role: 'Aile volante de siège : attaque renforcée contre les bâtiments à 5 cases, 2 PA ; coût et entretien extrêmes. Survole les terrains et remparts, sans capture.',
   },
   RADIUM_GYRO: {
     radioactive: true,
@@ -750,7 +750,7 @@ export const RADIOACTIVE_PROFILES = {
     mechanical: true,
     flying: true,
     siege: true,
-    role: 'Double rotor de siège : attaque 39 contre les bâtiments, portée 4, 2 PA. Survole les terrains et remparts, sans capture.',
+    role: 'Double rotor de siège : attaque renforcée contre les bâtiments, portée 4, 2 PA. Survole les terrains et remparts, sans capture.',
   },
 } satisfies Record<keyof typeof RADIOACTIVE_UNITS, UnitProfile>;
 

@@ -1,5 +1,7 @@
 # Division atomique
 
+> Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
+
 36 nouvelles unités et 4 bâtiments : le catalogue compte désormais 81 unités et 51 bâtiments.
 
 La direction artistique mélange figurines sur socles, armements de la Seconde Guerre mondiale, chevalerie occulte et tubes au radium vert. Le thème radioactif se traduit par des unités d’élite ; il n’ajoute pas de contamination des terrains ni de nouvelle ressource.

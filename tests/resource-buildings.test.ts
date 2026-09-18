@@ -72,7 +72,7 @@ describe('exploitations de ressources et mine d’or', () => {
       const b = addBuilding(s, r, p, kind, now);
       for (const terrain of BUILDINGS[kind].terrains) {
         writeTile(s, p, { terrain: terrain as Terrain });
-        for (const [i, multiplier] of [1, 1.6, 2.4].entries()) {
+        for (const [i, multiplier] of [1, 1.8, 3].entries()) {
           b.level = i + 1;
           expect(income(s, r.id)[resource] - baseline).toBeCloseTo(rate * multiplier);
         }

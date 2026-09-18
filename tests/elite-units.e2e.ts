@@ -80,7 +80,7 @@ test('les élites filtrées par univers exigent le niveau 5 puis se recrutent', 
   }, b);
   await expect(page.locator('.selection-panel h2')).toHaveText('Arsenal');
   await page.getByRole('button', { name: 'Recruter', exact: true }).click();
-  await page.getByRole('button', { name: 'Dynasties du Soleil noir', exact: true }).click();
+  await page.getByLabel('Univers', { exact: true }).selectOption('solar');
   await expect(page.locator('.catalog article')).toHaveCount(3);
   await expect(page.locator('.catalog')).not.toContainText('Rônin chromé');
   const sapper = page
@@ -99,6 +99,7 @@ test('les élites filtrées par univers exigent le niveau 5 puis se recrutent', 
     .click();
   await expect.poll(() => state.buildings[b.id].level).toBe(5);
   await page.getByRole('button', { name: 'Recruter', exact: true }).click();
+  await page.getByLabel('Univers', { exact: true }).selectOption('solar');
   await expect(sapper).toContainText('Prêt à recruter');
   await expect(sapper.locator('.miniature')).not.toHaveCSS('background-image', 'none');
   await sapper.getByRole('button', { name: 'Recruter · 1 PA' }).click();
@@ -107,7 +108,7 @@ test('les élites filtrées par univers exigent le niveau 5 puis se recrutent', 
     .toBe(1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Recruter', exact: true }).click();
-  await page.getByRole('button', { name: 'Shogunat néon', exact: true }).click();
+  await page.getByLabel('Univers', { exact: true }).selectOption('neon');
   await expect(page.locator('.catalog article')).toHaveCount(3);
   await expect(page.locator('.catalog')).toContainText('Rônin chromé');
   await page.screenshot({ path: 'test-results/elite-recruitment.png' });

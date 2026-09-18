@@ -1,3 +1,4 @@
+import { CatalogToolbar, CatalogDetails, useCatalogPage } from './CatalogBrowser';
 import { UNIT_FAMILIES, unitUniverse } from '@voidmarch/config';
 import { constructionSiteReason } from './construction';
 import { DiplomacyHub } from './Strategy';
@@ -115,6 +116,7 @@ export function Panels() {
   return (
     <Modal
       title={titles[panel]}
+      className={['build', 'recruit'].includes(panel) ? 'catalog-modal' : undefined}
       toolbar={['build', 'recruit'].includes(panel) ? <CatalogResources /> : undefined}
       wide={['trade', 'economy', 'build', 'recruit', 'rank'].includes(panel)}
     >
@@ -939,6 +941,9 @@ function Rank() {
 }
 function Build() {
   const [query, setQuery] = useState('');
+  const [readyOnly, setReadyOnly] = useState(false);
+  const [terrainOnly, setTerrainOnly] = useState(false);
+  const [sort, setSort] = useState('progression');
   const [hideOwned, setHideOwned] = useState(false);
   const [resource, setResource] = useState<Resource | 'ALL'>('ALL');
   const [category, setCategory] = useState<BuildingTab>('Tous');
@@ -960,25 +965,161 @@ function Build() {
   const buildable = (
     Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][]
   ).filter(([kind]) => isBuildable(kind));
-  const catalogue = buildable
+  const quotes = new Map(
+    buildable.map(([kind, b]) => {
+      const cost = Object.fromEntries(
+        Object.entries(b.cost).map(([k, v]) => [
+          k,
+          Math.ceil(v * (w.player.faction === 'ASH' ? 0.9 : 1)),
+        ]),
+      );
+      const missing = (BUILDING_REQUIREMENTS[kind] ?? []).find(
+        (k) => !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
+      );
+      const reason =
+        siteReason ||
+        (!tile?.terrain || !b.terrains.includes(tile.terrain)
+          ? 'Terrain incompatible'
+          : missing
+            ? `${BUILDINGS[missing].name} nécessaire`
+            : !w.player.unlimitedAP && w.player.ap < 1
+              ? '1 PA nécessaire'
+              : !canAfford(w.player.wallet, cost)
+                ? 'Ressources insuffisantes'
+                : '');
+
+      return [kind, { cost, reason }] as const;
+    }),
+  );
+  const reset = () => {
+    setQuery('');
+    setReadyOnly(false);
+    setTerrainOnly(false);
+    setHideOwned(false);
+    setResource('ALL');
+    setCategory('Tous');
+    setSort('progression');
+  };
+  const matching = buildable
     .filter(([kind]) => !hideOwned || !ownedCounts[kind])
     .filter(([kind]) => category === 'Tous' || BUILDING_CATEGORY[kind] === category)
     .filter(([, b]) => resource === 'ALL' || ((b.production as Partial<Wallet>)[resource] ?? 0) > 0)
-    .filter(([, b]) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+    .filter(([kind, b]) =>
+      matchesCollectionSearch(
+        query,
+        b.name,
+        BUILDING_ROLES[kind],
+        ...RESOURCES.filter((r) => ((b.production as Partial<Wallet>)[r] ?? 0) > 0).map(
+          (r) => RESOURCE_NAMES[r],
+        ),
+      ),
+    )
+    .filter(([, b]) => !terrainOnly || (!!tile?.terrain && b.terrains.includes(tile.terrain)))
     .sort(
       ([a], [b]) =>
         Number(b === 'WOOD_WALL') - Number(a === 'WOOD_WALL') ||
-        compareBuildings(a, b, tile?.terrain),
+        Number(!!tile?.terrain && BUILDINGS[b].terrains.includes(tile.terrain)) -
+          Number(!!tile?.terrain && BUILDINGS[a].terrains.includes(tile.terrain)) ||
+        (sort === 'cost'
+          ? Object.values(quotes.get(a)!.cost).reduce((x, y) => x + y, 0) -
+            Object.values(quotes.get(b)!.cost).reduce((x, y) => x + y, 0)
+          : sort === 'name'
+            ? BUILDINGS[a].name.localeCompare(BUILDINGS[b].name, 'fr')
+            : compareBuildings(a, b, tile?.terrain)),
     );
+  const available = matching.filter(([kind]) => !quotes.get(kind)!.reason);
+  const catalogue = readyOnly ? available : matching;
+  const pagination = useCatalogPage(
+    catalogue,
+    JSON.stringify([
+      query,
+      hideOwned,
+      resource,
+      category,
+      readyOnly,
+      terrainOnly,
+      sort,
+      tile?.q,
+      tile?.r,
+    ]),
+  );
   return (
     <>
-      <p className="panel-intro">
-        {tile?.terrain ? `${TERRAINS[tile.terrain].name} · Hexagone ${tile.q}, ${tile.r}. ` : ''}Un
-        bâtiment par hexagone. Extension possible à 3 cases d’un bâtiment avec un bâtisseur près du
-        chantier. {Object.keys(BUILDINGS).length} types de bâtiments, dont 2 évolutions de remparts.
-        Une enceinte fermée revendique les cases neutres à l’intérieur ; un bâtisseur doit rester
-        près de chaque chantier. Les routes peuvent traverser un domaine déjà bâti.
+      <p className="catalog-context">
+        {tile?.terrain
+          ? `${TERRAINS[tile.terrain].name} · ${tile.q}, ${tile.r}`
+          : 'Sélectionnez un terrain'}{' '}
+        · Construction : 1 PA
       </p>
+      <CatalogToolbar
+        query={query}
+        onQuery={setQuery}
+        available={available.length}
+        total={buildable.length}
+        count={catalogue.length}
+        readyOnly={readyOnly}
+        onReadyOnly={setReadyOnly}
+        onReset={reset}
+        pagination={pagination}
+      >
+        <label>
+          Type
+          <select
+            aria-label="Type"
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value as BuildingTab);
+              setResource('ALL');
+            }}
+          >
+            {BUILDING_TABS.map((tab) => (
+              <option key={tab}>{tab}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Production
+          <select
+            aria-label="Production"
+            value={resource}
+            onChange={(e) => {
+              setResource(e.target.value as Resource | 'ALL');
+              setCategory('Tous');
+            }}
+          >
+            <option value="ALL">Toutes les ressources</option>
+            {RESOURCES.map((r) => (
+              <option key={r} value={r}>
+                {RESOURCE_NAMES[r]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Trier par
+          <select aria-label="Trier par" value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option value="progression">Progression</option>
+            <option value="cost">Coût total croissant</option>
+            <option value="name">Nom</option>
+          </select>
+        </label>
+        <label className="catalog-check">
+          <input
+            type="checkbox"
+            checked={terrainOnly}
+            onChange={(e) => setTerrainOnly(e.target.checked)}
+          />{' '}
+          Terrain compatible
+        </label>
+        <label className="catalog-check">
+          <input
+            type="checkbox"
+            checked={hideOwned}
+            onChange={(e) => setHideOwned(e.target.checked)}
+          />{' '}
+          Masquer les bâtiments déjà construits
+        </label>
+      </CatalogToolbar>
       {tile?.terrain === 'SCORCHED' && (
         <p className="form-error">
           Terres brûlées : aucune ressource ni construction, routes comprises. Un terrassier à une
@@ -987,10 +1128,6 @@ function Build() {
         </p>
       )}
       {siteReason && tile?.terrain !== 'SCORCHED' && <p className="form-error">{siteReason}</p>}
-      <p className="catalog-order-hint">
-        {resource === 'ALL' && category === 'Tous' ? 'Palissade en premier · Puis ' : ''}
-        Terrain adapté et bâtiments de base → développements avancés
-      </p>
       <ContextHelp title="Où construire et pourquoi certains bâtiments sont bloqués ?">
         <p>
           La palissade est épinglée en premier, puis les bâtiments adaptés au terrain, des bases aux
@@ -1011,80 +1148,6 @@ function Build() {
           dépassent votre stock actuel.
         </p>
       </ContextHelp>
-      <div className="catalog-tabs" role="tablist" aria-label="Types de bâtiments">
-        {BUILDING_TABS.map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={category === tab}
-            onClick={() => {
-              setCategory(tab);
-              setResource('ALL');
-            }}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-      <fieldset className="production-filters">
-        <legend>Quelle ressource voulez-vous produire ?</legend>
-        <div
-          className="catalog-tabs"
-          role="group"
-          aria-label="Filtrer les bâtiments par ressource produite"
-        >
-          <button aria-pressed={resource === 'ALL'} onClick={() => setResource('ALL')}>
-            Tout afficher
-          </button>
-          {(['GOLD', 'WOOD', 'STONE', 'IRON', 'FOOD'] as Resource[]).map((r) => {
-            const Icon = resourceIcons[r];
-            return (
-              <button
-                key={r}
-                aria-pressed={resource === r}
-                onClick={() => {
-                  setResource(r);
-                  setCategory('Tous');
-                }}
-              >
-                <Icon size={15} aria-hidden="true" /> {RESOURCE_NAMES[r]}
-                <span className="production-count">
-                  {
-                    buildable.filter(([, b]) => ((b.production as Partial<Wallet>)[r] ?? 0) > 0)
-                      .length
-                  }
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <p>
-          {resource === 'ALL'
-            ? 'Choisissez une ressource pour voir tous les bâtiments qui en produisent, quelle que soit leur catégorie.'
-            : `Producteurs de ${RESOURCE_NAMES[resource].toLowerCase()} · terrains compatibles en premier. Les gains affichés sont bruts, avant entretien.`}
-        </p>
-      </fieldset>
-      <div className="catalog-tabs catalog-ownership-filter">
-        <button aria-pressed={hideOwned} onClick={() => setHideOwned((hidden) => !hidden)}>
-          {hideOwned
-            ? 'Afficher aussi les bâtiments déjà construits'
-            : 'Masquer les bâtiments déjà construits'}
-        </button>
-      </div>
-      <label className="catalog-search">
-        Rechercher dans le catalogue
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Nom d’une unité ou d’un bâtiment…"
-        />
-      </label>
-      <p className="catalog-order-hint" role="status">
-        {catalogue.length} bâtiment{catalogue.length > 1 ? 's' : ''} affiché
-        {catalogue.length > 1 ? 's' : ''}
-        {hideOwned && ' · Types absents de votre royaume uniquement'}
-      </p>
       {!catalogue.length && (
         <p className="empty-line">
           {hideOwned
@@ -1092,29 +1155,9 @@ function Build() {
             : 'Aucun bâtiment ne correspond. Essayez une autre ressource ou effacez la recherche.'}
         </p>
       )}
-      <div className="catalog">
-        {catalogue.map(([kind, b]) => {
-          const cost = Object.fromEntries(
-            Object.entries(b.cost).map(([k, v]) => [
-              k,
-              Math.ceil(v * (w.player.faction === 'ASH' ? 0.9 : 1)),
-            ]),
-          );
-          const missing = (BUILDING_REQUIREMENTS[kind] ?? []).find(
-            (k) =>
-              !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
-          );
-          const reason =
-            siteReason ||
-            (!tile?.terrain || !b.terrains.includes(tile.terrain)
-              ? 'Terrain incompatible'
-              : missing
-                ? `${BUILDINGS[missing].name} nécessaire`
-                : !w.player.unlimitedAP && w.player.ap < 1
-                  ? '1 PA nécessaire'
-                  : !canAfford(w.player.wallet, cost)
-                    ? 'Ressources insuffisantes'
-                    : '');
+      <div className="catalog catalog-compact">
+        {pagination.items.map(([kind, b]) => {
+          const { cost, reason } = quotes.get(kind)!;
           const compatible = !!tile?.terrain && b.terrains.includes(tile.terrain);
           const production = productionOnTerrain(
             kind,
@@ -1122,7 +1165,7 @@ function Build() {
           );
           return (
             <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
-              <span className="catalog-status">
+              <span className={`catalog-status${reason ? ' recruitment-missing' : ''}`}>
                 {reason
                   ? tile?.terrain && b.terrains.includes(tile.terrain)
                     ? 'Terrain adapté · conditions à remplir'
@@ -1144,47 +1187,7 @@ function Build() {
                   ? 'Étape 1 · Bâtiment de base'
                   : `Étape ${buildingStage(kind) + 1} · Développement`}
               </span>
-              <div className="building-prerequisites">
-                {(BUILDING_REQUIREMENTS[kind] ?? []).length === 0 ? (
-                  <p>Aucun bâtiment préalable.</p>
-                ) : (
-                  <>
-                    <p>À construire d’abord :</p>
-                    {(BUILDING_REQUIREMENTS[kind] ?? []).map((required) => {
-                      const owned = w.tiles.some(
-                        (t) => t.building?.ownerId === w.player.id && t.building.kind === required,
-                      );
-                      return (
-                        <button
-                          key={required}
-                          className={`prerequisite-link ${owned ? 'fulfilled' : ''}`}
-                          title={`Voir ${BUILDINGS[required].name}`}
-                          onClick={() => {
-                            setCategory('Tous');
-                            setResource('ALL');
-                            setQuery(BUILDINGS[required].name);
-                            setHideOwned(false);
-                          }}
-                        >
-                          {owned ? '✓ ' : '→ '}
-                          {BUILDINGS[required].name}
-                          {owned ? ' · construit' : ''}
-                        </button>
-                      );
-                    })}
-                  </>
-                )}
-                {buildingsUnlockedBy(kind).length > 0 && (
-                  <p className="building-unlocks">
-                    Prérequis pour :{' '}
-                    {buildingsUnlockedBy(kind)
-                      .map((next) => BUILDINGS[next].name)
-                      .join(', ')}
-                    .
-                  </p>
-                )}
-              </div>
-              {BUILDING_ROLES[kind] && <p>{BUILDING_ROLES[kind]}</p>}
+              {BUILDING_ROLES[kind] && <p className="catalog-brief">{BUILDING_ROLES[kind]}</p>}
               <p className={resource !== 'ALL' ? 'production-summary' : undefined}>
                 Production{!compatible ? ' sur terrain adapté' : ''} / min :{' '}
                 {RESOURCES.filter((r) => (production[r] ?? 0) > 0).map((r, index) => (
@@ -1197,24 +1200,72 @@ function Build() {
                 ))}
                 {!RESOURCES.some((r) => (production[r] ?? 0) > 0) && 'aucune ressource directe'}.
               </p>
-              {(BUILDING_POPULATION[kind] ?? 0) > 0 && (
-                <p>Population initiale : {BUILDING_POPULATION[kind]} habitants.</p>
-              )}
-              {Object.entries(UNIT_PROFILES).some(([, p]) => p.recruitAt.includes(kind)) && (
-                <p>
-                  Forme :{' '}
-                  {Object.entries(UNIT_PROFILES)
-                    .filter(([, p]) => p.recruitAt.includes(kind))
-                    .map(([k]) => UNITS[k as UnitKind].name)
-                    .join(', ')}
-                  .
-                </p>
-              )}
-              <p>{b.terrains.map((t) => TERRAINS[t as keyof typeof TERRAINS].name).join(' · ')}</p>
               <Cost cost={cost} wallet={w.player.wallet} />
               <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
-              {reason && <p className="catalog-unavailable">{reason}</p>}
+              {reason && <p className="catalog-unavailable recruitment-missing">{reason}</p>}
 
+              <CatalogDetails>
+                <div className="building-prerequisites">
+                  {(BUILDING_REQUIREMENTS[kind] ?? []).length === 0 ? (
+                    <p>Aucun bâtiment préalable.</p>
+                  ) : (
+                    <>
+                      <p>À construire d’abord :</p>
+                      {(BUILDING_REQUIREMENTS[kind] ?? []).map((required) => {
+                        const owned = w.tiles.some(
+                          (t) =>
+                            t.building?.ownerId === w.player.id && t.building.kind === required,
+                        );
+                        return (
+                          <button
+                            key={required}
+                            className={`prerequisite-link ${owned ? 'fulfilled' : ''}`}
+                            title={`Voir ${BUILDINGS[required].name}`}
+                            onClick={() => {
+                              setCategory('Tous');
+                              setReadyOnly(false);
+                              setTerrainOnly(false);
+                              setResource('ALL');
+                              setQuery(BUILDINGS[required].name);
+                              setHideOwned(false);
+                            }}
+                          >
+                            {owned ? '✓ ' : '→ '}
+                            {BUILDINGS[required].name}
+                            {owned ? ' · construit' : ''}
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+                  {buildingsUnlockedBy(kind).length > 0 && (
+                    <p className="building-unlocks">
+                      Prérequis pour :{' '}
+                      {buildingsUnlockedBy(kind)
+                        .map((next) => BUILDINGS[next].name)
+                        .join(', ')}
+                      .
+                    </p>
+                  )}
+                </div>
+                <p>{BUILDING_ROLES[kind]}</p>
+                {(BUILDING_POPULATION[kind] ?? 0) > 0 && (
+                  <p>Population initiale : {BUILDING_POPULATION[kind]} habitants.</p>
+                )}
+                {Object.entries(UNIT_PROFILES).some(([, p]) => p.recruitAt.includes(kind)) && (
+                  <p>
+                    Forme :{' '}
+                    {Object.entries(UNIT_PROFILES)
+                      .filter(([, p]) => p.recruitAt.includes(kind))
+                      .map(([k]) => UNITS[k as UnitKind].name)
+                      .join(', ')}
+                    .
+                  </p>
+                )}
+                <p>
+                  {b.terrains.map((t) => TERRAINS[t as keyof typeof TERRAINS].name).join(' · ')}
+                </p>
+              </CatalogDetails>
               <button
                 className="secondary small"
                 title={reason || 'Construire'}
@@ -1259,6 +1310,9 @@ function Build() {
 function Recruit() {
   const [family, setFamily] = useState<'all' | keyof typeof UNIT_FAMILIES>('all');
   const [query, setQuery] = useState('');
+  const [readyOnly, setReadyOnly] = useState(false);
+  const [level, setLevel] = useState('all');
+  const [sort, setSort] = useState('progression');
   const [category, setCategory] = useState<UnitTab>('Toutes');
   const [atomicOnly, setAtomicOnly] = useState(false);
   const w = useGame((s) => s.world)!,
@@ -1276,64 +1330,176 @@ function Recruit() {
   );
   const atomicCount = recruits.filter(([kind]) => UNIT_PROFILES[kind].radioactive).length;
   const ownUnits = w.units.filter((u) => u.ownerId === w.player.id);
-  const ownedInfrastructure = new Set(
-    w.tiles.flatMap((t) =>
-      t.building?.ownerId === w.player.id && t.building.hp > 0 ? [t.building.kind] : [],
-    ),
+  const ownedBuildings = w.tiles.flatMap((t) =>
+    t.building?.ownerId === w.player.id && t.building.hp > 0 ? [t.building] : [],
   );
+  const ownedInfrastructure = new Set(ownedBuildings.map((b) => b.kind));
+  const bestTraining = new Map<BuildingKind, number>();
+  for (const b of ownedBuildings)
+    bestTraining.set(
+      b.kind,
+      Math.max(bestTraining.get(b.kind) ?? 0, trainingBonusAt(b.kind, b.level)),
+    );
   const capacity = Math.max(15, w.player.population);
   const mobilized = armyPopulation(ownUnits);
   const recruitReason = (kind: UnitKind) => {
     const free = kind === 'PEASANT' && !ownUnits.some((u) => u.kind === 'PEASANT');
     if (!building || building.ownerId !== w.player.id) return 'Sélectionnez votre bâtiment';
-    const requirement = recruitmentRequirement(
-      kind,
-      building,
-      w.tiles.flatMap((t) => (t.building ? [t.building] : [])),
-    );
+    const requirement = recruitmentRequirement(kind, building, ownedBuildings);
     if (requirement) return requirement;
     if (!free && mobilized + unitPopulation(kind) > capacity) return 'Population insuffisante';
     if (!free && !canAfford(w.player.wallet, UNITS[kind].cost)) return 'Ressources insuffisantes';
     if (!w.player.unlimitedAP && w.player.ap < 1) return '1 PA nécessaire';
     return '';
   };
-  const catalogue = recruits
+  const reasons = new Map(recruits.map(([kind]) => [kind, recruitReason(kind)]));
+  const trainingByKind = new Map(
+    recruits.map(([kind]) => [
+      kind,
+      UNIT_PROFILES[kind].builder
+        ? 0
+        : Math.max(0, ...UNIT_PROFILES[kind].recruitAt.map((k) => bestTraining.get(k) ?? 0)),
+    ]),
+  );
+  const reset = () => {
+    setQuery('');
+    setFamily('all');
+    setCategory('Toutes');
+    setAtomicOnly(false);
+    setReadyOnly(false);
+    setLevel('all');
+    setSort('progression');
+  };
+  const matching = recruits
     .sort(
       (a, b) =>
-        Number(!!recruitReason(a[0])) - Number(!!recruitReason(b[0])) ||
+        Number(!!reasons.get(a[0])) - Number(!!reasons.get(b[0])) ||
         Number(!canAfford(w.player.wallet, UNITS[a[0]].cost)) -
           Number(!canAfford(w.player.wallet, UNITS[b[0]].cost)) ||
-        compareRecruits(a, b),
+        (sort === 'cost'
+          ? Object.values(a[1].cost).reduce((x, y) => x + y, 0) -
+            Object.values(b[1].cost).reduce((x, y) => x + y, 0)
+          : sort === 'attack'
+            ? unitStats({ kind: b[0], trainingBonus: trainingByKind.get(b[0]) }).attack -
+              unitStats({ kind: a[0], trainingBonus: trainingByKind.get(a[0]) }).attack
+            : compareRecruits(a, b)),
     )
     .filter(([kind]) => category === 'Toutes' || UNIT_CATEGORY[kind] === category)
     .filter(([kind]) => !atomicOnly || UNIT_PROFILES[kind].radioactive)
     .filter(([kind]) => family === 'all' || unitUniverse(kind)?.family === family)
+    .filter(
+      ([kind]) => level === 'all' || (UNIT_PROFILES[kind].minRecruitLevel ?? 1) === Number(level),
+    )
     .filter(([kind, u]) =>
-      `${u.name} ${unitUniverse(kind) ? UNIT_FAMILIES[unitUniverse(kind)!.family] : ''} ${kind in UNIT_ERAS ? BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1] : ''} ${UNIT_PROFILES[kind].radioactive ? 'atomique radioactif' : ''} ${UNIT_PROFILES[kind].recruitAt.map((k) => BUILDINGS[k].name).join(' ')}`
-        .toLocaleLowerCase()
-        .includes(query.toLocaleLowerCase()),
+      matchesCollectionSearch(
+        query,
+        u.name,
+        UNIT_PROFILES[kind].role,
+        unitUniverse(kind) ? UNIT_FAMILIES[unitUniverse(kind)!.family] : '',
+        UNIT_CATEGORY[kind],
+      ),
     );
+  const available = matching.filter(([kind]) => !reasons.get(kind));
+  const catalogue = readyOnly ? available : matching;
+  const pagination = useCatalogPage(
+    catalogue,
+    JSON.stringify([query, category, atomicOnly, family, readyOnly, level, sort, building?.id]),
+  );
   return (
     <>
-      <p className="panel-intro">
+      <p className="catalog-context">
         {building
-          ? `${BUILDINGS[building.kind].name} · ${building.q}, ${building.r}`
-          : 'Sélectionnez un bâtiment de recrutement.'}{' '}
-        — {recruits.length} type{recruits.length === 1 ? '' : 's'} d’unité
-        {recruits.length === 1 ? '' : 's'} dans ce bâtiment · Mobilisation : {mobilized}/{capacity}{' '}
-        places.
+          ? `${BUILDINGS[building.kind].name} · niveau ${building.level}`
+          : 'Sélectionnez un bâtiment'}{' '}
+        · Mobilisation : {format(mobilized)}/{format(capacity)}
       </p>
-      <p className="rare-explanation">
-        ✦ À chaque recrutement : 1 % de chance d’obtenir une unité rare, avec +10 à +30 % de PV,
-        attaque et défense. Sa portée et son déplacement restent identiques.
-      </p>
-      <p className="muted">
-        Seules les unités formées dans ce bâtiment sont affichées. Les ressources et prérequis
-        manquants restent indiqués sur leur fiche.
-        {recruits.some(([kind]) => kind === 'PEASANT') &&
-          ' Si vous n’avez plus de paysan, son remplacement est gratuit.'}
-      </p>
+      <CatalogToolbar
+        query={query}
+        onQuery={setQuery}
+        available={available.length}
+        total={recruits.length}
+        count={catalogue.length}
+        readyOnly={readyOnly}
+        onReadyOnly={setReadyOnly}
+        onReset={reset}
+        pagination={pagination}
+      >
+        <label>
+          Type
+          <select
+            aria-label="Type"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as UnitTab)}
+          >
+            {tabs.map((tab) => (
+              <option key={tab}>{tab}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Univers
+          <select
+            aria-label="Univers"
+            value={family}
+            onChange={(e) => {
+              setFamily(e.target.value as typeof family);
+              setCategory('Toutes');
+              setAtomicOnly(false);
+            }}
+          >
+            <option value="all">Tous les univers</option>
+            {(Object.keys(UNIT_FAMILIES) as (keyof typeof UNIT_FAMILIES)[])
+              .filter((f) => recruits.some(([kind]) => unitUniverse(kind)?.family === f))
+              .map((f) => (
+                <option value={f} key={f}>
+                  {UNIT_FAMILIES[f]}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label>
+          Niveau requis
+          <select
+            aria-label="Niveau requis"
+            value={level}
+            onChange={(e) => setLevel(e.target.value)}
+          >
+            <option value="all">Tous les niveaux</option>
+            {[1, 2, 3, 4, 5].map((l) => (
+              <option key={l} value={l}>
+                Niveau {l}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Trier par
+          <select aria-label="Trier par" value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option value="progression">Progression</option>
+            <option value="cost">Coût total croissant</option>
+            <option value="attack">Attaque décroissante</option>
+          </select>
+        </label>
+        {atomicCount > 0 && (
+          <label className="catalog-check">
+            <input
+              type="checkbox"
+              checked={atomicOnly}
+              onChange={(e) => {
+                setAtomicOnly(e.target.checked);
+                setFamily('all');
+              }}
+            />{' '}
+            Division atomique
+          </label>
+        )}
+      </CatalogToolbar>
       <ContextHelp title="Comment choisir et former une unité ?">
+        <p>
+          Seules les unités formées dans ce bâtiment sont affichées. Le paysan est gratuit en
+          ressources si vous n’en possédez plus. Chaque recrutement coûte 1 PA. Une recrue a 1 % de
+          chance d’être rare, avec +10 à +30 % de PV, attaque et défense.
+        </p>
         <p>
           Unités recrutables immédiatement en premier, puis les autres. Dans chaque groupe : civils,
           combattants par force croissante, puis véhicules. La portée, la défense et les capacités
@@ -1349,90 +1515,16 @@ function Recruit() {
           production active.
         </p>
       </ContextHelp>
-      {recruits.some(([kind]) => unitUniverse(kind)) && (
-        <div className="catalog-tabs" role="group" aria-label="Univers des unités">
-          <button aria-pressed={family === 'all'} onClick={() => setFamily('all')}>
-            Tous les univers
-          </button>
-          {(Object.keys(UNIT_FAMILIES) as (keyof typeof UNIT_FAMILIES)[])
-            .filter((f) => recruits.some(([kind]) => unitUniverse(kind)?.family === f))
-            .map((f) => (
-              <button
-                key={f}
-                aria-pressed={family === f}
-                onClick={() => {
-                  setFamily(f);
-                  setCategory('Toutes');
-                  setAtomicOnly(false);
-                }}
-              >
-                {UNIT_FAMILIES[f]}
-              </button>
-            ))}
-        </div>
-      )}
-      {atomicCount > 0 && (
-        <label className="atomic-filter">
-          <input
-            type="checkbox"
-            checked={atomicOnly}
-            onChange={(e) => setAtomicOnly(e.target.checked)}
-          />
-          ☢ Division atomique · {atomicCount} unités d’élite
-        </label>
-      )}
-      {atomicOnly && (
-        <p className="muted">
-          Laboratoire des isotopes → Réacteur noir. Recrutez ensuite dans les bâtiments indiqués ;
-          la fonderie atomique débloque les modèles ultimes. Coûts et mobilisation élevés.
-        </p>
-      )}
-      <div className="catalog-tabs" role="tablist" aria-label="Types d’unités">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={category === tab}
-            onClick={() => setCategory(tab)}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-      <label className="catalog-search">
-        Rechercher dans le catalogue
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Nom d’une unité ou d’un bâtiment…"
-        />
-      </label>
-      <p className="catalog-order-hint" role="status">
-        {catalogue.length} unité{catalogue.length === 1 ? '' : 's'} affichée
-        {catalogue.length === 1 ? '' : 's'}
-      </p>
       {!catalogue.length && (
         <p className="empty-line">Aucune unité ne correspond à ces filtres dans ce bâtiment.</p>
       )}
-      <div className="catalog">
-        {catalogue.map(([kind, u]) => {
+      <div className="catalog catalog-compact">
+        {pagination.items.map(([kind, u]) => {
           const profile = UNIT_PROFILES[kind],
             free = kind === 'PEASANT' && !ownUnits.some((x) => x.kind === 'PEASANT');
           const cost = free ? { STONE: 0, GOLD: 0, WOOD: 0, IRON: 0, FOOD: 0 } : u.cost;
-          const reason = recruitReason(kind);
-          const training = profile.builder
-            ? 0
-            : Math.max(
-                0,
-                ...w.tiles
-                  .filter(
-                    (t) =>
-                      t.building?.ownerId === w.player.id &&
-                      profile.recruitAt.includes(t.building.kind),
-                  )
-                  .map((t) => trainingBonusAt(t.building!.kind, t.building!.level)),
-              );
+          const reason = reasons.get(kind)!;
+          const training = trainingByKind.get(kind)!;
           const trainedStats = unitStats({ kind, trainingBonus: training });
           return (
             <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
@@ -1452,75 +1544,95 @@ function Recruit() {
                 </span>
               )}
               {profile.radioactive && <span className="atomic-badge">☢ Division atomique</span>}
-              <p>{profile.role}</p>
-              {building && !profile.builder && (
-                <p>
-                  Entraînement de votre royaume : +{format(training)} % aux PV, attaque et défense.
-                </p>
-              )}
-              <p>
-                {unitPopulation(kind)} places · Entretien / min :{' '}
-                {RESOURCES.filter((resource) => unitUpkeep(kind)[resource] > 0)
-                  .map(
-                    (resource) =>
-                      `${format(unitUpkeep(kind)[resource])} ${RESOURCE_NAMES[resource].toLowerCase()}`,
-                  )
-                  .join(' · ')}
-              </p>
-              <p>
+              <p className="catalog-brief">{profile.role}</p>
+              <p className="catalog-combat-stats">
                 {format(trainedStats.hp)} PV · ATQ {format(trainedStats.attack)} · DÉF{' '}
                 {format(trainedStats.defense)}
                 <br />
                 MOUV {u.move} · VISION {u.vision} · PORTÉE {u.range}
+                <br />
+                {unitPopulation(kind)} places
+                {trainedStats.attack > 0 && ` · Attaque : ${profile.siege ? 2 : 1} PA`}
               </p>
               <Cost cost={cost} wallet={w.player.wallet} />
               <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
               {reason && <p className="catalog-unavailable recruitment-missing">{reason}</p>}
               {free && <p>Gratuit en ressources</p>}
-
-              <p>
-                Formation : {profile.recruitAt.map((k) => BUILDINGS[k].name).join(', ')}
-                {profile.minRecruitLevel && (
-                  <span
-                    className={
-                      building && building.level < profile.minRecruitLevel
-                        ? 'recruitment-missing'
-                        : undefined
-                    }
-                  >
-                    {' '}
-                    · niveau {profile.minRecruitLevel} minimum
-                  </span>
-                )}
-                .
-              </p>
-              {profile.requires.length > 0 && (
-                <p>
-                  Infrastructures :{' '}
-                  {profile.requires.map((k, index) => (
-                    <span key={k}>
-                      {index > 0 && ', '}
-                      <span
-                        className={!ownedInfrastructure.has(k) ? 'recruitment-missing' : undefined}
-                      >
-                        {BUILDINGS[k].name}
-                        {!ownedInfrastructure.has(k) && ' (manquant)'}
-                      </span>
-                    </span>
-                  ))}
-                  .
+              {profile.requires.some((k) => !ownedInfrastructure.has(k)) && (
+                <p className="recruitment-missing catalog-required">
+                  {profile.requires
+                    .filter((k) => !ownedInfrastructure.has(k))
+                    .map((k) => `${BUILDINGS[k].name} (manquant)`)
+                    .join(' · ')}
                 </p>
               )}
-              <p
-                className={
-                  !free && mobilized + unitPopulation(kind) > capacity
-                    ? 'recruitment-missing'
-                    : undefined
-                }
-              >
-                Mobilisation : {mobilized}/{capacity} places occupées, +{unitPopulation(kind)} pour
-                cette unité.
-              </p>
+
+              <CatalogDetails>
+                <p>{profile.role}</p>{' '}
+                {trainedStats.attack > 0 && (
+                  <p>Attaque contre les bâtiments : {format(trainedStats.buildingAttack)}.</p>
+                )}
+                {building && !profile.builder && (
+                  <p>
+                    Entraînement de votre royaume : +{format(training)} % aux PV, attaque et
+                    défense.
+                  </p>
+                )}
+                <p>
+                  {unitPopulation(kind)} places · Entretien / min :{' '}
+                  {RESOURCES.filter((resource) => unitUpkeep(kind)[resource] > 0)
+                    .map(
+                      (resource) =>
+                        `${format(unitUpkeep(kind)[resource])} ${RESOURCE_NAMES[resource].toLowerCase()}`,
+                    )
+                    .join(' · ')}
+                </p>
+                <p>
+                  Formation : {profile.recruitAt.map((k) => BUILDINGS[k].name).join(', ')}
+                  {profile.minRecruitLevel && (
+                    <span
+                      className={
+                        building && building.level < profile.minRecruitLevel
+                          ? 'recruitment-missing'
+                          : undefined
+                      }
+                    >
+                      {' '}
+                      · niveau {profile.minRecruitLevel} minimum
+                    </span>
+                  )}
+                  .
+                </p>
+                {profile.requires.length > 0 && (
+                  <p>
+                    Infrastructures :{' '}
+                    {profile.requires.map((k, index) => (
+                      <span key={k}>
+                        {index > 0 && ', '}
+                        <span
+                          className={
+                            !ownedInfrastructure.has(k) ? 'recruitment-missing' : undefined
+                          }
+                        >
+                          {BUILDINGS[k].name}
+                          {!ownedInfrastructure.has(k) && ' (manquant)'}
+                        </span>
+                      </span>
+                    ))}
+                    .
+                  </p>
+                )}
+                <p
+                  className={
+                    !free && mobilized + unitPopulation(kind) > capacity
+                      ? 'recruitment-missing'
+                      : undefined
+                  }
+                >
+                  Mobilisation : {mobilized}/{capacity} places occupées, +{unitPopulation(kind)}{' '}
+                  pour cette unité.
+                </p>
+              </CatalogDetails>
 
               <button
                 className="secondary small"

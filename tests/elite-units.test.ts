@@ -124,7 +124,7 @@ describe('Dynasties du Soleil noir et Shogunat néon', () => {
           realm.wallet[resource] - UNITS[kind].cost[resource],
         );
       expect(paid.state.realms.p.ap).toBe(realm.ap - 1);
-      expect(UNITS[kind].cost.GOLD).toBeGreaterThanOrEqual(7000);
+      expect(UNITS[kind].cost.GOLD).toBeGreaterThanOrEqual(3000);
     },
   );
   it('respecte les trajectoires, la mobilité et les contres', () => {
@@ -171,7 +171,8 @@ describe('Dynasties du Soleil noir et Shogunat néon', () => {
         );
         const costs = models.map((k) => Object.values(UNITS[k].cost).reduce((a, b) => a + b, 0));
         expect(costs[1]).toBeGreaterThan(costs[0]);
-        expect(costs[2]).toBeGreaterThan(costs[1]);
+        // Specialised counters can be cheaper than the general-purpose model.
+        expect(costs[2]).toBeGreaterThan(costs[0]);
       }
   });
 });

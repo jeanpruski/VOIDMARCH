@@ -1,5 +1,7 @@
 # Les cinq âges de VOIDMARCH
 
+> Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
+
 Les 54 bâtiments développables passent à cinq niveaux : 1 Fondations médiévales, 2 Empire (Renaissance / époque napoléonienne), 3 Guerre industrielle, 4 Complexe avancé, 5 Âge atomique. Les installations déjà industrielles ou atomiques affinent leur propre époque sur cinq niveaux ; elles ne redeviennent pas médiévales. Le dépôt ferroviaire commence à l’âge industriel. Les fondations campement et avant-poste conservent leur transformation en village, puis le village possède cinq niveaux.
 
 Le niveau 1 conserve l’illustration connue du joueur. Chaque bâtiment dispose d’une nouvelle planche de quatre illustrations architecturales pour ses niveaux 2 à 5 : 216 évolutions peintes, chargées à la demande. Carte, sélection, liste des villes, aperçu de combat et fenêtre d’amélioration affichent le même niveau. Cette dernière présente les deux apparences et les recrutements nouvellement débloqués.

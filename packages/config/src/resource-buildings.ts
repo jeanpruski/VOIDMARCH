@@ -5,7 +5,7 @@ export const RESOURCE_BUILDINGS = {
     hp: 130,
     capture: 3,
     cost: { GOLD: 120, WOOD: 80, STONE: 40, IRON: 35, FOOD: 0 },
-    production: { WOOD: 16 },
+    production: { WOOD: 48 },
     terrains: ['FOREST'],
   },
   MECHANIZED_QUARRY: {
@@ -13,7 +13,7 @@ export const RESOURCE_BUILDINGS = {
     hp: 160,
     capture: 3,
     cost: { GOLD: 140, WOOD: 90, STONE: 50, IRON: 45, FOOD: 0 },
-    production: { STONE: 12 },
+    production: { STONE: 36 },
     terrains: ['HILL', 'MOUNTAIN'],
   },
   INDUSTRIAL_MINE: {
@@ -21,7 +21,7 @@ export const RESOURCE_BUILDINGS = {
     hp: 150,
     capture: 3,
     cost: { GOLD: 160, WOOD: 90, STONE: 70, IRON: 50, FOOD: 0 },
-    production: { IRON: 10 },
+    production: { IRON: 30 },
     terrains: ['HILL'],
   },
   OCCULT_SAWMILL: {
@@ -29,7 +29,7 @@ export const RESOURCE_BUILDINGS = {
     hp: 240,
     capture: 4,
     cost: { GOLD: 420, WOOD: 180, STONE: 120, IRON: 140, FOOD: 0 },
-    production: { WOOD: 28 },
+    production: { WOOD: 160 },
     terrains: ['FOREST'],
   },
   RUNIC_QUARRY: {
@@ -37,7 +37,7 @@ export const RESOURCE_BUILDINGS = {
     hp: 280,
     capture: 4,
     cost: { GOLD: 460, WOOD: 180, STONE: 160, IRON: 160, FOOD: 0 },
-    production: { STONE: 21 },
+    production: { STONE: 120 },
     terrains: ['HILL', 'MOUNTAIN'],
   },
   ABYSSAL_MINE: {
@@ -45,7 +45,7 @@ export const RESOURCE_BUILDINGS = {
     hp: 260,
     capture: 4,
     cost: { GOLD: 500, WOOD: 180, STONE: 200, IRON: 180, FOOD: 0 },
-    production: { IRON: 18 },
+    production: { IRON: 100 },
     terrains: ['HILL'],
   },
 };

@@ -121,14 +121,14 @@ describe('améliorations et spécialisation', () => {
       else expect(buildingUpgrade(kind, 1)).not.toBeNull();
     },
   );
-  it('une mine de niveau 2 produit 60 % de fer supplémentaire', () => {
+  it('une mine de niveau 2 produit 80 % de fer supplémentaire', () => {
     const s = fixture();
     const mine = addBuilding(s, s.realms.player, { q: 1, r: 0 }, 'MINE', now);
     writeTile(s, mine, { terrain: 'HILL' });
     const before = income(s, 'player').IRON;
     const result = execute(s, 'player', action('UPGRADE', mine.id), now);
     expect(result.result.accepted).toBe(true);
-    expect(income(result.state, 'player').IRON - before).toBe(3);
+    expect(income(result.state, 'player').IRON - before).toBe(4);
     expect(result.state.buildings[mine.id].level).toBe(2);
     expect(result.state.buildings[mine.id].hp).toBe(BUILDINGS.MINE.hp * 2);
     result.state.buildings[mine.id].level = 5;

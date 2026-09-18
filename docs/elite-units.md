@@ -1,5 +1,7 @@
 # Les armées de fin de partie
 
+> Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
+
 48 nouvelles unités : 24 Dynasties du Soleil noir et 24 Shogunat néon. Ces élites complètent les [armées des niveaux 2 et 3](campaign-units.md).
 
 Chaque armée comprend trois unités pour chacune des huit familles : infanterie, cavalerie, motos, véhicules légers, blindés, artillerie, avions et hélicoptères/aéronefs à sustentation.

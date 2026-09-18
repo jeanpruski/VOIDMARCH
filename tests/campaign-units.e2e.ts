@@ -87,12 +87,16 @@ test('les quatre armées affichent leurs conditions en rouge et se recrutent aux
     'Pacte des Ronces',
     'Légions du Givre',
   ]) {
-    await page.getByRole('button', { name: family, exact: true }).click();
+    await page.getByLabel('Univers', { exact: true }).selectOption({ label: family });
     await expect(page.locator('.catalog article')).toHaveCount(3);
     await expect(page.locator('.catalog-status').first()).toHaveCSS('color', 'rgb(242, 155, 140)');
     await expect(page.locator('.catalog article').first()).toContainText('niveau 2 nécessaire');
     await expect(
-      page.locator('.catalog article').first().getByText('Forge (manquant)', { exact: true }),
+      page
+        .locator('.catalog article')
+        .first()
+        .getByText('Forge (manquant)', { exact: true })
+        .first(),
     ).toHaveCSS('color', 'rgb(242, 155, 140)');
   }
   b.level = 2;
@@ -115,7 +119,7 @@ test('les quatre armées affichent leurs conditions en rouge et se recrutent aux
     });
   }, arsenal);
   await page.getByRole('button', { name: 'Recruter', exact: true }).click();
-  await page.getByRole('button', { name: 'Corsaires des Abysses', exact: true }).click();
+  await page.getByLabel('Univers', { exact: true }).selectOption('abyss');
   await expect(page.locator('.catalog article')).toHaveCount(3);
   const diver = page
     .locator('.catalog article')

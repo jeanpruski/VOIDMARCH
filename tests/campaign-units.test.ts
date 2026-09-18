@@ -128,7 +128,7 @@ describe('Quatre armées de milieu de partie', () => {
           realm.wallet[resource] - UNITS[kind].cost[resource],
         );
       expect(paid.state.realms.p.ap).toBe(realm.ap - 1);
-      expect(UNITS[kind].cost.GOLD).toBeGreaterThanOrEqual(200);
+      expect(UNITS[kind].cost.GOLD).toBeGreaterThanOrEqual(150);
     },
   );
   it('respecte les trajectoires, la mobilité et les contres', () => {

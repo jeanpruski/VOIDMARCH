@@ -75,15 +75,9 @@ test('producteurs et mine d’or : filtres, sprites et construction', async ({ p
       focusMap(p);
       useGame.setState({ selection: { kind: 'tile', ...p }, panel: 'build' });
     }, targets[i]);
-    const group = page.getByRole('group', { name: 'Filtrer les bâtiments par ressource produite' });
-    await group
-      .getByRole('button', {
-        name:
-          kind === 'GOLD_MINE'
-            ? /^Or\s+\d+$/
-            : new RegExp('^' + ['Bois', 'Pierre', 'Fer'][i % 3] + '\\s*3$'),
-      })
-      .click();
+    await page
+      .getByLabel('Production', { exact: true })
+      .selectOption(kind === 'GOLD_MINE' ? 'GOLD' : ['WOOD', 'STONE', 'IRON'][i % 3]);
     const dialog = page.getByRole('dialog');
     if (kind !== 'GOLD_MINE') await expect(dialog.locator('article')).toHaveCount(3);
     const card = dialog

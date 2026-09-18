@@ -1,3 +1,4 @@
+import { BALANCE_V3_UNIT_HP } from './legacy-balance-v3.js';
 import {
   BALANCE_VERSION,
   BUILDINGS,
@@ -26,6 +27,7 @@ export function migrateResourceWallets(value: unknown): void {
 /** Preserve wounds, stockpiles and original demolition refunds when the balance changes. */
 export function migrateProgression(state: GameState, now = Date.now()): boolean {
   if ((state.balanceVersion ?? 1) >= BALANCE_VERSION) return false;
+  const previousVersion = state.balanceVersion ?? 1;
   const migrate = (units: Unit[], buildings: Building[], realms: Record<string, Realm>) => {
     for (const u of units) {
       if (u.npc) continue; // Existing short-lived encounters keep their rolled statistics.
@@ -78,7 +80,9 @@ export function migrateProgression(state: GameState, now = Date.now()): boolean 
   const retainCosts = (buildings: Building[], realms: Record<string, Realm>) => {
     for (const b of buildings)
       b.constructionCost ??= Object.fromEntries(
-        Object.entries(ECONOMY_V2_BUILDING_COSTS[b.kind]).map(([r, value]) => [
+        Object.entries(
+          previousVersion >= 3 ? BUILDINGS[b.kind].cost : ECONOMY_V2_BUILDING_COSTS[b.kind],
+        ).map(([r, value]) => [
           r,
           Math.ceil(value * (realms[b.ownerId]?.faction === 'ASH' ? 0.9 : 1)),
         ]),
@@ -87,6 +91,45 @@ export function migrateProgression(state: GameState, now = Date.now()): boolean 
   retainCosts(Object.values(state.buildings), state.realms);
   for (const archive of Object.values(state.archives))
     retainCosts(archive.buildings, { [archive.realm.id]: archive.realm });
+  // v4 changes base unit HP and the two highest training levels. Preserve the
+  // fraction of wounds, rare bonuses and historical training after a recruiter dies.
+  // The v1 migration above already uses current stats and must not run twice.
+  if (previousVersion >= 2) {
+    const updateUnits = (units: Unit[], buildings: Building[]) => {
+      const bonuses = new Map<string, Map<Building['kind'], number>>();
+      for (const b of buildings) {
+        if (b.hp <= 0) continue;
+        const own = bonuses.get(b.ownerId) ?? new Map<Building['kind'], number>();
+        own.set(b.kind, Math.max(own.get(b.kind) ?? 0, trainingBonusAt(b.kind, b.level)));
+        bonuses.set(b.ownerId, own);
+      }
+      for (const u of units) {
+        if (u.npc || u.kind === 'HERO') continue;
+        const oldBonus = u.trainingBonus ?? 0;
+        const oldMax =
+          (BALANCE_V3_UNIT_HP[u.kind] ?? UNITS[u.kind].hp) *
+          (1 + (oldBonus + (u.rareBonus ?? 0)) / 100);
+        const fraction = Math.max(0, Math.min(1, u.hp / oldMax));
+        const retained = oldBonus === 160 ? 100 : oldBonus === 100 ? 80 : oldBonus;
+        const training = UNIT_PROFILES[u.kind].builder
+          ? 0
+          : Math.max(
+              retained,
+              0,
+              ...UNIT_PROFILES[u.kind].recruitAt.map(
+                (kind) => bonuses.get(u.ownerId)?.get(kind) ?? 0,
+              ),
+            );
+        const oldHp = u.hp;
+        if (training || u.trainingBonus !== undefined) u.trainingBonus = training;
+        u.hp = Math.round(unitStats(u).hp * fraction * 100) / 100;
+        if (u.hp !== oldHp || training !== oldBonus) u.updatedAt = now;
+      }
+    };
+    updateUnits(Object.values(state.units), Object.values(state.buildings));
+    for (const archive of Object.values(state.archives))
+      updateUnits(archive.units, archive.buildings);
+  }
   state.balanceVersion = BALANCE_VERSION;
   state.revision++;
   return true;

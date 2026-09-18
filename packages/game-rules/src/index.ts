@@ -609,10 +609,7 @@ export function unitStats(
     hp: boosted(base.hp),
     attack: boosted(base.attack * (1 + veteranRank(unit.victories) * 0.05)),
     defense: boosted(base.defense * (1 + veteranRank(unit.victories) * 0.05)),
-    buildingAttack: boosted(
-      ('buildingAttack' in base ? base.buildingAttack : base.attack) *
-        (1 + veteranRank(unit.victories) * 0.05),
-    ),
+    buildingAttack: boosted(base.buildingAttack * (1 + veteranRank(unit.victories) * 0.05)),
   };
 }
 
