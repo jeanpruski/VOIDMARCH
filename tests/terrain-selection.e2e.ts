@@ -15,6 +15,9 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
   realm.wallet.GOLD = 1000;
   const worker = { q: realm.capital.q + 1, r: realm.capital.r };
   const target = { q: realm.capital.q + 2, r: realm.capital.r };
+  const alternate = { q: worker.q, r: worker.r + 1 };
+  const outside = { q: worker.q + 3, r: worker.r - 1 };
+  writeTile(state, alternate, { terrain: 'FOREST', ownerId: undefined });
   writeTile(state, target, { terrain: 'FOREST', ownerId: undefined });
   writeTile(state, worker, { terrain: 'FOREST', ownerId: undefined });
   state.units.worker = {
@@ -79,6 +82,8 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
       const { useGame } = await import('/src/store.ts');
       return useGame.getState().mode;
     });
+  const constructionGlow = () =>
+    page.evaluate(() => (window as any).__terrainScene.highlights.commandBuffer.includes(0x99c781));
   const clickHex = async (hex: { q: number; r: number }) => {
     const point = await page.evaluate((p) => {
       const scene = (window as any).__terrainScene;
@@ -93,6 +98,7 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
   };
   await clickHex(worker);
   await expect(page.locator('.selection-panel h2')).toHaveText('Paysan');
+  await expect.poll(constructionGlow).toBe(true);
   await page.keyboard.press('d');
   await expect.poll(mode).toBe('move');
   await page.evaluate(() =>
@@ -101,6 +107,7 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
   expect(await mode()).toBe('move');
   await page.keyboard.press('Escape');
   await expect.poll(mode).toBe('inspect');
+  await expect.poll(constructionGlow).toBe(false);
   await page.evaluate(() => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true }));
@@ -146,11 +153,38 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
   delete state.units.friend;
   state.revision++;
   await page.evaluate(() => (window as any).pushTerrain());
+  await expect.poll(constructionGlow).toBe(true);
+  await clickHex(alternate);
+  await expect(terrain).toContainText(`Hexagone ${alternate.q}, ${alternate.r}`);
+  await expect.poll(constructionGlow).toBe(true);
+  await clickHex(target);
+  await expect(terrain).toContainText(`Hexagone ${target.q}, ${target.r}`);
+  await expect.poll(constructionGlow).toBe(true);
+  await clickHex(outside);
+  await expect.poll(constructionGlow).toBe(false);
+  await clickHex(worker);
+  await clickHex(target);
+  await expect.poll(constructionGlow).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect.poll(constructionGlow).toBe(false);
+  await page.evaluate(() => (window as any).pushTerrain());
+  await expect.poll(constructionGlow).toBe(false);
+  await clickHex(worker);
+  await clickHex(target);
+  await page.keyboard.press('c');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect.poll(constructionGlow).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect.poll(constructionGlow).toBe(false);
   await expect(terrain.getByRole('button', { name: /^Construire/ })).toBeVisible();
   await terrain.getByRole('button', { name: 'Fermer la sélection' }).click();
   await page.evaluate(() => (window as any).pushTerrain());
   await expect(page.locator('.selection-panel')).toHaveCount(0);
+  await expect.poll(constructionGlow).toBe(false);
+  await clickHex(worker);
   await clickHex(target);
+  await expect.poll(constructionGlow).toBe(true);
   await page.keyboard.press('c');
   const lumber = page
     .getByRole('dialog')
@@ -161,6 +195,7 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
     .poll(() => view().tiles.find((t) => key(t) === key(target))?.building?.kind)
     .toBe('LUMBER');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect.poll(constructionGlow).toBe(false);
   // Without choosing a neighboring tile, construction must stay under the worker.
   await clickHex(worker);
   await page

@@ -142,6 +142,7 @@ export function Modal({
     dialog.current?.focus();
     const keyboard = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        useGame.setState({ constructionBuilderId: null });
         event.preventDefault();
         event.stopImmediatePropagation();
         if (close.current) close.current();

@@ -1,3 +1,4 @@
+import { isBuilderSite } from './construction';
 import { create } from 'zustand';
 import { supportsWorldCatalog } from './catalog-compatibility';
 import type { CameraViewport } from './map-geometry';
@@ -44,6 +45,7 @@ interface GameStore {
   cameraViewport: CameraViewport | null;
   status: 'loading' | 'offline' | 'connecting' | 'online';
   selection: Selection | null;
+  constructionBuilderId: string | null;
   mode: 'inspect' | 'move' | 'attack' | 'road' | 'terraform';
   roadTool: 'build' | 'remove';
   terraformTarget?: Hex;
@@ -72,6 +74,7 @@ export const useGame = create<GameStore>((set) => ({
   cameraViewport: null,
   status: 'loading',
   selection: null,
+  constructionBuilderId: null,
   mode: 'inspect',
   roadTool: 'build',
   panel: null,
@@ -183,6 +186,19 @@ function publishWorld(world: WorldView, effectPolicy: GameStore['effectPolicy'] 
       : selectedEntity && existing
         ? { ...existing, q: selectedEntity.q, r: selectedEntity.r }
         : null;
+  const builder = world.units.find((unit) => unit.id === previous.constructionBuilderId);
+  const previousBuilder = previous.world?.units.find(
+    (unit) => unit.id === previous.constructionBuilderId,
+  );
+  const constructionBuilderId =
+    selection &&
+    builder &&
+    builder.ownerId === world.player.id &&
+    UNIT_PROFILES[builder.kind].builder &&
+    previousBuilder?.q === builder.q &&
+    previousBuilder.r === builder.r
+      ? builder.id
+      : null;
   const movements = Object.fromEntries(
     Object.entries(previous.movements).filter(([id, animation]) => {
       const unit = world.units.find((u) => u.id === id);
@@ -201,6 +217,7 @@ function publishWorld(world: WorldView, effectPolicy: GameStore['effectPolicy'] 
     status: 'online',
     now: world.serverTimestamp,
     selection,
+    constructionBuilderId,
     ...(existing && !selection
       ? { mode: 'inspect' as const, combatTarget: null, terraformTarget: undefined }
       : {}),
@@ -229,6 +246,7 @@ function finishOrder(order: PendingOrder, accepted: boolean) {
   if (!accepted && order.prediction?.movement) delete movements[order.prediction.movement.unitId];
   useGame.setState({
     pending: false,
+    ...(accepted && order.action.type === 'BUILD' ? { constructionBuilderId: null } : {}),
     pendingAction: undefined,
     pendingMovement: null,
     movements,
@@ -520,6 +538,7 @@ export async function logout() {
     pendingMovement: null,
     status: 'offline',
     selection: null,
+    constructionBuilderId: null,
     panel: null,
   });
 }
@@ -546,6 +565,7 @@ export function focusHero() {
   focusMap(hero, true);
   useGame.setState({
     showUnits: true,
+    constructionBuilderId: null,
     selection: { kind: 'unit', id: hero.id, q: hero.q, r: hero.r },
     mode: 'inspect',
     combatTarget: null,
@@ -555,8 +575,23 @@ export function focusHero() {
 export const mapCommand = (command: string) =>
   window.dispatchEvent(new CustomEvent('vm:camera', { detail: { command } }));
 export function select(selection: Selection) {
+  const state = useGame.getState(),
+    world = state.world;
+  const selectedUnit =
+    selection.kind === 'unit' ? world?.units.find((u) => u.id === selection.id) : undefined;
+  const builder = world?.units.find((u) => u.id === state.constructionBuilderId);
+  const tile = world?.tiles.find((t) => t.q === selection.q && t.r === selection.r);
+  const constructionBuilderId =
+    selectedUnit?.ownerId === world?.player.id &&
+    selectedUnit &&
+    UNIT_PROFILES[selectedUnit.kind].builder
+      ? selectedUnit.id
+      : selection.kind === 'tile' && world && builder && isBuilderSite(world, builder, tile)
+        ? builder.id
+        : null;
   useGame.setState({
     selection,
+    constructionBuilderId,
     mode: 'inspect',
     ...(selection.kind === 'unit' ? { showUnits: true } : {}),
     ...(selection.kind === 'building' ? { showBuildings: true } : {}),
@@ -574,6 +609,7 @@ export function toggleMapLayer(layer: 'showUnits' | 'showBuildings') {
       : state.selection;
   useGame.setState({
     [layer]: visible,
+    constructionBuilderId: null,
     selection,
     mode: 'inspect',
     combatTarget: null,
@@ -584,6 +620,7 @@ export function toggleMapLayer(layer: 'showUnits' | 'showBuildings') {
 export function openRoadTool(tool: 'build' | 'remove' = 'build') {
   useGame.setState({
     mode: 'road',
+    constructionBuilderId: null,
     roadTool: tool,
     panel: null,
     combatTarget: null,

@@ -276,6 +276,7 @@ class WorldScene extends Phaser.Scene {
         this.renderMap();
       }
       if (
+        s.constructionBuilderId !== previous.constructionBuilderId ||
         s.selection !== previous.selection ||
         s.mode !== previous.mode ||
         s.roadTool !== previous.roadTool ||
@@ -708,15 +709,16 @@ class WorldScene extends Phaser.Scene {
       return;
     }
     if (tile?.visibility === 'UNKNOWN' || !tile) {
-      useGame.setState({ selection: { kind: 'tile', ...p }, mode: 'inspect' });
+      select({ kind: 'tile', ...p });
       return;
     }
-    // A lit building site remains a terrain selection even if a friendly unit stands there.
+    // Keep the chosen builder while browsing its construction sites.
+    const builder = this.view.units.find((u) => u.id === state.constructionBuilderId);
     if (
       state.mode === 'inspect' &&
-      own &&
-      key(own) !== key(p) &&
-      isBuilderSite(this.view, own, tile)
+      builder &&
+      key(builder) !== key(p) &&
+      isBuilderSite(this.view, builder, tile)
     ) {
       select({ kind: 'tile', ...p });
       return;
@@ -1567,13 +1569,10 @@ class WorldScene extends Phaser.Scene {
       }
       return;
     }
-    if (
-      state.mode === 'inspect' &&
-      u?.ownerId === this.view.player.id &&
-      UNIT_PROFILES[u.kind].builder
-    ) {
+    const builder = this.view.units.find((unit) => unit.id === state.constructionBuilderId);
+    if (state.mode === 'inspect' && builder) {
       for (const t of this.view.tiles) {
-        if (!isBuilderSite(this.view, u, t)) continue;
+        if (!isBuilderSite(this.view, builder, t)) continue;
         const p = hexToPixel(t);
         g.fillStyle(0x99c781, 0.12);
         g.fillPoints(points(p, SIZE - 3), true);

@@ -194,7 +194,13 @@ export function App() {
 
       if ((code.startsWith('y') || code.startsWith('h')) && /^[a-z]$/i.test(e.key)) return;
       if (e.key === 'Escape')
-        useGame.setState({ panel: null, combatTarget: null, mode: 'inspect', menuOpen: false });
+        useGame.setState({
+          panel: null,
+          combatTarget: null,
+          mode: 'inspect',
+          menuOpen: false,
+          constructionBuilderId: null,
+        });
       const state = useGame.getState();
       if (state.world && !state.pending && activateSelectionShortcut(e.key)) e.preventDefault();
     };
@@ -1161,6 +1167,7 @@ function SelectionPanel() {
         onClick={() =>
           useGame.setState({
             selection: null,
+            constructionBuilderId: null,
             mode: 'inspect',
             combatTarget: null,
             terraformTarget: undefined,
