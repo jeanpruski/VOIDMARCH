@@ -17,9 +17,11 @@ import {
   populationCapacity,
   storageBonus,
   trainingBonusAt,
+  buildingEra,
+  WALL_KINDS,
 } from '@voidmarch/config';
 import type { ViewTile } from '@voidmarch/shared';
-import { Modal, format, StorageHint } from './ui';
+import { Modal, format, StorageHint, Miniature, BUILDING_FRAMES } from './ui';
 import { send, useGame } from './store';
 
 export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTile['building']> }) {
@@ -40,7 +42,12 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
   const capacity = populationCapacity;
   const unlocked = upgrade
     ? Object.entries(UNIT_PROFILES)
-        .filter(([, p]) => p.recruitAt.includes(upgrade.kind) && !p.recruitAt.includes(b.kind))
+        .filter(
+          ([, p]) =>
+            p.recruitAt.includes(upgrade.kind) &&
+            (p.minRecruitLevel ?? 1) <= upgrade.level &&
+            (!p.recruitAt.includes(b.kind) || (p.minRecruitLevel ?? 1) > b.level),
+        )
         .map(([kind]) => UNITS[kind as keyof typeof UNITS].name)
     : [];
   return (
@@ -62,6 +69,34 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
             onClose={() => setOpen(false)}
           >
             <div className="upgrade-preview">
+              <div className="building-age-comparison">
+                <figure>
+                  <Miniature
+                    frame={BUILDING_FRAMES[b.kind]}
+                    building={b}
+                    size={128}
+                    turretLevel={b.turretLevel}
+                  />
+                  <figcaption>
+                    Niveau {isWall(b.kind) ? WALL_KINDS.indexOf(b.kind) + 1 : b.level} ·{' '}
+                    {buildingEra(b.kind, b.level)}
+                  </figcaption>
+                </figure>
+                <span aria-hidden="true">→</span>
+                <figure>
+                  <Miniature
+                    frame={BUILDING_FRAMES[upgrade.kind]}
+                    building={upgrade}
+                    size={128}
+                    turretLevel={b.turretLevel}
+                  />
+                  <figcaption>
+                    Niveau{' '}
+                    {isWall(upgrade.kind) ? WALL_KINDS.indexOf(upgrade.kind) + 1 : upgrade.level} ·{' '}
+                    {buildingEra(upgrade.kind, upgrade.level)}
+                  </figcaption>
+                </figure>
+              </div>
               <p>Ce bâtiment évolue sur sa case actuelle.</p>
               {b.turretLevel && (
                 <p>

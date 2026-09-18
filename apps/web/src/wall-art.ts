@@ -4,6 +4,22 @@ import { hexToPixel, Y_SCALE } from './map-geometry';
 
 type Point = { x: number; y: number };
 const palettes = {
+  CONCRETE_WALL: {
+    height: 37,
+    width: 13,
+    face: '#737e7a',
+    side: '#404d47',
+    top: '#a4b4aa',
+    line: '#293a31',
+  },
+  ATOMIC_WALL: {
+    height: 37,
+    width: 14,
+    face: '#3c574d',
+    side: '#1c302b',
+    top: '#8bba99',
+    line: '#162d22',
+  },
   WOOD_WALL: {
     height: 20,
     width: 7,
@@ -128,7 +144,7 @@ export function wallCanvas(
         b = points[1],
         d = points[3];
       const size = materials.naturalWidth / 3;
-      const column = WALL_KINDS.indexOf(kind);
+      const column = kind === 'CONCRETE_WALL' ? 1 : Math.min(2, WALL_KINDS.indexOf(kind));
       ctx.save();
       ctx.clip();
       ctx.transform(
@@ -238,7 +254,7 @@ export function wallCanvas(
           const x = a.x + (b.x - a.x) * t,
             y = a.y + (b.y - a.y) * t;
           line({ x, y: y - low }, { x, y: y - high }, palette.line, 1);
-          if (kind === 'STEEL_WALL') {
+          if (['STEEL_WALL', 'CONCRETE_WALL', 'ATOMIC_WALL'].includes(kind)) {
             line({ x: x + 1, y: y - low - 1 }, { x: x + 1, y: y - high + 1 }, '#95a396', 0.7);
             ctx.fillStyle = '#b1afa0';
             for (const z of [low + 2, high - 2]) {
@@ -422,6 +438,17 @@ export function wallCanvas(
       ctx.fillRect(-5 + i * 2, 2 + (i % 2), 1.8, 0.8);
     }
   }
+  if (kind === 'CONCRETE_WALL' || kind === 'ATOMIC_WALL') {
+    for (const end of arms) {
+      const start = gateAxis === undefined ? { x: 0, y: 0 } : gateArmStart(end, gateAxis);
+      line(
+        { x: start.x, y: start.y - palette.height + 1 },
+        { x: end.x, y: end.y - palette.height + 1 },
+        kind === 'ATOMIC_WALL' ? '#8df4b4' : '#b6c9c0',
+        kind === 'ATOMIC_WALL' ? 1.8 : 2.5,
+      );
+    }
+  }
   if (turretLevel) {
     ctx.save();
     ctx.translate(0, -WALL_HEIGHTS[kind] - 3);
@@ -455,7 +482,21 @@ export function wallCanvas(
       '#515d50',
     );
     for (const x of [-8, 8]) line({ x, y: 1 }, { x, y: -7 }, '#c3b483', 1.5);
-    if (turretLevel === 1) {
+    if (turretLevel >= 4) {
+      line({ x: -7, y: -3 }, { x: 23, y: -17 }, turretLevel === 5 ? '#8cefc0' : '#bdcbc4', 6);
+      line({ x: -7, y: -7 }, { x: 23, y: -21 }, '#203d32', 5);
+      for (const x of [-8, 8])
+        poly(
+          [
+            { x: x - 3, y: 0 },
+            { x: x + 3, y: 0 },
+            { x: x + 3, y: -14 },
+            { x: x - 3, y: -14 },
+          ],
+          turretLevel === 5 ? '#63b885' : '#667c72',
+        );
+      if (turretLevel === 5) line({ x: 0, y: -6 }, { x: 0, y: -28 }, '#b4ff8d', 3);
+    } else if (turretLevel === 1) {
       line({ x: -6, y: 0 }, { x: 1, y: -11 }, '#332b20', 5);
       line({ x: -6, y: 0 }, { x: 1, y: -11 }, '#977947', 3);
       line({ x: -7, y: -4 }, { x: 17, y: -14 }, '#3c3023', 5);

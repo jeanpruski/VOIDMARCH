@@ -117,7 +117,7 @@ describe('améliorations et spécialisation', () => {
   it.each(Object.keys(BUILDINGS) as BuildingKind[])(
     '%s possède une évolution au niveau 1',
     (kind) => {
-      if (kind === 'STEEL_WALL') expect(buildingUpgrade(kind, 1)).toBeNull();
+      if (kind === 'ATOMIC_WALL') expect(buildingUpgrade(kind, 1)).toBeNull();
       else expect(buildingUpgrade(kind, 1)).not.toBeNull();
     },
   );
@@ -131,7 +131,7 @@ describe('améliorations et spécialisation', () => {
     expect(income(result.state, 'player').IRON - before).toBe(3);
     expect(result.state.buildings[mine.id].level).toBe(2);
     expect(result.state.buildings[mine.id].hp).toBe(BUILDINGS.MINE.hp * 2);
-    result.state.buildings[mine.id].level = 3;
+    result.state.buildings[mine.id].level = 5;
     expect(execute(result.state, 'player', action('UPGRADE', mine.id), now).result.accepted).toBe(
       false,
     );

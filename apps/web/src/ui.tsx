@@ -1,4 +1,6 @@
 import { HeroPortrait } from './Hero';
+import { buildingAtlasUrl, buildingEvolutionFrame } from './building-art';
+import { hasBuildingEvolutionArt, type BuildingKind, type UnitKind } from '@voidmarch/config';
 import type { HeroAppearance } from '@voidmarch/config';
 import {
   Coins,
@@ -213,7 +215,33 @@ export function Modal({
     </div>
   );
 }
-export const UNIT_FRAMES: Record<string, number> = {
+export const UNIT_FRAMES: Record<UnitKind, number> = {
+  HALBERDIER: 768,
+  LONGBOWMAN: 769,
+  MOUNTED_OUTRIDER: 770,
+  WAR_WAGON: 771,
+  IMPERIAL_PIKEMAN: 792,
+  BLACK_DRAGOON: 793,
+  IMPERIAL_CANNON: 794,
+  WAR_BALLOON: 795,
+  ASSAULT_SAPPER: 816,
+  ASH_FLAMETHROWER: 817,
+  CASEMATE_HUNTER: 818,
+  DIVE_BOMBER: 819,
+  RAIL_SNIPER: 840,
+  STEALTH_BIKE: 841,
+  MISSILE_TANK: 842,
+  NIGHT_INTERCEPTOR: 843,
+  REACTOR_DREADNOUGHT: 864,
+  GAMMA_INTERCEPTOR: 865,
+  NEUTRON_MORTAR: 866,
+  REACTOR_SERAPH: 867,
+  MUSKETEER: 624,
+  IMPERIAL_GRENADIER: 648,
+  CUIRASSIER: 672,
+  COMMANDO: 696,
+  DRONE_OPERATOR: 720,
+  NEUTRON_GUARD: 744,
   HERO: 0,
   GLOCKE_VRIL: 432,
   GLOCKE_NACHT: 456,
@@ -323,6 +351,8 @@ export const BUILDING_FRAMES: Record<string, number> = {
   WOOD_WALL: 84,
   STONE_WALL: 85,
   STEEL_WALL: 86,
+  CONCRETE_WALL: 87,
+  ATOMIC_WALL: 88,
   TESLA_COIL: 80,
   CRYPT_BARRACKS: 81,
   ALCHEMY_FOUNDRY: 82,
@@ -372,45 +402,63 @@ const npcTextures = ['npc-deserter', 'npc-marauder', 'npc-cultist', 'npc-mutant'
 export const unitFrame = (unit: Unit) =>
   unit.npc ? 312 + npcTextures.indexOf(`npc-${unit.npc.kind}`) * 24 : UNIT_FRAMES[unit.kind];
 export const miniatureTexture = (frame: number) =>
-  frame >= 552
-    ? ['mine-iron', 'mine-stone', 'mine-gold'][Math.floor((frame - 552) / 24)]
-    : frame >= 528
-      ? 'resource-buildings'
-      : frame >= 432
-        ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
-            Math.floor((frame - 432) / 24)
-          ]
-        : frame >= 312
-          ? npcTextures[Math.floor((frame - 312) / 24)]
-          : frame >= 144
-            ? [
-                'rad-infantry',
-                'rad-cavalry',
-                'rad-motorcycles',
-                'rad-vehicles',
-                'rad-planes',
-                'rad-helicopters',
-                'rad-buildings',
-              ][Math.floor((frame - 144) / 24)]
-            : frame >= 120
-              ? 'terraformer'
-              : frame >= 96
-                ? 'aviation'
-                : frame < 6
-                  ? 'units-medieval'
-                  : frame >= 24 && frame < 36
-                    ? 'units-civil'
-                    : frame >= 48 && frame < 60
-                      ? 'units-industrial'
-                      : frame >= 72
-                        ? 'occult'
-                        : frame >= 48
-                          ? 'industrial'
-                          : frame >= 24
-                            ? 'expansion'
-                            : 'miniatures';
+  frame >= 768
+    ? [
+        'reinforcements-medieval',
+        'reinforcements-empire',
+        'reinforcements-industrial',
+        'reinforcements-modern',
+        'reinforcements-atomic',
+      ][Math.floor((frame - 768) / 24)]
+    : frame >= 624
+      ? [
+          'epoch-musketeer',
+          'epoch-grenadier',
+          'epoch-cuirassier',
+          'epoch-commando',
+          'epoch-drones',
+          'epoch-neutron',
+        ][Math.floor((frame - 624) / 24)]
+      : frame >= 552
+        ? ['mine-iron', 'mine-stone', 'mine-gold'][Math.floor((frame - 552) / 24)]
+        : frame >= 528
+          ? 'resource-buildings'
+          : frame >= 432
+            ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
+                Math.floor((frame - 432) / 24)
+              ]
+            : frame >= 312
+              ? npcTextures[Math.floor((frame - 312) / 24)]
+              : frame >= 144
+                ? [
+                    'rad-infantry',
+                    'rad-cavalry',
+                    'rad-motorcycles',
+                    'rad-vehicles',
+                    'rad-planes',
+                    'rad-helicopters',
+                    'rad-buildings',
+                  ][Math.floor((frame - 144) / 24)]
+                : frame >= 120
+                  ? 'terraformer'
+                  : frame >= 96
+                    ? 'aviation'
+                    : frame < 6
+                      ? 'units-medieval'
+                      : frame >= 24 && frame < 36
+                        ? 'units-civil'
+                        : frame >= 48 && frame < 60
+                          ? 'units-industrial'
+                          : frame >= 72
+                            ? 'occult'
+                            : frame >= 48
+                              ? 'industrial'
+                              : frame >= 24
+                                ? 'expansion'
+                                : 'miniatures';
 export const miniatureFrame = (frame: number) => frame % 24;
 export function Miniature({
+  building,
   heroAppearance,
   frame,
   size = 76,
@@ -418,17 +466,56 @@ export function Miniature({
   gate = false,
 }: {
   heroAppearance?: HeroAppearance;
+  building?: { kind: BuildingKind; level: number };
   frame: number;
   size?: number;
   turretLevel?: import('@voidmarch/config').TurretLevel;
   gate?: boolean;
 }) {
   if (heroAppearance) return <HeroPortrait appearance={heroAppearance} size={size} />;
+  if (building && building.level > 1 && hasBuildingEvolutionArt(building.kind))
+    return <EvolvedBuildingMiniature building={building} size={size} fallback={frame} />;
   const wall = WALL_KINDS[frame - 84];
   return wall ? (
     <WallMiniature wall={wall} size={size} turretLevel={turretLevel} gate={gate} />
   ) : (
     <AtlasMiniature frame={frame} size={size} />
+  );
+}
+function EvolvedBuildingMiniature({
+  building,
+  size,
+  fallback,
+}: {
+  building: { kind: BuildingKind; level: number };
+  size: number;
+  fallback: number;
+}) {
+  const [atlas, setAtlas] = useState<{ kind: BuildingKind; url: string }>();
+  useEffect(() => {
+    let active = true;
+    void buildingAtlasUrl(building.kind)
+      .then((url) => {
+        if (active) setAtlas({ kind: building.kind, url });
+      })
+      .catch(console.error);
+    return () => {
+      active = false;
+    };
+  }, [building.kind]);
+  if (atlas?.kind !== building.kind) return <AtlasMiniature frame={fallback} size={size} />;
+  return (
+    <span
+      className="miniature"
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        backgroundImage: `url(${atlas.url})`,
+        backgroundSize: '400% 100%',
+        backgroundPosition: `${(buildingEvolutionFrame(building.level) * 100) / 3}% 0%`,
+      }}
+    />
   );
 }
 function WallMiniature({

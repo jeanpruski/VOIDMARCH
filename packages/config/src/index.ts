@@ -1,3 +1,5 @@
+import { ERA_REINFORCEMENT_CATEGORIES } from './era-reinforcements';
+import { EPOCH_UNITS, EPOCH_PROFILES } from './epoch-units';
 import { GLOCKE_UNITS, GLOCKE_PROFILES } from './glocke';
 import { UNIT_TIERS } from './progression';
 import { BUILDING_ECONOMIC_TIERS, PRICE_MULTIPLIERS, repriceCatalog, scaleCost } from './economy';
@@ -14,6 +16,8 @@ import {
 export { RADIOACTIVE_UNITS } from './radioactive';
 export { NPCS, NPC_RULES, type NpcKind } from './npcs';
 export { BALANCE_VERSION, UNIT_TIERS, TIER_NAMES } from './progression';
+export * from './ages';
+export { UNIT_ERAS } from './epoch-units';
 export const GAME_NAME = 'VOIDMARCH';
 export * from './hero';
 export const RULES = {
@@ -116,6 +120,7 @@ export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
   terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
 export const TERRAFORM_COST: Partial<Wallet> = { WOOD: 20, IRON: 10 };
 const UNIT_BASE_CATALOG = {
+  ...EPOCH_UNITS,
   HERO: {
     name: 'Héros',
     hp: 80,
@@ -646,6 +651,12 @@ export const UNITS = repriceCatalog(UNIT_BASE_CATALOG, (kind) =>
 );
 /** Ground weapons deliberately able to fire over fortifications. */
 export const INDIRECT_FIRE_UNITS: readonly UnitKind[] = [
+  'LONGBOWMAN',
+  'ASSAULT_SAPPER',
+  'MISSILE_TANK',
+  'NEUTRON_MORTAR',
+  'IMPERIAL_GRENADIER',
+  'DRONE_OPERATOR',
   'ARCHER',
   'RANGER',
   'SIEGE',
@@ -749,6 +760,22 @@ const BUILDING_BASE_CATALOG = {
     cost: { WOOD: 0, STONE: 0, GOLD: 0, IRON: 90, FOOD: 0 },
     production: {},
     terrains: ['PLAIN', 'HILL', 'FOREST', 'RUINS', 'MOUNTAIN'],
+  },
+  CONCRETE_WALL: {
+    name: 'Rempart en béton blindé',
+    hp: 900,
+    capture: 6,
+    cost: { GOLD: 200, WOOD: 0, STONE: 260, IRON: 180, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'FOREST', 'RUINS'],
+  },
+  ATOMIC_WALL: {
+    name: 'Enceinte atomique',
+    hp: 1600,
+    capture: 8,
+    cost: { GOLD: 400, WOOD: 0, STONE: 300, IRON: 350, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'FOREST', 'RUINS'],
   },
   TESLA_COIL: {
     name: 'Tour Tesla',
@@ -1099,13 +1126,21 @@ export const BUILDINGS = repriceCatalog(
 export const ECONOMY_V2_BUILDING_COSTS = Object.fromEntries(
   Object.entries(BUILDING_BASE_CATALOG).map(([kind, building]) => [kind, { ...building.cost }]),
 ) as Record<BuildingKind, Wallet>;
-export const WALL_KINDS = ['WOOD_WALL', 'STONE_WALL', 'STEEL_WALL'] as const;
+export const WALL_KINDS = [
+  'WOOD_WALL',
+  'STONE_WALL',
+  'STEEL_WALL',
+  'CONCRETE_WALL',
+  'ATOMIC_WALL',
+] as const;
 export type WallKind = (typeof WALL_KINDS)[number];
-export type TurretLevel = 1 | 2 | 3;
+export type TurretLevel = 1 | 2 | 3 | 4 | 5;
 export const WALL_HEIGHTS: Record<WallKind, number> = {
   WOOD_WALL: 20,
   STONE_WALL: 27,
   STEEL_WALL: 34,
+  CONCRETE_WALL: 37,
+  ATOMIC_WALL: 37,
 };
 export const TURRETS = {
   1: {
@@ -1135,6 +1170,24 @@ export const TURRETS = {
     projectileUnit: 'TESLA_TROOPER',
     cost: { GOLD: 220, STONE: 40, IRON: 120 },
   },
+  4: {
+    name: 'Tourelle automatique de forteresse',
+    attack: 72,
+    range: 5,
+    antiAir: 24,
+    wall: 'CONCRETE_WALL',
+    projectileUnit: 'MACHINE_GUNNER',
+    cost: { GOLD: 1400, STONE: 600, IRON: 1000 },
+  },
+  5: {
+    name: 'Lance à neutrons',
+    attack: 110,
+    range: 6,
+    antiAir: 36,
+    wall: 'ATOMIC_WALL',
+    projectileUnit: 'GLOCKE_VRIL',
+    cost: { GOLD: 7000, STONE: 1800, IRON: 4200 },
+  },
 } as const satisfies Record<
   TurretLevel,
   {
@@ -1148,7 +1201,7 @@ export const TURRETS = {
   }
 >;
 export const isWall = (kind: string): kind is WallKind => WALL_KINDS.includes(kind as WallKind);
-export const isBuildable = (kind: BuildingKind) => kind !== 'STONE_WALL' && kind !== 'STEEL_WALL';
+export const isBuildable = (kind: BuildingKind) => !isWall(kind) || kind === 'WOOD_WALL';
 export function buildingConstructionCost(kind: BuildingKind, faction: Faction): Partial<Wallet> {
   const discount = faction === 'ASH' ? 0.9 : 1;
   return Object.fromEntries(
@@ -1184,6 +1237,8 @@ export interface UnitProfile {
   requires: BuildingKind[];
   flying?: boolean;
   antiAir?: number;
+  antiArmor?: number;
+  antiCavalry?: number;
   mounted?: boolean;
   mechanical?: boolean;
   armored?: boolean;
@@ -1192,6 +1247,7 @@ export interface UnitProfile {
   healer?: boolean;
 }
 export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  ...EPOCH_PROFILES,
   HERO: {
     hero: true,
     population: 0,
@@ -1322,6 +1378,7 @@ export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
     requires: ['ARSENAL', 'RADIO'],
   },
   BAZOOKA: {
+    antiArmor: 24,
     role: 'Bonus antichar de +24 et ignore 75 % de leur défense. Efficace contre les bâtiments.',
     recruitAt: ['ARSENAL'],
     requires: ['ARSENAL', 'MUNITIONS'],
@@ -1417,6 +1474,7 @@ export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
     siege: true,
   },
   SPEARMAN: {
+    antiCavalry: 12,
     role: 'Bonus de +12 en attaque contre la cavalerie.',
     recruitAt: ['BARRACKS', 'FORT'],
     requires: ['BARRACKS'],
@@ -1521,39 +1579,42 @@ export const BUILDING_POPULATION: Partial<Record<BuildingKind, number>> = {
 };
 export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   STEAM_SAWMILL:
-    'Exploitation industrielle du bois : 16 bois/min, uniquement en forêt. Exige une scierie et un atelier. Débloque la scierie des ombres. Production +60 % au niveau 2, +140 % au niveau 3.',
+    'Exploitation industrielle du bois : 16 bois/min, uniquement en forêt. Exige une scierie et un atelier. Débloque la scierie des ombres. Production +60 % au niveau 2, +140 % au niveau 3, +260 % au niveau 4 et +420 % au niveau 5 ; stockage local au niveau 5.',
   MECHANIZED_QUARRY:
-    'Extraction mécanique : 12 pierre/min sur colline ou montagne. Exige une carrière de pierre et un atelier. Débloque la carrière runique. Production +60 % au niveau 2, +140 % au niveau 3.',
+    'Extraction mécanique : 12 pierre/min sur colline ou montagne. Exige une carrière de pierre et un atelier. Débloque la carrière runique. Production +60 % au niveau 2, +140 % au niveau 3, +260 % au niveau 4 et +420 % au niveau 5 ; stockage local au niveau 5.',
   INDUSTRIAL_MINE:
-    'Extraction industrielle : 10 fer/min, uniquement sur colline. Exige une mine et une forge. Débloque la mine des abysses. Production +60 % au niveau 2, +140 % au niveau 3.',
+    'Extraction industrielle : 10 fer/min, uniquement sur colline. Exige une mine et une forge. Débloque la mine des abysses. Production +60 % au niveau 2, +140 % au niveau 3, +260 % au niveau 4 et +420 % au niveau 5 ; stockage local au niveau 5.',
   OCCULT_SAWMILL:
-    'Scies alimentées par les ombres : 28 bois/min, uniquement en forêt. Exige une scierie à vapeur et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3.',
+    'Scies alimentées par les ombres : 28 bois/min, uniquement en forêt. Exige une scierie à vapeur et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3, +260 % au niveau 4 et +420 % au niveau 5 ; stockage local au niveau 5.',
   RUNIC_QUARRY:
-    'Excavation par résonance runique : 21 pierre/min sur colline ou montagne. Exige une carrière mécanisée et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3.',
+    'Excavation par résonance runique : 21 pierre/min sur colline ou montagne. Exige une carrière mécanisée et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3, +260 % au niveau 4 et +420 % au niveau 5 ; stockage local au niveau 5.',
   ABYSSAL_MINE:
-    'Forage occulte des profondeurs : 18 fer/min, uniquement sur colline. Exige une mine industrielle et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3.',
+    'Forage occulte des profondeurs : 18 fer/min, uniquement sur colline. Exige une mine industrielle et un laboratoire des cendres. Production +60 % au niveau 2, +140 % au niveau 3, +260 % au niveau 4 et +420 % au niveau 5 ; stockage local au niveau 5.',
   GLOCKE_COMPLEX:
-    'Armes occultes de fin de progression : exige réacteur noir, fonderie atomique et observatoire noir. Recrute Die Glocke I au niveau 1, II au niveau 2, III au niveau 3. Entraînement +25 % puis +60 % pour les cloches existantes et futures. Aucun revenu ni tir automatique.',
+    'Armes occultes de fin de progression : exige réacteur noir, fonderie atomique et observatoire noir. Recrute Die Glocke I au niveau 1, II au niveau 2, III au niveau 3. Entraînement +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5 pour les cloches existantes et futures. Aucun revenu ni tir automatique.',
   ISOTOPE_LAB:
     'Recherche atomique : débloque le réacteur noir et l’héliport. Ne produit pas de ressources et ne forme pas de troupes directement.',
   NUCLEAR_REACTOR:
-    'Débloque les 36 unités de la division atomique dans leurs bâtiments de formation. Produit 16 or/min ; niveaux 2 et 3 : +60 % puis +140 % de production.',
+    'Débloque la division atomique et la garde à neutrons dans leurs bâtiments de formation. Produit 16 or/min ; production +60 / +140 / +260 / +420 % aux niveaux 2 / 3 / 4 / 5.',
   HELIPAD:
-    'Forme les 6 hélicoptères atomiques : reconnaissance, assaut, précision, interception et siège. Réacteur noir requis ; fonderie atomique pour les deux modèles ultimes. +25 % au niveau 2, +60 % au niveau 3, pour les appareils existants et futurs.',
+    'Forme les 6 hélicoptères atomiques : reconnaissance, assaut, précision, interception et siège. Réacteur noir requis ; fonderie atomique pour les deux modèles ultimes. +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5, pour les appareils existants et futurs.',
   ATOMIC_FOUNDRY:
-    'Assemble le char Mausolée et le chenillé de l’Apocalypse ; débloque les unités atomiques ultimes des autres filières. Améliorations : +25 % puis +60 % aux unités qu’elle forme, existantes et futures.',
+    'Assemble le char Mausolée et le chenillé de l’Apocalypse ; débloque les unités atomiques ultimes des autres filières. Améliorations : +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5 pour les unités qu’elle forme, existantes et futures.',
   AERODROME:
-    'Recrute avions de reconnaissance, chasseurs et bombardiers, puis 5 modèles atomiques avec un réacteur noir. Nécessite une plaine ou des ruines. Chaque amélioration renforce les avions existants et futurs de +25 % au niveau 2 et +60 % au niveau 3.',
+    'Recrute avions de reconnaissance, chasseurs et bombardiers, puis 5 modèles atomiques avec un réacteur noir. Nécessite une plaine ou des ruines. Chaque amélioration renforce les avions existants et futurs de +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5.',
   AIRSHIP_YARD:
-    'Assemble les dirigeables de guerre et l’aile de l’Apocalypse : bombardement et observation. Chaque amélioration renforce vos dirigeables existants et futurs de +25 % au niveau 2 et +60 % au niveau 3.',
+    'Assemble les dirigeables de guerre et l’aile de l’Apocalypse : bombardement et observation. Chaque amélioration renforce vos dirigeables existants et futurs de +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5.',
   DRAGON_ROOST:
-    'Invoque les dragons occultes cuirassés ; exige une fonderie alchimique pour les recruter. Chaque amélioration renforce les dragons existants et futurs de +25 % au niveau 2 et +60 % au niveau 3.',
+    'Invoque les dragons occultes cuirassés ; exige une fonderie alchimique pour les recruter. Chaque amélioration renforce les dragons existants et futurs de +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5.',
   FLAK_BATTERY:
-    'Recrute les canons antiaériens Flak et les chenillés Flak gamma avec la filière atomique. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +25 % puis +60 % aux canons existants et futurs.',
+    'Recrute les canons antiaériens Flak et les chenillés Flak gamma avec la filière atomique. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +25 % puis +60 % aux canons existants et futurs. Niveaux 4 et 5 : +100 % et +160 %.',
   WOOD_WALL: `Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec ${BUILDINGS.STONE_WALL.cost.STONE} pierre, puis ${BUILDINGS.STEEL_WALL.cost.IRON} fer pour l’acier (2 PA par évolution). Sélectionnez le mur pour y installer une tourelle à tir manuel.`,
   STONE_WALL: `Remplace une palissade : 240 PV, défense 6. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec ${BUILDINGS.STEEL_WALL.cost.IRON} fer et 2 PA. Peut porter une tourelle de niveau 1 ou 2.`,
   STEEL_WALL:
-    'Dernière évolution : 480 PV, défense 12. Bloque les ennemis terrestres, même sur une route. L’acier est construit à partir de votre réserve de fer. Peut porter la tourelle Tesla de niveau 3.',
+    'Palier 3 : 480 PV, défense 12. Bloque les ennemis terrestres, même sur une route. L’acier est construit à partir de votre réserve de fer. Peut porter la tourelle Tesla de niveau 3.',
+  CONCRETE_WALL:
+    'Palier 4 : béton blindé, 900 PV et défense 20. Permet la tourelle automatique de forteresse.',
+  ATOMIC_WALL: 'Palier 5 : enceinte atomique, 1 600 PV et défense 32. Permet le lance à neutrons.',
   TESLA_COIL:
     'Fortification électrique (+4 défense) ; forme les voltigeurs Tesla puis les templiers gamma avec la filière atomique.',
   CRYPT_BARRACKS:
@@ -1564,7 +1625,7 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   LUMBER: 'Exploite le bois en forêt ; finance les premières constructions.',
   MINE: 'Extrait le fer des collines pour les armes, les véhicules et les réparations.',
   GOLD_MINE:
-    'Extrait 12 pièces d’or par minute sur colline ou montagne. Nécessite une mine de fer et un atelier ; améliorable sur 3 niveaux.',
+    'Extrait 12 pièces d’or par minute sur colline ou montagne. Nécessite une mine de fer et un atelier ; améliorable sur 5 niveaux.',
   MARKET: 'Permet de proposer des échanges de ressources par caravane.',
   WAREHOUSE: 'Ajoute 1 000 places de stockage pour chaque ressource.',
   WORKSHOP:
@@ -1614,6 +1675,8 @@ export const BUILDING_DEFENSE: Partial<Record<BuildingKind, number>> = {
   WOOD_WALL: 0,
   STONE_WALL: 6,
   STEEL_WALL: 12,
+  CONCRETE_WALL: 20,
+  ATOMIC_WALL: 32,
   TESLA_COIL: 4,
   BUNKER: 5,
   GUN_BATTERY: 3,
@@ -1630,7 +1693,14 @@ export const RECON_UNITS: UnitKind[] = [
   'SNIPER',
 ];
 
-export const CITY_LEVELS = ['Avant-poste', 'Village', 'Bourg', 'Ville', 'Cité'];
+export const CITY_LEVELS = [
+  'Avant-poste',
+  'Village',
+  'Bourg impérial',
+  'Ville industrielle',
+  'Métropole',
+  'Cité atomique',
+];
 export const DEFAULT_SETTINGS = {
   locale: 'fr',
   masterVolume: 0,
@@ -1688,6 +1758,13 @@ export const UNIT_TABS = [
 ] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
+  ...ERA_REINFORCEMENT_CATEGORIES,
+  MUSKETEER: 'Armes à feu',
+  IMPERIAL_GRENADIER: 'Armes à feu',
+  CUIRASSIER: 'Cavalerie',
+  COMMANDO: 'Armes à feu',
+  DRONE_OPERATOR: 'Armes à distance',
+  NEUTRON_GUARD: 'Occulte',
   HERO: 'Civils & soutien',
   ...RADIOACTIVE_CATEGORIES,
   GLOCKE_VRIL: 'Cloches occultes',
@@ -1768,6 +1845,8 @@ export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
   WOOD_WALL: 'Défenses',
   STONE_WALL: 'Défenses',
   STEEL_WALL: 'Défenses',
+  CONCRETE_WALL: 'Défenses',
+  ATOMIC_WALL: 'Défenses',
   TESLA_COIL: 'Défenses',
   CRYPT_BARRACKS: 'Recrutement',
   ALCHEMY_FOUNDRY: 'Industrie',
@@ -1837,8 +1916,8 @@ export function unitUpkeep(kind: UnitKind): Wallet {
 /** Authoritative upgrade quote shared by the server and the preview. */
 export function buildingUpgrade(kind: BuildingKind, level: number) {
   if (isWall(kind)) {
-    if (kind === 'STEEL_WALL') return null;
-    const next: WallKind = kind === 'WOOD_WALL' ? 'STONE_WALL' : 'STEEL_WALL';
+    const next = WALL_KINDS[WALL_KINDS.indexOf(kind) + 1];
+    if (!next) return null;
     return {
       kind: next as BuildingKind,
       level: 1,
@@ -1867,17 +1946,17 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
       minimumPopulation: 15,
     };
   if (kind !== 'VILLAGE') {
-    if (level >= 3) return null;
+    if (level >= 5) return null;
     return {
       kind,
       level: level + 1,
       name: `${BUILDINGS[kind].name} · niveau ${level + 1}`,
-      cost: scaleCost(BUILDINGS[kind].cost, level === 1 ? 2.5 : 5),
+      cost: scaleCost(BUILDINGS[kind].cost, [2.5, 5, 12, 25][level - 1]),
       population: 0,
       minimumPopulation: 0,
     };
   }
-  if (level >= 3) return null;
+  if (level >= 5) return null;
   return {
     kind: 'VILLAGE' as BuildingKind,
     level: level + 1,
@@ -1890,7 +1969,7 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
         IRON: 20 * level,
         FOOD: 25 * level,
       },
-      level === 1 ? 6 : 12,
+      [6, 12, 24, 48][level - 1],
     ),
     population: level * 25,
     minimumPopulation: 0,
@@ -1898,21 +1977,21 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
 }
 
 export const productionMultiplier = (kind: BuildingKind, level: number) =>
-  kind === 'VILLAGE' ? level : [1, 1.6, 2.4][Math.max(0, Math.min(2, level - 1))];
+  kind === 'VILLAGE' ? level : [1, 1.6, 2.4, 3.6, 5.2][Math.max(0, Math.min(4, level - 1))];
 export const trainingBonusAt = (kind: BuildingKind, level: number) =>
   Object.values(UNIT_PROFILES).some((p) => p.recruitAt.includes(kind) && !p.builder)
-    ? [0, 25, 60][Math.max(0, Math.min(2, level - 1))]
+    ? [0, 25, 60, 100, 160][Math.max(0, Math.min(4, level - 1))]
     : 0;
 export const storageBonus = (kind: BuildingKind, level: number) => {
-  const index = Math.max(0, Math.min(2, level - 1));
+  const index = Math.max(0, Math.min(4, level - 1));
   return (
     kind === 'WAREHOUSE'
-      ? [1000, 4000, 16000]
+      ? [1000, 4000, 16000, 50000, 150000]
       : kind === 'GRANARY'
-        ? [500, 2000, 8000]
+        ? [500, 2000, 8000, 25000, 75000]
         : kind === 'RAIL_DEPOT'
-          ? [1500, 7500, 30000]
-          : [0, 0, 0]
+          ? [1500, 7500, 30000, 90000, 270000]
+          : [0, 0, 0, 0, Object.keys(BUILDINGS[kind].production).length ? 8000 : 0]
   )[index];
 };
 export const populationCapacity = (kind: BuildingKind, level: number) =>

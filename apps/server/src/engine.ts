@@ -672,7 +672,7 @@ export function applyAction(
         t = tileAt(s, p);
       requireRule(
         isBuildable(p.kind),
-        'Construisez une palissade, puis améliorez-la en pierre et en acier.',
+        'Construisez une palissade, puis améliorez-la : pierre, acier, béton blindé et enceinte atomique.',
       );
       const builder = s.units[a.actorId];
       const nearbyBuilder =

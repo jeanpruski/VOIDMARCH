@@ -70,7 +70,8 @@ describe('remparts en bois, pierre et acier', () => {
       });
     }
     expect(s.realms.a.ap).toBe(25);
-    expect(buildingUpgrade('STEEL_WALL', 1)).toBeNull();
+    expect(buildingUpgrade('STEEL_WALL', 1)?.kind).toBe('CONCRETE_WALL');
+    expect(buildingUpgrade('ATOMIC_WALL', 1)).toBeNull();
     expect(execute(s, a.id, order('UPGRADE', id), now).result.accepted).toBe(false);
     const before = structuredClone(s.realms.a.wallet);
     const demolition = execute(s, a.id, order('DEMOLISH', id), now);

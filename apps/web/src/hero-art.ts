@@ -12,7 +12,7 @@ const portraits = new Map<string, HTMLCanvasElement>();
 export const HERO_BASE_SPRITE = 'hero-base-v2';
 let base: HTMLCanvasElement | undefined;
 export const heroArtKey = (a: HeroAppearance) =>
-  `hero:unarmed:base-v2:proportions-v3:${HERO_VISIBLE_PARTS.map((p) => `${a[p]}${a.colors[p]}`).join(':')}`;
+  `hero:unarmed:base-v2:proportions-v4-midpoint:${HERO_VISIBLE_PARTS.map((p) => `${a[p]}${a.colors[p]}`).join(':')}`;
 export function loadHeroSheet(part: HeroVisualPart, source: HTMLImageElement) {
   if (pieces.has(part)) return;
   pieces.set(part, isolatedCanvases(source, 5, 3));
@@ -106,12 +106,12 @@ export function heroCanvas(a: HeroAppearance): HTMLCanvasElement {
     if (!src) return;
     ctx.drawImage(recolor(src, a.colors[part], part === 'head'), x, y, w, h);
   };
-  // The lower-body sheets contain hips, thighs, shins and feet, including robes.
-  // Lengthen that whole silhouette by 28%, with a 10% smaller upper body.
-  // Feet retain their base anchor; the shared layout covers every combination.
-  draw('boots', 91, 91, 78, 143);
-  draw('armor', 74, 45, 108, 92);
-  draw('head', 104, 7, 49, 50);
+  // Halfway between v3 and the first v4 preview: keep the head/torso ratio
+  // at 92.5% of v3 and gently broaden and lengthen the lower body.
+  // Neck alignment scales around the top anchor; feet stay planted at y=234.
+  draw('boots', 88, 85.5, 84, 148.5);
+  draw('armor', 78.05, 42.15, 99.9, 85.1);
+  draw('head', 105.8, 7, 45.325, 46.25);
   portraits.set(key, c);
   if (portraits.size > 100) portraits.delete(portraits.keys().next().value!);
   return c;

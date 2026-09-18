@@ -598,6 +598,7 @@ export const RADIOACTIVE_PROFILES = {
     role: 'Blindé d’assaut qui peut revendiquer les terres ; portée limitée.',
   },
   ISOTOPE_TANK_HUNTER: {
+    antiArmor: 30,
     radioactive: true,
     population: 14,
     recruitAt: ['TANK_FACTORY'],

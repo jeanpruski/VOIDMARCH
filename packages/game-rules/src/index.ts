@@ -258,7 +258,7 @@ export const demolitionRefund = (building: Building, faction: Faction): Partial<
 export const turretStats = (building: Building) =>
   isWall(building.kind) && building.turretLevel ? TURRETS[building.turretLevel] : undefined;
 export const nextTurretLevel = (building: Building): TurretLevel | undefined =>
-  isWall(building.kind) && (building.turretLevel ?? 0) < 3
+  isWall(building.kind) && (building.turretLevel ?? 0) < 5
     ? (((building.turretLevel ?? 0) + 1) as TurretLevel)
     : undefined;
 export function turretUpgradeReason(building: Building, ownerId: string, units: Unit[]) {
@@ -709,7 +709,7 @@ export function estimateDamage(
       : 1 + ((attacker.trainingBonus ?? 0) + (attacker.rareBonus ?? 0)) / 100;
   const antiArmor =
     !('population' in attacker) &&
-    ['BAZOOKA', 'ISOTOPE_TANK_HUNTER'].includes(attacker.kind) &&
+    (UNIT_PROFILES[attacker.kind].antiArmor ?? 0) > 0 &&
     !('population' in target) &&
     UNIT_PROFILES[target.kind].armored;
   const antiAir =
@@ -719,11 +719,12 @@ export function estimateDamage(
           : (UNIT_PROFILES[attacker.kind].antiAir ?? 0)) * counterMultiplier
       : 0;
   const bonus = antiArmor
-    ? (attacker.kind === 'BAZOOKA' ? 24 : 30) * counterMultiplier
+    ? UNIT_PROFILES[attacker.kind].antiArmor! * counterMultiplier
     : !('population' in target) &&
-        attacker.kind === 'SPEARMAN' &&
+        !('population' in attacker) &&
+        (UNIT_PROFILES[attacker.kind].antiCavalry ?? 0) > 0 &&
         UNIT_PROFILES[target.kind].mounted
-      ? 12 * counterMultiplier
+      ? UNIT_PROFILES[attacker.kind].antiCavalry! * counterMultiplier
       : !('population' in target) &&
           attacker.kind === 'CROSSBOW' &&
           ['GUARD', 'PALADIN', 'KNIGHT'].includes(target.kind)

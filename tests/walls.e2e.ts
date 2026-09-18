@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { resolve } from 'node:path';
 
-test('les trois matériaux couvrent les 64 raccords sans dépasser de leur image', async ({
+test('les cinq matériaux couvrent les 64 raccords sans dépasser de leur image', async ({
   page,
 }) => {
   const template = await (await page.request.get('/')).text();
@@ -12,13 +12,13 @@ test('les trois matériaux couvrent les 64 raccords sans dépasser de leur image
     }),
   );
   await page.goto('/wall-review');
-  await expect(page.getByRole('img')).toHaveCount(147);
+  await expect(page.getByRole('img')).toHaveCount(245);
   await page.screenshot({ path: 'test-results/walls-orientations.png', fullPage: true });
   const results = await page.evaluate(async () => {
     // @ts-expect-error Vite serves this source module directly in the browser.
     const { wallCanvas, wallGateAxis } = await import('/src/wall-art.ts');
     const results: { id: string; pixels: number; edge: number }[] = [];
-    for (const kind of ['WOOD_WALL', 'STONE_WALL', 'STEEL_WALL'])
+    for (const kind of ['WOOD_WALL', 'STONE_WALL', 'STEEL_WALL', 'CONCRETE_WALL', 'ATOMIC_WALL'])
       for (let mask = 0; mask < 64; mask++) {
         for (const roadMask of [undefined, 9, 18, 36]) {
           const gateAxis = roadMask === undefined ? undefined : wallGateAxis(mask, roadMask);
@@ -29,7 +29,11 @@ test('les trois matériaux couvrent les 64 raccords sans dépasser de leur image
                 ? 1
                 : kind === 'STONE_WALL'
                   ? 2
-                  : 3;
+                  : kind === 'STEEL_WALL'
+                    ? 3
+                    : kind === 'CONCRETE_WALL'
+                      ? 4
+                      : 5;
           const canvas = wallCanvas(kind, mask, turret, gateAxis);
           const data = canvas.getContext('2d')!.getImageData(0, 0, 256, 256).data;
           let pixels = 0,

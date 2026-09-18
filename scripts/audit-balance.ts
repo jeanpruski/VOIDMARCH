@@ -2,6 +2,9 @@ import { writeFileSync } from 'node:fs';
 import {
   BUILDINGS,
   TURRETS,
+  WALL_KINDS,
+  isWall,
+  MAX_BUILDING_LEVEL,
   isBuildable,
   BUILDING_REQUIREMENTS,
   UNIT_PROFILES,
@@ -38,20 +41,20 @@ function infrastructure(kind: UnitKind) {
   return [...seen];
 }
 const lines = [
-  '# Audit d’équilibrage — économie v0.5',
+  '# Audit d’équilibrage — économie et cinq âges v0.6',
   '',
   'Rapport reproductible : `node --import tsx scripts/audit-balance.ts`. Les coûts sont ceux de base, avant le bonus de construction de la Cendre. Le premier bâtiment de recrutement est utilisé pour calculer la chaîne d’infrastructure ; d’autres accès peuvent exister.',
   '',
   '## Corrections appliquées',
   '',
-  '- Progression : entraînement +25 % au niveau 2, +60 % au niveau 3 ; production hors villes ×1,6 puis ×2,4. Les bonus d’entraînement s’appliquent aussi aux troupes existantes, sans cumuler plusieurs bâtiments.',
+  '- Progression : entraînement +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5 ; production hors villes ×1,6 / ×2,4 / ×3,6 / ×5,2. Les bonus d’entraînement s’appliquent aussi aux troupes existantes, sans cumuler plusieurs bâtiments.',
   '- Référence de puissance : fantassin 8 d’attaque, char Mausolée 40, char Mausolée entraîné 64. Ce rapport ×5 à ×8 porte sur l’attaque ; blindage, terrain, rareté et contres modifient les dégâts effectivement reçus.',
   '- Contres : bazooka et chasseur de chars isotopique ignorent 75 % du blindage des cibles blindées ; armes antiaériennes spécialisées ignorent 50 % de la défense aérienne. Les bonus de contre bénéficient de l’entraînement.',
   '- Récolte uniquement sur la case occupée, jamais sur une voisine ni sur une terre adverse. Bois : forêt ; pierre : colline/montagne ; fer : colline ; vivres : plaine/rivière/marais ; or : ruines. Les vestiges cosmiques se fouillent par leur action dédiée.',
   '- Pierre ajoutée aux stocks, échanges, coûts et sauvegardes. Carrière accessible sans coût initial en pierre. La mine extrait le fer sur colline ; la carrière extrait la pierre sur colline ou montagne.',
   '- Aucun revenu brut par simple propriété d’une case. Le campement ne produit plus de bois, les forges/ateliers/raffineries/manufactures ne génèrent plus de fer sans mine. Le grenier stocke sans générer de vivres.',
   '- Prix progressifs : bâtiments intermédiaires ×1,5 / ×2,5 / ×4 / ×7 ; fin de progression ×10 / ×12 / ×15 par rapport à v0.4. Unités médiévales ×2,5, industrielles ×4, occultes ×7, atomiques ×10, Apocalypse ×12 et Glocke ×15. Fondations et civils ordinaires conservés.',
-  '- Améliorations ordinaires : 2 PA et débit de 2,5 fois le nouveau coût de construction pour le niveau 2, puis 5 fois pour le niveau 3. Campements, villes et murs ont leurs devis spécifiques. Les coûts de chaque étape ne sont pas cumulatifs.',
+  '- Améliorations ordinaires : 2 PA et débit de 2,5 fois le nouveau coût de construction pour le niveau 2, puis 5 / 12 / 25 fois pour les niveaux 3 / 4 / 5. Campements, villes et murs ont leurs devis spécifiques. Les coûts de chaque étape ne sont pas cumulatifs.',
   '- Entretien conservé aux valeurs v0.4, séparé du nouveau prix de recrutement ; les machines consomment aussi du fer. Mobilisation : paysan 3, soldats 5, siège médiéval 6, machines légères 8, chars / bombardiers / dirigeables / dragons 12 ; division atomique de 7 à 18 places selon le modèle.',
   '- Croissance bornée selon le bâtiment : un campement ou une chaumière ne finit plus avec la capacité d’une ville. Les populations existantes ne sont pas supprimées.',
   '- Montagne accessible au paysan pour la pierre ; véhicules et cavaliers ont besoin de routes en montagne ou marais. Les machines terrestres ralentissent en forêt. Les unités volantes survolent tous les terrains et les remparts pour un point de déplacement par case.',
@@ -63,18 +66,18 @@ const lines = [
   '',
   '## Unités',
   '',
-  '| Unité | Palier | PV / attaque / défense de base | Attaque avec formation niveau 3 | Déplacement / portée | Places | Coût | Entretien par minute | Infrastructure requise (nombre) |',
+  '| Unité | Palier | PV / attaque / défense de base | Attaque avec formation niveau 5 | Déplacement / portée | Places | Coût | Entretien par minute | Infrastructure requise (nombre) |',
   '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
 ];
 for (const [kind, unit] of Object.entries(UNITS) as [UnitKind, (typeof UNITS)[UnitKind]][])
   lines.push(
-    `| ${unit.name} | ${TIER_NAMES[UNIT_TIERS[kind]]} | ${unit.hp} / ${unit.attack} / ${unit.defense} | ${Number(unitStats({ kind, trainingBonus: UNIT_PROFILES[kind].builder ? 0 : 60 }).attack.toFixed(2))} | ${unit.move} / ${unit.range} | ${unitPopulation(kind)} | ${wallet(unit.cost)} | ${wallet(unitUpkeep(kind))} | ${infrastructure(kind).length} |`,
+    `| ${unit.name} | ${TIER_NAMES[UNIT_TIERS[kind]]} | ${unit.hp} / ${unit.attack} / ${unit.defense} | ${Number(unitStats({ kind, trainingBonus: UNIT_PROFILES[kind].builder ? 0 : 160 }).attack.toFixed(2))} | ${unit.move} / ${unit.range} | ${unitPopulation(kind)} | ${wallet(unit.cost)} | ${wallet(unitUpkeep(kind))} | ${infrastructure(kind).length} |`,
   );
 lines.push(
   '',
   '## Bâtiments',
   '',
-  '| Bâtiment | PV de base | Coût initial | Production brute / minute niveau 1 | Production brute / minute niveau 3 | Terrains | Prérequis |',
+  '| Bâtiment | PV de base | Coût initial | Production brute / minute niveau 1 | Production brute / minute au niveau maximal | Terrains | Prérequis |',
   '| --- | --- | --- | --- | --- | --- | --- |',
 );
 for (const [kind, building] of Object.entries(BUILDINGS) as [
@@ -82,7 +85,7 @@ for (const [kind, building] of Object.entries(BUILDINGS) as [
   (typeof BUILDINGS)[BuildingKind],
 ][])
   lines.push(
-    `| ${building.name} | ${building.hp} | ${wallet(building.cost)} | ${wallet(building.production)} | ${wallet(Object.fromEntries(RESOURCES.map((r) => [r, (building.production[r] ?? 0) * productionMultiplier(kind, 3)])))} | ${building.terrains.join(', ')} | ${!isBuildable(kind) ? `Évolution uniquement : ${kind === 'STONE_WALL' ? 'palissade en bois' : 'rempart de pierre'} (2 PA, coût sans réduction)` : (BUILDING_REQUIREMENTS[kind] ?? []).map((k) => BUILDINGS[k].name).join(', ') || '—'} |`,
+    `| ${building.name} | ${building.hp} | ${wallet(building.cost)} | ${wallet(building.production)} | ${wallet(Object.fromEntries(RESOURCES.map((r) => [r, (building.production[r] ?? 0) * productionMultiplier(kind, kind === 'CAMP' || kind === 'OUTPOST' || isWall(kind) ? 1 : MAX_BUILDING_LEVEL)])))} | ${building.terrains.join(', ')} | ${!isBuildable(kind) ? `Évolution uniquement : ${isWall(kind) ? BUILDINGS[WALL_KINDS[WALL_KINDS.indexOf(kind) - 1]].name : 'fondation précédente'} (2 PA, coût sans réduction)` : (BUILDING_REQUIREMENTS[kind] ?? []).map((k) => BUILDINGS[k].name).join(', ') || '—'} |`,
   );
 lines.push(
   '',
@@ -94,9 +97,7 @@ lines.push(
   '| --- | --- | --- | --- |',
 );
 for (const kind of Object.keys(BUILDINGS) as BuildingKind[]) {
-  for (const level of ['CAMP', 'OUTPOST', 'WOOD_WALL', 'STONE_WALL', 'STEEL_WALL'].includes(kind)
-    ? [1]
-    : [1, 2]) {
+  for (const level of kind === 'CAMP' || kind === 'OUTPOST' || isWall(kind) ? [1] : [1, 2, 3, 4]) {
     const upgrade = buildingUpgrade(kind, level);
     if (!upgrade) continue;
     lines.push(

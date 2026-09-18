@@ -86,6 +86,22 @@ export const SPRITE_CELL = 256;
 export const SPRITE_MARGIN = 20;
 /** Source grids; all are packed into the same 6 × 4 rendering format. */
 export const SPRITE_ATLASES: Record<string, { columns: number; rows: number }> = {
+  ...Object.fromEntries(
+    ['medieval', 'empire', 'industrial', 'modern', 'atomic'].map((age) => [
+      'reinforcements-' + age,
+      { columns: 2, rows: 2 },
+    ]),
+  ),
+  ...Object.fromEntries(
+    [
+      'epoch-musketeer',
+      'epoch-grenadier',
+      'epoch-cuirassier',
+      'epoch-commando',
+      'epoch-drones',
+      'epoch-neutron',
+    ].map((name) => [name, { columns: 1, rows: 1 }]),
+  ),
   'mine-iron': { columns: 1, rows: 1 },
   'mine-stone': { columns: 1, rows: 1 },
   'mine-gold': { columns: 1, rows: 1 },

@@ -1,3 +1,5 @@
+import { buildingAtlas, buildingTextureKey, buildingEvolutionFrame } from './building-art';
+import { hasBuildingEvolutionArt, CITY_LEVELS } from '@voidmarch/config';
 import {
   HERO_SHEETS,
   HERO_BASE_SPRITE,
@@ -119,6 +121,7 @@ class WorldScene extends Phaser.Scene {
     paths: Map<string, Hex | null>;
     blocked: Set<string>;
   };
+  private loadingBuildingArt = new Set<string>();
   constructor() {
     super('World');
   }
@@ -1041,8 +1044,30 @@ class WorldScene extends Phaser.Scene {
             this.healthBar(b.id, p.x, p.y, b.hp, BUILDINGS[b.kind].hp, b.turretLevel ? -75 : -55);
           continue;
         }
+        const ageTexture = buildingTextureKey(b.kind);
+        const evolved = b.level > 1 && hasBuildingEvolutionArt(b.kind);
+        if (evolved && !this.textures.exists(ageTexture) && !this.loadingBuildingArt.has(b.kind)) {
+          this.loadingBuildingArt.add(b.kind);
+          void buildingAtlas(b.kind)
+            .then((canvas) => {
+              if (!this.sys?.isActive()) return;
+              if (!this.textures.exists(ageTexture)) {
+                const texture = this.textures.addCanvas(ageTexture, canvas)!;
+                for (let i = 0; i < 4; i++) texture.add(i, 0, i * 256, 0, 256, 256);
+              }
+              this.renderMap();
+            })
+            .catch(console.error)
+            .finally(() => this.loadingBuildingArt.delete(b.kind));
+        }
+        const useAge = evolved && this.textures.exists(ageTexture);
         const sprite = this.add
-          .image(p.x, p.y - 17, miniatureTexture(frame), miniatureFrame(frame))
+          .image(
+            p.x,
+            p.y - 17,
+            useAge ? ageTexture : miniatureTexture(frame),
+            useAge ? buildingEvolutionFrame(b.level) : miniatureFrame(frame),
+          )
           .setDisplaySize(size, size)
           .setDepth(depth(5000, p.y))
           .setName(`building-sprite:${b.id}`);
@@ -1052,7 +1077,7 @@ class WorldScene extends Phaser.Scene {
           this.healthBar(b.id, p.x, p.y, b.hp, BUILDINGS[b.kind].hp * b.level, -size / 2 - 26);
         if (b.kind === 'VILLAGE') {
           const label = this.add
-            .text(p.x, p.y + 28, b.level >= 3 ? 'CITADELLE' : b.level === 2 ? 'BOURG' : 'VILLAGE', {
+            .text(p.x, p.y + 28, CITY_LEVELS[b.level].toUpperCase(), {
               fontFamily: 'Georgia',
               fontSize: '9px',
               color: '#dbd2b6',

@@ -18,7 +18,7 @@ import { predictAction } from '../apps/web/src/optimistic-actions';
 
 const now = 1_900_000_000_000;
 const upgrades = (Object.keys(BUILDINGS) as BuildingKind[]).flatMap((kind) =>
-  [1, 2].filter((level) => buildingUpgrade(kind, level)).map((level) => ({ kind, level })),
+  [1, 2, 3, 4].filter((level) => buildingUpgrade(kind, level)).map((level) => ({ kind, level })),
 );
 function fixture(kind: BuildingKind, level = 1) {
   const state = createState('economy-v05', now);

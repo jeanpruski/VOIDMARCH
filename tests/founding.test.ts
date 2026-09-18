@@ -138,7 +138,7 @@ describe('catalogue étendu', () => {
   );
   it.each(
     (Object.keys(BUILDINGS) as BuildingKind[]).filter(
-      (kind) => kind !== 'STONE_WALL' && kind !== 'STEEL_WALL',
+      (kind) => !kind.endsWith('_WALL') || kind === 'WOOD_WALL',
     ),
   )('construit %s sur un terrain compatible', (kind) => {
     const s = established(),

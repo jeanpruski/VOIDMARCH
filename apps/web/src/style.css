@@ -3984,3 +3984,8 @@ button:disabled {
   border: 1px solid #697545;
   padding: 3px 6px;
 }
+
+.building-age-comparison {display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 0;}
+.building-age-comparison figure {margin:0;flex:1;text-align:center;min-width:0;}
+.building-age-comparison figcaption {font-size:12px;color:var(--muted);line-height:1.5;}
+.building-age-comparison .miniature {max-width:100%;}

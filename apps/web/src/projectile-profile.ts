@@ -12,6 +12,28 @@ export type ProjectileKind =
   | 'flame';
 /** Deliberate weapon assignments: new ranged troops must choose their ammunition. */
 export const PROJECTILE_WEAPONS = {
+  LONGBOWMAN: 'arrow',
+  WAR_WAGON: 'bolt',
+  BLACK_DRAGOON: 'bullet',
+  IMPERIAL_CANNON: 'shell',
+  WAR_BALLOON: 'bomb',
+  ASSAULT_SAPPER: 'bomb',
+  ASH_FLAMETHROWER: 'flame',
+  CASEMATE_HUNTER: 'shell',
+  DIVE_BOMBER: 'bomb',
+  RAIL_SNIPER: 'lightning',
+  STEALTH_BIKE: 'bullet',
+  MISSILE_TANK: 'rocket',
+  NIGHT_INTERCEPTOR: 'rocket',
+  REACTOR_DREADNOUGHT: 'lightning',
+  GAMMA_INTERCEPTOR: 'lightning',
+  NEUTRON_MORTAR: 'shell',
+  REACTOR_SERAPH: 'flame',
+  MUSKETEER: 'bullet',
+  IMPERIAL_GRENADIER: 'bomb',
+  COMMANDO: 'bullet',
+  DRONE_OPERATOR: 'bomb',
+  NEUTRON_GUARD: 'lightning',
   GLOCKE_VRIL: 'lightning',
   GLOCKE_NACHT: 'orb',
   GLOCKE_APOCALYPSE: 'lightning',
@@ -76,6 +98,8 @@ export const PROJECTILE_WEAPONS = {
   APOCALYPSE_HELICOPTER: 'rocket',
 } satisfies Partial<Record<UnitKind, ProjectileKind>>;
 const automatic = new Set<UnitKind>([
+  'STEALTH_BIKE',
+  'COMMANDO',
   'STORMTROOPER',
   'MACHINE_GUNNER',
   'MOTORCYCLE',

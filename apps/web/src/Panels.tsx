@@ -1,3 +1,4 @@
+import { buildingEra, BUILDING_AGES, UNIT_ERAS } from '@voidmarch/config';
 import { HeroControls } from './Hero';
 import { buildingStage, compareBuildings, buildingsUnlockedBy } from './building-order';
 import { unitStats, attackStats, attackCost, recruitmentRequirement } from '@voidmarch/game-rules';
@@ -298,6 +299,7 @@ function CitiesPanel() {
           >
             <Miniature
               frame={b.kind === 'VILLAGE' ? Math.min(9, b.level + 6) : BUILDING_FRAMES[b.kind]}
+              building={b}
               turretLevel={b.turretLevel}
               size={66}
             />
@@ -1088,6 +1090,11 @@ function Build() {
               </span>
               <Miniature frame={BUILDING_FRAMES[kind]} size={80} />
               <h4>{b.name}</h4>
+              <small>
+                {kind === 'CAMP' || kind === 'OUTPOST'
+                  ? 'Fondation du village'
+                  : `5 niveaux · ${buildingEra(kind, 1)} → ${buildingEra(kind, 5)}`}
+              </small>
               <span className="building-owned-count">
                 Dans votre royaume : <strong>{ownedCounts[kind] ?? 0}</strong>
               </span>
@@ -1328,7 +1335,7 @@ function Recruit() {
           .filter(([kind]) => category === 'Toutes' || UNIT_CATEGORY[kind] === category)
           .filter(([kind]) => !atomicOnly || UNIT_PROFILES[kind].radioactive)
           .filter(([kind, u]) =>
-            `${u.name} ${UNIT_PROFILES[kind].radioactive ? 'atomique radioactif' : ''} ${UNIT_PROFILES[kind].recruitAt.map((k) => BUILDINGS[k].name).join(' ')}`
+            `${u.name} ${kind in UNIT_ERAS ? BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1] : ''} ${UNIT_PROFILES[kind].radioactive ? 'atomique radioactif' : ''} ${UNIT_PROFILES[kind].recruitAt.map((k) => BUILDINGS[k].name).join(' ')}`
               .toLocaleLowerCase()
               .includes(query.toLocaleLowerCase()),
           )
@@ -1358,8 +1365,9 @@ function Recruit() {
                 <Miniature frame={UNIT_FRAMES[kind]} size={90} />
                 <h4>{u.name}</h4>
                 <span className="building-stage">
-                  {UNIT_TIERS[kind] ? `Palier ${UNIT_TIERS[kind]} · ` : ''}
-                  {TIER_NAMES[UNIT_TIERS[kind]]}
+                  {kind in UNIT_ERAS
+                    ? `${BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1]} · recrutement niveau ${UNIT_ERAS[kind as keyof typeof UNIT_ERAS]}`
+                    : `${UNIT_TIERS[kind] ? `Palier ${UNIT_TIERS[kind]} · ` : ''}${TIER_NAMES[UNIT_TIERS[kind]]}`}
                 </span>
                 {profile.radioactive && <span className="atomic-badge">☢ Division atomique</span>}
                 <p>{profile.role}</p>
@@ -1480,6 +1488,7 @@ function Combat() {
           <Miniature
             heroAppearance={'population' in attacker ? undefined : attacker.hero?.appearance}
             frame={'population' in attacker ? BUILDING_FRAMES[attacker.kind] : unitFrame(attacker)}
+            building={'population' in attacker ? attacker : undefined}
             size={115}
             turretLevel={'population' in attacker ? attacker.turretLevel : undefined}
             gate={'population' in attacker && !!w.tiles.find((t) => key(t) === key(attacker))?.road}
@@ -1492,6 +1501,7 @@ function Combat() {
           <Miniature
             heroAppearance={'population' in target ? undefined : target.hero?.appearance}
             frame={'population' in target ? BUILDING_FRAMES[target.kind] : unitFrame(target)}
+            building={'population' in target ? target : undefined}
             turretLevel={'population' in target ? target.turretLevel : undefined}
             gate={'population' in target && !!w.tiles.find((t) => key(t) === key(target))?.road}
             size={115}

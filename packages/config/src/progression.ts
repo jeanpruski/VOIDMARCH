@@ -1,6 +1,14 @@
+import { ERA_REINFORCEMENT_TIERS } from './era-reinforcements';
 import type { UnitKind } from './index';
 export const BALANCE_VERSION = 3;
 export const UNIT_TIERS = {
+  ...ERA_REINFORCEMENT_TIERS,
+  MUSKETEER: 2,
+  IMPERIAL_GRENADIER: 2,
+  CUIRASSIER: 2,
+  COMMANDO: 4,
+  DRONE_OPERATOR: 4,
+  NEUTRON_GUARD: 6,
   HERO: 0,
   GLOCKE_VRIL: 7,
   GLOCKE_NACHT: 7,

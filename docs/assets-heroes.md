@@ -1,5 +1,11 @@
 # Figurines modulaires des héros
 
+## Proportions — version 4 (réglage intermédiaire)
+
+Réglage à mi-chemin entre la version 3 et le premier essai v4 : tête et buste à 92,5 % de leur échelle v3, sans changer leur rapport. Le bas du corps passe de 78 × 143 à 84 × 148,5 pixels (environ +8 % en largeur et +4 % en hauteur). Le raccord du cou est ajusté ensemble ; les pieds restent ancrés à y=234 et le socle garde ses dimensions. Les planches raster et les choix de personnalisation sont conservés.
+
+La clé de texture utilise `proportions-v4-midpoint`. Comparaison à trois colonnes (original / entre-deux / dernier essai) pour l’uniforme de tranchée, l’officier en tenue longue, le chevalier et l’éclaireur, ainsi que les quinze ensembles. Le rendu partagé applique ce réglage à la carte, au créateur et au portrait des héros existants.
+
 ## Proportions — version 3
 
 Le bas du corps complet (bassin, cuisses, jambes et pieds) passe de 112 à 143 pixels de hauteur, soit +28 %. Les pièces de robes et jupes longues suivent la même correction. Le torse passe de 120 × 104 à 108 × 92 pixels et la tête de 54 × 55 à 49 × 50 pixels ; les raccords du cou et de la taille sont ajustés ensemble. Les pieds restent à la même hauteur sur le socle peint. La silhouette conserve son cadre de 256 × 256 pixels et ses dimensions d’affichage sur la carte.

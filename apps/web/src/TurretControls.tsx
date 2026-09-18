@@ -59,7 +59,7 @@ export function TurretControls({ building: b }: { building: Building }) {
             <div className="upgrade-preview">
               <Miniature frame={BUILDING_FRAMES[b.kind]} size={128} turretLevel={next} />
               <h3>
-                {upgrade.name} · niveau {next}/3
+                {upgrade.name} · niveau {next}/5
               </h3>
               <p>
                 Arme fixe posée sur ce rempart. Tir à distance uniquement, sur votre ordre :{' '}

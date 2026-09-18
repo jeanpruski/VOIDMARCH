@@ -25,6 +25,15 @@ createRoot(document.getElementById('root')!).render(
       552,
       576,
       600,
+      624,
+      648,
+      672,
+      696,
+      720,
+      744,
+      ...Array.from({ length: 5 }, (_, sheet) =>
+        Array.from({ length: 4 }, (_, i) => 768 + sheet * 24 + i),
+      ).flat(),
     ].map((frame) => (
       <div
         key={frame}

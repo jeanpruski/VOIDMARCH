@@ -1,3 +1,4 @@
+import { buildingEra } from '@voidmarch/config';
 import { HeroControls } from './Hero';
 import { unitStats } from '@voidmarch/game-rules';
 import { useEffect, useRef, useState } from 'react';
@@ -696,6 +697,7 @@ function SelectionPanel() {
         {frame !== undefined ? (
           <Miniature
             heroAppearance={u?.hero?.appearance}
+            building={b}
             frame={frame}
             size={88}
             turretLevel={b?.turretLevel}
@@ -1012,7 +1014,7 @@ function SelectionPanel() {
           <div className="building-info">
             {b.turretLevel && (
               <span>
-                {turretStats(b)?.name} · niveau {b.turretLevel}/3 · ATQ {turretStats(b)?.attack} ·
+                {turretStats(b)?.name} · niveau {b.turretLevel}/5 · ATQ {turretStats(b)?.attack} ·
                 portée {turretStats(b)?.range}
               </span>
             )}
@@ -1021,8 +1023,8 @@ function SelectionPanel() {
             </span>
             <span>
               {isWall(b.kind)
-                ? `Rempart · palier ${WALL_KINDS.indexOf(b.kind) + 1}/3`
-                : `Niveau ${b.level}`}
+                ? `Rempart · palier ${WALL_KINDS.indexOf(b.kind) + 1}/5`
+                : `Niveau ${b.level}/5 · ${buildingEra(b.kind, b.level)}`}
             </span>
             {isWall(b.kind) && (
               <span title="Les ennemis doivent détruire ce tronçon pour entrer sur la case. Vos unités traversent librement. Une route ne supprime pas cette protection.">
