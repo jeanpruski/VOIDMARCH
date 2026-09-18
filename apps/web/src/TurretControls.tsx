@@ -1,3 +1,4 @@
+import { ActionButton } from './ActionButton';
 import { format } from './ui';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -27,7 +28,8 @@ export function TurretControls({ building: b }: { building: Building }) {
   return (
     <>
       {current && (
-        <button
+        <ActionButton
+          shortcut="T"
           className={mode === 'attack' ? 'primary' : 'secondary'}
           disabled={pending || (!world.player.unlimitedAP && world.player.ap < 1)}
           onClick={() =>
@@ -37,13 +39,13 @@ export function TurretControls({ building: b }: { building: Building }) {
         >
           <Crosshair size={15} />
           Tirer avec la tourelle · 1 PA
-        </button>
+        </ActionButton>
       )}
       {upgrade && (
-        <button className="secondary" onClick={() => setOpen(true)}>
+        <ActionButton shortcut="U" className="secondary" onClick={() => setOpen(true)}>
           <Hammer size={15} />
           {current ? 'Améliorer la tourelle' : 'Installer une tourelle'} · 2 PA
-        </button>
+        </ActionButton>
       )}
       {open &&
         upgrade &&

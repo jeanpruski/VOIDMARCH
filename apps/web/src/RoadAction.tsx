@@ -1,3 +1,4 @@
+import { ActionButton } from './ActionButton';
 import { Route, Trash2 } from 'lucide-react';
 import { roadConstructionCost } from '@voidmarch/config';
 import type { ViewTile } from '@voidmarch/shared';
@@ -50,13 +51,14 @@ export function RoadAction({ tile }: { tile?: ViewTile }) {
           )}
         </button>
       )}
-      <button
+      <ActionButton
+        shortcut="L"
         className="secondary"
         onClick={() => openRoadTool(tool)}
         title="Poser ou retirer plusieurs tronçons en cliquant directement sur la carte, avec explication des effets."
       >
         <Route size={15} /> Mode routes
-      </button>
+      </ActionButton>
     </>
   );
 }

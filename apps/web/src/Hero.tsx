@@ -1,3 +1,4 @@
+import { ActionButton } from './ActionButton';
 import { useEffect, useState } from 'react';
 import {
   HERO_LABELS,
@@ -178,7 +179,8 @@ export function HeroControls({ inSelection = false }: { inSelection?: boolean })
                 remaining = Math.max(0, Math.ceil(((h.cooldowns[power] ?? 0) - now) / 1000));
               return (
                 <div key={power}>
-                  <button
+                  <ActionButton
+                    shortcut={{ HERO_MEND: 'G', HERO_RESTORE: 'P', HERO_SURVEY: 'R' }[power]}
                     className="secondary"
                     disabled={
                       pending ||
@@ -192,7 +194,7 @@ export function HeroControls({ inSelection = false }: { inSelection?: boolean })
                     }
                   >
                     {p.name} · 2 PA{remaining ? ` · ${remaining} s` : ''}
-                  </button>
+                  </ActionButton>
                   <small>{p.description} Recharge : 5 min.</small>
                 </div>
               );

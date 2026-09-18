@@ -1,3 +1,4 @@
+import { ActionButton } from './ActionButton';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TrendingUp } from 'lucide-react';
@@ -52,14 +53,19 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
     : [];
   return (
     <>
-      <button className="secondary" disabled={!upgrade} onClick={() => setOpen(true)}>
+      <ActionButton
+        shortcut="A"
+        className="secondary"
+        disabled={!upgrade}
+        onClick={() => setOpen(true)}
+      >
         <TrendingUp size={15} />{' '}
         {upgrade
           ? b.turretLevel
             ? 'Améliorer le mur · 2 PA'
             : 'Améliorer · 2 PA'
           : 'Niveau maximal'}
-      </button>
+      </ActionButton>
       {open &&
         upgrade &&
         createPortal(

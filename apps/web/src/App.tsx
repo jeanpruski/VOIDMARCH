@@ -1,3 +1,5 @@
+import { constructionSiteReason } from './construction';
+import { ActionButton, activateSelectionShortcut } from './ActionButton';
 import { NuclearAlerts, NuclearControls, StrategyUnitControls } from './Strategy';
 import { buildingEra } from '@voidmarch/config';
 import { HeroControls } from './Hero';
@@ -102,12 +104,12 @@ import {
   Sigil,
   UNIT_FRAMES,
 } from './ui';
-const nav: { panel: Panel; label: string; icon: typeof Crown; hint: string }[] = [
-  { panel: 'realm', label: 'Royaume', icon: Crown, hint: 'R' },
-  { panel: 'army', label: 'Armées', icon: Swords, hint: 'A' },
-  { panel: 'cities', label: 'Villes & domaines', icon: Castle, hint: 'V' },
-  { panel: 'economy', label: 'Économie', icon: TrendingUp, hint: 'E' },
-  { panel: 'trade', label: 'Commerce & diplomatie', icon: Handshake, hint: 'D' },
+const nav: { panel: Panel; label: string; icon: typeof Crown }[] = [
+  { panel: 'realm', label: 'Royaume', icon: Crown },
+  { panel: 'army', label: 'Armées', icon: Swords },
+  { panel: 'cities', label: 'Villes & domaines', icon: Castle },
+  { panel: 'economy', label: 'Économie', icon: TrendingUp },
+  { panel: 'trade', label: 'Commerce & diplomatie', icon: Handshake },
 ];
 import { CapitalRadar } from './CapitalRadar';
 let booted = false;
@@ -154,6 +156,8 @@ export function App() {
     let lastKeyAt = 0;
     const t = setInterval(() => useGame.setState((s) => ({ now: s.now + 1000 })), 1000);
     const keyboard = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.repeat || e.isComposing || e.ctrlKey || e.metaKey || e.altKey)
+        return;
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -191,8 +195,8 @@ export function App() {
       if ((code.startsWith('y') || code.startsWith('h')) && /^[a-z]$/i.test(e.key)) return;
       if (e.key === 'Escape')
         useGame.setState({ panel: null, combatTarget: null, mode: 'inspect', menuOpen: false });
-      const item = nav.find((n) => n.hint.toLowerCase() === e.key.toLowerCase());
-      if (item) useGame.setState({ panel: item.panel });
+      const state = useGame.getState();
+      if (state.world && !state.pending && activateSelectionShortcut(e.key)) e.preventDefault();
     };
     window.addEventListener('keydown', keyboard);
     return () => {
@@ -479,11 +483,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
           >
             <n.icon size={17} />
             <span>{n.label}</span>
-            {n.panel === 'trade' && pending > 0 ? (
-              <b className="nav-count">{pending}</b>
-            ) : (
-              <kbd>{n.hint}</kbd>
-            )}
+            {n.panel === 'trade' && pending > 0 ? <b className="nav-count">{pending}</b> : null}
           </button>
         ))}
         <div className="nav-separator" />
@@ -526,34 +526,17 @@ function TileConstructionAction() {
   if (selection?.kind !== 'tile') return null;
   const tile = w.tiles.find((t) => key(t) === key(selection));
   if (!tile?.terrain || tile.visibility === 'UNKNOWN') return null;
-  const builder = w.units.some(
-    (u) => u.ownerId === w.player.id && UNIT_PROFILES[u.kind].builder && distance(u, tile) <= 1,
-  );
-  const own = tile.ownerId === w.player.id;
-  const withinDomain = w.tiles.some(
-    (t) => t.building?.ownerId === w.player.id && distance(t, tile) <= RULES.constructionRadius,
-  );
-  const reason = w.strategy?.sites.some((site) => key(site) === key(tile))
-    ? 'Ce site stratégique doit rester libre de construction.'
-    : tile.building
-      ? 'Un bâtiment occupe déjà cette case.'
-      : tile.terrain === 'SCORCHED'
-        ? 'Restaurez ce terrain avec un terrassier avant de construire.'
-        : tile.ownerId && !own
-          ? 'Vous ne pouvez pas construire sur les terres d’un autre royaume.'
-          : w.units.some((u) => u.ownerId !== w.player.id && distance(u, tile) === 0)
-            ? 'Une unité adverse occupe ce terrain.'
-            : !own && !withinDomain
-              ? 'Le chantier doit être à 3 cases maximum de l’un de vos bâtiments.'
-              : (!own || tile.enclosureOwnerId) && !builder
-                ? 'Approchez un paysan ou un ingénieur à une case maximum pour construire.'
-                : undefined;
+  const reason = constructionSiteReason(w, tile);
   return reason ? (
     <p className="tile-build-hint">{reason}</p>
   ) : (
-    <button className="primary" onClick={() => useGame.setState({ panel: 'build' })}>
+    <ActionButton
+      shortcut="C"
+      className="primary"
+      onClick={() => useGame.setState({ panel: 'build' })}
+    >
       <Hammer size={15} /> Construire <small>1 PA + ressources</small>
-    </button>
+    </ActionButton>
   );
 }
 
@@ -824,7 +807,8 @@ function SelectionPanel() {
           >
             {own ? (
               <>
-                <button
+                <ActionButton
+                  shortcut="D"
                   className={`primary ${mode === 'move' ? 'chosen' : ''}`}
                   disabled={pending || (!w.player.unlimitedAP && w.player.ap < 1)}
                   onClick={() => useGame.setState({ mode: mode === 'move' ? 'inspect' : 'move' })}
@@ -835,13 +819,14 @@ function SelectionPanel() {
                   <ArrowUpRight size={16} />
                   {mode === 'move' ? 'Choisir une destination' : 'Déplacer'}
                   <small>1 PA</small>
-                </button>
+                </ActionButton>
                 {(tile?.road || tile?.ownerId === w.player.id) && (
                   <span className="road-status">
                     Vos terres + routes : distance illimitée · 1 PA
                   </span>
                 )}
-                <button
+                <ActionButton
+                  shortcut="A"
                   className="secondary"
                   disabled={
                     pending ||
@@ -851,8 +836,9 @@ function SelectionPanel() {
                   onClick={() => useGame.setState({ mode: 'attack' })}
                 >
                   <Swords size={15} /> Attaquer · {UNIT_PROFILES[u.kind].siege ? 2 : 1} PA
-                </button>
-                <button
+                </ActionButton>
+                <ActionButton
+                  shortcut="Q"
                   className="secondary"
                   disabled={
                     pending ||
@@ -866,9 +852,10 @@ function SelectionPanel() {
                   onClick={() => action('CAPTURE')}
                 >
                   <Flag size={15} /> Revendiquer la case · 1 PA
-                </button>
-                <button
-                  className="icon-button"
+                </ActionButton>
+                <ActionButton
+                  shortcut="S"
+                  className="secondary"
                   title={
                     UNIT_PROFILES[u.kind].mechanical
                       ? 'Réparer · 1 PA, 10 or, 10 fer'
@@ -890,7 +877,7 @@ function SelectionPanel() {
                 >
                   <Plus size={17} /> {UNIT_PROFILES[u.kind].mechanical ? 'Réparer' : 'Soigner'} · 1
                   PA
-                </button>
+                </ActionButton>
                 {u.kind === 'PEASANT' &&
                   RESOURCES.map((resource) => {
                     const accessible = w.tiles.some(
@@ -904,7 +891,10 @@ function SelectionPanel() {
                         ),
                     );
                     return (
-                      <button
+                      <ActionButton
+                        shortcut={
+                          { WOOD: 'B', STONE: 'P', IRON: 'F', FOOD: 'V', GOLD: 'O' }[resource]
+                        }
                         key={resource}
                         className="secondary"
                         disabled={
@@ -921,11 +911,12 @@ function SelectionPanel() {
                       >
                         Récolter {RESOURCE_NAMES[resource].toLowerCase()} +{GATHER_YIELD[resource]}{' '}
                         · 1 PA
-                      </button>
+                      </ActionButton>
                     );
                   })}
                 {u.kind === 'TERRAFORMER' && (
-                  <button
+                  <ActionButton
+                    shortcut="T"
                     className="secondary"
                     title="Transformer un terrain en plaine : 20 bois et 10 fer par case"
                     onClick={() =>
@@ -936,11 +927,12 @@ function SelectionPanel() {
                     }
                   >
                     <Hammer size={17} /> Terrasser · 2 PA
-                  </button>
+                  </ActionButton>
                 )}
                 {UNIT_PROFILES[u.kind].builder && <RoadAction tile={tile} />}
                 {UNIT_PROFILES[u.kind].builder && (
-                  <button
+                  <ActionButton
+                    shortcut="C"
                     className="secondary"
                     title="Construire sur la case du bâtisseur. Pour bâtir à côté, sélectionnez d’abord une case voisine éclairée."
                     onClick={() => {
@@ -957,10 +949,11 @@ function SelectionPanel() {
                   >
                     <Hammer size={15} />
                     Construire <small>1 PA + ressources</small>
-                  </button>
+                  </ActionButton>
                 )}
                 {u.kind !== 'PEASANT' && u.kind !== 'HERO' && (
-                  <button
+                  <ActionButton
+                    shortcut="R"
                     className="secondary"
                     disabled={
                       pending ||
@@ -990,20 +983,22 @@ function SelectionPanel() {
                         : RECON_UNITS.includes(u.kind)
                           ? 'Reconnaissance · 2 PA'
                           : 'Ralliement · 2 PA'}
-                  </button>
+                  </ActionButton>
                 )}
                 {tile?.poi && !tile.exhausted && (
-                  <button
+                  <ActionButton
+                    shortcut="X"
                     className="secondary"
                     onClick={() => void send({ type: 'INTERACT', actorId: u.id, payload: {} })}
                   >
                     Fouiller · 1 PA
-                  </button>
+                  </ActionButton>
                 )}
                 {w.events
                   .filter((e) => !e.claimedBy && distance(e, u) <= 1)
-                  .map((e) => (
-                    <button
+                  .map((e, index) => (
+                    <ActionButton
+                      shortcut={index === 0 ? 'E' : undefined}
                       className="secondary"
                       key={e.id}
                       onClick={() =>
@@ -1011,7 +1006,7 @@ function SelectionPanel() {
                       }
                     >
                       <Eye size={14} /> Explorer l’anomalie · 1 PA
-                    </button>
+                    </ActionButton>
                   ))}
                 {w.caravans
                   .filter(
@@ -1022,8 +1017,9 @@ function SelectionPanel() {
                       !w.strategy?.alliance?.members.includes(c.partnerId) &&
                       distance(c, u) <= 1,
                   )
-                  .map((c) => (
-                    <button
+                  .map((c, index) => (
+                    <ActionButton
+                      shortcut={index === 0 ? 'I' : undefined}
                       className="secondary"
                       key={c.id}
                       onClick={() =>
@@ -1031,7 +1027,7 @@ function SelectionPanel() {
                       }
                     >
                       Intercepter · 1 PA
-                    </button>
+                    </ActionButton>
                   ))}
               </>
             ) : u.npc ? (
@@ -1087,19 +1083,21 @@ function SelectionPanel() {
           >
             {own ? (
               <>
-                <button
+                <ActionButton
+                  shortcut="R"
                   className="primary"
                   disabled={!Object.values(UNIT_PROFILES).some((p) => p.recruitAt.includes(b.kind))}
                   onClick={() => useGame.setState({ panel: 'recruit' })}
                 >
                   <Users size={15} /> Recruter
-                </button>
+                </ActionButton>
                 <UpgradeBuilding key={b.id} building={b} />
                 {isWall(b.kind) && <TurretControls key={`turret-${b.id}`} building={b} />}
                 <DemolishBuilding key={`demolish-${b.id}`} building={b} />
                 <NuclearControls key={`nuclear-${b.id}`} building={b} />
                 <RoadAction tile={tile} />
-                <button
+                <ActionButton
+                  shortcut="S"
                   className="secondary"
                   disabled={
                     pending ||
@@ -1110,7 +1108,7 @@ function SelectionPanel() {
                   onClick={() => action('REPAIR')}
                 >
                   <Hammer size={15} /> Réparer · 1 PA
-                </button>
+                </ActionButton>
               </>
             ) : (
               <button className="secondary" onClick={() => useGame.setState({ panel: 'trade' })}>

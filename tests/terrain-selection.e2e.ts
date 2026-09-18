@@ -11,7 +11,7 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
   const now = Date.now();
   let state = createState('terrain-click-browser', now);
   const realm = addPlayer(state, 'a', 'Bâtisseurs', 'ASH', now);
-  realm.wallet.WOOD = 1000;
+  realm.wallet.WOOD = 100;
   realm.wallet.GOLD = 1000;
   const worker = { q: realm.capital.q + 1, r: realm.capital.r };
   const target = { q: realm.capital.q + 2, r: realm.capital.r };
@@ -25,6 +25,13 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
     hp: UNITS.PEASANT.hp,
     createdAt: now,
     updatedAt: now,
+  };
+  state.units.friend = {
+    ...state.units.worker,
+    ...target,
+    id: 'friend',
+    kind: 'INFANTRY',
+    hp: UNITS.INFANTRY.hp,
   };
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -63,6 +70,15 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
   await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false');
   await expect(page.locator('.selection-panel')).toHaveCount(0);
+  await expect(page.locator('.left-sidebar nav kbd')).toHaveCount(0);
+  for (const key of ['r', 'a', 'v', 'e', 'd']) await page.keyboard.press(key);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const mode = () =>
+    page.evaluate(async () => {
+      // @ts-expect-error Vite browser module
+      const { useGame } = await import('/src/store.ts');
+      return useGame.getState().mode;
+    });
   const clickHex = async (hex: { q: number; r: number }) => {
     const point = await page.evaluate((p) => {
       const scene = (window as any).__terrainScene;
@@ -77,16 +93,65 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
   };
   await clickHex(worker);
   await expect(page.locator('.selection-panel h2')).toHaveText('Paysan');
+  await page.keyboard.press('d');
+  await expect.poll(mode).toBe('move');
+  await page.evaluate(() =>
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', repeat: true })),
+  );
+  expect(await mode()).toBe('move');
+  await page.keyboard.press('Escape');
+  await expect.poll(mode).toBe('inspect');
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', metaKey: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', isComposing: true }));
+    const input = document.createElement('input');
+    input.id = 'shortcut-input';
+    document.body.append(input);
+    input.focus();
+  });
+  await page.keyboard.press('d');
+  expect(await mode()).toBe('inspect');
+  await page.locator('#shortcut-input').evaluate((el) => el.remove());
+  await page.evaluate(async () => {
+    // @ts-expect-error Vite browser module
+    const { useGame } = await import('/src/store.ts');
+    useGame.setState({ pending: true });
+  });
+  await page.keyboard.press('d');
+  expect(await mode()).toBe('inspect');
+  await page.evaluate(async () => {
+    // @ts-expect-error Vite browser module
+    const { useGame } = await import('/src/store.ts');
+    useGame.setState({ pending: false });
+  });
+  // The unavailable attack must remain unavailable from the keyboard as well.
+  await page.keyboard.press('a');
+  expect(await mode()).toBe('inspect');
+  const woodBefore = view().player.wallet.WOOD;
+  await page.keyboard.press('b');
+  await expect.poll(() => view().player.wallet.WOOD).toBeGreaterThan(woodBefore);
+  await page.keyboard.press('c');
+  await expect(page.getByRole('dialog')).toContainText(`Hexagone ${worker.q}, ${worker.r}`);
+  await page.keyboard.press('d');
+  expect(await mode()).toBe('inspect');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await clickHex(worker);
   await clickHex(target);
   const terrain = page.locator('.terrain-selection');
   await expect(terrain).toContainText('Forêt ancienne');
   await expect(terrain).toContainText('Bois');
+  // The lit hexagon takes precedence over the friendly unit standing on the chantier.
+  delete state.units.friend;
+  state.revision++;
+  await page.evaluate(() => (window as any).pushTerrain());
   await expect(terrain.getByRole('button', { name: /^Construire/ })).toBeVisible();
   await terrain.getByRole('button', { name: 'Fermer la sélection' }).click();
   await page.evaluate(() => (window as any).pushTerrain());
   await expect(page.locator('.selection-panel')).toHaveCount(0);
   await clickHex(target);
-  await terrain.getByRole('button', { name: /^Construire/ }).click();
+  await page.keyboard.press('c');
   const lumber = page
     .getByRole('dialog')
     .locator('article')
@@ -120,6 +185,20 @@ test('cliquer une terre près du paysan permet de la consulter puis de construir
       { exact: true },
     ),
   ).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await clickHex(realm.capital);
+  await page.keyboard.press('r');
+  await expect(page.getByRole('dialog')).toContainText('Paysan');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('a');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await clickHex(target);
+  await page.keyboard.press('d');
+  await expect(page.getByRole('dialog')).toContainText('Démolir :');
+  await page.keyboard.press('d');
+  expect(view().tiles.find((t) => key(t) === key(target))?.building?.kind).toBe('LUMBER');
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

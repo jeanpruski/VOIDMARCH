@@ -1,3 +1,4 @@
+import { ActionButton } from './ActionButton';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Hammer } from 'lucide-react';
@@ -17,13 +18,14 @@ export function DemolishBuilding({ building: b }: { building: Building }) {
   const missingAP = !world.player.unlimitedAP && world.player.ap < cost;
   return (
     <>
-      <button
+      <ActionButton
+        shortcut="D"
         className="secondary"
         onClick={() => setOpen(true)}
         title="Libérer la case et récupérer les ressources de construction"
       >
         <Hammer size={15} /> Démolir · {cost} PA
-      </button>
+      </ActionButton>
       {open &&
         createPortal(
           <Modal

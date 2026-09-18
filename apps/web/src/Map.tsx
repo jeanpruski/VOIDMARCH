@@ -1,3 +1,4 @@
+import { isBuilderSite } from './construction';
 import { drawStrategicOperations, drawAmbient } from './strategy-art';
 import { buildingAtlas, buildingTextureKey, buildingEvolutionFrame } from './building-art';
 import { hasBuildingEvolutionArt, CITY_LEVELS } from '@voidmarch/config';
@@ -708,6 +709,16 @@ class WorldScene extends Phaser.Scene {
     }
     if (tile?.visibility === 'UNKNOWN' || !tile) {
       useGame.setState({ selection: { kind: 'tile', ...p }, mode: 'inspect' });
+      return;
+    }
+    // A lit building site remains a terrain selection even if a friendly unit stands there.
+    if (
+      state.mode === 'inspect' &&
+      own &&
+      key(own) !== key(p) &&
+      isBuilderSite(this.view, own, tile)
+    ) {
+      select({ kind: 'tile', ...p });
       return;
     }
     if (
@@ -1561,24 +1572,8 @@ class WorldScene extends Phaser.Scene {
       u?.ownerId === this.view.player.id &&
       UNIT_PROFILES[u.kind].builder
     ) {
-      const buildings = this.view.tiles.filter((t) => t.building?.ownerId === this.view!.player.id);
       for (const t of this.view.tiles) {
-        if (
-          t.visibility !== 'VISIBLE' ||
-          t.building ||
-          (t.ownerId && t.ownerId !== u.ownerId) ||
-          distance(u, t) > 1
-        )
-          continue;
-        if (
-          t.ownerId !== u.ownerId &&
-          !buildings.some((b) => distance(b, t) <= RULES.constructionRadius)
-        )
-          continue;
-        if (
-          this.view.units.some((enemy) => enemy.ownerId !== u.ownerId && distance(enemy, t) === 0)
-        )
-          continue;
+        if (!isBuilderSite(this.view, u, t)) continue;
         const p = hexToPixel(t);
         g.fillStyle(0x99c781, 0.12);
         g.fillPoints(points(p, SIZE - 3), true);

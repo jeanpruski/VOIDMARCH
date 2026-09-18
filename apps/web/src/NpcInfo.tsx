@@ -1,3 +1,4 @@
+import { ActionButton } from './ActionButton';
 import { NPCS, RULES } from '@voidmarch/config';
 import { resolveAttack, attackCost, attackStats, distance } from '@voidmarch/game-rules';
 import type { Unit } from '@voidmarch/shared';
@@ -53,7 +54,8 @@ export function AttackNpc({ unit }: { unit: Unit }) {
   const cost = attackCost(attacker);
   if (!w.player.unlimitedAP && w.player.ap < cost) return null;
   return (
-    <button
+    <ActionButton
+      shortcut="A"
       className="secondary"
       onClick={() =>
         useGame.setState({
@@ -69,6 +71,6 @@ export function AttackNpc({ unit }: { unit: Unit }) {
       }
     >
       Attaquer avec {attackStats(attacker).name} · {cost} PA
-    </button>
+    </ActionButton>
   );
 }

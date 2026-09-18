@@ -1,3 +1,4 @@
+import { constructionSiteReason } from './construction';
 import { DiplomacyHub } from './Strategy';
 import { buildingEra, BUILDING_AGES, UNIT_ERAS } from '@voidmarch/config';
 import { groupByKind, matchesCollectionSearch } from './collection-search';
@@ -954,13 +955,7 @@ function Build() {
     w.units.find(
       (u) => u.ownerId === w.player.id && UNIT_PROFILES[u.kind].builder && distance(u, tile) <= 1,
     );
-  const frontier =
-    tile &&
-    !tile.ownerId &&
-    builder &&
-    w.tiles.some(
-      (t) => t.building?.ownerId === w.player.id && distance(t, tile) <= RULES.constructionRadius,
-    );
+  const siteReason = constructionSiteReason(w, tile);
   const buildable = (
     Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][]
   ).filter(([kind]) => isBuildable(kind));
@@ -990,12 +985,7 @@ function Build() {
           restaurée sans la démolir.
         </p>
       )}
-      {tile?.ownerId !== w.player.id && !frontier && (
-        <p className="form-error">
-          Choisissez vos terres, ou un chantier à 3 cases d’un bâtiment et à une case d’un
-          bâtisseur.
-        </p>
-      )}
+      {siteReason && tile?.terrain !== 'SCORCHED' && <p className="form-error">{siteReason}</p>}
       <p className="catalog-order-hint">
         {resource === 'ALL' && category === 'Tous' ? 'Palissade en premier · Puis ' : ''}
         Terrain adapté et bâtiments de base → développements avancés
@@ -1113,23 +1103,17 @@ function Build() {
             (k) =>
               !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
           );
-          const reason = w.strategy?.sites.some((site) => tile && key(site) === key(tile))
-            ? 'Site stratégique : construction interdite'
-            : !tile || (tile.ownerId !== w.player.id && !frontier)
-              ? 'Sur votre territoire uniquement'
-              : tile.enclosureOwnerId && !builder
-                ? 'Approchez un paysan ou un ingénieur à une case maximum'
-                : tile.building
-                  ? 'Hexagone déjà construit'
-                  : !tile.terrain || !b.terrains.includes(tile.terrain)
-                    ? 'Terrain incompatible'
-                    : missing
-                      ? `${BUILDINGS[missing].name} nécessaire`
-                      : !w.player.unlimitedAP && w.player.ap < 1
-                        ? '1 PA nécessaire'
-                        : !canAfford(w.player.wallet, cost)
-                          ? 'Ressources insuffisantes'
-                          : '';
+          const reason =
+            siteReason ||
+            (!tile?.terrain || !b.terrains.includes(tile.terrain)
+              ? 'Terrain incompatible'
+              : missing
+                ? `${BUILDINGS[missing].name} nécessaire`
+                : !w.player.unlimitedAP && w.player.ap < 1
+                  ? '1 PA nécessaire'
+                  : !canAfford(w.player.wallet, cost)
+                    ? 'Ressources insuffisantes'
+                    : '');
           const compatible = !!tile?.terrain && b.terrains.includes(tile.terrain);
           const production = productionOnTerrain(
             kind,
@@ -1993,9 +1977,15 @@ function Help() {
       </ContextHelp>
       <ContextHelp title="Quels sont les raccourcis ?">
         <p>
-          R : royaume · A : armées · V : villes · E : économie · D : diplomatie. Échap ferme la
-          fenêtre. Les flèches déplacent la caméra ; la molette règle le zoom. Les panneaux latéraux
-          peuvent être repliés et les conseils masqués.
+          Les lettres sur les boutons déclenchent les actions de votre sélection. D : déplacer ; C :
+          construire ; A : attaquer une cible ou améliorer le bâtiment sélectionné ; R : recruter
+          dans un bâtiment. Sur un bâtiment, D ouvre la confirmation de démolition. Récoltes : B
+          pour bois, P pour pierre, F pour fer, V pour vivres, O pour or. Les autres touches sont
+          indiquées sur les actions disponibles. Échap ferme la fenêtre ou annule le mode en cours.
+        </p>
+        <p>
+          Les raccourcis sont inactifs pendant la saisie, dans les fenêtres et pendant une action en
+          attente. Les flèches déplacent la caméra ; la molette règle le zoom.
         </p>
       </ContextHelp>
       <button
