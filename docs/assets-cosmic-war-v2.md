@@ -1,0 +1,17 @@
+# Le seuil abyssal — guerre occulte
+
+Illustration actuelle : `apps/web/public/assets/abyssal-threshold-war-v2.png`, PNG 1536 × 1024. Édition avec l’outil intégré imagegen de `abyssal-threshold.png`, qui reste conservé. Utilisée à l’accueil, au chargement et dans l’aide de bienvenue. Aucun changement aux personnages ou aux règles du jeu.
+
+Dragons occultes irradiés, dirigeables blindés, explosion atomique lointaine, réacteur gothique, troupes militaires et char. La mer abyssale, les monolithes, l’éclipse et la zone sombre derrière le formulaire sont conservés. Emblèmes fictifs conformément à la direction artistique.
+
+## Prompt exact
+
+Use case: compositing.
+Asset type: final background illustration for the VOIDMARCH game login page, landscape 3:2.
+Input image 1 is the EDIT TARGET. Enrich this existing painting, which the player loves; preserve its recognizable composition, abyssal sea, enormous impossible monoliths, eclipse, storm clouds and medieval gothic coastal fortress fused with concrete bunkers. Preserve the sophisticated painterly cinematic realism, wet stone, soot and melancholy cosmic horror. This is an alternate-history occult war game, not a propaganda poster.
+
+Primary changes: make the world feel spectacularly alive and at war. Across the UPPER RIGHT and center-right sky, add one huge flying occult dragon with believable leathery wings, black armored scales and a restrained radioactive emerald glow inside its ribs and throat; a smaller distant dragon for scale. Add two clearly recognizable massive armored military zeppelins at different distances, with suspended engine gondolas, iron plating and small amber lights. In the far distance beyond the fortress, a towering atomic mushroom cloud blooms with a brilliant pale gold core, burnt orange embers and eerie green radioactive rim light, partially obscured by storm and ash. Keep the eclipse visible elsewhere in the sky. Add a few small tracer streaks and artillery blasts in the distant battlefield, with green reactor glow and lightning from a gothic industrial reactor integrated into the fortress.
+
+In the lower right foreground, retain the military motorcycle and medieval traveler; enrich their group with recognizable WWII German-style occult enemy soldiers in feldgrau long coats and Stahlhelm helmets, one officer with a peaked cap and leather belt, gas masks and a worn armored tank farther back. They are sinister figures facing the devastated world, not celebratory portraits. Mix the medieval knight's silhouette with the industrial soldiers, all naturally lit by distant explosions. Use fictional occult insignia consistent with the game's factions, no real political emblems, no swastikas, no slogans.
+
+Composition is critical: retain the LEFT 35% as dark low-contrast cloud and sea negative space for the login form. Concentrate the spectacular dragon, zeppelins, atomic explosion and fortress detail in the right 65%, with strong clear silhouettes rather than clutter. Keep all important subjects visible in the central-right portion on a 16:9 screen crop. No UI, no added title or text, no watermark, no collage borders. The added elements must feel painted into the same landscape with coherent depth, scale, atmosphere and light. Dark charcoal, muted military green, tarnished brass, very selective nuclear green and orange fire highlights. Premium dark fantasy war-game key art, beautifully detailed, epic and frightening.

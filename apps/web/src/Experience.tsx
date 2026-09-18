@@ -1,6 +1,9 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { beginnerProgress } from './beginner-tutorial';
+import { Cost, StorageHint } from './ui';
+import { canAfford } from '@voidmarch/game-rules';
 import { ArrowRight, CircleHelp, Compass } from 'lucide-react';
-import { BUILDINGS } from '@voidmarch/config';
+import { BUILDINGS, buildingConstructionCost } from '@voidmarch/config';
 import { focusMap, select, useGame } from './store';
 
 export function ContextHelp({ title, children }: { title: string; children: ReactNode }) {
@@ -15,98 +18,98 @@ export function ContextHelp({ title, children }: { title: string; children: Reac
   );
 }
 
-export function NextStep() {
+export function BeginnerTutorial() {
   const w = useGame((s) => s.world)!;
-  const [hidden, setHidden] = useState(() => {
-    try {
-      return localStorage.getItem('voidmarch-next-step-hidden') === 'true';
-    } catch {
-      return false;
-    }
-  });
-  const buildings = w.tiles.flatMap((t) =>
-    t.building?.ownerId === w.player.id ? [t.building] : [],
-  );
-  const worker = w.units.find((u) => u.ownerId === w.player.id && u.kind === 'PEASANT');
-  const settlement = buildings.find((b) => ['CAMP', 'OUTPOST', 'VILLAGE'].includes(b.kind));
-  const house = buildings.some((b) => b.kind === 'HOUSE');
-  const developed = buildings.some((b) => b.kind === 'OUTPOST' || b.kind === 'VILLAGE');
-  const village = buildings.some((b) => b.kind === 'VILLAGE');
-  const milestones = [!!worker, house, developed, village];
-  const completed = milestones.filter(Boolean).length;
-  const stage = !worker ? 0 : !house ? 1 : !developed ? 2 : !village ? 3 : 4;
-  const titles = [
-    'Votre premier paysan',
-    'Un foyer pour grandir',
-    'Un véritable avant-poste',
-    'Fonder votre village',
-    'Au-delà des frontières',
-  ];
-  const descriptions = [
-    'Le premier paysan est gratuit en ressources. Il récolte et ouvre la voie aux constructions.',
-    'Récoltez du bois en forêt puis bâtissez une chaumière pour augmenter votre population.',
-    'Développez le campement : plus de place pour les habitants et accès au fantassin.',
-    'Développez l’avant-poste : le village renforce votre économie et accueille davantage d’habitants pour soutenir votre armée.',
-    'Choisissez votre voie : explorer les anomalies, développer votre industrie ou négocier avec vos voisins.',
-  ];
-  const toggle = () => {
-    setHidden(!hidden);
-    try {
-      localStorage.setItem('voidmarch-next-step-hidden', String(!hidden));
-    } catch {}
-  };
+  const { steps, current, completed, builder, settlement } = beginnerProgress(w);
+  const cost = current?.kind ? buildingConstructionCost(current.kind, w.player.faction) : undefined;
   const go = () => {
-    if (stage === 4) {
-      useGame.setState({ panel: 'events', menuOpen: false });
+    if (!current) {
+      useGame.setState({ panel: 'cities' });
       return;
     }
-    if (stage === 1 && worker) {
-      select({ kind: 'unit', id: worker.id, q: worker.q, r: worker.r });
-      focusMap(worker);
-      return;
-    }
-    if (settlement) {
+    if (!current.kind && settlement) {
       select({ kind: 'building', id: settlement.id, q: settlement.q, r: settlement.r });
       focusMap(settlement);
-      if (stage === 0) useGame.setState({ panel: 'recruit' });
-    } else useGame.setState({ panel: 'cities' });
+      useGame.setState({ panel: 'recruit' });
+    } else if (builder) {
+      select({ kind: 'unit', id: builder.id, q: builder.q, r: builder.r });
+      focusMap(builder);
+    } else {
+      useGame.setState({ panel: 'cities' });
+    }
   };
   return (
-    <section className={`next-step ${hidden ? 'compact' : ''}`} aria-label="Conseil de progression">
-      <button className="next-step-heading" onClick={toggle} aria-expanded={!hidden}>
-        <Compass size={15} />
-        <span>{hidden ? 'Afficher les conseils' : 'Prochaine étape'}</span>
-        <span>{hidden ? '+' : '−'}</span>
-      </button>
-      {!hidden && (
+    <section className="beginner-tutorial" aria-label="Tutoriel de démarrage">
+      <div className="eyebrow">
+        <Compass size={15} /> Bien commencer
+      </div>
+      <p className="tutorial-progress">
+        {completed}/{steps.length} étapes réalisées
+      </p>
+      <progress aria-label="Progression du tutoriel" value={completed} max={steps.length} />
+      {current ? (
         <>
-          <h3>{titles[stage]}</h3>
-          <p>{descriptions[stage]}</p>
-          <div
-            className="settlement-progress"
-            role="progressbar"
-            aria-label="Fondation du royaume"
-            aria-valuenow={completed}
-            aria-valuemin={0}
-            aria-valuemax={4}
-          >
-            {milestones.map((done, i) => (
-              <i key={i} className={done ? 'complete' : ''} />
-            ))}
-          </div>
-          <small>{completed}/4 étapes de fondation · À votre rythme</small>
+          <h3>{current.title}</h3>
+          {current.kind && (
+            <strong className="tutorial-building">{BUILDINGS[current.kind].name}</strong>
+          )}
+          <p>{current.description}</p>
+          {cost && (
+            <>
+              <div className="tutorial-cost">
+                <span>Construction · 1 PA</span>
+                <Cost cost={cost} wallet={w.player.wallet} />
+              </div>
+              <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
+              {!canAfford(w.player.wallet, cost) && (
+                <p className="muted">
+                  Il vous manque les ressources indiquées en rouge. Récoltez avec le paysan sur le
+                  terrain adapté ou laissez vos bâtiments produire pendant votre présence.
+                </p>
+              )}
+              <p className="tutorial-tip">
+                Chantier : jusqu’à 3 cases d’un de vos bâtiments, avec un bâtisseur à une case
+                maximum. Dans une enceinte fermée, toute case adaptée convient avec un bâtisseur
+                proche. Sélectionnez le terrain, puis Construire.
+              </p>
+            </>
+          )}
           <button className="secondary" onClick={go}>
-            {stage === 0
-              ? 'Former un paysan'
-              : stage === 1
-                ? 'Retrouver mon paysan'
-                : stage === 4
-                  ? 'Explorer les événements'
-                  : `Voir ${settlement ? BUILDINGS[settlement.kind].name.toLowerCase() : 'mes domaines'}`}
+            {!current.kind && settlement
+              ? 'Ouvrir le recrutement'
+              : builder
+                ? 'Retrouver mon bâtisseur'
+                : 'Voir mes domaines'}
             <ArrowRight size={14} />
           </button>
         </>
+      ) : (
+        <>
+          <h3>Vos fondations sont prêtes</h3>
+          <p>
+            Vous disposez des principales filières de ressources. Améliorez vos domaines, explorez
+            et préparez vos alliances.
+          </p>
+          <button className="secondary" onClick={go}>
+            Voir mes domaines <ArrowRight size={14} />
+          </button>
+        </>
       )}
+      <details className="tutorial-checklist">
+        <summary>Le parcours de départ</summary>
+        <ol>
+          {steps.map((step, i) => (
+            <li
+              key={step.kind ?? 'worker'}
+              className={step.done ? 'complete' : step === current ? 'current' : ''}
+              aria-current={step === current ? 'step' : undefined}
+            >
+              <span aria-label={step.done ? 'Terminé' : 'À faire'}>{step.done ? '✓' : i + 1}</span>
+              {step.kind ? BUILDINGS[step.kind].name : 'Premier bâtisseur'}
+            </li>
+          ))}
+        </ol>
+      </details>
     </section>
   );
 }

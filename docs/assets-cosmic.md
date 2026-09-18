@@ -1,6 +1,6 @@
 # Le seuil abyssal
 
-Illustration actuelle : `apps/web/public/assets/abyssal-threshold.png`, PNG 1536 × 1024. Génération directe avec l’outil intégré imagegen, sans retouche externe. Utilisée à l’accueil, au chargement et dans l’aide de bienvenue. Les illustrations précédentes sont conservées.
+Illustration initiale : `apps/web/public/assets/abyssal-threshold.png`, PNG 1536 × 1024. Génération directe avec l’outil intégré imagegen, sans retouche externe. Utilisée à l’accueil, au chargement et dans l’aide de bienvenue. Les illustrations précédentes sont conservées.
 
 Direction : mer noire, architecture impossible, éclipse, silhouettes humaines minuscules, cathédrale fortifiée et artillerie. Le formulaire garde une zone sombre lisible ; le cadrage mobile privilégie la droite de l’image.
 

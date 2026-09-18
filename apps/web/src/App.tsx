@@ -76,7 +76,7 @@ import { RoadTools } from './RoadTools';
 import { TerraformTools } from './TerraformTools';
 import { UpgradeBuilding } from './UpgradeBuilding';
 import { DemolishBuilding } from './DemolishBuilding';
-import { NextStep, ContextHelp } from './Experience';
+import { BeginnerTutorial, ContextHelp } from './Experience';
 import {
   bootstrap,
   api,
@@ -124,16 +124,22 @@ export function App() {
   const [collapsedSides, setCollapsedSides] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('voidmarch-sidebar-layout') ?? '{}');
-      return { left: saved.left === true, right: saved.right === true };
+      return {
+        left: saved.left === true,
+        right: saved.tutorialVersion === 1 ? saved.right !== false : true,
+      };
     } catch {
-      return { left: false, right: false };
+      return { left: false, right: true };
     }
   });
   const toggleSide = (side: 'left' | 'right') => {
     setCollapsedSides((previous) => {
       const next = { ...previous, [side]: !previous[side] };
       try {
-        localStorage.setItem('voidmarch-sidebar-layout', JSON.stringify(next));
+        localStorage.setItem(
+          'voidmarch-sidebar-layout',
+          JSON.stringify({ ...next, tutorialVersion: 1 }),
+        );
       } catch {
         /* Optional preference. */
       }
@@ -529,6 +535,45 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     </aside>
   );
 }
+function TileConstructionAction() {
+  const w = useGame((s) => s.world)!,
+    selection = useGame((s) => s.selection);
+  if (selection?.kind !== 'tile') return null;
+  const tile = w.tiles.find((t) => key(t) === key(selection));
+  if (!tile?.terrain || tile.visibility === 'UNKNOWN') return null;
+  const own = tile.ownerId === w.player.id;
+  return (
+    <>
+      {!tile?.building &&
+        ((own &&
+          (!tile?.enclosureOwnerId ||
+            w.units.some(
+              (u) =>
+                u.ownerId === w.player.id &&
+                UNIT_PROFILES[u.kind].builder &&
+                distance(u, tile) <= 1,
+            ))) ||
+          (tile &&
+            !tile.ownerId &&
+            w.units.some(
+              (u) =>
+                u.ownerId === w.player.id &&
+                UNIT_PROFILES[u.kind].builder &&
+                distance(u, tile) <= 1,
+            ) &&
+            w.tiles.some(
+              (t) =>
+                t.building?.ownerId === w.player.id &&
+                distance(t, tile) <= RULES.constructionRadius,
+            ))) && (
+          <button className="primary" onClick={() => useGame.setState({ panel: 'build' })}>
+            <Hammer size={15} /> Construire
+          </button>
+        )}
+    </>
+  );
+}
+
 function MapTools() {
   const settings = useGame((s) => s.world)!.player.settings;
   const roadMode = useGame((s) => s.mode) === 'road';
@@ -536,6 +581,7 @@ function MapTools() {
   const showBuildings = useGame((s) => s.showBuildings);
   return (
     <div className="map-tools">
+      <TileConstructionAction />
       <button
         className={`road-map-button ${roadMode ? 'active' : ''}`}
         aria-label="Mode routes"
@@ -633,9 +679,13 @@ function SelectionPanel() {
     selection = useGame((s) => s.selection),
     mode = useGame((s) => s.mode),
     pending = useGame((s) => s.pending),
-    u = w.units.find((u) => u.id === selection?.id),
+    u = selection?.kind === 'unit' ? w.units.find((u) => u.id === selection.id) : undefined,
     tile = w.tiles.find((t) => selection && key(t) === key(u ?? selection)),
-    b = selection?.kind === 'building' ? tile?.building : undefined,
+    b =
+      selection?.kind === 'building' && tile?.building && tile.building.id === selection.id
+        ? tile.building
+        : undefined,
+    visible = !!(u || b),
     own = u
       ? u.ownerId === w.player.id
       : b
@@ -668,15 +718,12 @@ function SelectionPanel() {
     const observer = new ResizeObserver(update);
     observer.observe(panel);
     update();
-    return () => observer.disconnect();
-  }, [selection?.kind, selection?.id, mode]);
-  if (!selection)
-    return (
-      <div className="selection-panel empty" ref={panelRef as React.Ref<HTMLDivElement>}>
-        <Compass size={24} />
-        <p>Sélectionnez une figurine ou un domaine pour donner un ordre.</p>
-      </div>
-    );
+    return () => {
+      observer.disconnect();
+      board.style.removeProperty('--minimap-bottom');
+    };
+  }, [visible, selection?.kind, selection?.id, mode]);
+  if (!selection || !visible) return null;
   const name = u
       ? (u.nickname ?? unitStats(u).name)
       : b
@@ -1095,54 +1142,18 @@ function SelectionPanel() {
             )}
           </div>
         </>
-      ) : (
-        <>
-          <p className="tile-description">
-            {tile?.visibility === 'UNKNOWN'
-              ? 'Envoyez un éclaireur lever la brume.'
-              : tile?.visibility === 'EXPLORED'
-                ? 'Dernière observation connue. Approchez une unité pour actualiser ces informations.'
-                : tile?.building
-                  ? `Bâtiment masqué : ${BUILDINGS[tile.building.kind].name}. Réaffichez les bâtiments pour le sélectionner. Cette case reste occupée.`
-                  : own
-                    ? tile?.enclosureOwnerId
-                      ? 'Terre revendiquée par votre enceinte. Approchez un paysan ou un ingénieur à une case pour construire. Sans bâtiment, elle redevient neutre si les remparts s’ouvrent.'
-                      : 'Cette terre peut accueillir un domaine ou une infrastructure.'
-                    : 'Occupez cette terre avec une unité de capture pour la revendiquer.'}
-          </p>
-          <RoadAction tile={tile} />
-          {!tile?.building &&
-            ((own &&
-              (!tile?.enclosureOwnerId ||
-                w.units.some(
-                  (u) =>
-                    u.ownerId === w.player.id &&
-                    UNIT_PROFILES[u.kind].builder &&
-                    distance(u, tile) <= 1,
-                ))) ||
-              (tile &&
-                !tile.ownerId &&
-                w.units.some(
-                  (u) =>
-                    u.ownerId === w.player.id &&
-                    UNIT_PROFILES[u.kind].builder &&
-                    distance(u, tile) <= 1,
-                ) &&
-                w.tiles.some(
-                  (t) =>
-                    t.building?.ownerId === w.player.id &&
-                    distance(t, tile) <= RULES.constructionRadius,
-                ))) && (
-              <button className="primary" onClick={() => useGame.setState({ panel: 'build' })}>
-                <Hammer size={15} /> Construire
-              </button>
-            )}
-        </>
-      )}
+      ) : null}
       <button
         className="close-selection icon-button"
         aria-label="Fermer la sélection"
-        onClick={() => useGame.setState({ selection: null, mode: 'inspect' })}
+        onClick={() =>
+          useGame.setState({
+            selection: null,
+            mode: 'inspect',
+            combatTarget: null,
+            terraformTarget: undefined,
+          })
+        }
       >
         <X size={14} />
       </button>
@@ -1150,92 +1161,20 @@ function SelectionPanel() {
   );
 }
 function RightSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  const w = useGame((s) => s.world)!,
-    e = w.events.find((e) => !e.claimedBy),
-    now = useGame((s) => s.now),
-    neighbors = w.realms.filter((r) => r.id !== w.player.id && !r.defeated).slice(0, 5);
   return (
-    <aside className="right-sidebar">
+    <aside className="right-sidebar" aria-label="Guide de démarrage">
       <button
         className="sidebar-toggle right-toggle"
         onClick={onToggle}
         aria-expanded={!collapsed}
         aria-label={
-          collapsed ? 'Afficher le panneau des événements' : 'Replier le panneau des événements'
+          collapsed ? 'Afficher le tutoriel de démarrage' : 'Replier le tutoriel de démarrage'
         }
-        title={collapsed ? 'Afficher les événements' : 'Replier les événements'}
+        title={collapsed ? 'Afficher le tutoriel' : 'Replier le tutoriel'}
       >
         {collapsed ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
       </button>
-      <NextStep />
-      {e ? (
-        <button
-          className="featured-event"
-          onClick={() => {
-            focusMap(e);
-            useGame.setState({ panel: 'events' });
-          }}
-        >
-          <div className="event-illustration">
-            <Miniature
-              frame={e.kind === 'MONOLITH' ? 19 : e.kind === 'METEOR' ? 20 : 23}
-              size={130}
-            />
-            <span className="event-glow" />
-          </div>
-          <span className="event-tag">
-            {e.kind === 'MONOLITH' ? 'PRÉSENCE ANCIENNE' : 'ÉVÉNEMENT DU MONDE'}
-          </span>
-          <h3>{e.title}</h3>
-          <p>{e.description}</p>
-          <span className="event-link">
-            En savoir plus <ArrowRight size={13} />
-          </span>
-        </button>
-      ) : null}
-      <div className="section-heading">
-        <h3>Chronique</h3>
-        <button
-          aria-label="Ouvrir toute la chronique"
-          onClick={() => useGame.setState({ panel: 'journal' })}
-        >
-          <ArrowUpRight size={15} />
-        </button>
-      </div>
-      <div className="sidebar-journal">
-        {w.journal.slice(0, 4).map((j, i) => (
-          <article key={j.id}>
-            <span className={`journal-dot ${j.kind.toLowerCase()}`} />
-            <div>
-              <small>
-                {now - j.at < 60000
-                  ? 'À l’instant'
-                  : `Il y a ${Math.floor((now - j.at) / 60000)} min`}
-              </small>
-              <p>{j.text}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-      <div className="section-heading">
-        <h3>Bannières des Marches</h3>
-        <span>{neighbors.length}</span>
-      </div>
-      <div className="neighbor-list">
-        {neighbors.map((r) => (
-          <button key={r.id} onClick={() => useGame.setState({ panel: 'trade' })}>
-            <Sigil symbol={r.emblem} color={r.color} size={18} />
-            <div>
-              <strong>{r.name}</strong>
-              <span>{FACTIONS[r.faction].short}</span>
-            </div>
-            <i
-              className={`presence-dot ${r.online ? 'online' : ''}`}
-              title={r.online ? 'Présent' : 'Absent'}
-            />
-          </button>
-        ))}
-      </div>
+      <BeginnerTutorial />
     </aside>
   );
 }

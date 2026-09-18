@@ -61,6 +61,7 @@ test('un souverain joue, construit, négocie et retrouve son royaume', async ({ 
   await expect(page.getByRole('dialog')).toContainText('Mobilisation : 3/');
   await page.getByRole('button', { name: 'Fermer', exact: true }).click();
   await page.getByRole('button', { name: 'Armées A', exact: false }).click();
+  await page.getByRole('dialog').getByRole('searchbox').fill('Paysan');
   await page
     .getByRole('dialog')
     .getByRole('button', { name: /Paysan/ })
@@ -129,6 +130,7 @@ test('deux navigateurs acceptent une trêve et voient le même accord', async ({
   await expect(pa.getByRole('dialog')).toContainText('Mobilisation : 3/');
   await pa.getByRole('button', { name: 'Fermer', exact: true }).click();
   await pa.getByRole('button', { name: 'Armées A', exact: false }).click();
+  await pa.getByRole('dialog').getByRole('searchbox').fill('Paysan');
   await pa
     .getByRole('dialog')
     .getByRole('button', { name: /Paysan/ })

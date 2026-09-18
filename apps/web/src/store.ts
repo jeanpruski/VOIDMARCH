@@ -171,27 +171,19 @@ function publishWorld(world: WorldView, effectPolicy: GameStore['effectPolicy'] 
       );
     if (actual) existing = { ...existing, id: actual.id, q: actual.q, r: actual.r };
   }
+  // Snapshots may refresh an explicit selection, but must never choose one for the player.
+  const selectedEntity =
+    existing?.kind === 'unit'
+      ? world.units.find((u) => u.id === existing.id)
+      : existing?.kind === 'building'
+        ? world.tiles.find((t) => t.building?.id === existing.id)?.building
+        : undefined;
   const selection =
-    existing &&
-    (existing.kind === 'tile' ||
-      world.units.some((u) => u.id === existing.id) ||
-      world.tiles.some((t) => t.building?.id === existing.id))
+    existing?.kind === 'tile'
       ? existing
-      : (() => {
-          const unit =
-            world.units.find((u) => u.ownerId === world.player.id && u.kind === 'PEASANT') ??
-            world.units.find((u) => u.ownerId === world.player.id);
-          if (unit) return { kind: 'unit' as const, id: unit.id, q: unit.q, r: unit.r };
-          const building = world.tiles.find(
-            (t) =>
-              t.building?.ownerId === world.player.id &&
-              t.q === world.player.capital.q &&
-              t.r === world.player.capital.r,
-          )?.building;
-          return building
-            ? { kind: 'building' as const, id: building.id, q: building.q, r: building.r }
-            : null;
-        })();
+      : selectedEntity && existing
+        ? { ...existing, q: selectedEntity.q, r: selectedEntity.r }
+        : null;
   const movements = Object.fromEntries(
     Object.entries(previous.movements).filter(([id, animation]) => {
       const unit = world.units.find((u) => u.id === id);
@@ -210,6 +202,9 @@ function publishWorld(world: WorldView, effectPolicy: GameStore['effectPolicy'] 
     status: 'online',
     now: world.serverTimestamp,
     selection,
+    ...(existing && !selection
+      ? { mode: 'inspect' as const, combatTarget: null, terraformTarget: undefined }
+      : {}),
     movements,
     effectPolicy,
   });

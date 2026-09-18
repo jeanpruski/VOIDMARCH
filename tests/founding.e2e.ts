@@ -68,11 +68,12 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
+  await page
+    .getByRole('button', { name: 'Afficher le tutoriel de démarrage', exact: true })
+    .click();
   const originalBoardWidth = (await page.locator('.board').boundingBox())!.width;
   await page.getByRole('button', { name: 'Replier le panneau du royaume', exact: true }).click();
-  await page
-    .getByRole('button', { name: 'Replier le panneau des événements', exact: true })
-    .click();
+  await page.getByRole('button', { name: 'Replier le tutoriel de démarrage', exact: true }).click();
   await expect
     .poll(async () => (await page.locator('.board').boundingBox())!.width)
     .toBeGreaterThan(originalBoardWidth + 200);
@@ -84,13 +85,16 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   await page.screenshot({ path: 'test-results/collapsed-sidebars.png' });
   await page.getByRole('button', { name: 'Afficher le panneau du royaume', exact: true }).click();
   await page
-    .getByRole('button', { name: 'Afficher le panneau des événements', exact: true })
+    .getByRole('button', { name: 'Afficher le tutoriel de démarrage', exact: true })
     .click();
   await expect
     .poll(async () => (await page.locator('.board').boundingBox())!.width)
     .toBe(originalBoardWidth);
   await expect(page.locator('.map-heading')).toHaveCount(0);
   await expect(page.getByText(/MONDE PERSISTANT/i)).toHaveCount(0);
+  await expect(page.locator('.selection-panel')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Ouvrir le recrutement', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fermer', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Sélection actuelle' })).toContainText('Campement');
   await expect(page.getByRole('button', { name: 'Démolir · 1 PA', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Améliorer · 2 PA', exact: true }).click();
@@ -122,6 +126,7 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   await expect.poll(() => realmUnits(state, id).length).toBe(1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Armées A', exact: false }).click();
+  await page.getByRole('dialog').getByRole('searchbox').fill('Paysan');
   await page
     .getByRole('dialog')
     .getByRole('button', { name: /Paysan/ })
@@ -176,6 +181,7 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   camp.hp = 17;
   await page.evaluate('window.fixtureSocket.emit("world:join")');
   await page.getByRole('button', { name: 'Armées A', exact: false }).click();
+  await page.getByRole('dialog').getByRole('searchbox').fill('Paysan');
   await page
     .getByRole('dialog')
     .getByRole('button', { name: /Paysan/ })
@@ -233,6 +239,7 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   writeTile(state, garage, { terrain: 'PLAIN' });
   await page.evaluate('window.fixtureSocket.emit("world:join")');
   await page.getByRole('button', { name: 'Villes & domaines V', exact: false }).click();
+  await page.getByRole('dialog').getByRole('searchbox').fill('Garage militaire');
   await page
     .getByRole('dialog')
     .getByRole('button', { name: /Garage militaire/ })
@@ -245,6 +252,7 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(realmUnits(state, id).find((u) => u.kind === 'MOTORCYCLE')?.rareBonus).toBe(20);
   await page.getByRole('button', { name: 'Armées A', exact: false }).click();
+  await page.getByRole('dialog').getByRole('searchbox').fill('Moto de reconnaissance');
   await page
     .getByRole('dialog')
     .getByRole('button', { name: /Moto de reconnaissance/ })
@@ -252,6 +260,7 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   await expect(page.locator('.rare-tag').first()).toContainText('20');
   await page.screenshot({ path: 'test-results/industrial-world.png' });
   await page.getByRole('button', { name: 'Villes & domaines V', exact: false }).click();
+  await page.getByRole('dialog').getByRole('searchbox').fill('Garage militaire');
   await page
     .getByRole('dialog')
     .getByRole('button', { name: /Garage militaire/ })
@@ -362,10 +371,10 @@ test('l’accueil cosmique reste épuré et lisible sans créer de compte', asyn
   await page.goto('/');
   await expect(page.getByLabel('Nom de votre souverain')).toBeVisible();
   await expect(page.getByText(/MONDE PERSISTANT/i)).toHaveCount(0);
-  await expect(page.locator('.login-art')).toHaveCSS('background-image', /abyssal-threshold/);
+  await expect(page.locator('.login-art')).toHaveCSS('background-image', /abyssal-threshold-war-v2/);
   await page.evaluate(async () => {
     const image = new Image();
-    image.src = '/assets/abyssal-threshold.png';
+    image.src = '/assets/abyssal-threshold-war-v2.png';
     await image.decode();
   });
   await page.screenshot({ path: 'test-results/cosmic-login.png', animations: 'disabled' });

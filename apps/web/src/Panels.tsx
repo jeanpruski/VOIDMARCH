@@ -1,6 +1,6 @@
 import { DiplomacyHub } from './Strategy';
 import { buildingEra, BUILDING_AGES, UNIT_ERAS } from '@voidmarch/config';
-import { HeroControls } from './Hero';
+import { groupByKind, matchesCollectionSearch } from './collection-search';
 import { buildingStage, compareBuildings, buildingsUnlockedBy } from './building-order';
 import { unitStats, attackStats, attackCost, recruitmentRequirement } from '@voidmarch/game-rules';
 import { useState, type FormEvent } from 'react';
@@ -189,7 +189,6 @@ function RealmPanel() {
     me = w.realms.find((r) => r.id === p.id)!;
   return (
     <>
-      <HeroControls />
       <div className="realm-heading">
         <Sigil symbol={p.settings.emblem} color={p.settings.bannerColor} size={45} />
         <div>
@@ -243,82 +242,168 @@ function RealmPanel() {
 }
 function ArmyPanel() {
   const w = useGame((s) => s.world)!;
+  const [query, setQuery] = useState('');
+  const units = w.units.filter(
+    (u) =>
+      u.ownerId === w.player.id &&
+      matchesCollectionSearch(
+        query,
+        UNITS[u.kind].name,
+        u.nickname,
+        u.kind === 'HERO' ? w.player.name : '',
+        u.rareBonus ? 'rare' : '',
+      ),
+  );
+  const groups = groupByKind(units).sort((a, b) => compareRecruits([a.kind, null], [b.kind, null]));
   return (
     <>
+      <label className="collection-search">
+        Rechercher une unité
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Type, nom ou unité rare…"
+        />
+      </label>
       <p className="panel-intro">
-        Chaque troupe a un rôle. Le recrutement mobilise votre population et augmente l’entretien.
+        {units.length} unités · {groups.length} types. Dépliez une ligne pour retrouver chaque
+        troupe sur la carte.
       </p>
-      <div className="entity-list">
-        {w.units
-          .filter((u) => u.ownerId === w.player.id)
-          .map((u) => (
-            <button
-              key={u.id}
-              onClick={() => {
-                select({ kind: 'unit', id: u.id, q: u.q, r: u.r });
-                focusMap(u);
-              }}
-            >
+      <div className="entity-groups">
+        {groups.map(({ kind, items }) => (
+          <details className="entity-group" key={kind} open={query.trim() ? true : undefined}>
+            <summary>
               <Miniature
-                heroAppearance={u.hero?.appearance}
-                frame={UNIT_FRAMES[u.kind]}
-                size={65}
+                frame={UNIT_FRAMES[kind]}
+                heroAppearance={items[0].hero?.appearance}
+                size={46}
               />
-              <div>
-                <strong>
-                  {UNITS[u.kind].name}{' '}
-                  {u.rareBonus && <span className="rare-tag">✦ Rare +{format(u.rareBonus)} %</span>}
-                </strong>
-                <span>
-                  {format(u.hp)}/{format(unitStats(u).hp)} PV · Déplacement {UNITS[u.kind].move} ·
-                  Vision {UNITS[u.kind].vision}
-                </span>
-              </div>
-              <ArrowUpRight size={16} />
-            </button>
-          ))}
+              <strong>{UNITS[kind].name}</strong>
+              <span className="entity-count">× {items.length}</span>
+            </summary>
+            <div className="entity-list">
+              {items.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => {
+                    select({ kind: 'unit', id: u.id, q: u.q, r: u.r });
+                    focusMap(u);
+                  }}
+                >
+                  <Miniature heroAppearance={u.hero?.appearance} frame={unitFrame(u)} size={58} />
+                  <div>
+                    <strong>
+                      {u.nickname ?? (u.kind === 'HERO' ? w.player.name : UNITS[u.kind].name)}{' '}
+                      {u.rareBonus && (
+                        <span className="rare-tag">✦ Rare +{format(u.rareBonus)} %</span>
+                      )}
+                    </strong>
+                    <span>
+                      {format(u.hp)}/{format(unitStats(u).hp)} PV · Position {u.q}, {u.r}
+                    </span>
+                  </div>
+                  <ArrowUpRight size={16} />
+                </button>
+              ))}
+            </div>
+          </details>
+        ))}
       </div>
+      {!groups.length && (
+        <p className="muted">
+          {query
+            ? 'Aucune unité ne correspond à votre recherche.'
+            : 'Aucune unité dans votre royaume.'}
+        </p>
+      )}
     </>
   );
 }
 function CitiesPanel() {
-  const w = useGame((s) => s.world)!,
-    buildings = w.tiles.flatMap((t) =>
+  const w = useGame((s) => s.world)!;
+  const [query, setQuery] = useState('');
+  const buildings = w.tiles
+    .flatMap((t) =>
       t.building?.ownerId === w.player.id && !isWall(t.building.kind) ? [t.building] : [],
+    )
+    .filter((b) =>
+      matchesCollectionSearch(
+        query,
+        BUILDINGS[b.kind].name,
+        b.name,
+        b.kind === 'VILLAGE' ? CITY_LEVELS[b.level] : '',
+        'niveau ' + b.level,
+      ),
     );
+  const groups = groupByKind(buildings).sort((a, b) => compareBuildings(a.kind, b.kind));
   return (
     <>
+      <label className="collection-search">
+        Rechercher un bâtiment
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Type, nom ou niveau…"
+        />
+      </label>
       <p className="panel-intro">
-        Développez vos villages et spécialisez vos domaines selon les ressources du terrain.
+        {buildings.length} bâtiments · {groups.length} types. Dépliez une ligne pour voir les
+        niveaux et les positions.
       </p>
-      <div className="entity-list">
-        {buildings.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => {
-              select({ kind: 'building', id: b.id, q: b.q, r: b.r });
-              focusMap(b);
-            }}
-          >
-            <Miniature
-              frame={b.kind === 'VILLAGE' ? Math.min(9, b.level + 6) : BUILDING_FRAMES[b.kind]}
-              building={b}
-              turretLevel={b.turretLevel}
-              size={66}
-            />
-            <div>
-              <strong>
-                {b.kind === 'VILLAGE' ? CITY_LEVELS[b.level] : BUILDINGS[b.kind].name}
-              </strong>
-              <span>
-                {b.population ? `${format(b.population)} habitants · ` : ''}Niveau {b.level} ·{' '}
-                {format(b.hp)} PV
-              </span>
+      <div className="entity-groups">
+        {groups.map(({ kind, items }) => (
+          <details className="entity-group" key={kind} open={query.trim() ? true : undefined}>
+            <summary>
+              <Miniature
+                frame={kind === 'VILLAGE' ? Math.min(9, items[0].level + 6) : BUILDING_FRAMES[kind]}
+                building={items[0]}
+                size={46}
+              />
+              <strong>{BUILDINGS[kind].name}</strong>
+              <span className="entity-count">× {items.length}</span>
+            </summary>
+            <div className="entity-list">
+              {items
+                .slice()
+                .sort((a, b) => b.level - a.level || a.q - b.q || a.r - b.r)
+                .map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => {
+                      select({ kind: 'building', id: b.id, q: b.q, r: b.r });
+                      focusMap(b);
+                    }}
+                  >
+                    <Miniature
+                      frame={
+                        b.kind === 'VILLAGE' ? Math.min(9, b.level + 6) : BUILDING_FRAMES[b.kind]
+                      }
+                      building={b}
+                      turretLevel={b.turretLevel}
+                      size={58}
+                    />
+                    <div>
+                      <strong>{b.name || BUILDINGS[b.kind].name}</strong>
+                      <span>
+                        Niveau {b.level} · {format(b.hp)} PV · Position {b.q}, {b.r}
+                      </span>
+                    </div>
+                    <ArrowUpRight size={16} />
+                  </button>
+                ))}
             </div>
-            <ArrowUpRight size={16} />
-          </button>
+          </details>
         ))}
       </div>
+      {!groups.length && (
+        <p className="muted">
+          {query
+            ? 'Aucun bâtiment ne correspond à votre recherche.'
+            : 'Aucun domaine dans votre royaume.'}
+        </p>
+      )}
     </>
   );
 }
@@ -386,7 +471,7 @@ function Economy() {
         </thead>
         <tbody>
           {w.tiles
-            .filter((t) => t.building?.ownerId === p.id)
+            .filter((t) => t.building?.ownerId === p.id && !isWall(t.building.kind))
             .map((t) => {
               const b = t.building!;
               const production = t.terrain
