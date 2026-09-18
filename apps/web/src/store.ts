@@ -88,6 +88,8 @@ export const useGame = create<GameStore>((set) => ({
   menuOpen: false,
   set: (patch) => set(patch),
 }));
+// Never stored in localStorage/sessionStorage: reloads must disable the codes.
+let codeSessionId = crypto.randomUUID();
 let socket: Socket | undefined,
   toastTimeout: ReturnType<typeof setTimeout>,
   refreshTimer: ReturnType<typeof setInterval>,
@@ -113,6 +115,7 @@ export async function api<T>(path: string, body?: unknown, method = 'POST'): Pro
   return data;
 }
 export function acceptSession(data: { token: string; user: AuthUser }) {
+  if (useGame.getState().user?.id !== data.user.id) codeSessionId = crypto.randomUUID();
   if (activeOrder) finishOrder(activeOrder, false);
   if (authoritativeWorld?.player.id !== data.user.id) authoritativeWorld = null;
   sessionStorage.setItem('voidmarch.session', JSON.stringify(data));
@@ -279,7 +282,7 @@ function connect() {
   clearInterval(refreshTimer);
   clearInterval(heartbeat);
   socket = io({
-    auth: { token: useGame.getState().token },
+    auth: { token: useGame.getState().token, codeSessionId },
     transports: ['polling', 'websocket'],
     reconnection: true,
   });

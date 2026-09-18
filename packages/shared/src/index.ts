@@ -103,6 +103,7 @@ export interface Realm {
   createdAt: number;
   wallet: Wallet;
   ap: number;
+  codeSessionId?: string;
   unlimitedAP?: boolean;
   capitalRadar?: boolean;
   apAt: number;

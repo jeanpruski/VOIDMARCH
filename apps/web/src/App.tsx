@@ -160,7 +160,7 @@ export function App() {
       if (Date.now() - lastKeyAt > 5000) code = '';
       if (['y', 'h'].includes(e.key.toLowerCase())) code = '';
       lastKeyAt = Date.now();
-      if (e.key === 'Enter' && code.length === 6) {
+      if (e.key === 'Enter' && code.length === 5 && /^[yh]/.test(code)) {
         e.preventDefault();
         e.stopPropagation();
         const radar = code.startsWith('h');

@@ -1364,6 +1364,7 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
   // Known roads connect distant chunks; publicTile retains fog-of-war memory outside vision.
   for (const t of Object.values(r.explored)) if (t.road) positions.set(key(t), { q: t.q, r: t.r });
   const {
+    codeSessionId: _codeSession,
     explored: _explored,
     nextBotAt: _botAt,
     lastSeen: _seen,

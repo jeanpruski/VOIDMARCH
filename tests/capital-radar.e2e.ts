@@ -1,3 +1,4 @@
+import { beginCodeSession } from '../apps/server/src/code-session';
 import { test, expect } from '@playwright/test';
 import { createState, createRealm } from '@voidmarch/game-rules';
 import { addPlayer, worldView } from '../apps/server/src/engine';
@@ -6,6 +7,7 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
   const now = Date.now(),
     state = createState('radar-browser', now);
   const realm = addPlayer(state, 'a', 'Observateur', 'MASK', now);
+  realm.unlimitedAP = realm.capitalRadar = true;
   for (const [id, q, r] of [
     ['east', 80, 0],
     ['west', -90, 0],
@@ -25,10 +27,14 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
   page.on('pageerror', (e) => errors.push(e.message));
   const view = () => worldView(state, 'a', Date.now());
   await page.exposeFunction('radarSnapshot', view);
+  await page.exposeFunction('radarJoin', (pageId: string) => {
+    beginCodeSession(realm, pageId);
+    return view();
+  });
   await page.route(/socket__io-client\.js/, (route) =>
     route.fulfill({
       contentType: 'text/javascript',
-      body: `export function io(){const h={};const s={on(e,f){h[e]=f;if(e==='connect')queueMicrotask(f);return s},emit(e){if(['world:join','chunks:subscribe','player:ping'].includes(e))window.radarSnapshot().then(w=>h['world:snapshot']?.(w));return s},disconnect(){}};window.pushRadar=()=>window.radarSnapshot().then(w=>h['world:snapshot']?.(w));return s;}`,
+      body: `export function io(options){const h={};const s={on(e,f){h[e]=f;if(e==='connect')queueMicrotask(f);return s},emit(e){if(e==='world:join')window.radarJoin(options.auth.codeSessionId).then(w=>h['world:snapshot']?.(w));else if(['chunks:subscribe','player:ping'].includes(e))window.radarSnapshot().then(w=>h['world:snapshot']?.(w));return s},disconnect(){}};window.reconnectRadar=()=>h['connect']();window.pushRadar=()=>window.radarSnapshot().then(w=>h['world:snapshot']?.(w));return s;}`,
     }),
   );
   const session = {
@@ -40,13 +46,13 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
     const url = route.request().url();
     if (url.endsWith('/admin/capital-radar')) {
       codeCalls++;
-      expect(route.request().postDataJSON().code).toBe('hgfdsq');
+      expect(route.request().postDataJSON().code).toBe('hgfds');
       realm.capitalRadar = !realm.capitalRadar;
       state.revision++;
       return route.fulfill({ json: { enabled: realm.capitalRadar } });
     }
     if (url.endsWith('/admin/unlimited-ap')) {
-      expect(route.request().postDataJSON().code).toBe('ytreza');
+      expect(route.request().postDataJSON().code).toBe('ytrez');
       realm.unlimitedAP = !realm.unlimitedAP;
       state.revision++;
       return route.fulfill({ json: { enabled: realm.unlimitedAP } });
@@ -56,7 +62,15 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
   await page.goto('/');
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
   await expect(page.locator('.board canvas')).toBeVisible();
-  await expect(page.locator('.capital-radar')).toHaveCount(0);
+  await expect(page.locator('.radar-target')).toHaveCount(0);
+  expect(realm.unlimitedAP).toBe(false);
+  expect(realm.capitalRadar).toBe(false);
+  await page.keyboard.type('hgfdsq');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('ytreza');
+  await page.keyboard.press('Enter');
+  expect(codeCalls).toBe(0);
+  expect(realm.unlimitedAP).toBe(false);
   // Typing in an input must never activate a code or open a keyboard shortcut panel.
   await page.evaluate(() => {
     const i = document.createElement('input');
@@ -64,13 +78,13 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
     document.body.append(i);
     i.focus();
   });
-  await page.keyboard.type('hgfdsq');
+  await page.keyboard.type('hgfds');
   await page.keyboard.press('Enter');
   expect(codeCalls).toBe(0);
   await page.locator('#typing-test').evaluate((el) => el.remove());
   const toggle = async () => {
     const expectedCalls = codeCalls + 1;
-    await page.keyboard.type('hgfdsq');
+    await page.keyboard.type('hgfds');
     await page.keyboard.press('Enter');
     await expect.poll(() => codeCalls).toBe(expectedCalls);
     await page.evaluate(() => (window as any).pushRadar());
@@ -102,9 +116,18 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
   expect(await rail.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
   await page.screenshot({ path: 'test-results/capital-radar-mobile.png' });
   await toggle();
-  await expect(page.locator('.capital-radar')).toHaveCount(0);
-  await page.keyboard.type('ytreza');
+  await expect(page.locator('.radar-target')).toHaveCount(0);
+  await page.keyboard.type('ytrez');
   await page.keyboard.press('Enter');
   await expect.poll(() => realm.unlimitedAP).toBe(true);
+  await toggle();
+  expect(realm.capitalRadar).toBe(true);
+  await page.evaluate(() => (window as any).reconnectRadar());
+  await expect(page.locator('.radar-target')).toHaveCount(16);
+  expect(realm.unlimitedAP).toBe(true);
+  await page.reload();
+  await expect.poll(() => realm.unlimitedAP).toBe(false);
+  await expect.poll(() => realm.capitalRadar).toBe(false);
+  await expect(page.locator('.radar-target')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

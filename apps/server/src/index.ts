@@ -1,3 +1,4 @@
+import { beginCodeSession } from './code-session';
 import Fastify from 'fastify';
 import { expireGuests } from './guests';
 import cookie from '@fastify/cookie';
@@ -193,6 +194,7 @@ io.on('connection', (socket) => {
       }
       await repository.mutate((s) => {
         const r = addPlayer(s, user.id, user.username, user.faction as Faction, Date.now());
+        if (beginCodeSession(r, socket.handshake.auth.codeSessionId)) s.revision++;
         accrueEconomy(s, r, Date.now(), options.grace);
         r.lastSeen = Date.now();
         r.offlineAt = undefined;
@@ -309,7 +311,7 @@ app.post(
   async (request, reply) => {
     const who = await identity(request);
     const body = request.body as { code?: unknown } | null;
-    if (body?.code !== (process.env.ADMIN_AP_CODE || 'ytreza'))
+    if (body?.code !== (process.env.ADMIN_AP_CODE || 'ytrez'))
       return reply.code(403).send({ error: 'Code incorrect.' });
     const enabled = await repository.mutate((s) => {
       const r = s.realms[who.sub];
@@ -328,7 +330,7 @@ app.post(
   async (request, reply) => {
     const who = await identity(request);
     const body = request.body as { code?: unknown } | null;
-    if (body?.code !== (process.env.ADMIN_RADAR_CODE || 'hgfdsq'))
+    if (body?.code !== (process.env.ADMIN_RADAR_CODE || 'hgfds'))
       return reply.code(403).send({ error: 'Code incorrect.' });
     const enabled = await repository.mutate((s) => {
       const r = s.realms[who.sub];
