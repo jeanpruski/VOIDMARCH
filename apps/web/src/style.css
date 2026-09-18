@@ -4308,3 +4308,37 @@ button.radar-target {
     overflow: hidden;
   }
 }
+
+/* Terrain information only appears after an explicit selection. */
+.selection-panel.terrain-selection {
+  grid-template-columns: minmax(160px, 1fr) minmax(0, 2fr);
+}
+.terrain-selection .tile-symbol {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+.terrain-selection .tile-description {
+  max-width: none;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.terrain-selection .tile-description p {
+  margin: 3px 0;
+}
+.terrain-selection .tile-build-hint {
+  margin: 0;
+  white-space: normal;
+  font-size: 12px;
+}
+.terrain-selection .selection-actions:empty {
+  display: none;
+}
+@media (max-width: 700px) {
+  .selection-panel.terrain-selection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .terrain-selection > .tile-description {
+    grid-column: 1 / -1;
+  }
+}

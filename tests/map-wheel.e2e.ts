@@ -33,6 +33,17 @@ test('molette sur la carte après chargement et repli des panneaux', async ({ pa
       ),
     });
   });
+  // The map must work without enabling eval, including its image preparation.
+  await page.route('http://127.0.0.1:5173/', async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      headers: {
+        ...response.headers(),
+        'content-security-policy': "script-src 'self' 'unsafe-inline'; object-src 'none'",
+      },
+    });
+  });
   await page.goto('/');
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
   await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false');

@@ -126,11 +126,11 @@ test('collections regroupées, recherche, sélection et tutoriel repliable', asy
     const capital = useGame.getState().world.player.capital;
     select({ kind: 'tile', q: capital.q + 1, r: capital.r });
   });
-  await expect(page.locator('.selection-panel')).toHaveCount(0);
-  await expect(
-    page.locator('.map-tools').getByRole('button', { name: 'Construire', exact: true }),
-  ).toBeVisible();
-  await page.locator('.map-tools').getByRole('button', { name: 'Construire', exact: true }).click();
+  const terrain = page.locator('.terrain-selection');
+  await expect(terrain).toBeVisible();
+  await expect(terrain).toContainText('Hexagone');
+  await expect(terrain.getByRole('button', { name: /^Construire/ })).toBeVisible();
+  await terrain.getByRole('button', { name: /^Construire/ }).click();
   await expect(dialog).toContainText('Bâtir sur vos terres');
   await page.getByRole('button', { name: 'Fermer', exact: true }).click();
   addBuilding(state, realm, at(1), 'LUMBER', now);

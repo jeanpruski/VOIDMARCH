@@ -526,36 +526,34 @@ function TileConstructionAction() {
   if (selection?.kind !== 'tile') return null;
   const tile = w.tiles.find((t) => key(t) === key(selection));
   if (!tile?.terrain || tile.visibility === 'UNKNOWN') return null;
+  const builder = w.units.some(
+    (u) => u.ownerId === w.player.id && UNIT_PROFILES[u.kind].builder && distance(u, tile) <= 1,
+  );
   const own = tile.ownerId === w.player.id;
-  return (
-    <>
-      {!tile?.building &&
-        ((own &&
-          (!tile?.enclosureOwnerId ||
-            w.units.some(
-              (u) =>
-                u.ownerId === w.player.id &&
-                UNIT_PROFILES[u.kind].builder &&
-                distance(u, tile) <= 1,
-            ))) ||
-          (tile &&
-            !tile.ownerId &&
-            w.units.some(
-              (u) =>
-                u.ownerId === w.player.id &&
-                UNIT_PROFILES[u.kind].builder &&
-                distance(u, tile) <= 1,
-            ) &&
-            w.tiles.some(
-              (t) =>
-                t.building?.ownerId === w.player.id &&
-                distance(t, tile) <= RULES.constructionRadius,
-            ))) && (
-          <button className="primary" onClick={() => useGame.setState({ panel: 'build' })}>
-            <Hammer size={15} /> Construire
-          </button>
-        )}
-    </>
+  const withinDomain = w.tiles.some(
+    (t) => t.building?.ownerId === w.player.id && distance(t, tile) <= RULES.constructionRadius,
+  );
+  const reason = w.strategy?.sites.some((site) => key(site) === key(tile))
+    ? 'Ce site stratégique doit rester libre de construction.'
+    : tile.building
+      ? 'Un bâtiment occupe déjà cette case.'
+      : tile.terrain === 'SCORCHED'
+        ? 'Restaurez ce terrain avec un terrassier avant de construire.'
+        : tile.ownerId && !own
+          ? 'Vous ne pouvez pas construire sur les terres d’un autre royaume.'
+          : w.units.some((u) => u.ownerId !== w.player.id && distance(u, tile) === 0)
+            ? 'Une unité adverse occupe ce terrain.'
+            : !own && !withinDomain
+              ? 'Le chantier doit être à 3 cases maximum de l’un de vos bâtiments.'
+              : (!own || tile.enclosureOwnerId) && !builder
+                ? 'Approchez un paysan ou un ingénieur à une case maximum pour construire.'
+                : undefined;
+  return reason ? (
+    <p className="tile-build-hint">{reason}</p>
+  ) : (
+    <button className="primary" onClick={() => useGame.setState({ panel: 'build' })}>
+      <Hammer size={15} /> Construire <small>1 PA + ressources</small>
+    </button>
   );
 }
 
@@ -566,7 +564,6 @@ function MapTools() {
   const showBuildings = useGame((s) => s.showBuildings);
   return (
     <div className="map-tools">
-      <TileConstructionAction />
       <button
         className={`road-map-button ${roadMode ? 'active' : ''}`}
         aria-label="Mode routes"
@@ -670,7 +667,7 @@ function SelectionPanel() {
       selection?.kind === 'building' && tile?.building && tile.building.id === selection.id
         ? tile.building
         : undefined,
-    visible = !!(u || b),
+    visible = !!(u || b || selection?.kind === 'tile'),
     own = u
       ? u.ownerId === w.player.id
       : b
@@ -726,7 +723,11 @@ function SelectionPanel() {
           : BUILDING_FRAMES[b.kind]
         : undefined;
   return (
-    <section ref={panelRef} className="selection-panel" aria-label="Sélection actuelle">
+    <section
+      ref={panelRef}
+      className={`selection-panel${selection.kind === 'tile' ? ' terrain-selection' : ''}`}
+      aria-label="Sélection actuelle"
+    >
       <div className="selection-identity">
         {frame !== undefined ? (
           <Miniature
@@ -941,30 +942,21 @@ function SelectionPanel() {
                 {UNIT_PROFILES[u.kind].builder && (
                   <button
                     className="secondary"
+                    title="Construire sur la case du bâtisseur. Pour bâtir à côté, sélectionnez d’abord une case voisine éclairée."
                     onClick={() => {
-                      const site = [...w.tiles]
-                        .sort((a, b) => distance(u, a) - distance(u, b))
-                        .find(
-                          (t) =>
-                            !t.building &&
-                            t.terrain &&
-                            distance(u, t) <= 1 &&
-                            (t.ownerId === w.player.id ||
-                              (!t.ownerId &&
-                                w.tiles.some(
-                                  (n) =>
-                                    n.building?.ownerId === w.player.id &&
-                                    distance(n, t) <= RULES.constructionRadius,
-                                ))),
+                      if (tile?.building) {
+                        notify(
+                          'Cette case contient déjà un bâtiment. Sélectionnez une case libre autour du bâtisseur.',
+                          true,
                         );
-                      if (site) {
-                        select({ kind: 'tile', q: site.q, r: site.r });
-                        useGame.setState({ panel: 'build' });
-                      } else notify('Aucun terrain libre à proximité.', true);
+                        return;
+                      }
+                      select({ kind: 'tile', q: u.q, r: u.r });
+                      useGame.setState({ panel: 'build' });
                     }}
                   >
                     <Hammer size={15} />
-                    Construire
+                    Construire <small>1 PA + ressources</small>
                   </button>
                 )}
                 {u.kind !== 'PEASANT' && u.kind !== 'HERO' && (
@@ -1127,7 +1119,44 @@ function SelectionPanel() {
             )}
           </div>
         </>
-      ) : null}
+      ) : (
+        <>
+          <div className="tile-description">
+            <span>
+              Hexagone {format(selection.q)}, {format(selection.r)}
+            </span>
+            {tile?.terrain && tile.visibility !== 'UNKNOWN' ? (
+              <>
+                <p>
+                  {tile.ownerId && !own
+                    ? 'Récolte réservée au propriétaire.'
+                    : (() => {
+                        const resources = RESOURCES.filter((r) =>
+                          canGather(
+                            { terrain: tile.terrain!, ownerId: tile.ownerId },
+                            w.player.id,
+                            r,
+                          ),
+                        );
+                        return resources.length
+                          ? `Récolte avec un paysan sur cette case : ${resources.map((r) => RESOURCE_NAMES[r]).join(', ')} · 1 PA.`
+                          : 'Aucune ressource récoltable sur ce terrain.';
+                      })()}
+                </p>
+                <span>
+                  Bonus de défense du terrain : +{format(TERRAINS[tile.terrain].defense)}
+                  {tile.road ? ' · Route présente' : ''}
+                </span>
+              </>
+            ) : (
+              <p>Explorez cette case pour découvrir son terrain et ses ressources.</p>
+            )}
+          </div>
+          <div className="selection-actions" aria-label="Actions du terrain">
+            <TileConstructionAction />
+          </div>
+        </>
+      )}
       <button
         className="close-selection icon-button"
         aria-label="Fermer la sélection"
