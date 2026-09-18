@@ -22,7 +22,6 @@ export type Panel =
   | 'cities'
   | 'economy'
   | 'trade'
-  | 'journal'
   | 'events'
   | 'rank'
   | 'settings'

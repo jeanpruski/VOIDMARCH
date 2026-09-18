@@ -313,14 +313,42 @@ class WorldScene extends Phaser.Scene {
       this.down = undefined;
       this.subscribeVisible();
     });
-    this.input.on('wheel', (_p: unknown, _g: unknown, _x: number, y: number) => {
-      const camera = this.cameras.main;
-      camera.setZoom(
-        Phaser.Math.Clamp(camera.zoom * Math.exp(-y * 0.001), MAP_ZOOM.min, MAP_ZOOM.max),
-      );
-      this.renderMap();
-      this.subscribeVisible();
-    });
+    // Listen on the canvas itself: prevent browser scrolling/pinch zoom before
+    // Phaser processes the event, and normalize mice reporting lines or pages.
+    // Trackpads can emit several events per frame; redraw the map only once.
+    const canvas = this.game.canvas;
+    let wheelDelta = 0,
+      wheelFrame = 0;
+    const wheel = (event: WheelEvent) => {
+      if (!this.sys.isActive() || !this.cameras.main) return;
+      const mode = event.deltaMode;
+      const delta = event.deltaY * (mode === 1 ? 16 : mode === 2 ? canvas.clientHeight : 1);
+      if (!Number.isFinite(delta) || delta === 0) return;
+      event.preventDefault();
+      wheelDelta += delta;
+      if (wheelFrame) return;
+      wheelFrame = requestAnimationFrame(() => {
+        wheelFrame = 0;
+        const amount = wheelDelta;
+        wheelDelta = 0;
+        const camera = this.cameras.main;
+        if (!this.sys.isActive() || !camera) return;
+        camera.setZoom(
+          Phaser.Math.Clamp(camera.zoom * Math.exp(-amount * 0.001), MAP_ZOOM.min, MAP_ZOOM.max),
+        );
+        this.renderMap();
+        this.subscribeVisible();
+      });
+    };
+    canvas.addEventListener('wheel', wheel, { passive: false, capture: true });
+    const removeWheel = () => {
+      canvas.removeEventListener('wheel', wheel, true);
+      cancelAnimationFrame(wheelFrame);
+      wheelFrame = 0;
+      wheelDelta = 0;
+    };
+    this.events.once('shutdown', removeWheel);
+    this.events.once('destroy', removeWheel);
     const resize = () => {
       const c = this.cameras.main;
       if (!this.sys.isActive() || !c) return;

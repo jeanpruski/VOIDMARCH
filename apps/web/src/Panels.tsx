@@ -102,7 +102,6 @@ export function Panels() {
     cities: 'Villes & domaines',
     economy: 'Les richesses des Marches',
     trade: 'Commerce & diplomatie',
-    journal: 'Chronique du royaume',
     events: 'Les murmures du monde',
     rank: 'Les puissances des Marches',
     settings: 'Paramètres',
@@ -129,8 +128,6 @@ export function Panels() {
         <DiplomacyHub>
           <Diplomacy />
         </DiplomacyHub>
-      ) : panel === 'journal' ? (
-        <Journal />
       ) : panel === 'events' ? (
         <Events />
       ) : panel === 'rank' ? (
@@ -780,43 +777,6 @@ function Diplomacy() {
         ))
       )}
     </>
-  );
-}
-function Journal() {
-  const w = useGame((s) => s.world)!;
-  return (
-    <div className="full-journal">
-      {w.journal.map((j) => (
-        <article key={j.id}>
-          <span className="journal-marker" />
-          <div>
-            <small>
-              {new Date(j.at).toLocaleString('fr-FR', {
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}{' '}
-              ·{' '}
-              {j.kind === 'DIPLOMACY'
-                ? 'DIPLOMATIE'
-                : j.kind === 'COMBAT'
-                  ? 'COMBAT'
-                  : j.kind === 'ECONOMY'
-                    ? 'ÉCONOMIE'
-                    : 'CHRONIQUE'}
-            </small>
-            <p>{j.text}</p>
-            {j.q !== undefined && (
-              <button className="text-button" onClick={() => focusMap({ q: j.q!, r: j.r! })}>
-                Voir sur la carte <ArrowUpRight size={12} />
-              </button>
-            )}
-          </div>
-        </article>
-      ))}
-      {!w.journal.length && <p className="empty-line">Votre histoire commence ici.</p>}
-    </div>
   );
 }
 function Events() {

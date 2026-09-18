@@ -12,7 +12,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Axe,
-  BookOpen,
   Castle,
   Check,
   ChevronRight,
@@ -497,17 +496,13 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
           <Flag size={17} />
           <span>Les royaumes</span>
         </button>
-        <button onClick={() => useGame.setState({ panel: 'journal', menuOpen: false })}>
-          <BookOpen size={17} />
-          <span>Votre chronique</span>
-        </button>
         <button onClick={() => useGame.setState({ panel: 'help', menuOpen: false })}>
           <CircleHelp size={17} />
           <span>Aide & règles</span>
         </button>
       </nav>
       <div className="sidebar-bottom">
-        {p.protectedUntil > now ? (
+        {p.protectedUntil > now && (
           <div className="protection-box">
             <Shield size={20} />
             <div>
@@ -517,16 +512,6 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
               </span>
             </div>
           </div>
-        ) : (
-          <button className="protection-box" onClick={() => useGame.setState({ panel: 'trade' })}>
-            <Handshake size={20} />
-            <div>
-              <strong>Le prix de la paix</strong>
-              <span>
-                Négocier une trêve <ArrowRight size={12} />
-              </span>
-            </div>
-          </button>
         )}
         <button className="exit-button" onClick={() => void logout()}>
           <LogOut size={14} /> Quitter les Marches
