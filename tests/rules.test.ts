@@ -44,16 +44,16 @@ function command(type: Action['type'], actorId: string, payload: unknown): Actio
   return { type, actorId, payload, actionId: randomUUID(), clientTimestamp: now } as Action;
 }
 describe('hexagones et PA', () => {
-  it('récupère un PA à 60 secondes et plafonne à 15 même hors ligne', () => {
+  it('récupère un PA à 30 secondes et plafonne à 20 même hors ligne', () => {
     const r = { ap: 0, apAt: now };
-    refreshAP(r, now + 59999);
+    refreshAP(r, now + 29999);
     expect(r.ap).toBe(0);
-    refreshAP(r, now + 60000);
+    refreshAP(r, now + 30000);
     expect(r.ap).toBe(1);
-    refreshAP(r, now + 120000);
+    refreshAP(r, now + 60000);
     expect(r.ap).toBe(2);
     refreshAP(r, now + 3600000);
-    expect(r.ap).toBe(15);
+    expect(r.ap).toBe(20);
   });
   it('coordonnées axiales, distances et chunks négatifs sont cohérents', () => {
     expect(disk({ q: 0, r: 0 }, 2)).toHaveLength(19);
@@ -69,14 +69,14 @@ describe('hexagones et PA', () => {
     r.ap--;
     refreshAP(r, now + 600001);
     expect(r.ap).toBe(RULES.maxAP - 1);
-    refreshAP(r, now + 660000);
+    refreshAP(r, now + 630000);
     expect(r.ap).toBe(RULES.maxAP);
   });
   it('régénère les PA après sérialisation et redémarrage', () => {
     const r = JSON.parse(JSON.stringify({ ap: 0, apAt: now }));
-    refreshAP(r, now + 120000);
+    refreshAP(r, now + 60000);
     expect(r.ap).toBe(2);
-    expect(r.apAt).toBe(now + 120000);
+    expect(r.apAt).toBe(now + 60000);
   });
   it('le pathfinding contourne une montagne et respecte le coût', () => {
     const path = findPath(

@@ -140,7 +140,7 @@ describe('territoires revendiqués par les remparts', () => {
     const result = close();
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.result.message).toContain('+7 case(s)');
-    expect(result.state.realms.a.ap).toBe(29);
+    expect(result.state.realms.a.ap).toBe(39);
     for (const p of disk(center, 1))
       expect(tileAt(result.state, p)).toMatchObject({ ownerId: 'a', enclosureOwnerId: 'a' });
     const view = worldView(result.state, 'a', now);

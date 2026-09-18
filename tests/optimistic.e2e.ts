@@ -118,7 +118,7 @@ test('actions immédiates, confirmation sans doublon, refus et réseau interromp
   let c = await client();
   expect(c.world!.tiles.find((t) => t.q === 2 && t.r === 0)?.building).toBeUndefined();
   expect(c.pendingAction).toMatchObject({ style: 'construction', position: { q: 2, r: 0 } });
-  expect(c.world!.player.ap).toBe(29);
+  expect(c.world!.player.ap).toBe(39);
   expect(executed).toBe(0);
   expect(state.tiles['2,0'].buildingId).toBeUndefined();
   const predictedWallet = c.world!.player.wallet;

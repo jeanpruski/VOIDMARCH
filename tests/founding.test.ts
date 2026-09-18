@@ -77,7 +77,7 @@ describe('fondation sans ressources', () => {
     s = result.state;
     expect(realmBuildings(s, 'founder').map((b) => b.kind)).toEqual(['CAMP', 'HOUSE']);
     expect(s.realms.founder.wallet.WOOD).toBe(6);
-    expect(s.realms.founder.ap).toBe(26);
+    expect(s.realms.founder.ap).toBe(36);
     expect(realmTiles(s, 'founder')).toHaveLength(2);
   });
   it('refuse le second paysan sans ressources et permet un remplacement gratuit après perte', () => {
@@ -102,7 +102,7 @@ describe('fondation sans ressources', () => {
     for (const p of neighbors(u)) writeTile(s, p, { terrain: 'FOREST', ownerId: 'enemy' });
     const result = execute(s, 'founder', action('GATHER', u.id, { resource: 'WOOD' }), now);
     expect(result.result.accepted).toBe(false);
-    expect(result.state.realms.founder.ap).toBe(29);
+    expect(result.state.realms.founder.ap).toBe(39);
     expect(result.state.realms.founder.wallet.WOOD).toBe(0);
   });
   it('fait évoluer le campement en avant-poste puis en village sans perdre la capitale', () => {
@@ -177,7 +177,7 @@ describe('catalogue étendu', () => {
     const result = execute(s, r.id, action('ABILITY', healer.id, { ability: 'MEND' }), now);
     expect(result.result.accepted).toBe(true);
     expect(result.state.units[target.id].hp).toBe(UNITS[target.kind].hp);
-    expect(result.state.realms[r.id].ap).toBe(29);
+    expect(result.state.realms[r.id].ap).toBe(39);
   });
   it('le lancier inflige davantage de dégâts à la cavalerie', () => {
     const s = established(),

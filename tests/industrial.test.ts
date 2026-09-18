@@ -52,7 +52,7 @@ describe('guerre industrielle', () => {
     const result = execute(s, 'human', order('ABILITY', 'HEALER', { ability: 'MEND' }), now);
     expect(result.result.accepted).toBe(false);
     expect(result.state.units.TANK.hp).toBe(5);
-    expect(result.state.realms.human.ap).toBe(30);
+    expect(result.state.realms.human.ap).toBe(40);
   });
   it('la radio révèle dix cases et le dépôt augmente le stockage', () => {
     const s = fixture(),

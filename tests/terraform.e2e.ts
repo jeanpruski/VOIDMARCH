@@ -89,7 +89,7 @@ test('terrasser : annuler puis confirmer, coût, carte et figurine', async ({ pa
   await page.getByRole('button', { name: 'Transformer en plaine · 2 PA', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(state.tiles['1,0'].terrain).toBe('PLAIN');
-  expect(state.realms[id].ap).toBe(28);
+  expect(state.realms[id].ap).toBe(38);
   expect(state.realms[id].wallet.WOOD).toBe(180);
   const sprite = await page.evaluate(() => {
     const scene = (window as any).__terraformScene;

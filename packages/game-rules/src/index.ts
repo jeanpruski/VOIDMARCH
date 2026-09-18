@@ -1,3 +1,4 @@
+import { veteranRank } from '@voidmarch/config';
 import {
   BUILDINGS,
   heroAura,
@@ -228,13 +229,23 @@ export function transfer(wallet: Wallet, amount: Partial<Wallet>, sign = 1) {
   for (const [k, v] of Object.entries(amount)) wallet[k as keyof Wallet] += v * sign;
 }
 export const amount = (w: Partial<Wallet>) => Object.values(w).reduce((a, b) => a + b, 0);
+export const alliedRealmIds = (s: GameState, id: string): string[] =>
+  Object.values(s.strategy?.alliances ?? {})
+    .find((a) => a.members.includes(id))
+    ?.members.filter((x) => x !== id) ?? [];
 /** Walls block ground movement for every other realm, even on roads or during a truce. */
-export const wallBlocks = (building: Building | undefined, realmId: string, kind?: UnitKind) =>
+export const wallBlocks = (
+  building: Building | undefined,
+  realmId: string,
+  kind?: UnitKind,
+  allies: readonly string[] = [],
+) =>
   !(kind && UNIT_PROFILES[kind].flying) &&
   !!building &&
   building.hp > 0 &&
   isWall(building.kind) &&
-  building.ownerId !== realmId;
+  building.ownerId !== realmId &&
+  !allies.includes(building.ownerId);
 export function wallConnections(
   building: Building,
   getBuilding: (p: Hex) => Building | undefined,
@@ -292,11 +303,13 @@ export const canGather = (
   (!tile.ownerId || tile.ownerId === ownerId) && TERRAIN_RESOURCES[tile.terrain].includes(resource);
 /** Neutral road works need a nearby builder; foreign territory remains protected. */
 export function roadSiteReason(
-  tile: Pick<Tile, 'q' | 'r' | 'ownerId' | 'roadOwnerId'>,
+  tile: Pick<Tile, 'q' | 'r' | 'ownerId' | 'roadOwnerId'> & { terrain?: Terrain },
   ownerId: string,
   units: Pick<Unit, 'q' | 'r' | 'ownerId' | 'kind'>[],
   remove = false,
 ) {
+  if (!remove && tile.terrain === 'SCORCHED')
+    return 'Restaurez ces terres brûlées avec un terrassier avant de construire une route.';
   if (tile.ownerId === ownerId) return '';
   if (tile.ownerId) return 'Impossible de modifier les routes d’un territoire adverse.';
   if (remove && tile.roadOwnerId !== ownerId)
@@ -343,9 +356,18 @@ export function income(s: GameState, id: string): Wallet {
     tiles = realmTiles(s, id);
   for (const b of buildings) {
     for (const [k, v] of Object.entries(productionOnTerrain(b.kind, tileAt(s, b).terrain)))
-      out[k as keyof Wallet] += v * productionMultiplier(b.kind, b.level);
-    if (b.kind === 'VILLAGE') out.GOLD += b.population * 0.015;
+      out[k as keyof Wallet] +=
+        v *
+        productionMultiplier(b.kind, b.level) *
+        ((s.strategy?.fallout[key(b)]?.intensity ?? 0) >= 30 ? 0.5 : 1);
+    if (b.kind === 'VILLAGE' && tileAt(s, b).terrain !== 'SCORCHED')
+      out.GOLD += b.population * 0.015;
   }
+  for (const site of Object.values(s.strategy?.sites ?? {}))
+    if (site.ownerId === id && tileAt(s, site).ownerId === id) {
+      if (site.kind === 'MINE') out.IRON += 8;
+      if (site.kind === 'SANCTUARY') out.GOLD += 5;
+    }
   for (const unit of units) transfer(out, unitUpkeep(unit.kind), -1);
   out.GOLD -= tiles.length * 0.04 * territoryMultiplier(tiles.length);
   out.FOOD -= buildings.reduce((a, b) => a + b.population, 0) * 0.015;
@@ -405,7 +427,14 @@ export function realmValue(s: GameState, id: string) {
 export function vision(s: GameState, r: Realm): Set<string> {
   const visible = new Set<string>();
   for (const u of realmUnits(s, r.id)) {
-    const range = UNITS[u.kind].vision + (r.faction === 'MASK' && u.kind === 'SCOUT' ? 2 : 0);
+    const range =
+      UNITS[u.kind].vision +
+      (r.faction === 'MASK' && u.kind === 'SCOUT' ? 2 : 0) +
+      (Object.values(s.strategy?.sites ?? {}).some(
+        (x) => x.ownerId === r.id && x.kind === 'RADIO' && tileAt(s, x).ownerId === r.id,
+      )
+        ? 1
+        : 0);
     for (const p of disk(u, range)) visible.add(key(p));
   }
   for (const b of realmBuildings(s, r.id))
@@ -556,13 +585,15 @@ export function roadPathTo(
   }
   return result.reverse();
 }
-export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus' | 'npc'>) {
+export function unitStats(
+  unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus' | 'npc' | 'victories' | 'expedition'>,
+) {
   const base = UNITS[unit.kind];
   if (unit.npc) {
     const profile = NPCS[unit.npc.kind];
     return {
       ...base,
-      name: profile.name,
+      name: unit.expedition?.title ?? profile.name,
       hp: unit.npc.maxHp,
       attack: unit.npc.attack,
       defense: unit.npc.defense,
@@ -576,9 +607,12 @@ export function unitStats(unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus
   return {
     ...base,
     hp: boosted(base.hp),
-    attack: boosted(base.attack),
-    defense: boosted(base.defense),
-    buildingAttack: boosted('buildingAttack' in base ? base.buildingAttack : base.attack),
+    attack: boosted(base.attack * (1 + veteranRank(unit.victories) * 0.05)),
+    defense: boosted(base.defense * (1 + veteranRank(unit.victories) * 0.05)),
+    buildingAttack: boosted(
+      ('buildingAttack' in base ? base.buildingAttack : base.attack) *
+        (1 + veteranRank(unit.victories) * 0.05),
+    ),
   };
 }
 
@@ -759,6 +793,7 @@ export function hostileReason(
   now: number,
   offlineProtection = false,
 ): string | undefined {
+  if (alliedRealmIds(s, a.id).includes(b.id)) return 'Votre alliance interdit cette attaque.';
   if (truceBetween(s, a.id, b.id, now)) return 'Une trêve protège ces deux royaumes.';
   if (b.protectedUntil > now) return 'Ce royaume bénéficie de la protection initiale.';
   if (offlineProtection && (b.offlineAt ?? b.lastSeen + RULES.grace) <= now)
@@ -851,13 +886,22 @@ export function terraformSiteReason(
   ownerId: string,
   unit: Unit,
   units: readonly Unit[],
+  capital?: Hex,
 ) {
   if (unit.ownerId !== ownerId || unit.kind !== 'TERRAFORMER')
     return 'Sélectionnez votre terrassier arcanique.';
   if (distance(unit, tile) > 1) return 'Le terrassier doit être à une case maximum du chantier.';
   if (tile.ownerId && tile.ownerId !== ownerId)
     return 'Impossible de transformer un territoire ennemi.';
-  if (tile.buildingId || tile.building)
+  if (
+    (tile.buildingId || tile.building) &&
+    !(
+      tile.terrain === 'SCORCHED' &&
+      tile.ownerId === ownerId &&
+      capital &&
+      key(tile) === key(capital)
+    )
+  )
     return 'Démolissez le bâtiment avant de transformer ce terrain.';
   if (!tile.terrain || tile.terrain === 'PLAIN') return 'Cette case est déjà une plaine.';
   if (units.some((u) => u.ownerId !== ownerId && key(u) === key(tile)))

@@ -40,18 +40,18 @@ describe('bonus de départ et PA illimités', () => {
   it('conserve le surplus, ne le régénère pas et ne le redonne pas à la reconnexion', () => {
     const s = fixture(),
       r = s.realms.player;
-    expect(r.ap).toBe(30);
+    expect(r.ap).toBe(40);
     refreshAP(r, now + 3600000);
-    expect(r.ap).toBe(30);
-    r.ap = 16;
+    expect(r.ap).toBe(40);
+    r.ap = 21;
     refreshAP(r, now + 7200000);
-    expect(r.ap).toBe(16);
-    r.ap = 14;
+    expect(r.ap).toBe(21);
+    r.ap = 19;
     refreshAP(r, now + 7200001);
-    expect(r.ap).toBe(14);
-    refreshAP(r, now + 7260000);
-    expect(r.ap).toBe(15);
-    expect(addPlayer(s, r.id, r.name, r.faction, now + 8000000).ap).toBe(15);
+    expect(r.ap).toBe(19);
+    refreshAP(r, now + 7230000);
+    expect(r.ap).toBe(20);
+    expect(addPlayer(s, r.id, r.name, r.faction, now + 8000000).ap).toBe(20);
   });
   it('le code ne supprime que la dépense de PA, pas les restrictions ni les coûts', () => {
     const s = fixture(),
@@ -109,7 +109,7 @@ describe('construction et routes', () => {
     expect(
       execute(captured.state, 'player', action('CAPTURE', 'worker'), now).result.accepted,
     ).toBe(false);
-    expect(captured.state.realms.player.ap).toBe(29);
+    expect(captured.state.realms.player.ap).toBe(39);
   });
 });
 

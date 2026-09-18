@@ -21,6 +21,57 @@ const building = z.enum(
 );
 const id = z.string().min(1).max(80);
 export const commandSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('ALLIANCE_CREATE'),
+    actorId: id,
+    payload: z.object({
+      name: z.string().trim().min(3).max(32),
+      emblem: z.enum(['shield', 'eye', 'crown', 'star']),
+    }),
+  }),
+  z.object({ type: z.literal('ALLIANCE_INVITE'), actorId: id, payload: z.object({ to: id }) }),
+  z.object({
+    type: z.literal('ALLIANCE_RESPOND'),
+    actorId: id,
+    payload: z.object({ invitationId: id, accept: z.boolean() }),
+  }),
+  z.object({ type: z.literal('ALLIANCE_LEAVE'), actorId: id, payload: z.object({}) }),
+  z.object({
+    type: z.literal('ALLIANCE_CHAT'),
+    actorId: id,
+    payload: z.object({ text: z.string().trim().min(1).max(400) }),
+  }),
+  z.object({
+    type: z.literal('ALLIANCE_MARK'),
+    actorId: id,
+    payload: hex.extend({
+      label: z.string().trim().min(1).max(64),
+      kind: z.enum(['HELP', 'ATTACK', 'RESOURCE']),
+    }),
+  }),
+  z.object({
+    type: z.literal('ALLIANCE_UNMARK'),
+    actorId: id,
+    payload: z.object({ markerId: id }),
+  }),
+  z.object({
+    type: z.literal('DECLARE_WAR'),
+    actorId: id,
+    payload: hex.extend({
+      to: id,
+      objective: z.enum(['FORT', 'MINE', 'TRIBUTE']),
+      tributeGold: z.number().int().min(0).max(100000),
+    }),
+  }),
+  z.object({ type: z.literal('SETTLE_WAR'), actorId: id, payload: z.object({ warId: id }) }),
+  z.object({ type: z.literal('CLAIM_SITE'), actorId: id, payload: z.object({ siteId: id }) }),
+  z.object({ type: z.literal('CLEANUP'), actorId: id, payload: hex }),
+  z.object({ type: z.literal('LAUNCH_NUKE'), actorId: id, payload: hex }),
+  z.object({
+    type: z.literal('RENAME_UNIT'),
+    actorId: id,
+    payload: z.object({ name: z.string().trim().min(1).max(32) }),
+  }),
   z.object({ type: z.literal('INSTALL_TURRET'), actorId: id, payload: z.object({}) }),
   z.object({ type: z.literal('UPGRADE_TURRET'), actorId: id, payload: z.object({}) }),
   z.object({ type: z.literal('MOVE_ROAD'), actorId: id, payload: hex }),

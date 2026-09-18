@@ -1,19 +1,32 @@
 import { ArrowRight } from 'lucide-react';
-import { useGame } from './store';
+import { focusMap, useGame } from './store';
 import { capitalBearing } from './capital-radar';
 
 export function CapitalRadar() {
   const world = useGame((s) => s.world);
   const viewport = useGame((s) => s.cameraViewport);
-  if (!world?.player.capitalRadar || !viewport) return null;
-  const targets = (world.enemyCapitals ?? []).flatMap((target) => {
+  if (!world || !viewport) return null;
+  const allies = world.strategy?.allies ?? [];
+  const targets = [
+    ...allies,
+    ...(world.player.capitalRadar ? (world.enemyCapitals ?? []) : []).filter(
+      (t) => !allies.some((a) => a.realmId === t.realmId),
+    ),
+  ].flatMap((target) => {
     const realm = world.realms.find((r) => r.id === target.realmId);
     return realm && !realm.defeated && realm.id !== world.player.id
-      ? [{ ...capitalBearing(viewport, target.position), realm }]
+      ? [
+          {
+            ...capitalBearing(viewport, target.position),
+            realm,
+            position: target.position,
+            ally: allies.some((a) => a.realmId === realm.id),
+          },
+        ]
       : [];
   });
   return (
-    <div className="capital-radar" aria-label="Repérage des capitales ennemies">
+    <div className="capital-radar" aria-label="Repérage des capitales alliées et radar">
       {(['left', 'right', 'top', 'bottom'] as const).map((edge) => {
         const group = targets
           .filter((t) => t.edge === edge)
@@ -21,8 +34,11 @@ export function CapitalRadar() {
         return (
           group.length > 0 && (
             <div key={edge} className={`radar-edge radar-${edge}`}>
-              {group.map(({ realm, angle, distance }) => (
-                <div
+              {group.map(({ realm, angle, distance, position, ally }) => (
+                <button
+                  onClick={() => {
+                    if (ally) focusMap(position);
+                  }}
                   key={realm.id}
                   className="radar-target"
                   tabIndex={0}
@@ -37,15 +53,20 @@ export function CapitalRadar() {
                   />
                   <span>
                     <strong>{distance} cases</strong>
-                    <small>{realm.name}</small>
+                    <small>
+                      {ally ? 'Allié · ' : ''}
+                      {realm.name}
+                    </small>
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           )
         );
       })}
-      {targets.length === 0 && <span className="radar-empty">Aucune capitale ennemie</span>}
+      {targets.length === 0 && world.player.capitalRadar && (
+        <span className="radar-empty">Aucune capitale ennemie</span>
+      )}
     </div>
   );
 }

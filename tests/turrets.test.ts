@@ -143,7 +143,7 @@ describe('tourelles fixées aux remparts', () => {
       const action = order('ATTACK', wall.id, { targetId: 'enemy' }),
         result = execute(s, 'a', action, now);
       expect(result.result.accepted, result.result.reason).toBe(true);
-      expect(result.state.realms.a.ap).toBe(29);
+      expect(result.state.realms.a.ap).toBe(39);
       const damage = estimateDamage(wall, s.units.enemy, { q: 3, r: 0, terrain: 'PLAIN' });
       expect(1000 - result.state.units.enemy.hp).toBeGreaterThanOrEqual(damage.min);
       expect(1000 - result.state.units.enemy.hp).toBeLessThanOrEqual(damage.max);

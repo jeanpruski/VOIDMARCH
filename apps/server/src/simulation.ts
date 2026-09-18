@@ -1,3 +1,6 @@
+import { tickStrategy } from './strategy';
+import { wallBlocks, alliedRealmIds } from '@voidmarch/game-rules';
+import { formatNumber, RESOURCE_NAMES, type Resource } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { RULES } from '@voidmarch/config';
 import {
@@ -19,6 +22,7 @@ import { BotDirector } from './bots.js';
 import { tickNpcs } from './npcs.js';
 import { archive, defaultOptions, log, type EngineOptions } from './engine.js';
 export function initialEvents(s: GameState, now: number) {
+  if (tileAt(s, { q: 7, r: -3 }).terrain === 'SCORCHED') return;
   const id = randomUUID();
   s.events[id] = {
     id,
@@ -108,27 +112,68 @@ export function tickWorld(
       s.archives[r.id] = archive(s, r, now);
     }
   }
+  tickStrategy(s, now, connected);
   new BotDirector(options).tick(s, now, humans);
   tickNpcs(s, now, connected);
   for (const p of Object.values(s.proposals))
     if (p.status === 'PENDING' && p.expiresAt <= now) p.status = 'EXPIRED';
   for (const c of Object.values(s.caravans)) {
+    if (c.delivery) {
+      const nextStep = Math.min(
+        c.path.length - 1,
+        Math.floor(((now - c.startedAt) / (c.arrivesAt - c.startedAt)) * c.path.length),
+      );
+      const currentStep = c.path.findIndex((p) => p.q === c.q && p.r === c.r);
+      const allowed = [
+        c.partnerId,
+        ...alliedRealmIds(s, c.ownerId),
+        ...alliedRealmIds(s, c.partnerId),
+      ];
+      const interrupted = c.path.slice(Math.max(0, currentStep), nextStep + 1).some((p) => {
+        const t = tileAt(s, p);
+        return (
+          !t.road || wallBlocks(s.buildings[t.buildingId ?? ''], c.ownerId, undefined, allowed)
+        );
+      });
+      if (interrupted) {
+        if (s.realms[c.ownerId]) transfer(s.realms[c.ownerId].wallet, c.cargo);
+        log(
+          s,
+          'Route interrompue : la caravane retourne sa cargaison à son expéditeur.',
+          'ECONOMY',
+          now,
+          [c.ownerId, c.partnerId],
+          c,
+        );
+        delete s.caravans[c.id];
+        continue;
+      }
+    }
     const step = Math.min(
       c.path.length - 1,
       Math.floor(((now - c.startedAt) / (c.arrivesAt - c.startedAt)) * c.path.length),
     );
-    Object.assign(c, c.path[Math.max(0, step)]);
+    const position = c.path[Math.max(0, step)];
+    c.q = position.q;
+    c.r = position.r;
     if (now >= c.arrivesAt) {
       const owner = s.realms[c.ownerId],
         partner = s.realms[c.partnerId];
       if (owner && !owner.defeatedAt && partner && !partner.defeatedAt) {
-        transfer(owner.wallet, c.cargo);
+        if (!c.delivery) transfer(owner.wallet, c.cargo);
         transfer(partner.wallet, c.cargo);
         owner.progression.commerce += c.cargo.GOLD;
         partner.progression.commerce += c.cargo.GOLD;
         log(
           s,
-          `Une caravane est arrivée : +${c.cargo.GOLD} or pour chaque partenaire.`,
+          c.delivery
+            ? `Livraison arrivée : ${Object.entries(c.cargo)
+                .filter(([, v]) => v > 0)
+                .map(
+                  ([k, v]) => `${formatNumber(v)} ${RESOURCE_NAMES[k as Resource].toLowerCase()}`,
+                )
+                .join(' · ')} pour ${partner.name}.`
+            : `Une caravane est arrivée : +${formatNumber(c.cargo.GOLD ?? 0)} or pour chaque partenaire.`,
           'ECONOMY',
           now,
           [owner.id, partner.id],
@@ -140,7 +185,7 @@ export function tickWorld(
   }
   if (humans > 0) {
     for (const t of Object.values(s.treaties).filter(
-      (t) => t.kind === 'TRADE' && t.endsAt > now && t.nextCaravanAt <= now,
+      (t) => t.kind === 'TRADE' && !t.physicalTrade && t.endsAt > now && t.nextCaravanAt <= now,
     )) {
       t.nextCaravanAt = now + 180_000;
       const a = s.realms[t.a],
@@ -183,23 +228,29 @@ export function tickWorld(
       if (realms.length) {
         const r = realms[Math.floor(hash(String(now)) * realms.length)],
           places = disk(r.capital, 12).filter(
-            (p) => distance(p, r.capital) > 6 && !tileAt(s, p).buildingId,
+            (p) =>
+              distance(p, r.capital) > 6 &&
+              !tileAt(s, p).buildingId &&
+              tileAt(s, p).terrain !== 'SCORCHED',
           ),
           p = places[Math.floor(hash(`${now}:p`) * places.length)],
           event = eventTypes[Math.floor(hash(`${now}:e`) * eventTypes.length)],
           id = randomUUID();
-        s.events[id] = {
-          ...event,
-          ...p,
-          id,
-          startsAt: now,
-          endsAt: now + 3_600_000,
-          global: event.kind !== 'PORTAL',
-        };
-        if (event.kind === 'COLOSSUS')
-          for (const near of disk(p, 1))
-            if (!tileAt(s, near).buildingId) writeTile(s, near, { terrain: 'CORRUPTION' });
-        log(s, event.title, 'WORLD', now, undefined, event.kind === 'PORTAL' ? p : undefined);
+        if (p) {
+          s.events[id] = {
+            ...event,
+            ...p,
+            id,
+            startsAt: now,
+            endsAt: now + 3_600_000,
+            global: event.kind !== 'PORTAL',
+          };
+          if (event.kind === 'COLOSSUS')
+            for (const near of disk(p, 1))
+              if (!tileAt(s, near).buildingId && tileAt(s, near).terrain !== 'SCORCHED')
+                writeTile(s, near, { terrain: 'CORRUPTION' });
+          log(s, event.title, 'WORLD', now, undefined, event.kind === 'PORTAL' ? p : undefined);
+        }
       }
       s.nextEventAt = now + 900_000 + hash(String(now)) * 600_000;
     }

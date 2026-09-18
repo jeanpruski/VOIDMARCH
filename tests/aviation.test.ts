@@ -75,7 +75,7 @@ describe('aviation et défense antiaérienne', () => {
     const moved = execute(s, 'a', order('MOVE', 'pilot', { path }), now);
     expect(moved.result.accepted, moved.result.reason).toBe(true);
     expect(moved.state.units.pilot.q).toBe(2);
-    expect(moved.state.realms.a.ap).toBe(29);
+    expect(moved.state.realms.a.ap).toBe(39);
     expect(execute(moved.state, 'a', order('CAPTURE', 'pilot'), now).result.accepted).toBe(false);
     for (const terrain of Object.keys(TERRAINS) as Terrain[])
       expect(movementCost({ q: 0, r: 0, terrain }, kind)).toBe(1);
@@ -133,7 +133,7 @@ describe('aviation et défense antiaérienne', () => {
     expect(attackBlockReason(s.units.pilot, s.units.target)).toBe('');
     const attacked = execute(s, 'a', order('ATTACK', 'pilot', { targetId: 'target' }), now);
     expect(attacked.result.accepted).toBe(true);
-    expect(attacked.state.realms.a.ap).toBe(28);
+    expect(attacked.state.realms.a.ap).toBe(38);
     s.units.pilot = unit('RIFLEMAN');
     s.units.target = unit('FIGHTER', 'target', 'b', 1);
     expect(

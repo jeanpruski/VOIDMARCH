@@ -70,13 +70,13 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
   await expect.poll(() => !!tileAt(state, first).road).toBe(true);
   await clickHex(bridge);
   await expect.poll(() => !!tileAt(state, bridge).road).toBe(true);
-  expect(state.realms[id].ap).toBe(28);
+  expect(state.realms[id].ap).toBe(38);
   expect(state.realms[id].wallet.WOOD).toBe(60);
   expect(state.realms[id].wallet.IRON).toBe(90);
   await expect(tool).toBeVisible();
   await clickHex(bridge);
   await expect(tool).toContainText('Une route est déjà en place');
-  expect(state.realms[id].ap).toBe(28);
+  expect(state.realms[id].ap).toBe(38);
   await tool.getByText('À quoi servent les routes ?', { exact: true }).click();
   await expect(tool).toContainText('sans limite de distance');
   await expect(tool).toContainText('Pour rejoindre la route ou la quitter');
@@ -88,7 +88,7 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
   await expect.poll(() => !!tileAt(state, first).road).toBe(false);
   await clickHex(bridge);
   await expect.poll(() => !!tileAt(state, bridge).road).toBe(false);
-  expect(state.realms[id].ap).toBe(26);
+  expect(state.realms[id].ap).toBe(36);
   expect(state.realms[id].wallet.WOOD).toBe(60);
   await page.keyboard.press('Escape');
   await expect(tool).toHaveCount(0);

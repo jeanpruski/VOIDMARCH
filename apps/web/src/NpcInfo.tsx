@@ -1,4 +1,4 @@
-import { NPCS } from '@voidmarch/config';
+import { NPCS, RULES } from '@voidmarch/config';
 import { resolveAttack, attackCost, attackStats, distance } from '@voidmarch/game-rules';
 import type { Unit } from '@voidmarch/shared';
 import { Cost, Duration } from './ui';
@@ -9,7 +9,10 @@ export function NpcInfo({ unit }: { unit: Unit }) {
   return (
     <div className="npc-info">
       <strong>
-        Rencontre neutre · {NPCS[unit.npc.kind].danger} · portée {NPCS[unit.npc.kind].range}
+        {unit.expedition
+          ? 'Expédition coopérative · Très dangereux'
+          : `Rencontre neutre · ${NPCS[unit.npc.kind].danger}`}{' '}
+        · portée {NPCS[unit.npc.kind].range}
       </strong>
       <p>
         Reste sur place. Riposte uniquement après une attaque, s’il survit et peut atteindre
@@ -18,7 +21,9 @@ export function NpcInfo({ unit }: { unit: Unit }) {
       <span>Butin total, partagé selon les dégâts infligés :</span>
       <Cost cost={unit.npc.reward} />
       {unit.npc.bonusAP > 0 && (
-        <span>Bonus : {unit.npc.bonusAP} PA à partager, sans dépasser 15 PA.</span>
+        <span>
+          Bonus : {unit.npc.bonusAP} PA à partager, sans dépasser {RULES.maxAP} PA.
+        </span>
       )}
       <small>
         Départ dans <Duration until={unit.npc.expiresAt} />. Sélectionnez une troupe puis « Attaquer

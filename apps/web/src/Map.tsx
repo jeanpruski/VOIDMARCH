@@ -1,3 +1,4 @@
+import { drawStrategicOperations, drawAmbient } from './strategy-art';
 import { buildingAtlas, buildingTextureKey, buildingEvolutionFrame } from './building-art';
 import { hasBuildingEvolutionArt, CITY_LEVELS } from '@voidmarch/config';
 import {
@@ -176,6 +177,7 @@ class WorldScene extends Phaser.Scene {
     // (their lowest depth is 5000, with a bounded Y offset of less than 158).
     this.territories = this.add.graphics().setName('territory-borders').setDepth(3000);
     this.banners = this.add.graphics().setDepth(13000);
+    this.ambient = this.add.graphics().setName('ambient-life').setDepth(9200);
     this.highlights = this.add.graphics().setName('hex-highlights').setDepth(3500);
     this.pendingMarker = this.add
       .graphics()
@@ -350,6 +352,10 @@ class WorldScene extends Phaser.Scene {
     this.renderMap();
     this.subscribeVisible();
   };
+  private ambient!: Phaser.GameObjects.Graphics;
+  private lastAmbientAt = 0;
+  private lastGateAt = 0;
+  private recoil = new Map<string, { at: number; x: number; y: number }>();
   private activeEffects = 0;
   private projectiles = new Map<string, () => void>();
   private playEffect(effect: WorldEffect) {
@@ -372,6 +378,30 @@ class WorldScene extends Phaser.Scene {
         ? 36
         : 20;
     to.y -= shot.targetAirborne ? 36 : 20;
+    if (!this.view?.player.settings.reducedMotion) {
+      const firing = this.view?.units.find((u) => key(u) === key(shot.from));
+      const len = Math.max(1, Math.hypot(to.x - from.x, to.y - from.y));
+      if (firing)
+        this.recoil.set(firing.id, {
+          at: Date.now(),
+          x: (-(to.x - from.x) / len) * 4,
+          y: (-(to.y - from.y) / len) * 4,
+        });
+      if (profile.kind === 'bullet' || profile.kind === 'shell') {
+        const casing = this.add.graphics({ x: from.x, y: from.y }).setDepth(14000);
+        casing.fillStyle(0xd8b87b, 0.9);
+        casing.fillRect(0, 0, 3, 1.5);
+        this.tweens.add({
+          targets: casing,
+          x: from.x + 10,
+          y: from.y + 9,
+          rotation: 2,
+          alpha: 0,
+          duration: 500,
+          onComplete: () => casing.destroy(),
+        });
+      }
+    }
     const id = effect.actionId ?? crypto.randomUUID();
     this.activeEffects++;
     const complete = () => {
@@ -400,7 +430,9 @@ class WorldScene extends Phaser.Scene {
     this.activeEffects++;
     const group = this.add.container(p.x, p.y).setDepth(14500).setName(`effect:${effect.kind}`);
     this.impactGroups.add(group);
-    const combat = effect.kind === 'combat',
+    const nuclear = effect.kind === 'nuclear';
+    if (nuclear) group.setScale(1.5 * ((effect.radius ?? 2) + 1));
+    const combat = effect.kind === 'combat' || nuclear,
       dust = effect.kind === 'build' || effect.kind === 'demolish';
     const ink =
       projectile?.color ??
@@ -483,8 +515,26 @@ class WorldScene extends Phaser.Scene {
     for (const { unit, parts } of this.unitVisuals.values()) {
       const p = this.visualPosition(unit, now);
       for (const part of parts) {
-        if (part.object.x === p.x + part.x && part.object.y === p.y + part.y) continue;
-        part.object.setPosition(p.x + part.x, p.y + part.y);
+        const state = useGame.getState(),
+          anim = state.movements[unit.id];
+        const kick = this.recoil.get(unit.id),
+          decay = kick ? Math.max(0, 1 - (now - kick.at) / 220) : 0;
+        if (kick && !decay) this.recoil.delete(unit.id);
+        const recoilX = part.object.name?.startsWith('unit-sprite:') ? (kick?.x ?? 0) * decay : 0,
+          recoilY = part.object.name?.startsWith('unit-sprite:') ? (kick?.y ?? 0) * decay : 0;
+        const bob =
+          anim &&
+          !state.world?.player.settings.reducedMotion &&
+          part.object.name?.startsWith('unit-sprite:') &&
+          !UNIT_PROFILES[unit.kind].mechanical
+            ? Math.sin(now / 100) * 1.4
+            : 0;
+        if (
+          part.object.x === p.x + part.x + recoilX &&
+          part.object.y === p.y + part.y + bob + recoilY
+        )
+          continue;
+        part.object.setPosition(p.x + part.x + recoilX, p.y + part.y + bob + recoilY);
         part.object.setDepth(depth(part.layer, p.y));
         if (useGame.getState().selection?.id === unit.id) selectedMoved = true;
       }
@@ -496,7 +546,10 @@ class WorldScene extends Phaser.Scene {
       return this.roadCache;
     const blocked = new Set(this.view?.units.filter((x) => x.id !== u.id).map(key));
     for (const tile of this.view?.tiles ?? [])
-      if (wallBlocks(tile.building, u.ownerId, u.kind)) blocked.add(key(tile));
+      if (
+        wallBlocks(tile.building, u.ownerId, u.kind, this.view?.strategy?.alliance?.members ?? [])
+      )
+        blocked.add(key(tile));
     this.roadCache = {
       world: this.view!,
       unitId: u.id,
@@ -514,7 +567,10 @@ class WorldScene extends Phaser.Scene {
     if (road?.length) return road;
     const blocked = new Set(this.view?.units.filter((x) => x.id !== u.id).map(key));
     for (const tile of this.view?.tiles ?? [])
-      if (wallBlocks(tile.building, u.ownerId, u.kind)) blocked.add(key(tile));
+      if (
+        wallBlocks(tile.building, u.ownerId, u.kind, this.view?.strategy?.alliance?.members ?? [])
+      )
+        blocked.add(key(tile));
     return findPath(
       u,
       p,
@@ -780,8 +836,10 @@ class WorldScene extends Phaser.Scene {
     }
     this.pieces = [];
     this.unitVisuals.clear();
+    this.ambient?.clear();
     if (this.strategic) {
       this.renderStrategicMap(world);
+      this.pieces.push(...drawStrategicOperations(this, world, true));
       this.highlight();
       return;
     }
@@ -871,10 +929,34 @@ class WorldScene extends Phaser.Scene {
         }
         continue;
       }
+      if (t.terrain === 'SCORCHED') {
+        // Irregular ash patches and broken seams, kept inside the hexagon.
+        for (let i = 0; i < 4; i++) {
+          const seed = key(t) + ':ash:' + i;
+          const x = p.x + (hash(seed + 'x') - 0.5) * 34;
+          const y = p.y + (hash(seed + 'y') - 0.5) * 18;
+          const patch = Array.from({ length: 7 }, (_, j) => {
+            const angle = (j * Math.PI * 2) / 7;
+            const radius = 9 + hash(seed + j) * 14;
+            return { x: x + Math.cos(angle) * radius, y: y + Math.sin(angle) * radius * 0.52 };
+          });
+          d.fillStyle(i % 2 ? 0x171513 : 0x4b3e34, explored ? 0.25 : 0.45);
+          d.fillPoints(patch, true);
+          const dx = 6 + hash(seed + 'dx') * 8;
+          const dy = (hash(seed + 'dy') - 0.5) * 9;
+          d.lineStyle(1, 0x0a0908, explored ? 0.35 : 0.65);
+          d.lineBetween(x - dx, y - dy, x, y);
+          d.lineBetween(x, y, x + dx * 0.7, y - dy + 3);
+          d.lineBetween(x, y, x - 3, y + 5);
+        }
+      }
       for (let i = 0; i < 7; i++) {
         const rx = (hash(`${key(t)}x${i}`) - 0.5) * 60,
           ry = (hash(`${key(t)}y${i}`) - 0.5) * 40;
-        d.fillStyle(n > 0.5 ? 0xabb495 : 0x19251c, explored ? 0.1 : 0.18);
+        d.fillStyle(
+          t.terrain === 'SCORCHED' ? 0x746b63 : n > 0.5 ? 0xabb495 : 0x19251c,
+          explored ? 0.1 : 0.18,
+        );
         d.fillEllipse(p.x + rx, p.y + ry, 2 + n * 4, 1.4);
       }
       if (t.terrain === 'RIVER') {
@@ -884,7 +966,12 @@ class WorldScene extends Phaser.Scene {
         for (let i = 0; i < 3; i++)
           d.lineBetween(p.x - 20 + i * 4, p.y - 7 + i * 7, p.x + 10 + i * 4, p.y - 7 + i * 7);
       }
-      if (!t.building && t.terrain !== 'ALIEN' && t.terrain !== 'RIVER') {
+      if (
+        !t.building &&
+        t.terrain !== 'ALIEN' &&
+        t.terrain !== 'RIVER' &&
+        t.terrain !== 'SCORCHED'
+      ) {
         const frame =
           t.terrain === 'FOREST'
             ? n > 0.5
@@ -1037,7 +1124,11 @@ class WorldScene extends Phaser.Scene {
             .setOrigin(0.5, 152 / 256)
             .setDepth(depth(5000, p.y))
             .setName(`wall:${b.id}`)
-            .setData('gate', t.road === true);
+            .setData('gate', t.road === true)
+            .setData(
+              'gate-info',
+              gateAxis === undefined ? undefined : { b, connections, gateAxis, texture },
+            );
           if (t.visibility === 'EXPLORED') sprite.setTint(0x777f75).setAlpha(0.7);
           this.pieces.push(sprite);
           if (t.visibility === 'VISIBLE')
@@ -1183,7 +1274,7 @@ class WorldScene extends Phaser.Scene {
           heroTexture ? undefined : miniatureFrame(unitFrame(u)),
         )
         .setDisplaySize(
-          UNIT_PROFILES[u.kind].siege ? 75 : 67,
+          u.expedition ? 95 : UNIT_PROFILES[u.kind].siege ? 75 : 67,
           UNIT_PROFILES[u.kind].siege ? 75 : 67,
         )
         .setDepth(depth(UNIT_PROFILES[u.kind].flying ? 8500 : 7000, p.y))
@@ -1260,7 +1351,7 @@ class WorldScene extends Phaser.Scene {
       if (!u.npc) drawBanner(u.ownerId, 20, -26, 1, banner);
       else {
         const tag = this.add
-          .text(p.x, p.y - 55, '◆ PNJ', {
+          .text(p.x, p.y - 55, u.expedition ? '◆ EXPÉDITION' : '◆ PNJ', {
             fontSize: '11px',
             fontStyle: 'bold',
             color: '#20190d',
@@ -1275,6 +1366,19 @@ class WorldScene extends Phaser.Scene {
       }
       this.pieces.push(banner);
       parts.push({ object: banner, x: 0, y: 0, layer: 13000 });
+      if (u.nickname && !u.hero) {
+        const tag = this.add
+          .text(p.x, p.y - 65, u.nickname, {
+            fontSize: '10px',
+            color: '#ede2be',
+            backgroundColor: '#17211be8',
+            padding: { x: 4, y: 3 },
+          })
+          .setOrigin(0.5)
+          .setDepth(13500);
+        this.pieces.push(tag);
+        parts.push({ object: tag, x: 0, y: -65, layer: 13500 });
+      }
       this.unitVisuals.set(u.id, { unit: u, parts });
     }
     for (const event of world.events) {
@@ -1314,6 +1418,7 @@ class WorldScene extends Phaser.Scene {
         .setDepth(depth(9500, p.y));
       this.pieces.push(label);
     }
+    this.pieces.push(...drawStrategicOperations(this, world, false));
     for (const caravan of showUnits ? world.caravans : []) {
       const p = hexToPixel(caravan),
         sprite = this.add
@@ -1519,7 +1624,52 @@ class WorldScene extends Phaser.Scene {
     this.pendingLabel.setPosition(p.x, p.y - (action.style === 'construction' ? 66 : 52));
     this.pendingLabel.setText(`${action.label}…`);
   }
+  private updateGates() {
+    const world = this.view;
+    if (!world) return;
+    const members = world.strategy?.alliance?.members ?? [];
+    for (const piece of this.pieces) {
+      const sprite = piece as Phaser.GameObjects.Image;
+      const gate = sprite.getData?.('gate-info');
+      if (!gate) continue;
+      const p = hexToPixel(gate.b);
+      const open = world.units.some(
+        (u) =>
+          (u.ownerId === gate.b.ownerId ||
+            (members.includes(u.ownerId) && members.includes(gate.b.ownerId))) &&
+          !UNIT_PROFILES[u.kind].flying &&
+          (() => {
+            const v = this.visualPosition(u);
+            return Math.hypot(v.x - p.x, v.y - p.y) < 68;
+          })(),
+      );
+      const texture = gate.texture + (open ? ':open' : '');
+      if (!this.textures.exists(texture))
+        this.textures.addCanvas(
+          texture,
+          wallCanvas(gate.b.kind, gate.connections, gate.b.turretLevel, gate.gateAxis, true),
+        );
+      if (sprite.texture.key !== texture) sprite.setTexture(texture);
+    }
+  }
   update(_time: number, delta: number) {
+    if (!this.strategic && this.view && _time - this.lastAmbientAt > 50) {
+      this.lastAmbientAt = _time;
+      const state = useGame.getState();
+      drawAmbient(
+        this.ambient,
+        this.view,
+        (u) => this.visualPosition(u),
+        _time,
+        new Set(Object.keys(state.movements)),
+        state.showUnits,
+        state.showBuildings,
+      );
+    }
+    if (!this.strategic && _time - this.lastGateAt > 100) {
+      this.lastGateAt = _time;
+      this.updateGates();
+    }
     if (!this.strategic) this.updateUnitVisuals();
     this.updatePendingSite();
     const c = this.cameras.main,

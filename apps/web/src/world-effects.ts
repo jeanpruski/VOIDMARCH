@@ -2,8 +2,9 @@ import type { CombatShot, Hex, WorldView } from '@voidmarch/shared';
 import { key } from '@voidmarch/game-rules';
 export type WorldEffect = Hex & {
   shot?: CombatShot;
+  radius?: number;
   actionId?: string;
-  kind: 'combat' | 'build' | 'demolish' | 'repair' | 'recruit' | 'rare';
+  kind: 'nuclear' | 'combat' | 'build' | 'demolish' | 'repair' | 'recruit' | 'rare';
 };
 /** Compare authoritative visible snapshots. Never replay effects on connection or reveal. */
 export function worldEffects(before: WorldView, after: WorldView): WorldEffect[] {
@@ -13,6 +14,13 @@ export function worldEffects(before: WorldView, after: WorldView): WorldEffect[]
   )
     return [];
   const result: WorldEffect[] = [];
+  for (const strike of after.strategy?.strikes ?? [])
+    if (
+      strike.resolvedAt &&
+      strike.resolvedAt >= before.serverTimestamp &&
+      !before.strategy?.strikes.some((x) => x.id === strike.id && x.resolvedAt)
+    )
+      result.push({ ...strike, kind: 'nuclear' });
   const oldTiles = new Map(before.tiles.map((t) => [key(t), t]));
   const newTiles = new Map(after.tiles.map((t) => [key(t), t]));
   const visible = (p: Hex) =>

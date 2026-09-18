@@ -114,8 +114,9 @@ export function wallCanvas(
   connections = 9,
   turretLevel?: TurretLevel,
   gateAxis?: number,
+  gateOpen = false,
 ): HTMLCanvasElement {
-  const id = `${kind}:${connections}:${turretLevel ?? 0}:${gateAxis ?? 'wall'}`;
+  const id = `${kind}:${connections}:${turretLevel ?? 0}:${gateAxis ?? 'wall'}:${gateOpen ? 'open' : 'closed'}`;
   const previous = cache.get(id);
   if (previous) return previous;
   const canvas = document.createElement('canvas');
@@ -357,7 +358,8 @@ export function wallCanvas(
     // Closed double leaves: wood with iron braces, iron grille in masonry,
     // or riveted armoured steel. Their appearance never changes collision rules.
     const front = ux >= 0 ? 1 : -1;
-    const door = (x: number, z: number) => point(x * 1.4, front * 6, z);
+    const door = (x: number, z: number) =>
+      point((gateOpen ? (x < 0 ? -9 : 9) + x * 0.1 : x) * 1.4, front * 6, z);
     poly(
       [door(-10, 1), door(10, 1), door(10, h - 5), door(-10, h - 5)],
       kind === 'WOOD_WALL' ? '#51402c' : '#1b2520',

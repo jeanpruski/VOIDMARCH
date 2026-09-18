@@ -127,16 +127,16 @@ describe('rencontres neutres', () => {
   it('partage au prorata, ignore les royaumes disparus et plafonne les PA sans réduire le bonus de départ', () => {
     const { s, r, npc } = fixture();
     s.realms.b = createRealm('b', 'Allié', 'ASH', { q: 50, r: 0 }, now);
-    r.ap = 14;
-    s.realms.b.ap = 30;
+    r.ap = 19;
+    s.realms.b.ap = 40;
     npc.npc!.reward = { GOLD: 101, IRON: 7 };
     npc.npc!.bonusAP = 2;
     npc.npc!.contributions = { a: 75, b: 25, deleted: 999 };
     const rewards = npcRewards(s, npc, now);
     expect(rewards.find((x) => x.realmId === 'a')!.resources).toEqual({ GOLD: 76, IRON: 5 });
     expect(rewards.find((x) => x.realmId === 'b')!.resources).toEqual({ GOLD: 25, IRON: 2 });
-    expect(r.ap).toBe(15);
-    expect(s.realms.b.ap).toBe(30);
+    expect(r.ap).toBe(20);
+    expect(s.realms.b.ap).toBe(40);
   });
   it('ne révèle pas les PNJ cachés et refuse un combat expiré ou sans PA', () => {
     const { s, r, npc } = fixture();

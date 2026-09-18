@@ -1,3 +1,5 @@
+import type { StrategyState, StrategyView } from './strategy';
+export * from './strategy';
 import type {
   Wallet,
   Faction,
@@ -45,6 +47,9 @@ export interface ViewTile extends Hex {
   capture?: Tile['capture'];
 }
 export interface Unit extends Hex {
+  victories?: number;
+  nickname?: string;
+  expedition?: { title: string };
   hero?: { appearance: HeroAppearance; name: string; xp: number };
   npc?: {
     kind: NpcKind;
@@ -138,8 +143,10 @@ export interface Treaty {
   payment: Wallet;
   proposalId: string;
   nextCaravanAt: number;
+  physicalTrade?: boolean;
 }
 export interface Caravan extends Hex {
+  delivery?: boolean;
   id: string;
   ownerId: string;
   partnerId: string;
@@ -197,6 +204,7 @@ export interface RealmArchive {
   tiles: Tile[];
 }
 export interface GameState {
+  strategy?: StrategyState;
   version: 1;
   balanceVersion?: number;
   seed: string;
@@ -250,6 +258,7 @@ export interface PlayerState extends Omit<
 }
 export type OverviewTile = Pick<ViewTile, 'q' | 'r' | 'terrain' | 'ownerId' | 'visibility'>;
 export interface WorldView {
+  strategy?: StrategyView;
   /** Secret radar only: never included in ordinary player views. */
   enemyCapitals?: { realmId: string; position: Hex }[];
   overview: OverviewTile[];

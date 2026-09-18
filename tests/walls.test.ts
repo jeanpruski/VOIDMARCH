@@ -69,7 +69,7 @@ describe('remparts en bois, pierre et acier', () => {
         [resource]: before[resource] - (resource === 'STONE' ? 98 : 225),
       });
     }
-    expect(s.realms.a.ap).toBe(25);
+    expect(s.realms.a.ap).toBe(35);
     expect(buildingUpgrade('STEEL_WALL', 1)?.kind).toBe('CONCRETE_WALL');
     expect(buildingUpgrade('ATOMIC_WALL', 1)).toBeNull();
     expect(execute(s, a.id, order('UPGRADE', id), now).result.accepted).toBe(false);

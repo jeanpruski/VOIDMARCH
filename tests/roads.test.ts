@@ -42,13 +42,13 @@ describe('routes et ponts', () => {
       };
       const built = execute(s, r.id, order('ROAD', p), now);
       expect(built.result.accepted).toBe(true);
-      expect(built.state.realms.p.ap).toBe(29);
+      expect(built.state.realms.p.ap).toBe(39);
       expect(built.state.realms.p.wallet.WOOD).toBe(100 - wood);
       expect(built.state.realms.p.wallet.IRON).toBe(100 - iron);
       expect(movementCost(tileAt(built.state, p))).toBe(1);
       const removed = execute(built.state, r.id, order('REMOVE_ROAD', p), now);
       expect(removed.result.accepted).toBe(true);
-      expect(removed.state.realms.p.ap).toBe(28);
+      expect(removed.state.realms.p.ap).toBe(38);
       expect(removed.state.realms.p.wallet).toEqual(built.state.realms.p.wallet);
       expect(tileAt(removed.state, p)).toMatchObject({
         terrain,

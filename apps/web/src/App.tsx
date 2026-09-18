@@ -1,3 +1,4 @@
+import { NuclearAlerts, NuclearControls, StrategyUnitControls } from './Strategy';
 import { buildingEra } from '@voidmarch/config';
 import { HeroControls } from './Hero';
 import { unitStats } from '@voidmarch/game-rules';
@@ -287,6 +288,7 @@ export function App() {
           <MapLegend />
           <Minimap />
           <CapitalRadar />
+          <NuclearAlerts />
           <SelectionPanel />
           <div className="coordinate-bar">
             <Map size={12} />
@@ -348,7 +350,7 @@ function Topbar() {
           return (
             <button
               key={r}
-              title={`${RESOURCE_NAMES[r]} : ${p.income[r].toFixed(1)}/min · Stockage ${p.capacity}`}
+              title={`${RESOURCE_NAMES[r]} : ${format(p.income[r])}/min · Stockage ${format(p.capacity)}`}
               onClick={() => useGame.setState({ panel: 'economy' })}
             >
               <Icon className={`resource-${r.toLowerCase()}`} size={21} strokeWidth={1.45} />
@@ -358,7 +360,7 @@ function Topbar() {
                   {RESOURCE_NAMES[r]}{' '}
                   <em>
                     {p.income[r] >= 0 ? '+' : ''}
-                    {p.income[r].toFixed(1)}/m
+                    {format(p.income[r])}/m
                   </em>
                 </small>
               </div>
@@ -676,7 +678,7 @@ function SelectionPanel() {
       </div>
     );
   const name = u
-      ? unitStats(u).name
+      ? (u.nickname ?? unitStats(u).name)
       : b
         ? b.kind === 'VILLAGE'
           ? CITY_LEVELS[b.level]
@@ -714,11 +716,11 @@ function SelectionPanel() {
           </span>
           <h2>{name}</h2>
           {u?.trainingBonus ? (
-            <span className="rare-tag">Entraînement · +{u.trainingBonus} %</span>
+            <span className="rare-tag">Entraînement · +{format(u.trainingBonus)} %</span>
           ) : null}
           {u?.rareBonus && (
             <span className="rare-tag" title="Bonus permanent aux PV, à l’attaque et à la défense">
-              ✦ Rare · +{u.rareBonus} %
+              ✦ Rare · +{format(u.rareBonus)} %
             </span>
           )}
           <span className="selection-owner">
@@ -737,18 +739,18 @@ function SelectionPanel() {
             <div>
               <span>VIE</span>
               <strong>
-                {u.hp}
-                <small>/{unitStats(u).hp}</small>
+                {format(u.hp)}
+                <small>/{format(unitStats(u).hp)}</small>
               </strong>
               <i style={{ width: `${(u.hp / unitStats(u).hp) * 100}%` }} />
             </div>
             <div>
               <span>ATTAQUE</span>
-              <strong>{unitStats(u).attack}</strong>
+              <strong>{format(unitStats(u).attack)}</strong>
             </div>
             <div>
               <span>DÉFENSE</span>
-              <strong>{unitStats(u).defense}</strong>
+              <strong>{format(unitStats(u).defense)}</strong>
             </div>
             <div>
               <span>MOUV.</span>
@@ -775,6 +777,7 @@ function SelectionPanel() {
             </ContextHelp>
           )}
           {own && u.kind === 'HERO' && <HeroControls inSelection />}
+          {own && <StrategyUnitControls key={u.id} unit={u} />}
           {own && tile?.capture?.by === w.player.id && (
             <p className="capture-progress">
               Capture en cours : {tile.capture.points} points. Répétez « Revendiquer la case »
@@ -987,7 +990,14 @@ function SelectionPanel() {
                     </button>
                   ))}
                 {w.caravans
-                  .filter((c) => c.ownerId !== w.player.id && distance(c, u) <= 1)
+                  .filter(
+                    (c) =>
+                      c.ownerId !== w.player.id &&
+                      c.partnerId !== w.player.id &&
+                      !w.strategy?.alliance?.members.includes(c.ownerId) &&
+                      !w.strategy?.alliance?.members.includes(c.partnerId) &&
+                      distance(c, u) <= 1,
+                  )
                   .map((c) => (
                     <button
                       className="secondary"
@@ -1014,12 +1024,12 @@ function SelectionPanel() {
           <div className="building-info">
             {b.turretLevel && (
               <span>
-                {turretStats(b)?.name} · niveau {b.turretLevel}/5 · ATQ {turretStats(b)?.attack} ·
-                portée {turretStats(b)?.range}
+                {turretStats(b)?.name} · niveau {b.turretLevel}/5 · ATQ{' '}
+                {format(turretStats(b)?.attack ?? 0)} · portée {turretStats(b)?.range}
               </span>
             )}
             <span>
-              {b.hp}/{BUILDINGS[b.kind].hp * b.level} PV
+              {format(b.hp)}/{format(BUILDINGS[b.kind].hp * b.level)} PV
             </span>
             <span>
               {isWall(b.kind)
@@ -1063,6 +1073,7 @@ function SelectionPanel() {
                 <UpgradeBuilding key={b.id} building={b} />
                 {isWall(b.kind) && <TurretControls key={`turret-${b.id}`} building={b} />}
                 <DemolishBuilding key={`demolish-${b.id}`} building={b} />
+                <NuclearControls key={`nuclear-${b.id}`} building={b} />
                 <RoadAction tile={tile} />
                 <button
                   className="secondary"

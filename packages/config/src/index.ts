@@ -1,3 +1,5 @@
+export * from './strategy';
+import { STRATEGY, hexArea } from './strategy';
 import { ERA_REINFORCEMENT_CATEGORIES } from './era-reinforcements';
 import { EPOCH_UNITS, EPOCH_PROFILES } from './epoch-units';
 import { GLOCKE_UNITS, GLOCKE_PROFILES } from './glocke';
@@ -17,15 +19,16 @@ export { RADIOACTIVE_UNITS } from './radioactive';
 export { NPCS, NPC_RULES, type NpcKind } from './npcs';
 export { BALANCE_VERSION, UNIT_TIERS, TIER_NAMES } from './progression';
 export * from './ages';
+export { formatNumber } from './format';
 export { UNIT_ERAS } from './epoch-units';
 export const GAME_NAME = 'VOIDMARCH';
 export * from './hero';
 export const RULES = {
-  maxAP: 15,
-  startingAP: 30,
+  maxAP: 20,
+  startingAP: 40,
   constructionRadius: 3,
   guestLifetime: 24 * 60 * 60 * 1000,
-  apInterval: 60_000,
+  apInterval: 30_000,
   grace: 180_000,
   protection: 600_000,
   defeatCooldown: 600_000,
@@ -40,6 +43,19 @@ export const RULES = {
   tradeDuration: 3_600_000,
 };
 export const ACTION_COST = {
+  ALLIANCE_CREATE: 0,
+  ALLIANCE_INVITE: 0,
+  ALLIANCE_RESPOND: 0,
+  ALLIANCE_LEAVE: 0,
+  ALLIANCE_CHAT: 0,
+  ALLIANCE_MARK: 0,
+  ALLIANCE_UNMARK: 0,
+  DECLARE_WAR: 0,
+  SETTLE_WAR: 0,
+  CLAIM_SITE: 1,
+  CLEANUP: 2,
+  LAUNCH_NUKE: 10,
+  RENAME_UNIT: 0,
   INSTALL_TURRET: 2,
   UPGRADE_TURRET: 2,
   MOVE: 1,
@@ -99,6 +115,7 @@ export const FACTIONS = {
 } as const;
 export type Faction = keyof typeof FACTIONS;
 export const TERRAINS = {
+  SCORCHED: { name: 'Terres brûlées', color: 0x292624, cost: 1, defense: 0, yield: null },
   PLAIN: { name: 'Plaine', color: 0x465140, cost: 1, defense: 0, yield: 'FOOD' },
   FOREST: { name: 'Forêt ancienne', color: 0x293e34, cost: 2, defense: 1, yield: 'WOOD' },
   HILL: {
@@ -1222,7 +1239,8 @@ export const EXTRACTOR_BUILDINGS: readonly BuildingKind[] = [
   'HUNTER',
 ];
 export function productionOnTerrain(kind: BuildingKind, terrain: Terrain): Partial<Wallet> {
-  return EXTRACTOR_BUILDINGS.includes(kind) && !BUILDINGS[kind].terrains.includes(terrain)
+  return terrain === 'SCORCHED' ||
+    (EXTRACTOR_BUILDINGS.includes(kind) && !BUILDINGS[kind].terrains.includes(terrain))
     ? {}
     : BUILDINGS[kind].production;
 }
@@ -1593,9 +1611,9 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   GLOCKE_COMPLEX:
     'Armes occultes de fin de progression : exige réacteur noir, fonderie atomique et observatoire noir. Recrute Die Glocke I au niveau 1, II au niveau 2, III au niveau 3. Entraînement +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5 pour les cloches existantes et futures. Aucun revenu ni tir automatique.',
   ISOTOPE_LAB:
-    'Recherche atomique : débloque le réacteur noir et l’héliport. Ne produit pas de ressources et ne forme pas de troupes directement.',
+    'Recherche atomique : débloque le réacteur noir et l’héliport. Ne produit pas de ressources et ne forme pas de troupes directement. Confine les réacteurs à trois cases : réduit les émissions de 2 points par niveau, suppression complète au niveau 3.',
   NUCLEAR_REACTOR:
-    'Débloque la division atomique et la garde à neutrons dans leurs bâtiments de formation. Produit 16 or/min ; production +60 / +140 / +260 / +420 % aux niveaux 2 / 3 / 4 / 5.',
+    'Débloque la division atomique et la garde à neutrons dans leurs bâtiments de formation. Produit 16 or/min ; production +60 / +140 / +260 / +420 % aux niveaux 2 / 3 / 4 / 5. Contamine sept cases alentour : un laboratoire isotopique peut confiner ses émissions. Au niveau 5, permet les frappes atomiques avec un silo de niveau 5.',
   HELIPAD:
     'Forme les 6 hélicoptères atomiques : reconnaissance, assaut, précision, interception et siège. Réacteur noir requis ; fonderie atomique pour les deux modèles ultimes. +25 / +60 / +100 / +160 % aux niveaux 2 / 3 / 4 / 5, pour les appareils existants et futurs.',
   ATOMIC_FOUNDRY:
@@ -1650,7 +1668,7 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   FIELD_HOSPITAL: 'Forme les guérisseuses et accélère la croissance de population.',
   GUN_BATTERY: 'Position défensive (+3) qui produit les canons de campagne.',
   OCCULT_LAB: 'Unit la forge et les savoirs interdits : chevaliers mécaniques et acolytes.',
-  ROCKET_SILO: 'Assemble les batteries de fusées à longue portée.',
+  ROCKET_SILO: `Assemble les batteries de fusées à longue portée. Au niveau 5, avec un réacteur de niveau 5 : frappe atomique de ${hexArea(STRATEGY.nuclearRadius)} cases, alerte 5 minutes avant impact. Terres brûlées sans ressources, à restaurer au terrassier avant construction. Coût : 10 PA et 1 000 000 de chaque ressource (or, bois, pierre, fer, vivres) ; recharge 6 heures.`,
   RAIL_DEPOT: 'Logistique industrielle : +1 500 de stockage et +5 or par minute.',
 
   CAMP: 'Premier paysan gratuit si vous n’en avez aucun. Produit or et vivres ; le bois se récolte en forêt.',
@@ -1731,6 +1749,7 @@ export type Settings = typeof DEFAULT_SETTINGS;
 
 /** Manual harvesting is separate from building production and always uses the occupied tile. */
 export const TERRAIN_RESOURCES: Record<Terrain, readonly Resource[]> = {
+  SCORCHED: [],
   PLAIN: ['FOOD'],
   FOREST: ['WOOD'],
   HILL: ['STONE', 'IRON'],

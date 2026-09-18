@@ -48,7 +48,7 @@ describe('liaisons routières sans limite de distance', () => {
     const result = execute(s, r.id, order('MOVE_ROAD', 'worker', destination), now);
     expect(result.result.accepted).toBe(true);
     expect(result.state.units.worker).toMatchObject(destination);
-    expect(result.state.realms.p.ap).toBe(29);
+    expect(result.state.realms.p.ap).toBe(39);
     expect(result.state.realms.p.wallet).toEqual(r.wallet);
     expect(result.result.message).toContain('80 cases');
     expect(result.result.movement?.from).toEqual({ q: 0, r: 0 });
@@ -146,7 +146,7 @@ describe('déplacement illimité sur terres et routes reliées', () => {
     expect(result.result.movement?.path).toHaveLength(80);
     expect(prediction.movement).toEqual(result.result.movement);
     expect(prediction.world.units).toEqual(worldView(result.state, r.id, now).units);
-    expect(result.state.realms.p.ap).toBe(29);
+    expect(result.state.realms.p.ap).toBe(39);
     expect(result.state.realms.p.wallet).toEqual(r.wallet);
   });
   it('enchaîne ses terres, une route neutre ou adverse, puis ses terres en un ordre', () => {
@@ -156,7 +156,7 @@ describe('déplacement illimité sur terres et routes reliées', () => {
     const result = execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now);
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.result.movement?.path).toHaveLength(80);
-    expect(result.state.realms.p.ap).toBe(29);
+    expect(result.state.realms.p.ap).toBe(39);
   });
   it.each(['neutral', 'enemy', 'unit', 'wall', 'terrain', 'ap'] as const)(
     'refuse le trajet coupé (%s) sans consommer de PA',
@@ -208,7 +208,7 @@ describe('chantiers routiers en terrain neutre', () => {
     expect(built.state.realms.p.wallet.WOOD).toBe(90);
     const removed = execute(built.state, r.id, order('REMOVE_ROAD', r.id, p), now);
     expect(removed.result.accepted).toBe(true);
-    expect(removed.state.realms.p.ap).toBe(28);
+    expect(removed.state.realms.p.ap).toBe(38);
     expect(removed.state.realms.p.wallet.WOOD).toBe(90);
     expect(tileAt(removed.state, p).roadOwnerId).toBeUndefined();
     expect(removed.state.units).toEqual(s.units);

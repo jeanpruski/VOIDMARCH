@@ -1,3 +1,4 @@
+import { formatNumber } from '@voidmarch/config';
 import { HeroPortrait } from './Hero';
 import { buildingAtlasUrl, buildingEvolutionFrame } from './building-art';
 import { hasBuildingEvolutionArt, type BuildingKind, type UnitKind } from '@voidmarch/config';
@@ -43,7 +44,7 @@ export const symbols: Record<string, LucideIcon> = {
   key: KeyRound,
   bell: Bell,
 };
-export const format = (n: number) => Math.floor(n).toLocaleString('fr-FR');
+export const format = formatNumber;
 export function Duration({ until }: { until: number }) {
   const now = useGame((s) => s.now),
     seconds = Math.max(0, Math.ceil((until - now) / 1000));
@@ -80,7 +81,7 @@ export function Cost({ cost, wallet }: { cost: Partial<Wallet>; wallet?: Wallet 
         const Icon = resourceIcons[r];
         const shortage = wallet ? Math.max(0, Math.ceil(cost[r]! - wallet[r])) : 0;
         const label = wallet
-          ? `${RESOURCE_NAMES[r]} : coût ${cost[r]}, stock ${format(wallet[r])}${shortage ? `, il manque ${shortage}` : ''}`
+          ? `${RESOURCE_NAMES[r]} : coût ${format(cost[r]!)}, stock ${format(wallet[r])}${shortage ? `, il manque ${format(shortage)}` : ''}`
           : RESOURCE_NAMES[r];
         return (
           <span

@@ -37,7 +37,7 @@ describe('démolition et remboursement', () => {
     const demolished = execute(built.state, r.id, order('DEMOLISH', b.id), now);
     expect(demolished.result.accepted).toBe(true);
     expect(demolished.state.realms[r.id].wallet).toEqual(r.wallet);
-    expect(demolished.state.realms[r.id].ap).toBe(28);
+    expect(demolished.state.realms[r.id].ap).toBe(38);
     expect(demolished.state.buildings[b.id]).toBeUndefined();
     expect(tileAt(demolished.state, b)).toMatchObject({
       ownerId: undefined,

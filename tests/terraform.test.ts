@@ -51,7 +51,7 @@ describe('terrassement', () => {
         roadOwnerId: 'p',
       });
       expect(tileAt(result.state, target).ownerId).toBeUndefined();
-      expect(result.state.realms.p.ap).toBe(28);
+      expect(result.state.realms.p.ap).toBe(38);
       expect(result.state.realms.p.wallet).toEqual({ ...r.wallet, WOOD: 180, IRON: 190 });
       expect(canGather(tileAt(result.state, target), r.id, 'STONE')).toBe(false);
       expect(canGather(tileAt(result.state, target), r.id, 'WOOD')).toBe(false);

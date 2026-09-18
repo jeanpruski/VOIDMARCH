@@ -48,6 +48,25 @@ export function removeGuestRealm(s: GameState, id: string) {
         transfer(s.realms[caravan.ownerId].wallet, caravan.cargo);
       delete s.caravans[key];
     }
+  if (s.strategy) {
+    for (const team of Object.values(s.strategy.alliances)) {
+      team.members = team.members.filter((x) => x !== id);
+      team.messages = team.messages.filter((x) => x.authorId !== id);
+      team.markers = team.markers.filter((x) => x.authorId !== id);
+      if (!team.members.length) delete s.strategy.alliances[team.id];
+      else if (team.leaderId === id) team.leaderId = team.members[0];
+    }
+    for (const [key, invite] of Object.entries(s.strategy.invitations))
+      if (invite.from === id || invite.to === id || !s.strategy.alliances[invite.allianceId])
+        delete s.strategy.invitations[key];
+    for (const [key, war] of Object.entries(s.strategy.wars))
+      if (war.from === id || war.to === id) delete s.strategy.wars[key];
+    for (const [key, strike] of Object.entries(s.strategy.strikes))
+      if (strike.ownerId === id) delete s.strategy.strikes[key];
+    for (const site of Object.values(s.strategy.sites))
+      if (site.ownerId === id) site.ownerId = undefined;
+    delete s.strategy.nuclearReadyAt[id];
+  }
   delete s.archives[id];
   delete s.realms[id];
   refreshEnclosures(s, Date.now());

@@ -1,3 +1,4 @@
+import { DiplomacyHub } from './Strategy';
 import { buildingEra, BUILDING_AGES, UNIT_ERAS } from '@voidmarch/config';
 import { HeroControls } from './Hero';
 import { buildingStage, compareBuildings, buildingsUnlockedBy } from './building-order';
@@ -125,7 +126,9 @@ export function Panels() {
       ) : panel === 'economy' ? (
         <Economy />
       ) : panel === 'trade' ? (
-        <Diplomacy />
+        <DiplomacyHub>
+          <Diplomacy />
+        </DiplomacyHub>
       ) : panel === 'journal' ? (
         <Journal />
       ) : panel === 'events' ? (
@@ -264,11 +267,11 @@ function ArmyPanel() {
               <div>
                 <strong>
                   {UNITS[u.kind].name}{' '}
-                  {u.rareBonus && <span className="rare-tag">✦ Rare +{u.rareBonus} %</span>}
+                  {u.rareBonus && <span className="rare-tag">✦ Rare +{format(u.rareBonus)} %</span>}
                 </strong>
                 <span>
-                  {u.hp}/{unitStats(u).hp} PV · Déplacement {UNITS[u.kind].move} · Vision{' '}
-                  {UNITS[u.kind].vision}
+                  {format(u.hp)}/{format(unitStats(u).hp)} PV · Déplacement {UNITS[u.kind].move} ·
+                  Vision {UNITS[u.kind].vision}
                 </span>
               </div>
               <ArrowUpRight size={16} />
@@ -309,7 +312,7 @@ function CitiesPanel() {
               </strong>
               <span>
                 {b.population ? `${format(b.population)} habitants · ` : ''}Niveau {b.level} ·{' '}
-                {b.hp} PV
+                {format(b.hp)} PV
               </span>
             </div>
             <ArrowUpRight size={16} />
@@ -339,7 +342,7 @@ function Economy() {
               <strong>{format(p.wallet[r])}</strong>
               <small className={p.income[r] >= 0 ? 'positive' : 'negative'}>
                 {p.income[r] >= 0 ? '+' : ''}
-                {p.income[r].toFixed(1)} / min
+                {format(p.income[r])} / min
               </small>
               <div className="thin-progress">
                 <i style={{ width: `${Math.min(100, (p.wallet[r] / p.capacity) * 100)}%` }} />
@@ -521,7 +524,7 @@ function Diplomacy() {
       <p className="panel-intro">
         {kind === 'TRIBUTE'
           ? 'Négociez le prix de la paix. Le paiement et la protection réciproque commencent uniquement à l’acceptation.'
-          : 'Échangez vos surplus contre des ressources manquantes, puis reliez vos marchés pour ouvrir une route commerciale.'}
+          : 'Reliez vos marchés par une route avant d’accepter. Les ressources sont débitées ensemble, puis livrées par deux caravanes (15 secondes par case). Une cargaison interceptée est perdue ; une route coupée renvoie la cargaison à son expéditeur.'}
       </p>
       <form onSubmit={propose} className="treaty-form">
         <div className="two-col">
@@ -935,6 +938,13 @@ function Build() {
         Une enceinte fermée revendique les cases neutres à l’intérieur ; un bâtisseur doit rester
         près de chaque chantier. Les routes peuvent traverser un domaine déjà bâti.
       </p>
+      {tile?.terrain === 'SCORCHED' && (
+        <p className="form-error">
+          Terres brûlées : aucune ressource ni construction, routes comprises. Un terrassier à une
+          case maximum peut restaurer une plaine pour 2 PA + 20 bois + 10 fer. La capitale peut être
+          restaurée sans la démolir.
+        </p>
+      )}
       {tile?.ownerId !== w.player.id && !frontier && (
         <p className="form-error">
           Choisissez vos terres, ou un chantier à 3 cases d’un bâtiment et à une case d’un
@@ -1058,8 +1068,9 @@ function Build() {
             (k) =>
               !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
           );
-          const reason =
-            !tile || (tile.ownerId !== w.player.id && !frontier)
+          const reason = w.strategy?.sites.some((site) => tile && key(site) === key(tile))
+            ? 'Site stratégique : construction interdite'
+            : !tile || (tile.ownerId !== w.player.id && !frontier)
               ? 'Sur votre territoire uniquement'
               : tile.enclosureOwnerId && !builder
                 ? 'Approchez un paysan ou un ingénieur à une case maximum'
@@ -1150,7 +1161,7 @@ function Build() {
                   <span key={r}>
                     {index > 0 && ' · '}
                     <strong className={resource === r ? 'production-match' : undefined}>
-                      +{production[r]} {RESOURCE_NAMES[r].toLowerCase()}
+                      +{format(production[r] ?? 0)} {RESOURCE_NAMES[r].toLowerCase()}
                     </strong>
                   </span>
                 ))}
@@ -1372,21 +1383,23 @@ function Recruit() {
                 {profile.radioactive && <span className="atomic-badge">☢ Division atomique</span>}
                 <p>{profile.role}</p>
                 {building && !profile.builder && (
-                  <p>Entraînement de votre royaume : +{training} % aux PV, attaque et défense.</p>
+                  <p>
+                    Entraînement de votre royaume : +{format(training)} % aux PV, attaque et
+                    défense.
+                  </p>
                 )}
                 <p>
                   {unitPopulation(kind)} places · Entretien / min :{' '}
                   {RESOURCES.filter((resource) => unitUpkeep(kind)[resource] > 0)
                     .map(
                       (resource) =>
-                        `${unitUpkeep(kind)[resource].toFixed(2)} ${RESOURCE_NAMES[resource].toLowerCase()}`,
+                        `${format(unitUpkeep(kind)[resource])} ${RESOURCE_NAMES[resource].toLowerCase()}`,
                     )
                     .join(' · ')}
                 </p>
                 <p>
-                  {trainedStats.hp.toLocaleString('fr-FR')} PV · ATQ{' '}
-                  {trainedStats.attack.toLocaleString('fr-FR')} · DÉF{' '}
-                  {trainedStats.defense.toLocaleString('fr-FR')}
+                  {format(trainedStats.hp)} PV · ATQ {format(trainedStats.attack)} · DÉF{' '}
+                  {format(trainedStats.defense)}
                   <br />
                   MOUV {u.move} · VISION {u.vision} · PORTÉE {u.range}
                 </p>
@@ -1472,6 +1485,9 @@ function Combat() {
     ap = attackCost(attacker),
     reason =
       resolution.reason ||
+      (w.strategy?.alliance?.members.some((id) => opponents.some((r) => r.id === id))
+        ? 'Votre alliance interdit cette attaque.'
+        : undefined) ||
       (truce
         ? 'Une trêve interdit cette attaque.'
         : opponents.some((r) => r.protectedUntil > now)
@@ -1494,7 +1510,7 @@ function Combat() {
             gate={'population' in attacker && !!w.tiles.find((t) => key(t) === key(attacker))?.road}
           />
           <strong>{attackStats(attacker).name}</strong>
-          <span>{attacker.hp} PV</span>
+          <span>{format(attacker.hp)} PV</span>
         </div>
         <Swords size={30} />
         <div>
@@ -1510,7 +1526,7 @@ function Combat() {
             {'population' in target ? BUILDINGS[target.kind].name : unitStats(target).name}
           </strong>
           <span>
-            {target.hp} PV · {'npc' in target && target.npc ? 'PNJ neutre' : enemy?.name}
+            {format(target.hp)} PV · {'npc' in target && target.npc ? 'PNJ neutre' : enemy?.name}
           </span>
         </div>
       </div>
@@ -1534,7 +1550,7 @@ function Combat() {
       <div className="damage-estimate">
         <span>DÉGÂTS ESTIMÉS</span>
         <strong>
-          {estimate.min}–{estimate.max}
+          {format(estimate.min)}–{format(estimate.max)}
         </strong>
         <small>
           {TERRAINS[terrain].name} · Défense du terrain : +{targetTerrainDefense(target, terrain)}
@@ -1563,7 +1579,7 @@ function Combat() {
                 },
                 w.units,
               );
-              return `S’il survit : riposte estimée de ${retaliation.min} à ${retaliation.max} dégâts${reply.intercepted ? ' sur le rempart qui vous protège' : ''}.`;
+              return `S’il survit : riposte estimée de ${format(retaliation.min)} à ${format(retaliation.max)} dégâts${reply.intercepted ? ' sur le rempart qui vous protège' : ''}.`;
             })()}
           </p>
         </>
@@ -1857,11 +1873,13 @@ function Help() {
         <li>
           <ScrollText size={22} />
           <div>
-            <strong>Chaque minute, une décision</strong>
+            <strong>Vos points d’action</strong>
             <p>
-              Vous commencez avec 30 PA. Le bonus au-dessus de 15 se dépense sans se régénérer ;
-              ensuite vous gagnez 1 PA par minute, jusqu’à 15. Le commerce et les négociations n’en
-              consomment pas. Glissez la carte, utilisez la molette ou les boutons de zoom.
+              Vous commencez avec {RULES.startingAP} PA. Le bonus au-dessus de {RULES.maxAP} se
+              dépense sans se régénérer ; ensuite vous gagnez 1 PA toutes les{' '}
+              {RULES.apInterval / 1000} secondes, jusqu’à {RULES.maxAP}. Le commerce et les
+              négociations n’en consomment pas. Glissez la carte, utilisez la molette ou les boutons
+              de zoom.
             </p>
           </div>
         </li>

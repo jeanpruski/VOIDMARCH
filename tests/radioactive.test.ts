@@ -104,7 +104,7 @@ describe('division atomique', () => {
       expect(fresh.kind).toBe(kind);
       expect(fresh.rareBonus).toBe(20);
       expect(fresh.hp).toBe(unitStats(fresh).hp);
-      expect(recruited.state.realms.p.ap).toBe(29);
+      expect(recruited.state.realms.p.ap).toBe(39);
       expect(recruited.state.realms.p.wallet.GOLD).toBe(r.wallet.GOLD - UNITS[kind].cost.GOLD);
       fresh.hp /= 2;
       const upgraded = execute(recruited.state, r.id, order('UPGRADE', recruiter.id), now);

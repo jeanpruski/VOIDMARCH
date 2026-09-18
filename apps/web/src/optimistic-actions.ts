@@ -70,7 +70,9 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
     case 'MOVE_ROAD': {
       if (!unit) return;
       const blocked = new Set(world.units.filter((u) => u.id !== unit.id).map(key));
-      for (const t of world.tiles) if (wallBlocks(t.building, id, unit.kind)) blocked.add(key(t));
+      for (const t of world.tiles)
+        if (wallBlocks(t.building, id, unit.kind, world.strategy?.alliance?.members ?? []))
+          blocked.add(key(t));
       const path =
         action.type === 'MOVE'
           ? action.payload.path
@@ -190,7 +192,14 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       const t = tiles.get(key(action.payload));
       if (!t?.terrain || t.visibility !== 'VISIBLE') return;
       if (action.type === 'TERRAFORM') {
-        if (!unit || terraformSiteReason(t, id, unit, world.units) || !pay(TERRAFORM_COST)) return;
+        if (
+          !unit ||
+          terraformSiteReason(t, id, unit, world.units, world.player.capital) ||
+          !pay(TERRAFORM_COST)
+        )
+          return;
+        if (t.terrain === 'SCORCHED' && world.strategy)
+          world.strategy.fallout = world.strategy.fallout.filter((f) => key(f) !== key(t));
         t.terrain = 'PLAIN';
         if (t.poi) t.exhausted = true;
         t.poi = undefined;
@@ -343,7 +352,12 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       break;
     }
     case 'ABILITY': {
-      if (!unit || action.payload.ability === 'SURVEY' || action.payload.ability.startsWith('HERO_')) return;
+      if (
+        !unit ||
+        action.payload.ability === 'SURVEY' ||
+        action.payload.ability.startsWith('HERO_')
+      )
+        return;
       if (action.payload.ability === 'RESTORE') {
         const targets = buildings.filter(
           (b) => distance(b, unit) <= 1 && b.hp < BUILDINGS[b.kind].hp * b.level,

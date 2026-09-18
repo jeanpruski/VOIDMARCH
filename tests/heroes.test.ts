@@ -74,7 +74,7 @@ describe('héros permanent et apparence', () => {
     });
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.state.realms.a.wallet).toEqual(zeroWallet());
-    expect(result.state.realms.a.ap).toBe(29);
+    expect(result.state.realms.a.ap).toBe(39);
   });
   it('attend une case libre dans les quatre hexagones plutôt que de naître plus loin', () => {
     const { s, r, u } = fixture();
@@ -109,7 +109,7 @@ describe('héros permanent et apparence', () => {
     ]) {
       const result = execute(s, 'a', action, now);
       expect(result.result.accepted).toBe(false);
-      expect(result.state.realms.a.ap).toBe(30);
+      expect(result.state.realms.a.ap).toBe(40);
     }
   });
   it('met hors combat, libère la case et revient avec la même apparence après cinq minutes', () => {
@@ -171,7 +171,7 @@ describe('pouvoirs et aura', () => {
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.state.units.soldier.hp).toBe(16);
     expect(result.state.units.tank.hp).toBe(10);
-    expect(result.state.realms.a.ap).toBe(28);
+    expect(result.state.realms.a.ap).toBe(38);
     expect(result.state.realms.a.hero!.xp).toBe(2);
     const repeated = execute(
       result.state,
@@ -180,7 +180,7 @@ describe('pouvoirs et aura', () => {
       now + 1,
     );
     expect(repeated.result.accepted).toBe(false);
-    expect(repeated.state.realms.a.ap).toBe(28);
+    expect(repeated.state.realms.a.ap).toBe(38);
     expect(predictAction(worldView(s, 'a', now), action)).toBeUndefined();
   });
   it('répare les bâtiments avec des matériaux et refuse les pouvoirs inutiles', () => {
@@ -195,7 +195,7 @@ describe('pouvoirs et aura', () => {
     expect(result.state.realms.a.wallet.IRON).toBe(0);
     const invalid = execute(s, 'a', command('ABILITY', u.id, { ability: 'HERO_MEND' }), now);
     expect(invalid.result.accepted).toBe(false);
-    expect(invalid.state.realms.a.ap).toBe(30);
+    expect(invalid.state.realms.a.ap).toBe(40);
   });
   it('réserve les pouvoirs au héros et plafonne son expérience', () => {
     const { s, r, u } = fixture();

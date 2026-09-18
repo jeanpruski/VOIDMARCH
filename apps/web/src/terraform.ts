@@ -5,7 +5,13 @@ import type { Unit, ViewTile, WorldView } from '@voidmarch/shared';
 export function terraformOrderReason(world: WorldView, tile?: ViewTile, unit?: Unit) {
   if (!unit) return 'Sélectionnez votre terrassier arcanique.';
   if (!tile || tile.visibility !== 'VISIBLE') return 'Choisissez un terrain visible.';
-  const reason = terraformSiteReason(tile, world.player.id, unit, world.units);
+  const reason = terraformSiteReason(
+    tile,
+    world.player.id,
+    unit,
+    world.units,
+    world.player.capital,
+  );
   if (reason) return reason;
   if (!world.player.unlimitedAP && world.player.ap < ACTION_COST.TERRAFORM)
     return '2 PA nécessaires.';

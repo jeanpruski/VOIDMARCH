@@ -63,13 +63,13 @@ describe('économie v0.5 : dépenses et accès au très haut niveau', () => {
       const result = execute(state, realm.id, command, now);
       expect(result.result.accepted, result.result.reason).toBe(true);
       expect(result.state.realms.p.wallet).toEqual(zeroWallet());
-      expect(result.state.realms.p.ap).toBe(28);
+      expect(result.state.realms.p.ap).toBe(38);
       expect(result.state.buildings[building.id]).toMatchObject({
         kind: quote.kind,
         level: quote.level,
       });
       expect(predicted!.world.player.wallet).toEqual(result.state.realms.p.wallet);
-      expect(predicted!.world.player.ap).toBe(28);
+      expect(predicted!.world.player.ap).toBe(38);
       expect(state).toEqual(before);
     },
   );

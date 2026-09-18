@@ -1,3 +1,4 @@
+import { format } from './ui';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Crosshair, Hammer } from 'lucide-react';
@@ -67,15 +68,15 @@ export function TurretControls({ building: b }: { building: Building }) {
               </p>
               <ul>
                 <li>
-                  Attaque : {current ? `${current.attack} → ` : ''}
-                  {upgrade.attack}.
+                  Attaque : {current ? `${format(current.attack)} → ` : ''}
+                  {format(upgrade.attack)}.
                 </li>
                 <li>
                   Portée : {current ? `${current.range} → ` : ''}
                   {upgrade.range} cases, dans votre champ de vision.
                 </li>
                 {upgrade.antiAir > 0 && (
-                  <li>Bonus contre les aéronefs : +{upgrade.antiAir} dégâts.</li>
+                  <li>Bonus contre les aéronefs : +{format(upgrade.antiAir)} dégâts.</li>
                 )}
               </ul>
               <p>

@@ -4,6 +4,19 @@ import type { Hex, WorldView } from '@voidmarch/shared';
 import type { Prediction } from './optimistic-actions';
 
 const labels: Record<Action['type'], string> = {
+  ALLIANCE_CREATE: 'Création de l’alliance',
+  ALLIANCE_INVITE: 'Envoi de l’invitation',
+  ALLIANCE_RESPOND: 'Réponse à l’alliance',
+  ALLIANCE_LEAVE: 'Départ de l’alliance',
+  ALLIANCE_CHAT: 'Envoi du message',
+  ALLIANCE_MARK: 'Partage du signal',
+  ALLIANCE_UNMARK: 'Retrait du signal',
+  DECLARE_WAR: 'Déclaration de guerre',
+  SETTLE_WAR: 'Versement du tribut',
+  CLAIM_SITE: 'Prise du site',
+  CLEANUP: 'Décontamination',
+  LAUNCH_NUKE: 'Lancement atomique',
+  RENAME_UNIT: 'Renommage',
   BUILD: 'Construction en cours',
   RECRUIT: 'Formation en cours',
   ROAD: 'Route en travaux',
