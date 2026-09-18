@@ -7,12 +7,14 @@ import {
   createState,
   demolitionRefund,
   income,
+  key,
+  observe,
   realmBuildings,
   storage,
   tileAt,
   writeTile,
 } from '@voidmarch/game-rules';
-import { addBuilding, addPlayer, execute } from '../apps/server/src/engine';
+import { addBuilding, addPlayer, execute, worldView } from '../apps/server/src/engine';
 
 const now = 1_900_000_000_000;
 const order = (type: Action['type'], actorId: string, payload = {}): Action =>
@@ -25,7 +27,7 @@ function fixture() {
   return { s, r };
 }
 describe('démolition et remboursement', () => {
-  it('rembourse exactement le prix payé après réduction, même endommagé, et conserve terrain et route', () => {
+  it('rembourse exactement le prix payé, libère la case et conserve le terrain et la route', () => {
     const { s, r } = fixture();
     const built = execute(s, r.id, order('BUILD', r.id, { q: 1, r: 0, kind: 'HOUSE' }), now);
     expect(built.result.accepted).toBe(true);
@@ -37,12 +39,30 @@ describe('démolition et remboursement', () => {
     expect(demolished.state.realms[r.id].wallet).toEqual(r.wallet);
     expect(demolished.state.realms[r.id].ap).toBe(28);
     expect(demolished.state.buildings[b.id]).toBeUndefined();
-    expect(tileAt(demolished.state, b)).toMatchObject({ ownerId: r.id, road: true });
+    expect(tileAt(demolished.state, b)).toMatchObject({
+      ownerId: undefined,
+      terrain: 'PLAIN',
+      road: true,
+    });
     expect(tileAt(demolished.state, b).buildingId).toBeUndefined();
     expect(demolished.result.message).toContain('+18 bois');
     const duplicate = execute(demolished.state, r.id, order('DEMOLISH', b.id), now);
     expect(duplicate.result.accepted).toBe(false);
     expect(duplicate.state).toEqual(demolished.state);
+  });
+  it('retire aussi le bâtiment et sa couleur du souvenir quand la démolition fait perdre la visibilité', () => {
+    const { s, r } = fixture();
+    const p = { q: r.capital.q + 30, r: r.capital.r };
+    const b = addBuilding(s, r, p, 'HOUSE', now);
+    observe(s, r, now);
+    expect(r.explored[key(p)].building?.id).toBe(b.id);
+    const result = execute(s, r.id, order('DEMOLISH', b.id), now);
+    expect(result.result.accepted).toBe(true);
+    const memory = result.state.realms[r.id].explored[key(p)];
+    expect(memory.ownerId).toBeUndefined();
+    expect(memory.building).toBeUndefined();
+    const view = worldView(result.state, r.id, now);
+    expect(view.overview.find((t) => key(t) === key(p))?.ownerId).toBeUndefined();
   });
   it('exclut les améliorations même lorsque le camp devient un avant-poste', () => {
     const { s, r } = fixture();

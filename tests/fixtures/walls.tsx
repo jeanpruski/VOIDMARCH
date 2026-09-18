@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { WALL_KINDS, BUILDINGS, type TurretLevel } from '@voidmarch/config';
-import { wallImageUrl, loadWallMaterials } from '../../apps/web/src/wall-art';
+import { wallImageUrl, wallGateAxis, loadWallMaterials } from '../../apps/web/src/wall-art';
 import { roadCanvas } from '../../apps/web/src/road-art';
 import '../../apps/web/src/style.css';
 
@@ -14,13 +14,13 @@ createRoot(document.getElementById('root')!).render(
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
         {WALL_KINDS.flatMap((kind, tier) =>
           [false, true].flatMap((armed) =>
-            [0, 1, 2].map((axis) => {
-              const mask = (1 << axis) | (1 << (axis + 3));
-              const roadAxis = (axis + 1) % 3;
+            [9, 18, 36, 3, 6, 12, 24, 48, 33, 5, 10, 20, 40, 17, 34].map((mask, i) => {
+              const roadAxis = (i + 1) % 3;
               const roadMask = (1 << roadAxis) | (1 << (roadAxis + 3));
+              const axis = wallGateAxis(mask, roadMask);
               return (
                 <figure
-                  key={`${kind}:${armed}:${axis}`}
+                  key={`${kind}:${armed}:${mask}`}
                   style={{ margin: 0, background: '#56644a' }}
                 >
                   <div style={{ position: 'relative', height: 160 }}>
@@ -50,7 +50,7 @@ createRoot(document.getElementById('root')!).render(
                     />
                   </div>
                   <figcaption style={{ fontSize: 11 }}>
-                    {kind} · axe {axis}
+                    {kind} · raccord {mask} · axe {axis}
                     {armed ? ' · tourelle' : ''}
                   </figcaption>
                 </figure>

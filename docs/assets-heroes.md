@@ -1,5 +1,11 @@
 # Figurines modulaires des héros
 
+## Proportions — version 3
+
+Le bas du corps complet (bassin, cuisses, jambes et pieds) passe de 112 à 143 pixels de hauteur, soit +28 %. Les pièces de robes et jupes longues suivent la même correction. Le torse passe de 120 × 104 à 108 × 92 pixels et la tête de 54 × 55 à 49 × 50 pixels ; les raccords du cou et de la taille sont ajustés ensemble. Les pieds restent à la même hauteur sur le socle peint. La silhouette conserve son cadre de 256 × 256 pixels et ses dimensions d’affichage sur la carte.
+
+Cette composition est commune aux héros existants, au créateur et aux portraits. Les quinze variantes, les choix et les couleurs restent identiques. La clé de texture utilise `proportions-v3`. Les deux styles signalés (uniforme de tranchée et tenue longue d’officier), ainsi que les quinze ensembles, ont été comparés visuellement avant/après.
+
 ## Proportions — version 2
 
 Le rendu commun à la carte, au portrait et au créateur allonge le bas du corps de 96 à 112 pixels et remonte le torse. Les jambes visibles sous la tenue passent de 57 à 73 pixels environ, sans déplacer les pieds sur le socle. Les quinze variantes utilisent ces mêmes ancrages ; les planches, couleurs et choix des joueurs sont conservés. La clé des textures inclut cette version pour éviter de réutiliser une ancienne composition.

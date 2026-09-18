@@ -117,7 +117,7 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 | --- | --- | --- | --- | --- | --- | --- |
 | Scierie à vapeur | 130 | 480 or, 320 bois, 160 pierre, 140 fer | 16 bois | 38.4 bois | FOREST | Scierie, Atelier |
 | Carrière mécanisée | 160 | 560 or, 360 bois, 200 pierre, 180 fer | 12 pierre | 28.8 pierre | HILL, MOUNTAIN | Carrière de pierre, Atelier |
-| Mine industrielle | 150 | 640 or, 360 bois, 280 pierre, 200 fer | 10 fer | 24 fer | HILL | Mine, Forge |
+| Mine industrielle | 150 | 640 or, 360 bois, 280 pierre, 200 fer | 10 fer | 24 fer | HILL | Mine de fer, Forge |
 | Scierie des ombres | 240 | 2940 or, 1260 bois, 840 pierre, 980 fer | 28 bois | 67.2 bois | FOREST | Scierie à vapeur, Laboratoire des cendres |
 | Carrière runique | 280 | 3220 or, 1260 bois, 1120 pierre, 1120 fer | 21 pierre | 50.4 pierre | HILL, MOUNTAIN | Carrière mécanisée, Laboratoire des cendres |
 | Mine des abysses | 260 | 3500 or, 1260 bois, 1400 pierre, 1260 fer | 18 fer | 43.2 fer | HILL | Mine industrielle, Laboratoire des cendres |
@@ -166,7 +166,8 @@ Les tests vérifient les sources de ressources, les refus serveur, le départ à
 | Village | 105 | 105 or, 90 bois, 38 pierre, 23 fer, 45 vivres | 6 or, 6 vivres | 18 or, 18 vivres | PLAIN, HILL, FOREST, RUINS | — |
 | Ferme | 40 | 20 or, 25 bois | 8 vivres | 19.2 vivres | PLAIN | — |
 | Scierie | 50 | 15 or, 25 bois | 8 bois | 19.2 bois | FOREST | — |
-| Mine | 65 | 30 or, 35 bois, 10 pierre | 5 fer | 12 fer | HILL | — |
+| Mine de fer | 65 | 30 or, 35 bois, 10 pierre | 5 fer | 12 fer | HILL | — |
+| Mine d’or | 120 | 400 or, 300 bois, 225 pierre, 150 fer | 12 or | 28.8 or | HILL, MOUNTAIN | Mine de fer, Atelier |
 | Marché | 75 | 90 or, 60 bois, 23 fer, 23 vivres | 8 or | 19.2 or | PLAIN, HILL, RUINS | — |
 | Entrepôt | 90 | 60 or, 75 bois, 30 pierre, 23 fer | — | — | PLAIN, HILL, FOREST, RUINS | — |
 | Atelier | 90 | 188 or, 125 bois, 50 pierre, 75 fer | 2 or | 4.8 or | PLAIN, HILL, RUINS | — |
@@ -276,8 +277,10 @@ Chaque ligne est un paiement supplémentaire réel, en plus de 2 PA. Les habitan
 | Ferme · 2 | Ferme · niveau 3 | 100 or, 125 bois | 0 par ressource |
 | Scierie · 1 | Scierie · niveau 2 | 38 or, 63 bois | 0 par ressource |
 | Scierie · 2 | Scierie · niveau 3 | 75 or, 125 bois | 0 par ressource |
-| Mine · 1 | Mine · niveau 2 | 75 or, 88 bois, 25 pierre | 0 par ressource |
-| Mine · 2 | Mine · niveau 3 | 150 or, 175 bois, 50 pierre | 0 par ressource |
+| Mine de fer · 1 | Mine de fer · niveau 2 | 75 or, 88 bois, 25 pierre | 0 par ressource |
+| Mine de fer · 2 | Mine de fer · niveau 3 | 150 or, 175 bois, 50 pierre | 0 par ressource |
+| Mine d’or · 1 | Mine d’or · niveau 2 | 1000 or, 750 bois, 563 pierre, 375 fer | 0 par ressource |
+| Mine d’or · 2 | Mine d’or · niveau 3 | 2000 or, 1500 bois, 1125 pierre, 750 fer | 0 par ressource |
 | Marché · 1 | Marché · niveau 2 | 225 or, 150 bois, 58 fer, 58 vivres | 0 par ressource |
 | Marché · 2 | Marché · niveau 3 | 450 or, 300 bois, 115 fer, 115 vivres | 0 par ressource |
 | Entrepôt · 1 | Entrepôt · niveau 2 | 150 or, 188 bois, 75 pierre, 58 fer | 4000 par ressource |

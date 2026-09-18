@@ -12,7 +12,7 @@ test('les trois matériaux couvrent les 64 raccords sans dépasser de leur image
     }),
   );
   await page.goto('/wall-review');
-  await expect(page.getByRole('img')).toHaveCount(75);
+  await expect(page.getByRole('img')).toHaveCount(147);
   await page.screenshot({ path: 'test-results/walls-orientations.png', fullPage: true });
   const results = await page.evaluate(async () => {
     // @ts-expect-error Vite serves this source module directly in the browser.

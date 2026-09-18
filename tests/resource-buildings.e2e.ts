@@ -15,13 +15,15 @@ import {
 } from '../apps/server/src/engine';
 import { actionSchema } from '@voidmarch/protocol';
 
-test('six producteurs : filtres, sprites et construction', async ({ page }) => {
+test('producteurs et mine d’or : filtres, sprites et construction', async ({ page }) => {
   const now = Date.now();
   let state = createState('resource-browser', now);
   const id = 'pilot';
   const realm = addPlayer(state, id, 'Bâtisseurs', 'ASH', now);
   realm.wallet = { GOLD: 30000, WOOD: 30000, STONE: 30000, IRON: 30000, FOOD: 30000 };
-  const kinds = Object.keys(RESOURCE_BUILDINGS) as (keyof typeof RESOURCE_BUILDINGS)[];
+  const kinds = [...Object.keys(RESOURCE_BUILDINGS), 'GOLD_MINE'] as (
+    keyof typeof RESOURCE_BUILDINGS | 'GOLD_MINE'
+  )[];
   const requirements = [...new Set(kinds.flatMap((k) => BUILDING_REQUIREMENTS[k] ?? []))];
   const positions = disk(realm.capital, 3).filter(
     (p) => p.q !== realm.capital.q || p.r !== realm.capital.r,
@@ -75,10 +77,15 @@ test('six producteurs : filtres, sprites et construction', async ({ page }) => {
     }, targets[i]);
     const group = page.getByRole('group', { name: 'Filtrer les bâtiments par ressource produite' });
     await group
-      .getByRole('button', { name: new RegExp('^' + ['Bois', 'Pierre', 'Fer'][i % 3] + '\\s*3$') })
+      .getByRole('button', {
+        name:
+          kind === 'GOLD_MINE'
+            ? /^Or\s+\d+$/
+            : new RegExp('^' + ['Bois', 'Pierre', 'Fer'][i % 3] + '\\s*3$'),
+      })
       .click();
     const dialog = page.getByRole('dialog');
-    await expect(dialog.locator('article')).toHaveCount(3);
+    if (kind !== 'GOLD_MINE') await expect(dialog.locator('article')).toHaveCount(3);
     const card = dialog
       .locator('article')
       .filter({ has: page.getByRole('heading', { name: BUILDINGS[kind].name, exact: true }) });

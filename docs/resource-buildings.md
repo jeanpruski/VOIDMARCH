@@ -1,16 +1,18 @@
 # Exploitations de bois, pierre et fer
 
-Six bâtiments supplémentaires : trois producteurs par matériau en comptant le bâtiment de base. Catalogue total : 58 bâtiments, dont deux évolutions de remparts.
+Six bâtiments supplémentaires : trois producteurs par matériau en comptant le bâtiment de base. Avec la nouvelle mine d’or : 59 bâtiments, dont deux évolutions de remparts.
 
 | Ressource | Base | Industrie | Occulte avancé |
 | --- | --- | --- | --- |
 | Bois | Scierie : 8/min | Scierie à vapeur : 16/min | Scierie des ombres : 28/min |
 | Pierre | Carrière de pierre : 6/min | Carrière mécanisée : 12/min | Carrière runique : 21/min |
-| Fer | Mine : 5/min | Mine industrielle : 10/min | Mine des abysses : 18/min |
+| Fer | Mine de fer : 5/min | Mine industrielle : 10/min | Mine des abysses : 18/min |
 
 Chaque nouvelle exploitation est un bâtiment distinct, améliorable aux niveaux 2 et 3 (production ×1,6 et ×2,4). Les versions industrielles demandent le producteur de base et un atelier (bois/pierre) ou une forge (fer). Les versions occultes demandent leur version industrielle et le laboratoire des cendres. Les coûts progressent pour conserver l’intérêt des producteurs de départ : davantage de débit par case demande davantage d’investissement et d’infrastructures.
 
 Bois uniquement en forêt, pierre sur colline ou montagne, fer uniquement sur colline. La production cesse si le terrain devient incompatible. Aucun nouveau matériau ni modification des royaumes existants. Les filtres de construction, les descriptions, les prérequis, le coût de 1 PA, l’amélioration, la réparation et le remboursement de démolition utilisent les règles communes. Les coûts et rendements détaillés figurent dans `balance-audit.md`.
+
+La mine d’or complète ces filières : prérequis mine de fer et atelier, terrain colline ou montagne, production brute 12 / 19,2 / 28,8 or par minute selon le niveau. Détails et trois nouveaux visuels des mines de base : [assets-mines.md](assets-mines.md).
 
 ## Visuels
 

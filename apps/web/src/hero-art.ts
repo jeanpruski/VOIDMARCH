@@ -12,7 +12,7 @@ const portraits = new Map<string, HTMLCanvasElement>();
 export const HERO_BASE_SPRITE = 'hero-base-v2';
 let base: HTMLCanvasElement | undefined;
 export const heroArtKey = (a: HeroAppearance) =>
-  `hero:unarmed:base-v2:proportions-v2:${HERO_VISIBLE_PARTS.map((p) => `${a[p]}${a.colors[p]}`).join(':')}`;
+  `hero:unarmed:base-v2:proportions-v3:${HERO_VISIBLE_PARTS.map((p) => `${a[p]}${a.colors[p]}`).join(':')}`;
 export function loadHeroSheet(part: HeroVisualPart, source: HTMLImageElement) {
   if (pieces.has(part)) return;
   pieces.set(part, isolatedCanvases(source, 5, 3));
@@ -106,11 +106,12 @@ export function heroCanvas(a: HeroAppearance): HTMLCanvasElement {
     if (!src) return;
     ctx.drawImage(recolor(src, a.colors[part], part === 'head'), x, y, w, h);
   };
-  // Longer lower body, with less torso overlap: feet stay anchored to the base.
-  // Shared by all 15 variants in both the creator and the world map.
-  draw('boots', 91, 122, 78, 112);
-  draw('armor', 68, 57, 120, 104);
-  draw('head', 102, 14, 54, 55);
+  // The lower-body sheets contain hips, thighs, shins and feet, including robes.
+  // Lengthen that whole silhouette by 28%, with a 10% smaller upper body.
+  // Feet retain their base anchor; the shared layout covers every combination.
+  draw('boots', 91, 91, 78, 143);
+  draw('armor', 74, 45, 108, 92);
+  draw('head', 104, 7, 49, 50);
   portraits.set(key, c);
   if (portraits.size > 100) portraits.delete(portraits.keys().next().value!);
   return c;

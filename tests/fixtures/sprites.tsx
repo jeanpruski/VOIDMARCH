@@ -22,6 +22,9 @@ createRoot(document.getElementById('root')!).render(
       289,
       290,
       291,
+      552,
+      576,
+      600,
     ].map((frame) => (
       <div
         key={frame}

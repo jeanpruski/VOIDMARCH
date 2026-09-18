@@ -49,23 +49,46 @@ export function loadWallMaterials(): Promise<void> {
   })());
 }
 
-/** Keep straight walls aligned; at corners/junctions favour the axis crossing
- * the road. Opposite directions share one of three stable gate orientations. */
+/** Axis in 60-degree steps (half-steps for corners), modulo a half-turn.
+ * A corner follows the chord between its arms, not one arbitrary neighbour. */
 export function wallGateAxis(connections: number, roads: number): number {
-  const scores = [0, 1, 2].map((axis) => {
-    const p = hexToPixel(DIRECTIONS[axis]);
-    const angle = Math.atan2(p.y / Y_SCALE, p.x);
+  const sides = DIRECTIONS.flatMap((_, side) => (connections & (1 << side) ? [side] : []));
+  if (sides.length === 1) return sides[0] % 3;
+  const candidates: { axis: number; span: number }[] = [];
+  for (let i = 0; i < sides.length; i++)
+    for (let j = i + 1; j < sides.length; j++) {
+      const a = hexToPixel(DIRECTIONS[sides[i]]),
+        b = hexToPixel(DIRECTIONS[sides[j]]);
+      const angle = Math.atan2((b.y - a.y) / Y_SCALE, b.x - a.x);
+      const axis = (((Math.round(-angle / (Math.PI / 6)) % 6) + 6) % 6) / 2;
+      const delta = Math.abs(sides[i] - sides[j]);
+      candidates.push({ axis, span: Math.min(delta, 6 - delta) });
+    }
+  if (!candidates.length) for (const axis of [0, 1, 2]) candidates.push({ axis, span: 0 });
+  const score = ({ axis, span }: (typeof candidates)[number]) => {
+    const angle = (-axis * Math.PI) / 3;
     let crossing = 0;
     DIRECTIONS.forEach((direction, side) => {
       if (!(roads & (1 << side))) return;
       const road = hexToPixel(direction);
       crossing += Math.abs(Math.sin(Math.atan2(road.y / Y_SCALE, road.x) - angle));
     });
-    const joins =
-      Number(!!(connections & (1 << axis))) + Number(!!(connections & (1 << (axis + 3))));
-    return joins * 8 + crossing;
-  });
-  return scores.indexOf(Math.max(...scores));
+    // Round equivalent crossings: floating-point noise must not flip a junction.
+    return span * 10 + Math.round(crossing * 1000) / 1000;
+  };
+  return candidates.sort((a, b) => score(b) - score(a) || a.axis - b.axis)[0].axis;
+}
+
+/** Join the outside of a jamb, never the middle of the doorway. */
+export function gateArmStart(end: Point, gateAxis: number): Point {
+  const angle = (-gateAxis * Math.PI) / 3,
+    ux = Math.cos(angle),
+    uy = Math.sin(angle);
+  const x = end.x * ux + (end.y / Y_SCALE) * uy;
+  const y = -end.x * uy + (end.y / Y_SCALE) * ux;
+  const jamb = x < -0.001 ? -20 : 20;
+  const offset = Math.max(-6, Math.min(6, y));
+  return { x: ux * jamb - uy * offset, y: (uy * jamb + ux * offset) * Y_SCALE };
 }
 
 /** Joined geometry is drawn in the same hex projection as the map, so every
@@ -271,10 +294,9 @@ export function wallCanvas(
   if (gateAxis !== undefined) {
     // A gatehouse replaces the central pier. Its axes use the map projection,
     // so road surfaces remain visible at its feet and every wall arm still joins.
-    const axis = hexToPixel(DIRECTIONS[gateAxis]);
-    const length = Math.hypot(axis.x, axis.y / Y_SCALE);
-    const ux = axis.x / length,
-      uy = axis.y / Y_SCALE / length;
+    const angle = (-gateAxis * Math.PI) / 3;
+    const ux = Math.cos(angle),
+      uy = Math.sin(angle);
     const point = (x: number, y: number, z = 0): Point => ({
       x: ux * x - uy * y,
       y: (uy * x + ux * y) * Y_SCALE - z,
@@ -309,15 +331,7 @@ export function wallCanvas(
       );
     };
     const drawArm = (end: Point) => {
-      const x = end.x * ux + (end.y / Y_SCALE) * uy;
-      const y = -end.x * uy + (end.y / Y_SCALE) * ux;
-      // Clip each arm to the gatehouse footprint, retaining the exact outer end.
-      const fraction = Math.min(
-        0.85,
-        16 / Math.max(Math.abs(x), 0.001),
-        5 / Math.max(Math.abs(y), 0.001),
-      );
-      const start = { x: end.x * fraction, y: end.y * fraction };
+      const start = gateArmStart(end, gateAxis);
       ctx.save();
       ctx.translate(start.x, start.y);
       beam({ x: end.x - start.x, y: end.y - start.y });
@@ -327,7 +341,7 @@ export function wallCanvas(
     // Closed double leaves: wood with iron braces, iron grille in masonry,
     // or riveted armoured steel. Their appearance never changes collision rules.
     const front = ux >= 0 ? 1 : -1;
-    const door = (x: number, z: number) => point(x, front * 3.5, z);
+    const door = (x: number, z: number) => point(x * 1.4, front * 6, z);
     poly(
       [door(-10, 1), door(10, 1), door(10, h - 5), door(-10, h - 5)],
       kind === 'WOOD_WALL' ? '#51402c' : '#1b2520',
@@ -365,10 +379,10 @@ export function wallCanvas(
     }
     stroke(0, 1, 0, h - 5, '#111b16', 1.4);
     // Two stone/wood/steel jambs, then a load-bearing lintel for the turret.
-    for (const x of [-13, 13].sort((a, b) => point(a, 0).y - point(b, 0).y))
+    for (const x of [-17, 17].sort((a, b) => point(a, 0).y - point(b, 0).y))
       block(x, 0, 6, 12, 0, h);
-    block(0, 0, 32, 12, h - 5, 5);
-    for (const x of [-13, 13]) block(x, 0, 7, 13, h, kind === 'WOOD_WALL' ? 2 : 3);
+    block(0, 0, 40, 12, h - 5, 5);
+    for (const x of [-17, 17]) block(x, 0, 7, 13, h, kind === 'WOOD_WALL' ? 2 : 3);
     for (const end of arms.filter((p) => p.y >= 0)) drawArm(end);
   } else {
     for (const end of arms) beam(end);

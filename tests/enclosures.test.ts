@@ -101,6 +101,22 @@ function fixture(radius = 2) {
   return { s, a, b, center, gap, walls, close };
 }
 describe('territoires revendiqués par les remparts', () => {
+  it('garde la couleur après démolition dans une enceinte, puis libère la case et le mur démoli à la première brèche', () => {
+    const { s, a, center, walls, close } = fixture();
+    const house = addBuilding(s, a, center, 'HOUSE', now);
+    const closed = close();
+    const removed = execute(closed.state, 'a', order('DEMOLISH', house.id), now);
+    expect(removed.result.accepted).toBe(true);
+    expect(tileAt(removed.state, center)).toMatchObject({
+      ownerId: 'a',
+      enclosureOwnerId: 'a',
+      buildingId: undefined,
+    });
+    const opened = execute(removed.state, 'a', order('DEMOLISH', walls[0].id), now);
+    expect(opened.result.accepted).toBe(true);
+    expect(tileAt(opened.state, center).ownerId).toBeUndefined();
+    expect(tileAt(opened.state, walls[0]).ownerId).toBeUndefined();
+  });
   it('ouvre le déplacement illimité dans l’enceinte et le retire quand la zone redevient neutre', () => {
     const { close, center, gap } = fixture(4);
     const closed = close();

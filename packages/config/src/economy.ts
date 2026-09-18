@@ -27,6 +27,7 @@ export const BUILDING_ECONOMIC_TIERS = {
   MARKET: 1,
   TOWER: 1,
   WORKSHOP: 2,
+  GOLD_MINE: 2,
   FORGE: 2,
   LIBRARY: 2,
   FORT: 2,

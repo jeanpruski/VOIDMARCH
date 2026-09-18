@@ -251,6 +251,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       const t = tiles.get(key(building))!;
       t.building = undefined;
       t.capture = undefined;
+      if (!t.enclosureOwnerId) t.ownerId = undefined;
       break;
     }
     case 'INSTALL_TURRET':

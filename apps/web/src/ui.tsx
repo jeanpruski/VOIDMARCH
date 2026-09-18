@@ -328,7 +328,8 @@ export const BUILDING_FRAMES: Record<string, number> = {
   ALCHEMY_FOUNDRY: 82,
   BLACK_OBSERVATORY: 83,
 
-  QUARRY: 12,
+  QUARRY: 576,
+  GOLD_MINE: 600,
   ARSENAL: 60,
   BUNKER: 61,
   GARAGE: 62,
@@ -359,7 +360,7 @@ export const BUILDING_FRAMES: Record<string, number> = {
   VILLAGE: 7,
   FARM: 10,
   LUMBER: 11,
-  MINE: 12,
+  MINE: 552,
   MARKET: 13,
   WAREHOUSE: 14,
   WORKSHOP: 15,
@@ -371,41 +372,43 @@ const npcTextures = ['npc-deserter', 'npc-marauder', 'npc-cultist', 'npc-mutant'
 export const unitFrame = (unit: Unit) =>
   unit.npc ? 312 + npcTextures.indexOf(`npc-${unit.npc.kind}`) * 24 : UNIT_FRAMES[unit.kind];
 export const miniatureTexture = (frame: number) =>
-  frame >= 528
-    ? 'resource-buildings'
-    : frame >= 432
-      ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
-          Math.floor((frame - 432) / 24)
-        ]
-      : frame >= 312
-        ? npcTextures[Math.floor((frame - 312) / 24)]
-        : frame >= 144
-          ? [
-              'rad-infantry',
-              'rad-cavalry',
-              'rad-motorcycles',
-              'rad-vehicles',
-              'rad-planes',
-              'rad-helicopters',
-              'rad-buildings',
-            ][Math.floor((frame - 144) / 24)]
-          : frame >= 120
-            ? 'terraformer'
-            : frame >= 96
-              ? 'aviation'
-              : frame < 6
-                ? 'units-medieval'
-                : frame >= 24 && frame < 36
-                  ? 'units-civil'
-                  : frame >= 48 && frame < 60
-                    ? 'units-industrial'
-                    : frame >= 72
-                      ? 'occult'
-                      : frame >= 48
-                        ? 'industrial'
-                        : frame >= 24
-                          ? 'expansion'
-                          : 'miniatures';
+  frame >= 552
+    ? ['mine-iron', 'mine-stone', 'mine-gold'][Math.floor((frame - 552) / 24)]
+    : frame >= 528
+      ? 'resource-buildings'
+      : frame >= 432
+        ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
+            Math.floor((frame - 432) / 24)
+          ]
+        : frame >= 312
+          ? npcTextures[Math.floor((frame - 312) / 24)]
+          : frame >= 144
+            ? [
+                'rad-infantry',
+                'rad-cavalry',
+                'rad-motorcycles',
+                'rad-vehicles',
+                'rad-planes',
+                'rad-helicopters',
+                'rad-buildings',
+              ][Math.floor((frame - 144) / 24)]
+            : frame >= 120
+              ? 'terraformer'
+              : frame >= 96
+                ? 'aviation'
+                : frame < 6
+                  ? 'units-medieval'
+                  : frame >= 24 && frame < 36
+                    ? 'units-civil'
+                    : frame >= 48 && frame < 60
+                      ? 'units-industrial'
+                      : frame >= 72
+                        ? 'occult'
+                        : frame >= 48
+                          ? 'industrial'
+                          : frame >= 24
+                            ? 'expansion'
+                            : 'miniatures';
 export const miniatureFrame = (frame: number) => frame % 24;
 export function Miniature({
   heroAppearance,

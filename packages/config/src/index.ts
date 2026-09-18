@@ -1017,12 +1017,20 @@ const BUILDING_BASE_CATALOG = {
     terrains: ['FOREST'],
   },
   MINE: {
-    name: 'Mine',
+    name: 'Mine de fer',
     hp: 65,
     capture: 3,
     cost: { GOLD: 30, WOOD: 35, STONE: 10, IRON: 0, FOOD: 0 },
     production: { IRON: 5 },
     terrains: ['HILL'],
+  },
+  GOLD_MINE: {
+    name: 'Mine d’or',
+    hp: 120,
+    capture: 3,
+    cost: { GOLD: 160, WOOD: 120, STONE: 90, IRON: 60, FOOD: 0 },
+    production: { GOLD: 12 },
+    terrains: ['HILL', 'MOUNTAIN'],
   },
   MARKET: {
     name: 'Marché',
@@ -1154,6 +1162,7 @@ export const EXTRACTOR_BUILDINGS: readonly BuildingKind[] = [
   ...(Object.keys(RESOURCE_BUILDINGS) as (keyof typeof RESOURCE_BUILDINGS)[]),
   'LUMBER',
   'MINE',
+  'GOLD_MINE',
   'QUARRY',
   'FARM',
   'FISHERY',
@@ -1465,6 +1474,7 @@ export const UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
 };
 export const GATHER_YIELD: Wallet = { STONE: 20, GOLD: 16, WOOD: 24, IRON: 16, FOOD: 24 };
 export const BUILDING_REQUIREMENTS: Partial<Record<BuildingKind, BuildingKind[]>> = {
+  GOLD_MINE: ['MINE', 'WORKSHOP'],
   STEAM_SAWMILL: ['LUMBER', 'WORKSHOP'],
   MECHANIZED_QUARRY: ['QUARRY', 'WORKSHOP'],
   INDUSTRIAL_MINE: ['MINE', 'FORGE'],
@@ -1540,10 +1550,8 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
     'Invoque les dragons occultes cuirassés ; exige une fonderie alchimique pour les recruter. Chaque amélioration renforce les dragons existants et futurs de +25 % au niveau 2 et +60 % au niveau 3.',
   FLAK_BATTERY:
     'Recrute les canons antiaériens Flak et les chenillés Flak gamma avec la filière atomique. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +25 % puis +60 % aux canons existants et futurs.',
-  WOOD_WALL:
-    `Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec ${BUILDINGS.STONE_WALL.cost.STONE} pierre, puis ${BUILDINGS.STEEL_WALL.cost.IRON} fer pour l’acier (2 PA par évolution). Sélectionnez le mur pour y installer une tourelle à tir manuel.`,
-  STONE_WALL:
-    `Remplace une palissade : 240 PV, défense 6. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec ${BUILDINGS.STEEL_WALL.cost.IRON} fer et 2 PA. Peut porter une tourelle de niveau 1 ou 2.`,
+  WOOD_WALL: `Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec ${BUILDINGS.STONE_WALL.cost.STONE} pierre, puis ${BUILDINGS.STEEL_WALL.cost.IRON} fer pour l’acier (2 PA par évolution). Sélectionnez le mur pour y installer une tourelle à tir manuel.`,
+  STONE_WALL: `Remplace une palissade : 240 PV, défense 6. Vos unités traversent ; les ennemis terrestres doivent ouvrir une brèche. Évolue en acier avec ${BUILDINGS.STEEL_WALL.cost.IRON} fer et 2 PA. Peut porter une tourelle de niveau 1 ou 2.`,
   STEEL_WALL:
     'Dernière évolution : 480 PV, défense 12. Bloque les ennemis terrestres, même sur une route. L’acier est construit à partir de votre réserve de fer. Peut porter la tourelle Tesla de niveau 3.',
   TESLA_COIL:
@@ -1555,6 +1563,8 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   FARM: 'Produit des vivres pour nourrir les habitants et entretenir les troupes.',
   LUMBER: 'Exploite le bois en forêt ; finance les premières constructions.',
   MINE: 'Extrait le fer des collines pour les armes, les véhicules et les réparations.',
+  GOLD_MINE:
+    'Extrait 12 pièces d’or par minute sur colline ou montagne. Nécessite une mine de fer et un atelier ; améliorable sur 3 niveaux.',
   MARKET: 'Permet de proposer des échanges de ressources par caravane.',
   WAREHOUSE: 'Ajoute 1 000 places de stockage pour chaque ressource.',
   WORKSHOP:
@@ -1771,6 +1781,7 @@ export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
   FARM: 'Ressources',
   LUMBER: 'Ressources',
   MINE: 'Ressources',
+  GOLD_MINE: 'Ressources',
   QUARRY: 'Ressources',
   HUNTER: 'Ressources',
   FISHERY: 'Ressources',

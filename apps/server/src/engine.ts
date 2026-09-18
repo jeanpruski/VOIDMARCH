@@ -827,7 +827,20 @@ export function applyAction(
       const refund = demolitionRefund(b, r.faction);
       spendAction();
       delete s.buildings[b.id];
-      writeTile(s, b, { buildingId: undefined, capture: undefined });
+      const tile = tileAt(s, b);
+      const cleared = writeTile(s, b, {
+        buildingId: undefined,
+        capture: undefined,
+        ownerId: tile.enclosureOwnerId ? tile.ownerId : undefined,
+      });
+      // Demolition can remove the last source of vision of a distant plot.
+      // Update its memory before observe(); enclosure reconciliation below handles breaches.
+      const remembered = r.explored[key(b)];
+      if (remembered) {
+        remembered.building = undefined;
+        remembered.ownerId = cleared.ownerId;
+        remembered.capture = undefined;
+      }
       // Preserve the entire refund, even if demolishing a warehouse lowers capacity.
       // Economy already pauses positive production while a resource exceeds its cap.
       transfer(r.wallet, refund);

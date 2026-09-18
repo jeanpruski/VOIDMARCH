@@ -14,7 +14,9 @@ import { actionSchema } from '@voidmarch/protocol';
 import { compareBuildings } from '../apps/web/src/building-order';
 
 const now = 1_900_000_000_000;
-const kinds = Object.keys(RESOURCE_BUILDINGS) as (keyof typeof RESOURCE_BUILDINGS)[];
+const kinds = [...Object.keys(RESOURCE_BUILDINGS), 'GOLD_MINE'] as (
+  keyof typeof RESOURCE_BUILDINGS | 'GOLD_MINE'
+)[];
 function fixture(kind: (typeof kinds)[number], prerequisites = true, terrain?: Terrain) {
   const s = createState('resource-buildings', now);
   const r = addPlayer(s, 'p', 'Bâtisseurs', 'ASH', now);
@@ -34,7 +36,7 @@ function fixture(kind: (typeof kinds)[number], prerequisites = true, terrain?: T
   });
   return { s, r, p, action };
 }
-describe('six nouvelles exploitations de ressources', () => {
+describe('exploitations de ressources et mine d’or', () => {
   it.each(kinds)('%s : construit avec les prérequis, paie son coût et 1 PA', (kind) => {
     const { s, r, action } = fixture(kind);
     const result = execute(s, r.id, action, now);
@@ -65,17 +67,18 @@ describe('six nouvelles exploitations de ressources', () => {
     '%s : produit au bon endroit aux trois niveaux, aucun minerai sur plaine',
     (kind) => {
       const { s, r, p } = fixture(kind, false);
-      const b = addBuilding(s, r, p, kind, now);
       const [resource, rate] = Object.entries(BUILDINGS[kind].production)[0] as [Resource, number];
+      const baseline = income(s, r.id)[resource];
+      const b = addBuilding(s, r, p, kind, now);
       for (const terrain of BUILDINGS[kind].terrains) {
         writeTile(s, p, { terrain: terrain as Terrain });
         for (const [i, multiplier] of [1, 1.6, 2.4].entries()) {
           b.level = i + 1;
-          expect(income(s, r.id)[resource]).toBeCloseTo(rate * multiplier);
+          expect(income(s, r.id)[resource] - baseline).toBeCloseTo(rate * multiplier);
         }
       }
       writeTile(s, p, { terrain: 'PLAIN' });
-      expect(income(s, r.id)[resource]).toBe(0);
+      expect(income(s, r.id)[resource]).toBe(baseline);
     },
   );
   it('propose trois producteurs par matériau, dans un ordre progressif', () => {
