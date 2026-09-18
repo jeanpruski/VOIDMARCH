@@ -64,6 +64,12 @@ function TrophyDetails({ trophy, back }: { trophy: MissionTrophy; back: () => vo
           cases de la capitale au départ.
         </p>
       </section>
+      {trophy.losses && (
+        <p>
+          Pertes enregistrées face à la garnison (vous et vos alliés) : {trophy.losses.units}{' '}
+          troupes, {trophy.losses.buildings} bâtiments ou remparts.
+        </p>
+      )}
       <table className="trophy-battle-table">
         <caption>Bilan de la forteresse</caption>
         <thead>

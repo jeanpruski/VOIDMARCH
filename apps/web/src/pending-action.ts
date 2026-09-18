@@ -4,6 +4,14 @@ import type { Hex, WorldView } from '@voidmarch/shared';
 import type { Prediction } from './optimistic-actions';
 
 const labels: Record<Action['type'], string> = {
+  EMBARK: 'Embarquement en cours',
+  DISEMBARK: 'Débarquement en cours',
+  OPERATION_CREATE: 'Préparation de l’opération',
+  OPERATION_JOIN: 'Transmission de votre rôle',
+  OPERATION_START: 'Lancement de l’opération',
+  OPERATION_CANCEL: 'Annulation de l’opération',
+  ARMY_SAVE: 'Enregistrement de l’armée',
+  ARMY_DELETE: 'Mise à jour du registre',
   MOVE_GROUP: 'Déplacement du groupe en cours',
   MISSION_ACCEPT: 'Préparation de la campagne',
   MISSION_ABANDON: 'Abandon de la mission',

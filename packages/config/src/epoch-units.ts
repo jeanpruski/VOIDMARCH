@@ -1,3 +1,4 @@
+import { TRANSPORT_TIERS } from './transports';
 import { SPECIALIST_ERAS } from './specialist-units';
 import { CAMPAIGN_ERAS } from './campaign-units';
 import { ELITE_ERAS } from './elite-units';
@@ -128,6 +129,7 @@ export const EPOCH_PROFILES = {
 } satisfies Record<keyof typeof EPOCH_UNITS, UnitProfile>;
 
 export const UNIT_ERAS = {
+  ...TRANSPORT_TIERS,
   ...SPECIALIST_ERAS,
   ...ELITE_ERAS,
   ...CAMPAIGN_ERAS,

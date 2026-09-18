@@ -10,8 +10,8 @@ export function ActionButton({
   return (
     <button
       {...props}
-      data-action-shortcut={shortcut?.toLowerCase()}
-      aria-keyshortcuts={shortcut?.toLowerCase()}
+      data-action-shortcut={shortcut === 'Espace' ? ' ' : shortcut?.toLowerCase()}
+      aria-keyshortcuts={shortcut === 'Espace' ? 'Space' : shortcut?.toLowerCase()}
       title={shortcut ? `${title ? `${title} · ` : ''}Raccourci : ${shortcut}` : title}
     >
       {children}

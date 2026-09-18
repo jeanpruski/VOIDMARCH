@@ -1,3 +1,6 @@
+export * from './biomes';
+import { TRANSPORT_UNITS, TRANSPORT_PROFILES, TRANSPORT_CATEGORIES } from './transports';
+export * from './transports';
 import { createTerrainAffinities } from './terrain-affinities';
 export type { TerrainAffinity } from './terrain-affinities';
 import { arrangeRecruitment } from './recruitment';
@@ -75,8 +78,17 @@ export const RULES = {
   tradeDuration: 3_600_000,
 };
 export const MAX_GROUP_UNITS = 10;
+export const MAX_MOVE_STEPS = 20; // Includes long-range cargo aircraft and mounted faction bonuses.
 
 export const ACTION_COST = {
+  EMBARK: 1,
+  DISEMBARK: 1,
+  OPERATION_CREATE: 0,
+  OPERATION_JOIN: 0,
+  OPERATION_START: 0,
+  OPERATION_CANCEL: 0,
+  ARMY_SAVE: 0,
+  ARMY_DELETE: 0,
   MOVE_GROUP: 0, // Each nested movement pays its ordinary cost.
   MISSION_ACCEPT: 0,
   MISSION_ABANDON: 0,
@@ -174,6 +186,7 @@ export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
   terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
 export const TERRAFORM_COST: Partial<Wallet> = { WOOD: 20, IRON: 10 };
 const UNIT_BASE_CATALOG = {
+  ...TRANSPORT_UNITS,
   ...SPECIALIST_UNITS,
   ...ELITE_UNITS,
   ...CAMPAIGN_UNITS,
@@ -1285,6 +1298,7 @@ export function productionOnTerrain(kind: BuildingKind, terrain: Terrain): Parti
 
 export interface UnitProfile {
   hero?: boolean;
+  transport?: boolean;
   /** Primary recruiter only. Use recruitmentLevel() for a selected building. */
   minRecruitLevel?: number;
   recruitLevels?: Partial<Record<BuildingKind, number>>;
@@ -1305,6 +1319,7 @@ export interface UnitProfile {
   healer?: boolean;
 }
 const BASE_UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  ...TRANSPORT_PROFILES,
   ...SPECIALIST_PROFILES,
   ...ELITE_PROFILES,
   ...CAMPAIGN_PROFILES,
@@ -1669,7 +1684,7 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   ISOTOPE_LAB:
     'Recherche atomique : débloque le réacteur noir et l’héliport. Ne produit pas de ressources et ne forme pas de troupes directement. Confine les réacteurs à trois cases : réduit les émissions de 2 points par niveau, suppression complète au niveau 3.',
   NUCLEAR_REACTOR:
-    'Débloque la division atomique et la garde à neutrons dans leurs bâtiments de formation. Produit 120 or/min ; production +80 / +200 / +400 / +700 % aux niveaux 2 / 3 / 4 / 5. Contamine sept cases alentour : un laboratoire isotopique peut confiner ses émissions. Au niveau 5, permet les frappes atomiques avec un silo de niveau 5.',
+    'Débloque la division atomique et la garde à neutrons dans leurs bâtiments de formation. Produit 120 or/min ; production +80 / +200 / +400 / +700 % aux niveaux 2 / 3 / 4 / 5. Radioactivité : peut contaminer sa case et les six voisines, signalées par des contours et un voile verts. Dès 30 points de contamination, la production des bâtiments touchés est divisée par deux. Un laboratoire isotopique à trois cases maximum réduit les émissions de 2 points par niveau et les bloque au niveau 3. Un ingénieur ou terrassier peut décontaminer pour 2 PA, 20 or et 50 fer. Au niveau 5, permet les frappes atomiques avec un silo de niveau 5.',
   HELIPAD:
     'Débloque progressivement les hélicoptères sur cinq niveaux : reconnaissance, assaut, précision, interception et siège. Réacteur noir requis ; fonderie atomique pour les deux modèles ultimes. +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5, pour les appareils existants et futurs.',
   ATOMIC_FOUNDRY:
@@ -1840,6 +1855,7 @@ export const UNIT_TABS = [
 ] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
+  ...TRANSPORT_CATEGORIES,
   ...SPECIALIST_CATEGORIES,
   ...ELITE_CATEGORIES,
   ...CAMPAIGN_CATEGORIES,

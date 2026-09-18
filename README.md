@@ -46,7 +46,7 @@ Les nouvelles capitales sont espacées d'au moins **70 cases**. Les zones d'impl
 
 La destruction ou capture de la capitale provoque la défaite. Le compte et l'histoire sont conservés. Après dix minutes, une reconstruction ailleurs restaure approximativement 75 % des actifs sauvegardés et accorde une nouvelle protection. Les snapshots contiennent les unités, bâtiments, ressources, progression, reliques et données du royaume, avec une version.
 
-Chaque bot tire au hasard un budget de 0, 1, 2 ou 3 actions, avec une probabilité égale, environ toutes les dix minutes (intervalle de 8 min 30 à 11 min 30). Un tirage de zéro laisse passer tout le cycle ; le bot peut aussi accomplir moins d'actions si aucun ordre valide n'est disponible. Ils dorment lorsque personne n'est connecté. Leur population cible passe de cinq à quatre puis trois ; les royaumes temporaires ne partent qu'après leur séjour minimal et n'abandonnent pas un accord actif.
+Chaque bot tire au hasard un budget de 3 à 10 actions incluses, avec une probabilité égale, environ toutes les dix minutes (intervalle de 8 min 30 à 11 min 30). Il peut accomplir moins d’actions si aucun ordre valide n’est disponible ou si ses PA/ressources manquent. Les bots dorment lorsque personne n’est connecté. Leur population cible reste fixée à trois.
 
 La [décision de conception actualisée](docs/decisions.md) prime sur le [document initial](docs/conception-originale.md), qui proposait de déplacer le royaume à chaque connexion. La [bible artistique](docs/direction-artistique.md) est conservée intégralement.
 

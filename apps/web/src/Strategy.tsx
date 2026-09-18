@@ -1,3 +1,4 @@
+import { AllianceOperations } from './AllianceOperations';
 import { useState, type ReactNode } from 'react';
 import {
   STRATEGY,
@@ -22,6 +23,7 @@ export function DiplomacyHub({ children }: { children: ReactNode }) {
       <div className="tab-row">
         {[
           ['alliance', 'Alliances'],
+          ['operations', 'Opérations d’alliance'],
           ['trade', 'Commerce & trêves'],
           ['strategy', 'Guerres & expéditions'],
         ].map(([id, label]) => (
@@ -32,6 +34,8 @@ export function DiplomacyHub({ children }: { children: ReactNode }) {
       </div>
       {tab === 'alliance' ? (
         <AlliancePanel />
+      ) : tab === 'operations' ? (
+        <AllianceOperations />
       ) : tab === 'strategy' ? (
         <StrategyPanel />
       ) : (

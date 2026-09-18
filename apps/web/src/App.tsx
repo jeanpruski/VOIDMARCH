@@ -1,3 +1,6 @@
+import { BIOMES } from '@voidmarch/config';
+import { TransportControls } from './TransportControls';
+import { VictoryReport } from './VictoryReport';
 import { GroupMovement } from './GroupMovement';
 import { TerrainAffinities } from './TerrainAffinities';
 import { unitCombatStats } from '@voidmarch/game-rules';
@@ -202,6 +205,7 @@ export function App() {
       if (e.key === 'Escape')
         useGame.setState({
           selectedUnitIds: [],
+          selectedArmyId: null,
           groupTarget: null,
           multiSelect: false,
           panel: null,
@@ -321,6 +325,7 @@ export function App() {
         </main>
         <RightSidebar collapsed={collapsedSides.right} onToggle={() => toggleSide('right')} />
       </div>
+      <VictoryReport />
       <BottomBar />
       <Panels />
       {world.player.defeatedAt && <Defeat />}
@@ -642,6 +647,7 @@ function TileHint() {
   return (
     <span>
       {tile?.terrain ? TERRAINS[tile.terrain].name : 'Brume des Marches'}
+      {tile?.terrain && tile.biome ? ` · Biome ${BIOMES[tile.biome].name.toLowerCase()}` : ''}
       {w.player.settings.coordinates && hover ? ` · q ${hover.q}, r ${hover.r}` : ''}
     </span>
   );
@@ -758,6 +764,7 @@ function SelectionPanel() {
               ✦ Rare · +{format(u.rareBonus)} %
             </span>
           )}
+          {!u && !b && tile?.terrain && tile.biome && <span className="biome-label">Biome {BIOMES[tile.biome].name.toLowerCase()}</span>}
           <span className="selection-owner">
             {u?.npc
               ? 'PNJ neutre · sans royaume'
@@ -814,6 +821,7 @@ function SelectionPanel() {
           )}
           {own && u.kind === 'HERO' && <HeroControls inSelection />}
           {own && <StrategyUnitControls key={u.id} unit={u} />}
+          {own && <TransportControls key={`transport:${u.id}`} unit={u} />}
           {own && tile?.capture?.by === w.player.id && (
             <p className="capture-progress">
               Capture en cours : {tile.capture.points} points. Répétez « Revendiquer la case »
@@ -1083,6 +1091,7 @@ function SelectionPanel() {
       ) : b ? (
         <>
           <div className="building-info">
+            {b.kind === 'NUCLEAR_REACTOR' && <span>☢ Source radioactive · rayon de 1 case</span>}
             {b.turretLevel && (
               <span>
                 {turretStats(b)?.name} · niveau {b.turretLevel}/5 · ATQ{' '}
@@ -1117,6 +1126,25 @@ function SelectionPanel() {
               />
             </span>
           </div>
+          {b.kind === 'NUCLEAR_REACTOR' && (
+            <ContextHelp title="☢ Radioactivité et confinement">
+              <p>
+                En fonctionnement, le Réacteur noir peut contaminer sa case et les six voisines.
+                Les contours et le voile verts indiquent les cases contaminées.
+                Dès 30 points de contamination, la production de ressources des bâtiments touchés
+                est divisée par deux.
+              </p>
+              <p>
+                Un laboratoire isotopique à trois cases maximum réduit les émissions de 2 points
+                par niveau ; au niveau 3, il les bloque complètement. La contamination déjà
+                présente se dissipe progressivement.
+              </p>
+              <p>
+                Un ingénieur ou un terrassier peut nettoyer jusqu’à sept cases pour 2 PA,
+                20 or et 50 fer.
+              </p>
+            </ContextHelp>
+          )}
           <div
             className="selection-actions"
             role="toolbar"
@@ -1240,13 +1268,19 @@ function BottomBar() {
     status = useGame((s) => s.status);
   return (
     <footer className="bottom-bar">
-      <span>
+      <button
+        className="online-players-trigger"
+        title="Voir qui est connecté"
+        aria-label={`Voir les joueurs connectés : ${w.onlineHumans}`}
+        aria-haspopup="dialog"
+        onClick={() => useGame.setState({ panel: 'online', combatTarget: null })}
+      >
         <i className={`presence-dot ${status === 'online' ? 'online' : ''}`} />
         {status === 'online' ? 'En ligne' : 'Reconnexion'}
         <b>·</b>
         {w.onlineHumans} souverain{w.onlineHumans > 1 ? 's' : ''} présent
         {w.onlineHumans > 1 ? 's' : ''}
-      </span>
+      </button>
     </footer>
   );
 }

@@ -35,7 +35,7 @@ export function balanceProfiles(
       if (kind === 'IMPERIAL_GRENADIER') p.siege = false; // Grenades, like the other infantry grenadiers: 1 PA.
       if (kind === 'BAZOOKA') p.antiArmor = 32;
       if (kind === 'FLAK_CANNON') p.antiAir = 30;
-      if (tier >= 2 && tier < 7 && !p.builder && !p.healer) {
+      if (tier >= 2 && tier < 7 && !p.builder && !p.healer && !p.transport) {
         const heavy = p.armored && p.mechanical && !p.flying;
         const base = heavy
           ? 10
@@ -69,6 +69,7 @@ export function balanceUnits<T extends Record<UnitKind, CombatEntry>>(
       const kind = id as UnitKind;
       const tier = tiers[kind],
         p = profiles[kind];
+      if (p.transport) return [kind, { ...u, buildingAttack: 0 }];
       const originalCost = Object.fromEntries(
         Object.entries(u.cost).map(([r, v]) => [r, Math.ceil(v * oldPrice(kind))]),
       ) as Wallet;

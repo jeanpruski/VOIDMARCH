@@ -1,3 +1,4 @@
+import { allUnits } from '@voidmarch/game-rules';
 import { ActionButton } from './ActionButton';
 import { useEffect, useState } from 'react';
 import {
@@ -141,8 +142,10 @@ export function HeroControls({ inSelection = false }: { inSelection?: boolean })
   }, []);
   const h = world?.player.hero;
   if (!world || !h) return null;
-  const unit = world.units.find((u) => u.ownerId === world.player.id && u.kind === 'HERO');
-  const ready = unit && !world.player.defeatedAt;
+  const unit = allUnits(world.units).find(
+    (u) => u.ownerId === world.player.id && u.kind === 'HERO',
+  );
+  const ready = unit && !unit.carrierId && !world.player.defeatedAt;
   return (
     <section className="hero-controls">
       <div className="hero-summary">
@@ -162,9 +165,11 @@ export function HeroControls({ inSelection = false }: { inSelection?: boolean })
         <p>
           {world.player.defeatedAt
             ? 'Reconstruisez le royaume pour retrouver votre héros.'
-            : h.recoverAt && h.recoverAt > now
-              ? `Convalescence : ${Math.ceil((h.recoverAt - now) / 1000)} s`
-              : 'En attente d’une case libre près de la capitale.'}
+            : unit?.carrierId
+              ? 'Votre héros est à bord d’un transport ; ses pouvoirs et son aura sont suspendus.'
+              : h.recoverAt && h.recoverAt > now
+                ? `Convalescence : ${Math.ceil((h.recoverAt - now) / 1000)} s`
+                : 'En attente d’une case libre près de la capitale.'}
         </p>
       ) : (
         <>

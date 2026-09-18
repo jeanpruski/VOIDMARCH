@@ -89,11 +89,9 @@ test('affinités : recherche par terrain, fiches, estimation puis dégâts réel
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/terrain-affinity-review');
   await page.getByLabel('Univers', { exact: true }).selectOption('briar');
-  const rifle = page
-    .locator('.catalog article')
-    .filter({
-      has: page.getByRole('heading', { name: unitStats(state.units.shooter).name, exact: true }),
-    });
+  const rifle = page.locator('.catalog article').filter({
+    has: page.getByRole('heading', { name: unitStats(state.units.shooter).name, exact: true }),
+  });
   await expect(rifle.locator('.terrain-affinity-card')).toContainText('Forêt ancienne');
   await expect(rifle.locator('.terrain-affinity-card')).toContainText('ATQ +25 %');
   await page.getByLabel('Univers', { exact: true }).selectOption('all');
@@ -128,7 +126,10 @@ test('affinités : recherche par terrain, fiches, estimation puis dégâts réel
     .toBe(true);
   await page.screenshot({ path: 'test-results/terrain-combat-mobile.png' });
   const hp = state.units.target.hp;
-  await page.getByRole('button', { name: 'Confirmer l’attaque · 1 PA', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Confirmer l’attaque · 1 PA', exact: true }),
+  ).toHaveAttribute('aria-keyshortcuts', 'Space');
+  await page.keyboard.press('Space');
   await expect.poll(() => hp - state.units.target.hp).toBeGreaterThanOrEqual(estimate.min);
   expect(hp - state.units.target.hp).toBeLessThanOrEqual(estimate.max);
   expect(errors).toEqual([]);

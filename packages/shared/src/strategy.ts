@@ -1,5 +1,30 @@
 import type { Hex } from './index';
+export interface AllianceOperation extends Hex {
+  id: string;
+  title: string;
+  authorId: string;
+  objective: 'CAPTURE' | 'HOLD' | 'SIEGE';
+  status: 'PLANNING' | 'ACTIVE' | 'WON' | 'CANCELLED' | 'EXPIRED' | 'FAILED';
+  createdAt: number;
+  startedAt?: number;
+  endsAt: number;
+  completedAt?: number;
+  targetId?: string;
+  targetOwnerId?: string;
+  initialHp?: number;
+  holdDuration: number;
+  heldMs: number;
+  holding: boolean;
+  progress: number;
+  checkedAt: number;
+  participants: {
+    realmId: string;
+    role: 'ASSAULT' | 'ARTILLERY' | 'AIR' | 'SUPPORT';
+    ready: boolean;
+  }[];
+}
 export interface Alliance {
+  operations?: AllianceOperation[];
   id: string;
   name: string;
   emblem: 'shield' | 'eye' | 'crown' | 'star';

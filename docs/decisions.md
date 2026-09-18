@@ -26,7 +26,7 @@ Les instructions données dans la conversation priment sur les documents origina
 - Récoltes et équilibre : cinq ressources (or, bois, pierre, fer, vivres). Le paysan doit occuper le bon terrain, neutre ou appartenant à son royaume ; une case voisine ne suffit plus. La pierre vient des collines/montagnes et des carrières, le fer des collines/mines, le bois des forêts/scieries. Le simple territoire ne produit plus de ressources brutes. Les anciennes sauvegardes à quatre ressources reçoivent un stock de pierre nul sans réinitialisation.
 - Catalogues : onglets par rôle conservant le mélange médiéval, armes à feu, véhicules, artillerie et occulte. Catalogue actuel : 30 unités et 36 bâtiments. Mobilisation, entretien et croissance ont été revus ; l'audit chiffré est dans `balance-audit.md`.
 
-- Cadence des bots : à chaque cycle, tirage aléatoire indépendant et uniforme de 0 à 3 actions (25 % par valeur). Zéro signifie un cycle complet sans action. L'intervalle existant de 8 min 30 à 11 min 30 et le sommeil sans humain connecté sont conservés.
+- Cadence des bots : à chaque cycle, tirage aléatoire indépendant et uniforme de 3 à 10 actions incluses (12,5 % par valeur). Le bot peut en accomplir moins si aucun ordre valide n’est disponible ou si ses PA/ressources manquent. L'intervalle de 8 min 30 à 11 min 30 et le sommeil sans humain connecté sont conservés.
 
 - Nouvelle DA : mélange médiéval et guerre industrielle, inspirations Quake/Wolfenstein et équipements allemands des années 1940, factions fictives. Voir `direction-artistique-v02.md`. Douze unités et douze bâtiments supplémentaires portent le catalogue à 30/35. Les sauvegardes sont conservées, aucun redémarrage n'est nécessaire.
 

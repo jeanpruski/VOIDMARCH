@@ -1,3 +1,4 @@
+import { allUnits } from '@voidmarch/game-rules';
 import {
   ACTION_COST,
   BUILDINGS,
@@ -168,10 +169,12 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
         profile = UNIT_PROFILES[kind];
       if (!building || recruitmentRequirement(kind, building, buildings)) return;
       const free =
-        kind === 'PEASANT' && !world.units.some((u) => u.ownerId === id && u.kind === 'PEASANT');
+        kind === 'PEASANT' &&
+        !allUnits(world.units).some((u) => u.ownerId === id && u.kind === 'PEASANT');
       if (
         !free &&
-        armyPopulation(world.units.filter((u) => u.ownerId === id)) + unitPopulation(kind) >
+        armyPopulation(allUnits(world.units).filter((u) => u.ownerId === id)) +
+          unitPopulation(kind) >
           Math.max(15, player.population)
       )
         return;

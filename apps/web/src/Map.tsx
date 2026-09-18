@@ -1,4 +1,9 @@
-import { groupMovementPreview } from './group-movement';
+import { BIOMES } from '@voidmarch/config';
+import { biomeTerrainColor, biomeTexture } from './biome-art';
+import { TRANSPORTS } from '@voidmarch/config';
+import { cargoUsed } from '@voidmarch/game-rules';
+import { VictoryBanners } from './victory-animation';
+import { groupMovementPreview, groupMovementRange } from './group-movement';
 import { isBuilderSite } from './construction';
 import { drawStrategicOperations, drawAmbient } from './strategy-art';
 import { buildingAtlas, buildingTextureKey, buildingEvolutionFrame } from './building-art';
@@ -21,7 +26,6 @@ import { LoaderCircle } from 'lucide-react';
 import Phaser from 'phaser';
 import {
   RULES,
-  TERRAINS,
   UNITS,
   BUILDINGS,
   UNIT_PROFILES,
@@ -117,6 +121,7 @@ class WorldScene extends Phaser.Scene {
   private strategic = false;
   private strategicWorld?: WorldView;
   private strategicTiles: StrategicTile[] = [];
+  private victoryBanners = new VictoryBanners(this, () => this.renderMap());
   private damageNumbers = new DamageNumbers(this);
   private impactGroups = new Set<Phaser.GameObjects.Container>();
   private viewportWidth = 0;
@@ -167,6 +172,7 @@ class WorldScene extends Phaser.Scene {
   private createWorld() {
     // Register cleanup before the first render, including when initialization fails.
     const cleanup = () => {
+      this.victoryBanners.clear();
       this.damageNumbers.clear();
       this.unsubscribe?.();
       this.unsubscribe = undefined;
@@ -233,6 +239,7 @@ class WorldScene extends Phaser.Scene {
       if (!this.sys.isActive() || !this.cameras.main) return;
       if (previous.actionEffect && !s.actionEffect)
         this.projectiles.get(previous.actionEffect.actionId)?.();
+      if (s.world?.player.settings.reducedMotion) this.victoryBanners.clear();
       if (s.world?.player.settings.reducedMotion)
         for (const cancel of this.projectiles.values()) cancel();
       if (
@@ -254,6 +261,8 @@ class WorldScene extends Phaser.Scene {
           this.centerSet = true;
         }
         this.renderMap();
+        if (previous.world)
+          this.victoryBanners.show(previous.world, s.world, !this.strategic && s.showBuildings);
         // Journal damage is authoritative even when speculative effects are suppressed.
         if (previous.world)
           for (const hit of combatDamage(previous.world, s.world))
@@ -280,6 +289,7 @@ class WorldScene extends Phaser.Scene {
         s.showBuildings !== previous.showBuildings
       ) {
         if (s.showUnits !== previous.showUnits || s.showBuildings !== previous.showBuildings) {
+          this.victoryBanners.clear();
           this.damageNumbers.clear();
           for (const cancel of [...this.projectiles.values()]) cancel();
           for (const group of this.impactGroups) {
@@ -295,6 +305,7 @@ class WorldScene extends Phaser.Scene {
         s.selection !== previous.selection ||
         s.selectedUnitIds !== previous.selectedUnitIds ||
         s.groupTarget !== previous.groupTarget ||
+        s.groupFormation !== previous.groupFormation ||
         s.mode !== previous.mode ||
         s.roadTool !== previous.roadTool ||
         s.hover !== previous.hover
@@ -901,6 +912,7 @@ class WorldScene extends Phaser.Scene {
     const previousStrategic = this.strategic;
     this.strategic = strategicAtZoom(this.cameras.main.zoom, this.strategic);
     if (this.strategic && !previousStrategic) {
+      this.victoryBanners.clear();
       this.damageNumbers.clear();
       for (const cancel of [...this.projectiles.values()]) cancel();
       for (const group of this.impactGroups) {
@@ -995,7 +1007,8 @@ class WorldScene extends Phaser.Scene {
       const p = hexToPixel(t),
         unknown = t.visibility === 'UNKNOWN',
         explored = t.visibility === 'EXPLORED',
-        base = t.terrain ? TERRAINS[t.terrain].color : 0x25312c,
+        biome = BIOMES[t.biome ?? 'TEMPERATE'],
+        base = t.terrain ? biomeTerrainColor(t.terrain, t.biome) : 0x25312c,
         n = hash(key(t));
       const tint = Phaser.Display.Color.IntegerToColor(base);
       if (explored) tint.darken(32);
@@ -1050,15 +1063,15 @@ class WorldScene extends Phaser.Scene {
         const rx = (hash(`${key(t)}x${i}`) - 0.5) * 60,
           ry = (hash(`${key(t)}y${i}`) - 0.5) * 40;
         d.fillStyle(
-          t.terrain === 'SCORCHED' ? 0x746b63 : n > 0.5 ? 0xabb495 : 0x19251c,
+          t.terrain === 'SCORCHED' ? 0x746b63 : n > 0.5 ? biome.light : biome.dark,
           explored ? 0.1 : 0.18,
         );
         d.fillEllipse(p.x + rx, p.y + ry, 2 + n * 4, 1.4);
       }
       if (t.terrain === 'RIVER') {
-        d.fillStyle(0x557477, explored ? 0.25 : 0.5);
+        d.fillStyle(biome.water, explored ? 0.25 : 0.5);
         d.fillEllipse(p.x, p.y, 64, 36);
-        d.lineStyle(1, 0x91aba0, 0.25);
+        d.lineStyle(1, biome.ripple, 0.25);
         for (let i = 0; i < 3; i++)
           d.lineBetween(p.x - 20 + i * 4, p.y - 7 + i * 7, p.x + 10 + i * 4, p.y - 7 + i * 7);
       }
@@ -1096,10 +1109,11 @@ class WorldScene extends Phaser.Scene {
                   ? 52
                   : 78;
           const scenery = this.add
-            .image(p.x, p.y - (t.terrain === 'MOUNTAIN' ? 18 : 10), 'terrain', frame)
+            .image(p.x, p.y - (t.terrain === 'MOUNTAIN' ? 18 : 10), biomeTexture(t.biome), frame)
             .setDisplaySize(size, size)
             .setDepth(depth(1000, p.y))
-            .setAlpha(explored ? 0.42 : t.terrain === 'PLAIN' ? 0.48 : 0.95);
+            .setAlpha(explored ? 0.42 : t.terrain === 'PLAIN' ? 0.48 : 0.95)
+            .setName(`terrain:${t.biome ?? 'TEMPERATE'}:${key(t)}`);
           if (explored) scenery.setTint(0x899082);
           this.pieces.push(scenery);
         }
@@ -1108,9 +1122,9 @@ class WorldScene extends Phaser.Scene {
         for (const near of neighbors(t)) {
           if (this.tileMap.get(key(near))?.terrain === 'RIVER') {
             const end = hexToPixel(near);
-            d.lineStyle(22, 0x46686b, explored ? 0.3 : 0.7);
+            d.lineStyle(22, biome.water, explored ? 0.3 : 0.7);
             d.lineBetween(p.x, p.y, (p.x + end.x) / 2, (p.y + end.y) / 2);
-            d.lineStyle(1, 0x8ea69a, 0.2);
+            d.lineStyle(1, biome.ripple, 0.2);
             d.lineBetween(p.x - 4, p.y, (p.x + end.x) / 2 - 4, (p.y + end.y) / 2);
           }
         }
@@ -1146,7 +1160,8 @@ class WorldScene extends Phaser.Scene {
           opacity = t.visibility === 'EXPLORED' ? 0.35 : 1,
           borders = this.territories;
         if (showBuildings && t.building) {
-          drawBanner(t.ownerId, p.x - 25, p.y + 4, opacity);
+          if (!this.victoryBanners.hidden.has(t.building.id))
+            drawBanner(t.ownerId, p.x - 25, p.y + 4, opacity);
           const b = t.building;
           if (!b.id.startsWith('preview:')) {
             // Material upgrades keep walls at level 1 internally: show their tier.
@@ -1386,6 +1401,41 @@ class WorldScene extends Phaser.Scene {
         y: -20,
         layer: UNIT_PROFILES[u.kind].flying ? 8500 : 7000,
       });
+      if (TRANSPORTS[u.kind] && u.ownerId === world.player.id) {
+        const used = cargoUsed(u),
+          capacity = TRANSPORTS[u.kind]!.capacity;
+        const full = used >= capacity;
+        const scale = 1 / Math.max(0.65, Math.min(1, this.cameras.main.zoom));
+        const tag = this.add
+          .text(p.x, p.y - 48, `${used}/${capacity}`, {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '11px',
+            fontStyle: 'bold',
+            color: full ? '#edcf8e' : used ? '#e1e5d2' : '#a5af9d',
+            resolution: 2,
+          })
+          .setOrigin(0.5)
+          .setScale(scale)
+          .setDepth(depth(14500, p.y))
+          .setName(`cargo-count:${u.id}`)
+          .setData({ passengers: u.cargo?.length ?? 0, used, capacity, full });
+        const badge = this.add
+          .graphics({ x: p.x, y: p.y - 48 })
+          .setScale(scale)
+          .setDepth(depth(14499, p.y))
+          .setName(`cargo-badge:${u.id}`);
+        const width = Math.max(32, tag.width + 10),
+          height = 18;
+        badge.fillStyle(0x111c18, 0.97);
+        badge.fillRoundedRect(-width / 2, -height / 2, width, height, 3);
+        badge.lineStyle(1, full ? 0xd6ba79 : factionColor(u.ownerId), 1);
+        badge.strokeRoundedRect(-width / 2, -height / 2, width, height, 3);
+        this.pieces.push(badge, tag);
+        parts.push(
+          { object: badge, x: 0, y: -48, layer: 14499 },
+          { object: tag, x: 0, y: -48, layer: 14500 },
+        );
+      }
       if (u.hero) {
         const tag = this.add
           .text(p.x, p.y - 59, u.hero.name, {
@@ -1542,18 +1592,51 @@ class WorldScene extends Phaser.Scene {
     if (!this.highlights || !this.view) return;
     const g = this.highlights;
     g.clear();
+    g.setData('groupRangeCount', 0);
     if (this.strategic) return;
     const state = useGame.getState(),
       selection = state.selection,
       u = this.getUnit();
     if (state.selectedUnitIds.length > 1) {
+      if (!state.pending && (state.mode === 'inspect' || state.mode === 'move')) {
+        const range = groupMovementRange(this.view, state.selectedUnitIds);
+        const viewport = this.cameras.main.worldView;
+        g.setData('groupRangeCount', range.cells.size);
+        for (const cell of range.cells.values()) {
+          const p = hexToPixel(cell);
+          if (
+            p.x < viewport.left - SIZE ||
+            p.x > viewport.right + SIZE ||
+            p.y < viewport.top - SIZE ||
+            p.y > viewport.bottom + SIZE
+          )
+            continue;
+          const common = cell.count === range.total;
+          const tint = common ? 0xb8e8d5 : 0xe7b974;
+          g.fillStyle(common ? 0x79bdb2 : 0xc59148, state.groupTarget ? 0.1 : common ? 0.27 : 0.16);
+          g.fillPoints(points(p, SIZE - 3), true);
+          g.lineStyle(5, 0x101c1a, 0.8);
+          g.strokePoints(points(p, SIZE - 3), true);
+          g.lineStyle(common ? 2.5 : 1.5, tint, common ? 0.95 : 0.8);
+          g.strokePoints(points(p, SIZE - 3), true);
+        }
+        if (state.mode === 'move' && state.hover) {
+          g.lineStyle(4, range.cells.has(key(state.hover)) ? 0xffe9b0 : 0xd98576, 1);
+          g.strokePoints(points(hexToPixel(state.hover), SIZE - 2), true);
+        }
+      }
       for (const unit of this.view.units.filter((u) => state.selectedUnitIds.includes(u.id))) {
         const p = this.visualPosition(unit);
         g.lineStyle(3, 0xf2e6bc, 1);
         g.strokePoints(points(p, SIZE - 5), true);
       }
       if (state.mode === 'move' && state.groupTarget) {
-        const preview = groupMovementPreview(this.view, state.selectedUnitIds, state.groupTarget);
+        const preview = groupMovementPreview(
+          this.view,
+          state.selectedUnitIds,
+          state.groupTarget,
+          state.groupFormation,
+        );
         for (let i = 0; i < preview.journeys.length; i++) {
           const journey = preview.journeys[i],
             color = [0xffdaa0, 0x9fddd5, 0xc4b2ec, 0xa6d88b][i % 4];

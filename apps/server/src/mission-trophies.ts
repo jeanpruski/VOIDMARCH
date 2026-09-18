@@ -50,6 +50,7 @@ export function createMissionTrophy(
       wall: mission.wall,
       wallRadius: mission.wallRadius,
     }),
+    losses: { units: mission.losses?.units ?? 0, buildings: mission.losses?.buildings ?? 0 },
     completedAt,
     captured: { ...captured },
     destroyed: {

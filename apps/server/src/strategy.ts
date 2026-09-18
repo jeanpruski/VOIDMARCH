@@ -1,3 +1,5 @@
+import { destroyUnit } from './transports';
+import { tickAllianceOperations } from './alliance-operations';
 import { missionAttackReason } from './missions';
 import { randomUUID } from 'node:crypto';
 import {
@@ -185,6 +187,8 @@ export function strategyAction(
       for (const other of a.members) peace(s, id, other, now);
       if (a.leaderId === id) a.leaderId = a.members[0] ?? '';
       a.markers = a.markers.filter((x) => x.authorId !== id);
+      for (const operation of a.operations ?? [])
+        operation.participants = operation.participants.filter((p) => p.realmId !== id);
       if (!a.members.length) delete d.alliances[a.id];
       log(
         s,
@@ -574,6 +578,7 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
     if (!team.members.length) delete d.alliances[team.id];
     else if (!team.members.includes(team.leaderId)) team.leaderId = team.members[0];
   }
+  tickAllianceOperations(s, now);
   for (const w of Object.values(d.wars)) {
     if (w.status !== 'ACTIVE') {
       if (w.endsAt < now - 7 * 86_400_000) delete d.wars[w.id];
@@ -646,7 +651,7 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
         u.kind !== 'HERO' &&
         !nuclearProtected(s, u.ownerId, strike.ownerId, now)
       )
-        delete s.units[u.id];
+        destroyUnit(s, u, now, true);
     for (const b of Object.values(s.buildings))
       if (
         affected.has(key(b)) &&

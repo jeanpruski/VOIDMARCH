@@ -1,3 +1,4 @@
+import { allRealmUnits } from '@voidmarch/game-rules';
 import { randomInt } from 'node:crypto';
 import {
   BUILDINGS,
@@ -38,7 +39,7 @@ export function ensureHeroes(s: GameState, now: number) {
       };
       s.revision++;
     }
-    const existing = realmUnits(s, r.id).filter((u) => u.kind === 'HERO');
+    const existing = allRealmUnits(s, r.id).filter((u) => u.kind === 'HERO');
     if (r.defeatedAt) {
       for (const u of existing) delete s.units[u.id];
       continue;

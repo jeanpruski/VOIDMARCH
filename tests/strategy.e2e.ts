@@ -15,6 +15,7 @@ import { addBuilding, execute, worldView } from '../apps/server/src/engine';
 import { strategy, tickStrategy } from '../apps/server/src/strategy';
 import { commandSchema } from '@voidmarch/protocol';
 test('alliance, radar, chat, frappe et vue stratégique sans compte réel', async ({ page }) => {
+  test.setTimeout(180000); // Several real canvas views plus the operation and victory flows.
   const now = Date.now();
   let state = createState('operations-browser', now);
   for (const [id, name, q] of [
@@ -113,6 +114,54 @@ test('alliance, radar, chat, frappe et vue stratégique sans compte réel', asyn
   );
   await page.goto('/operations-fixture');
   await expect(page.locator('.board canvas')).toBeVisible();
+  await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false');
+  await page.evaluate(() => {
+    const store = (window as any).__strategyStore;
+    const original = store.getState().world;
+    const before = structuredClone(original);
+    const tile = before.tiles.find(
+      (t: any) => t.building && t.visibility === 'VISIBLE' && t.ownerId === 'a',
+    );
+    tile.ownerId = 'mission:banner-test';
+    tile.building.ownerId = 'mission:banner-test';
+    store.setState({ world: before });
+    const after = structuredClone(original);
+    after.journal.unshift({
+      id: 'banner-report',
+      at: after.serverTimestamp,
+      kind: 'REALM',
+      text: 'Victoire',
+      victory: {
+        id: 'banner-test',
+        ownerId: 'a',
+        title: 'Bannière de test',
+        at: after.serverTimestamp,
+        q: tile.q,
+        r: tile.r,
+        reward: { GOLD: 100 },
+        captured: { units: 0, buildings: 1, walls: 0 },
+        destroyed: { units: 1, buildings: 1, walls: 0 },
+        losses: { units: 0, buildings: 0 },
+        medal: { name: 'Tour', shape: 'shield', emblem: 'tower', ribbon: 'pine', metal: 'gold' },
+      },
+    });
+    store.setState({ world: after });
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as any).__operationsScene.children.list.filter(
+            (x: any) => x.name === 'victory-banner',
+          ).length,
+      ),
+    )
+    .toBe(1);
+  await page.screenshot({ path: 'test-results/victory-banner.png' });
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__operationsScene.victoryBanners.hidden.size))
+    .toBe(0);
+
   await page.getByRole('button', { name: 'Diplomatie', exact: true }).click();
   await page.getByLabel('Nom', { exact: true }).fill('Les Veilleurs du seuil');
   await page.getByRole('button', { name: 'Fonder · 0 PA' }).click();
@@ -139,6 +188,20 @@ test('alliance, radar, chat, frappe et vue stratégique sans compte réel', asyn
   await page.getByRole('button', { name: 'Envoyer · 0 PA', exact: true }).click();
   await expect(page.getByRole('log')).toContainText('Protégez le relais.');
   await page.screenshot({ path: 'test-results/strategy-alliance.png' });
+  await page.getByRole('button', { name: 'Opérations d’alliance', exact: true }).click();
+  await page.getByText('Préparer une opération (0/3)', { exact: true }).click();
+  await page.getByLabel('Nom de l’opération', { exact: true }).fill('Tenir le seuil');
+  await page.locator('.alliance-operations').getByLabel('Coordonnée Q', { exact: true }).fill('-4');
+  await page.locator('.alliance-operations').getByLabel('Coordonnée R', { exact: true }).fill('2');
+  await page.getByRole('button', { name: 'Partager le plan · 0 PA', exact: true }).click();
+  await expect(page.locator('.operation-card')).toContainText('Tenir le seuil');
+  await page.getByLabel('Rôle pour Tenir le seuil').selectOption('ARTILLERY');
+  await page.getByRole('button', { name: 'Je suis prêt · 0 PA', exact: true }).click();
+  await expect(page.locator('.operation-roles')).toContainText('Artillerie · Prêt');
+  await page.getByRole('button', { name: 'Lancer · 0 PA', exact: true }).click();
+  await expect(page.locator('.operation-heading')).toContainText('En cours');
+  await page.screenshot({ path: 'test-results/alliance-operation.png' });
+
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('dialog')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(

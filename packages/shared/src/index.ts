@@ -1,4 +1,4 @@
-import type { MissionBoard, MissionsView } from './missions';
+import type { MissionBoard, MissionsView, MissionVictory } from './missions';
 export type {
   MissionOffer,
   ActiveMission,
@@ -6,11 +6,13 @@ export type {
   MissionsView,
   MissionTrophy,
   MissionMedal,
+  MissionVictory,
 } from './missions';
 import type { StrategyState, StrategyView } from './strategy';
 export * from './strategy';
 import type {
   Wallet,
+  Biome,
   Faction,
   Terrain,
   UnitKind,
@@ -27,6 +29,7 @@ export interface Hex {
   r: number;
 }
 export interface Tile extends Hex {
+  biome?: Biome;
   terrain: Terrain;
   ownerId?: string;
   /** Territory dependent on this realm’s currently closed wall enclosure. */
@@ -43,6 +46,7 @@ export interface SeenTile extends Tile {
   seenAt: number;
 }
 export interface ViewTile extends Hex {
+  biome?: Biome;
   visibility: 'UNKNOWN' | 'EXPLORED' | 'VISIBLE';
   terrain?: Terrain;
   ownerId?: string;
@@ -56,6 +60,9 @@ export interface ViewTile extends Hex {
   capture?: Tile['capture'];
 }
 export interface Unit extends Hex {
+  /** Passengers exist only inside their carrier, never in the board unit dictionary. */
+  cargo?: Unit[];
+  carrierId?: string;
   victories?: number;
   nickname?: string;
   expedition?: { title: string };
@@ -96,7 +103,16 @@ export interface Building extends Hex {
   createdAt: number;
   updatedAt: number;
 }
+export type ArmyFormation = 'COMPACT' | 'LINE' | 'PROTECTED';
+export interface SavedArmy {
+  id: string;
+  name: string;
+  unitIds: string[];
+  formation: ArmyFormation;
+  updatedAt: number;
+}
 export interface Realm {
+  armies?: SavedArmy[];
   hero?: {
     appearance: HeroAppearance;
     xp: number;
@@ -195,6 +211,7 @@ export interface CombatShot {
   targetAirborne: boolean;
 }
 export interface JournalEntry {
+  victory?: MissionVictory;
   shot?: CombatShot;
   /** Confirmed strike damage, retained even when the target is destroyed. */
   damage?: {
@@ -244,6 +261,10 @@ export interface GameState {
   revision: number;
 }
 export interface PublicRealm {
+  connectedSince?: number;
+  onMission?: boolean;
+  /** Public total; the mission history remains private. Optional for older snapshots. */
+  trophyCount?: number;
   id: string;
   name: string;
   faction: Faction;
@@ -275,7 +296,7 @@ export interface PlayerState extends Omit<
   population: number;
   realmValue: number;
 }
-export type OverviewTile = Pick<ViewTile, 'q' | 'r' | 'terrain' | 'ownerId' | 'visibility'>;
+export type OverviewTile = Pick<ViewTile, 'q' | 'r' | 'terrain' | 'biome' | 'ownerId' | 'visibility'>;
 export interface WorldView {
   missions?: MissionsView;
   strategy?: StrategyView;

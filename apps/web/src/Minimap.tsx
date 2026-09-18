@@ -1,6 +1,6 @@
+import { biomeTerrainColor } from './biome-art';
 import { useMemo, useRef } from 'react';
 import { Compass } from 'lucide-react';
-import { TERRAINS } from '@voidmarch/config';
 import { key } from '@voidmarch/game-rules';
 import { focusMap, useGame } from './store';
 import { hexToPixel, minimapProjection, SIZE, Y_SCALE } from './map-geometry';
@@ -22,7 +22,7 @@ export function Minimap() {
           return `${p.x + Math.cos(a) * SIZE * projection.scale},${p.y + Math.sin(a) * SIZE * Y_SCALE * projection.scale}`;
         }).join(' ');
         const terrain = t.terrain
-          ? `#${TERRAINS[t.terrain].color.toString(16).padStart(6, '0')}`
+          ? `#${biomeTerrainColor(t.terrain, t.biome).toString(16).padStart(6, '0')}`
           : '#344438';
         const color = t.ownerId
           ? (world.realms.find((r) => r.id === t.ownerId)?.color ?? terrain)

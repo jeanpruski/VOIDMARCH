@@ -1,4 +1,5 @@
 import { beginCodeSession } from './code-session';
+import { PlayerPresence } from './presence';
 import Fastify from 'fastify';
 import { expireGuests } from './guests';
 import cookie from '@fastify/cookie';
@@ -79,14 +80,16 @@ if (process.env.REDIS_URL) {
 // Redis distributes messages only. The database advisory lock guards every world mutation.
 const repository = new WorldRepository(options);
 await repository.init();
-const connections = new Map<string, Set<string>>(),
-  subscriptions = new Map<string, Hex[]>(),
+const presence = new PlayerPresence();
+const subscriptions = new Map<string, Hex[]>(),
   socketRates = new Map<string, { tokens: number; at: number }>();
 const lastViews = new Map<string, WorldView>();
 let shuttingDown = false,
   busy = false;
 let nextGuestCleanup = 0;
-const connected = () => new Set([...connections].filter(([, s]) => s.size > 0).map(([id]) => id));
+const connected = () => presence.connected();
+const liveWorldView = (id: string, chunks?: Hex[]) =>
+  presence.decorate(worldView(repository.state, id, Date.now(), chunks));
 await registerAuth(app, (userId) => {
   io.in(`player:${userId}`).disconnectSockets(true);
 });
@@ -166,10 +169,7 @@ function broadcast() {
   for (const socket of io.sockets.sockets.values()) {
     const who = socket.data.identity as Identity;
     if (!repository.state.realms[who.sub] || !subscriptions.has(socket.id)) continue;
-    sendView(
-      socket,
-      worldView(repository.state, who.sub, Date.now(), subscriptions.get(socket.id)),
-    );
+    sendView(socket, liveWorldView(who.sub, subscriptions.get(socket.id)));
   }
 }
 
@@ -208,9 +208,7 @@ io.on('connection', (socket) => {
         observe(s, r, Date.now());
       });
       if (!socket.connected) return;
-      const set = connections.get(who.sub) ?? new Set();
-      set.add(socket.id);
-      connections.set(who.sub, set);
+      presence.join(who.sub, socket.id, Date.now());
       await socket.join(['world:main', `player:${who.sub}`]);
       const r = repository.state.realms[who.sub],
         chunks = [
@@ -238,17 +236,14 @@ io.on('connection', (socket) => {
       for (const c of parsed.data.chunks) await socket.join(`chunk:${c.q}:${c.r}`);
       if (repository.state.realms[who.sub]) {
         lastViews.delete(socket.id);
-        sendView(socket, worldView(repository.state, who.sub, Date.now(), parsed.data.chunks));
+        sendView(socket, liveWorldView(who.sub, parsed.data.chunks));
       }
     }),
   );
   socket.on('world:sync', () => {
     if (!rate(who.sub) || !subscriptions.has(socket.id) || !repository.state.realms[who.sub])
       return;
-    sendView(
-      socket,
-      worldView(repository.state, who.sub, Date.now(), subscriptions.get(socket.id)),
-    );
+    sendView(socket, liveWorldView(who.sub, subscriptions.get(socket.id)));
   });
   socket.on('player:ping', () => {
     if (!rate(who.sub)) return;
@@ -274,9 +269,10 @@ io.on('connection', (socket) => {
     }),
   );
   socket.on('disconnect', () => {
-    connections.get(who.sub)?.delete(socket.id);
+    presence.leave(who.sub, socket.id);
     subscriptions.delete(socket.id);
     lastViews.delete(socket.id);
+    if (!shuttingDown) broadcast();
   });
 });
 const tick = setInterval(() => {

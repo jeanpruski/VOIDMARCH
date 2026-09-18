@@ -1,3 +1,7 @@
+import { allRealmUnits } from '@voidmarch/game-rules';
+import { transportAction, destroyUnit, syncCargo } from './transports';
+import { operationAction, tickAllianceOperations } from './alliance-operations';
+import { armyAction } from './armies';
 import {
   clearMission,
   missionAction,
@@ -10,7 +14,7 @@ import {
 import { strategyAction, strategyView, launchTrade } from './strategy';
 import { alliedRealmIds } from '@voidmarch/game-rules';
 import { formatNumber } from '@voidmarch/config';
-import { incapacitateHero, heroPower } from './heroes';
+import { heroPower } from './heroes';
 import type { HeroPower } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { rollRareBonus } from './rarity';
@@ -130,7 +134,7 @@ export function log(
   shot?: JournalEntry['shot'],
   damage?: JournalEntry['damage'],
 ) {
-  s.journal.push({
+  const entry: JournalEntry = {
     id: randomUUID(),
     text,
     kind,
@@ -139,8 +143,10 @@ export function log(
     ...(p ? { q: p.q, r: p.r } : {}),
     ...(shot ? { shot } : {}),
     ...(damage ? { damage } : {}),
-  });
+  };
+  s.journal.push(entry);
   if (s.journal.length > 1000) s.journal.splice(0, s.journal.length - 1000);
+  return entry;
 }
 export function spawnPosition(s: GameState, id: string): Hex {
   if (
@@ -533,6 +539,7 @@ export function applyAction(
       spendAction();
       movement = { unitId: u.id, from: { q: u.q, r: u.r }, path };
       Object.assign(u, a.payload, { updatedAt: now });
+      syncCargo(u, now);
       message = `${UNITS[u.kind].name} arrivé : ${path.length} cases sur vos terres et les routes · 1 PA.`;
       break;
     }
@@ -571,6 +578,7 @@ export function applyAction(
       spendAction();
       movement = { unitId: u.id, from: { q: u.q, r: u.r }, path: a.payload.path };
       Object.assign(u, cursor, { updatedAt: now });
+      syncCargo(u, now);
       message = `${UNITS[u.kind].name} en position.`;
       break;
     }
@@ -651,7 +659,7 @@ export function applyAction(
           delete s.buildings[target.id];
           writeTile(s, target, { buildingId: undefined });
           updateDefeat(s, target.ownerId, target, now);
-        } else if (!incapacitateHero(s, target, now)) delete s.units[target.id];
+        } else destroyUnit(s, target, now);
         r.progression.battles++;
         if (
           !('population' in u) &&
@@ -718,7 +726,7 @@ export function applyAction(
             delete s.buildings[recipient.id];
             writeTile(s, recipient, { buildingId: undefined });
             updateDefeat(s, recipient.ownerId, recipient, now);
-          } else if (!incapacitateHero(s, recipient, now)) delete s.units[recipient.id];
+          } else destroyUnit(s, recipient, now);
         }
       }
 
@@ -870,11 +878,11 @@ export function applyAction(
       const recruitmentError = recruitmentRequirement(a.payload.kind, b, realmBuildings(s, id));
       requireRule(!recruitmentError, recruitmentError);
       const freePeasant =
-        a.payload.kind === 'PEASANT' && !realmUnits(s, id).some((u) => u.kind === 'PEASANT');
+        a.payload.kind === 'PEASANT' && !allRealmUnits(s, id).some((u) => u.kind === 'PEASANT');
       const population = realmBuildings(s, id).reduce((v, x) => v + x.population, 0);
       requireRule(
         freePeasant ||
-          armyPopulation(realmUnits(s, id)) + unitPopulation(a.payload.kind) <=
+          armyPopulation(allRealmUnits(s, id)) + unitPopulation(a.payload.kind) <=
             Math.max(15, population),
         'La population ne permet pas de recruter davantage.',
       );
@@ -1039,7 +1047,7 @@ export function applyAction(
       b.updatedAt = now;
       const training = trainingBonusAt(b.kind, b.level);
       let trained = 0;
-      for (const u of realmUnits(s, id)) {
+      for (const u of allRealmUnits(s, id)) {
         if (
           UNIT_PROFILES[u.kind].builder ||
           !UNIT_PROFILES[u.kind].recruitAt.includes(b.kind) ||
@@ -1306,7 +1314,12 @@ export function applyAction(
       break;
     }
     default: {
-      const result = missionAction(s, id, a, now) ?? strategyAction(s, id, a, now);
+      const result =
+        transportAction(s, id, a, now) ??
+        operationAction(s, id, a, now) ??
+        armyAction(s, id, a, now) ??
+        missionAction(s, id, a, now) ??
+        strategyAction(s, id, a, now);
       requireRule(result !== undefined, 'Ordre inconnu.');
       message = result;
       break;
@@ -1362,7 +1375,18 @@ export function applyAction(
           Math.max(1, Math.floor(saved.units.filter((u) => u.kind !== 'HERO').length * 0.75)),
         )) {
         const uid = randomUUID();
-        s.units[uid] = { ...u, ...translate(u), id: uid, hp: unitStats(u).hp, updatedAt: now };
+        s.units[uid] = {
+          ...structuredClone(u),
+          ...translate(u),
+          id: uid,
+          hp: unitStats(u).hp,
+          updatedAt: now,
+        };
+        // Heroes return through their dedicated recovery system, not archived cargo.
+        s.units[uid].cargo = (u.cargo ?? [])
+          .filter((p) => p.kind !== 'HERO')
+          .map((p) => ({ ...structuredClone(p), id: randomUUID(), carrierId: uid }));
+        syncCargo(s.units[uid], now);
       }
       if (!realmUnits(s, id).length) {
         const uid = randomUUID();
@@ -1388,6 +1412,7 @@ export function applyAction(
     if (territory?.released)
       message += ` Enceinte ouverte : ${territory.released} case(s) sans bâtiment redeviennent neutres.`;
   }
+  tickAllianceOperations(s, now);
   observe(s, r, now);
   s.revision++;
   return {
@@ -1465,9 +1490,11 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     color: x.settings.bannerColor,
     bannerShape: x.settings.bannerShape,
     defeated: !!x.defeatedAt,
+    trophyCount: s.missions?.[x.id]?.trophies?.length ?? 0,
+    onMission: !!s.missions?.[x.id]?.active,
     stats: {
       territory: realmTiles(s, x.id).length,
-      military: realmUnits(s, x.id).reduce((a, u) => a + unitStats(u).attack + u.hp, 0),
+      military: allRealmUnits(s, x.id).reduce((a, u) => a + unitStats(u).attack + u.hp, 0),
       wealth: Math.floor(amount(x.wallet)),
       population: Math.floor(realmBuildings(s, x.id).reduce((a, b) => a + b.population, 0)),
       development: x.progression.development,
@@ -1504,10 +1531,16 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     },
     overview: Object.values(r.explored).map((p) => {
       const t = publicTile(s, p, visible, r.explored);
-      return { q: t.q, r: t.r, terrain: t.terrain, ownerId: t.ownerId, visibility: t.visibility };
+      return { q: t.q, r: t.r, terrain: t.terrain, biome: t.biome, ownerId: t.ownerId, visibility: t.visibility };
     }),
     tiles: [...positions.values()].map((p) => publicTile(s, p, visible, r.explored)),
-    units: Object.values(s.units).filter((u) => u.ownerId === id || visible.has(key(u))),
+    units: Object.values(s.units)
+      .filter((u) => u.ownerId === id || visible.has(key(u)))
+      .map((u) => {
+        if (u.ownerId === id || !u.cargo) return u;
+        const { cargo, ...publicUnit } = u;
+        return publicUnit;
+      }),
     realms,
     proposals: Object.values(s.proposals).filter((p) => p.from === id || p.to === id),
     treaties: Object.values(s.treaties).filter((t) => t.a === id || t.b === id),

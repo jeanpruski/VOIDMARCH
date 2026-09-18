@@ -186,12 +186,6 @@ test('missions : trois offres, acceptation unique, navigation, abandon payant, v
     page.locator('.mission-active .mission-rewards').getByLabel('Vivres', { exact: true }),
   ).toHaveText(formatNumber(state.missions!.a.active!.reward!.FOOD!));
   const mission = state.missions!.a.active!;
-  await page.getByLabel('Estimer depuis une unité').selectOption('traveler');
-  await expect(page.locator('.mission-travel-result')).toContainText('Depuis cette unité :');
-  await expect(page.locator('.mission-travel-result')).toContainText('PA');
-  await expect(page.locator('.mission-travel-result')).toContainText(
-    'Combats et brèches non compris',
-  );
   await page.evaluate(() => {
     window.addEventListener(
       'vm:camera',
@@ -228,6 +222,11 @@ test('missions : trois offres, acceptation unique, navigation, abandon payant, v
   await page.evaluate(async () => {
     (window as any).catalogStore.setState({ world: await (window as any).fixtureVictory() });
   });
+  await expect(page.getByRole('complementary', { name: 'Bilan de victoire' })).toBeVisible();
+  await expect(page.locator('.victory-report')).toContainText('troupes récupérées');
+  await page.screenshot({ path: 'test-results/victory-report.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'Fermer le bilan de victoire' }).click();
+
   await expect(page.locator('.mission-result')).toContainText('Victoire');
   await expect(page.locator('.mission-result')).toContainText('Ralliés');
   await expect(page.locator('.mission-result')).toContainText('Ressources reçues');

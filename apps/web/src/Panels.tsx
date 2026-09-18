@@ -1,4 +1,7 @@
+import { allUnits } from '@voidmarch/game-rules';
+import { SavedArmies } from './SavedArmies';
 import { TrophyRoom } from './TrophyRoom';
+import { OnlinePlayers } from './OnlinePlayers';
 import { Missions } from './Missions';
 import { TerrainAffinities } from './TerrainAffinities';
 import { terrainCombatBonus } from '@voidmarch/game-rules';
@@ -11,13 +14,14 @@ import { buildingEra, BUILDING_AGES, UNIT_ERAS } from '@voidmarch/config';
 import { groupByKind, matchesCollectionSearch } from './collection-search';
 import { buildingStage, compareBuildings, buildingsUnlockedBy } from './building-order';
 import { unitStats, attackStats, attackCost, recruitmentRequirement } from '@voidmarch/game-rules';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { RoadAction } from './RoadAction';
 import { NpcInfo } from './NpcInfo';
 import { unitFrame } from './ui';
 import { ContextHelp } from './Experience';
 import {
   ArrowRight,
+  Award,
   ArrowUpRight,
   Check,
   X,
@@ -105,6 +109,7 @@ export function Panels() {
   if (target) return <Combat />;
   if (!panel) return null;
   const titles = {
+    online: 'Joueurs connectés',
     missions: 'Missions',
     trophies: 'Salle des trophées',
     realm: 'Votre royaume',
@@ -129,7 +134,9 @@ export function Panels() {
         panel,
       )}
     >
-      {panel === 'trophies' ? (
+      {panel === 'online' ? (
+        <OnlinePlayers />
+      ) : panel === 'trophies' ? (
         <TrophyRoom />
       ) : panel === 'missions' ? (
         <Missions />
@@ -211,12 +218,13 @@ function RealmPanel() {
           <p>{FACTIONS[p.faction].description}</p>
         </div>
       </div>
-      <div className="stat-grid">
+      <div className="stat-grid realm-stat-grid">
         {[
           [Crown, 'Territoire', `${me.stats.territory} hexagones`],
           [Users, 'Population', format(p.population)],
-          [Swords, 'Armée', `${w.units.filter((u) => u.ownerId === p.id).length} unités`],
+          [Swords, 'Armée', `${allUnits(w.units).filter((u) => u.ownerId === p.id).length} unités`],
           [Compass, 'Exploration', `${p.progression.exploration} hexagones`],
+          [Award, 'Trophées', format(w.missions?.trophies?.length ?? me.trophyCount ?? 0)],
         ].map(([Icon, label, value]) => {
           const I = Icon as typeof Crown;
           return (
@@ -257,7 +265,7 @@ function RealmPanel() {
 function ArmyPanel() {
   const w = useGame((s) => s.world)!;
   const [query, setQuery] = useState('');
-  const units = w.units.filter(
+  const units = allUnits(w.units).filter(
     (u) =>
       u.ownerId === w.player.id &&
       matchesCollectionSearch(
@@ -271,6 +279,7 @@ function ArmyPanel() {
   const groups = groupByKind(units).sort((a, b) => compareRecruits([a.kind, null], [b.kind, null]));
   return (
     <>
+      <SavedArmies />
       <label className="collection-search">
         Rechercher une unité
         <input
@@ -301,8 +310,9 @@ function ArmyPanel() {
                 <button
                   key={u.id}
                   onClick={() => {
-                    select({ kind: 'unit', id: u.id, q: u.q, r: u.r });
-                    focusMap(u);
+                    const target = w.units.find((x) => x.id === (u.carrierId ?? u.id)) ?? u;
+                    select({ kind: 'unit', id: target.id, q: target.q, r: target.r });
+                    focusMap(target);
                   }}
                 >
                   <Miniature heroAppearance={u.hero?.appearance} frame={unitFrame(u)} size={58} />
@@ -314,7 +324,9 @@ function ArmyPanel() {
                       )}
                     </strong>
                     <span>
-                      {format(u.hp)}/{format(unitStats(u).hp)} PV · Position {u.q}, {u.r}
+                      {format(u.hp)}/{format(unitStats(u).hp)} PV ·{' '}
+                      {u.carrierId ? 'À bord · ' : 'Position '}
+                      {u.q}, {u.r}
                     </span>
                   </div>
                   <ArrowUpRight size={16} />
@@ -457,9 +469,9 @@ function Economy() {
           <h4>La force des habitants</h4>
           <p>
             {format(p.population)} habitants soutiennent votre économie. Vos{' '}
-            {w.units.filter((u) => u.ownerId === p.id).length} unités mobilisent{' '}
-            {armyPopulation(w.units.filter((u) => u.ownerId === p.id))} habitants. La nourriture
-            permet à vos villes de grandir.
+            {allUnits(w.units).filter((u) => u.ownerId === p.id).length} unités mobilisent{' '}
+            {armyPopulation(allUnits(w.units).filter((u) => u.ownerId === p.id))} habitants. La
+            nourriture permet à vos villes de grandir.
           </p>
         </div>
         <div className="inset">
@@ -933,6 +945,7 @@ function Rank() {
             <th>Rang</th>
             <th>Royaume</th>
             <th>Bannière</th>
+            <th title="Trophées remportés en mission">Trophées</th>
             <th>{labels[metric]}</th>
           </tr>
         </thead>
@@ -947,6 +960,7 @@ function Rank() {
                   {r.id === w.player.id && <span className="badge">VOUS</span>}
                 </td>
                 <td>{FACTIONS[r.faction].short}</td>
+                <td>{format(r.trophyCount ?? 0)}</td>
                 <td>{format(r.stats[metric])}</td>
               </tr>
             ))}
@@ -1345,7 +1359,7 @@ function Recruit() {
     (tab) => tab === 'Toutes' || recruits.some(([kind]) => UNIT_CATEGORY[kind] === tab),
   );
   const atomicCount = recruits.filter(([kind]) => UNIT_PROFILES[kind].radioactive).length;
-  const ownUnits = w.units.filter((u) => u.ownerId === w.player.id);
+  const ownUnits = allUnits(w.units).filter((u) => u.ownerId === w.player.id);
   const ownedBuildings = w.tiles.flatMap((t) =>
     t.building?.ownerId === w.player.id && t.building.hp > 0 ? [t.building] : [],
   );
@@ -1703,6 +1717,29 @@ function Recruit() {
   );
 }
 function Combat() {
+  const confirmAttack = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const keyboard = (event: KeyboardEvent) => {
+      if (
+        event.key !== ' ' ||
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey
+      )
+        return;
+      const button = confirmAttack.current;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!button || !target || !button.closest('[role="dialog"]')?.contains(target)) return;
+      if (target.isContentEditable || target.closest('input, textarea, select, a, summary')) return;
+      if (target.closest('button') && target.closest('button') !== button) return;
+      event.preventDefault();
+      if (!event.repeat && !button.disabled && button.checkVisibility()) button.click();
+    };
+    window.addEventListener('keydown', keyboard);
+    return () => window.removeEventListener('keydown', keyboard);
+  }, []);
   const w = useGame((s) => s.world)!,
     selection = useGame((s) => s.selection),
     targetId = useGame((s) => s.combatTarget),
@@ -1904,6 +1941,9 @@ function Combat() {
         )}
       {reason && <p className="form-error">{reason}</p>}
       <button
+        ref={confirmAttack}
+        aria-keyshortcuts="Space"
+        title="Raccourci : Espace"
         className="primary danger full-width"
         disabled={pending || !!reason}
         onClick={() =>
@@ -1911,6 +1951,9 @@ function Combat() {
         }
       >
         <Swords size={16} /> Confirmer l’attaque · {ap} PA
+        <kbd className="action-key" aria-hidden="true">
+          Espace
+        </kbd>
       </button>
     </Modal>
   );

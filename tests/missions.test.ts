@@ -16,6 +16,7 @@ import {
   neighbors,
   tileAt,
   writeTile,
+  vision,
 } from '@voidmarch/game-rules';
 import { actionSchema } from '@voidmarch/protocol';
 import type { GameState, Hex, Unit } from '@voidmarch/shared';
@@ -244,13 +245,65 @@ describe('missions de campagne', () => {
     addBuilding(s, s.realms.a, { q: 2, r: 0 }, 'BARRACKS', now, 3);
     expect(missionOffers(s, 'a', now).every((m) => m.level === 3)).toBe(true);
   });
-  it('refuse une offre périmée ou un site entièrement occupé sans mutation', () => {
+  it('étend la recherche au-delà de 40 cases quand les emplacements proches sont occupés', () => {
     const s = fixture();
     expect(run(s, 'MISSION_ACCEPT', 'a', { offerId: 'invented' }).state).toBe(s);
     for (const p of disk(s.realms.a.capital, 43)) writeTile(s, p, { ownerId: 'blocked' });
+    const result = accept(s);
+    const mission = activeMissions(result)[0];
+    expect(mission.distance).toBeGreaterThan(40);
+    for (const p of disk(mission, (mission.wallRadius ?? 2) + 1))
+      expect(tileAt(s, p).ownerId).toBeUndefined();
+  });
+  it('garde la préférence 20–40 cases sur des terres explorées qui ne sont plus visibles', () => {
+    const s = fixture();
+    for (const p of disk(s.realms.a.capital, 50))
+      s.realms.a.explored[key(p)] = { ...tileAt(s, p), visibility: 'EXPLORED' };
+    const seen = vision(s, s.realms.a),
+      mission = activeMissions(accept(s))[0];
+    expect(mission.distance).toBeGreaterThanOrEqual(20);
+    expect(mission.distance).toBeLessThanOrEqual(40);
+    for (const p of disk(mission, (mission.wallRadius ?? 2) + 1)) {
+      expect(s.realms.a.explored[key(p)]).toBeDefined();
+      expect(seen.has(key(p))).toBe(false);
+    }
+  });
+  it('évite toute la vision actuelle des éclaireurs même quand le terrain est neutre', () => {
+    const s = fixture(),
+      previous = activeMissions(accept(s))[0];
+    unit(s, previous, 'a', 'SCOUT');
+    const seen = vision(s, s.realms.a),
+      mission = activeMissions(accept(s))[0];
+    expect(key(mission)).not.toBe(key(previous));
+    for (const p of disk(mission, (mission.wallRadius ?? 2) + 1))
+      expect(seen.has(key(p))).toBe(false);
+  });
+  it('choisit le premier anneau invisible disponible même autour d’une cité de rayon 100', () => {
+    const s = fixture(),
+      capital = s.realms.a.capital;
+    for (const p of disk(capital, 110))
+      writeTile(s, p, {
+        terrain: 'PLAIN',
+        poi: undefined,
+        ownerId: distance(p, capital) <= 100 ? 'a' : undefined,
+      });
+    const seen = vision(s, s.realms.a),
+      mission = activeMissions(accept(s))[0];
+    expect(mission.distance).toBe(104); // radius 2 + one free buffer cell, all outside radius 100.
+    for (const p of disk(mission, (mission.wallRadius ?? 2) + 1))
+      expect(seen.has(key(p))).toBe(false);
+    expect(Object.keys(s.missions ?? {})).toHaveLength(0);
+  });
+  it('refuse sans frais ni mutation quand des remparts ennemis empêchent toute sortie', () => {
+    const s = fixture();
+    s.realms.enemy = createRealm('enemy', 'Ennemi', 'MASK', { q: 200, r: 0 }, now);
+    for (const p of neighbors(s.realms.a.capital))
+      addBuilding(s, s.realms.enemy, p, 'WOOD_WALL', now);
     const result = run(s, 'MISSION_ACCEPT', 'a', { offerId: missionOffers(s, 'a', now)[0].id });
     expect(result.result.accepted).toBe(false);
+    expect(result.result.reason).toContain('accessible à pied');
     expect(result.state).toBe(s);
+    expect(Object.keys(s.missions ?? {})).toHaveLength(0);
   });
   it('abandonne contre le prix annoncé, garde les troupes alliées sur place et nettoie les souvenirs', () => {
     let s = accept(fixture());
@@ -600,5 +653,38 @@ describe('missions de campagne', () => {
     expect(s.missions!.a.trophies).toEqual(trophies);
     removeGuestRealm(s, 'a');
     expect(s.missions?.a).toBeUndefined();
+  });
+  it('publie un bilan de victoire unique et garde les pertes dans le trophée', () => {
+    const s = accept(fixture());
+    const m = activeMissions(s)[0];
+    m.losses = { units: 2, buildings: 1 };
+    delete s.units[m.objectiveId];
+    delete s.buildings[m.objectiveId];
+    reconcileMissions(s, now);
+    const reports = s.journal.filter((j) => j.victory);
+    expect(reports).toHaveLength(1);
+    expect(reports[0].victory).toMatchObject({
+      id: m.id,
+      ownerId: 'a',
+      losses: { units: 2, buildings: 1 },
+    });
+    expect(s.missions!.a.trophies![0].losses).toEqual({ units: 2, buildings: 1 });
+    reconcileMissions(s, now + 1);
+    expect(s.journal.filter((j) => j.victory)).toHaveLength(1);
+    expect(worldView(s, 'a', now).journal.some((j) => j.victory)).toBe(true);
+  });
+  it('comptabilise une troupe tuée par une riposte de garnison', () => {
+    const s = accept(fixture()),
+      m = activeMissions(s)[0];
+    const target = Object.values(s.buildings).find((b) => b.ownerId === m.ownerId)!;
+    target.hp = 1e6;
+    const guard = Object.values(s.units).find((u) => u.ownerId === m.ownerId)!;
+    Object.assign(guard, { kind: 'ARCHER', q: target.q, r: target.r });
+    const attacker = unit(s, neighbors(target)[0], 'a', 'INFANTRY');
+    attacker.hp = 1;
+    const result = run(s, 'ATTACK', attacker.id, { targetId: target.id });
+    expect(result.result.accepted, result.result.reason).toBe(true);
+    expect(result.state.units[attacker.id]).toBeUndefined();
+    expect(activeMissions(result.state)[0].losses).toEqual({ units: 1, buildings: 0 });
   });
 });

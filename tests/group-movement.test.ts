@@ -4,7 +4,7 @@ import { UNITS, type UnitKind } from '@voidmarch/config';
 import { createState, disk, distance, key, movementCost, writeTile } from '@voidmarch/game-rules';
 import { actionSchema } from '@voidmarch/protocol';
 import { addPlayer, execute, worldView, addBuilding } from '../apps/server/src/engine';
-import { planGroupMovement } from '../apps/web/src/group-movement';
+import { planGroupMovement, groupMovementRange } from '../apps/web/src/group-movement';
 import { predictAction } from '../apps/web/src/optimistic-actions';
 import { pendingWorld } from '../apps/web/src/pending-action';
 const now = 1800000000000;
@@ -217,5 +217,58 @@ describe('déplacement groupé', () => {
     const result = execute(s, 'p', command([move('slow', 1), move('fast', 1, 2)]), now);
     expect(result.result.accepted).toBe(true);
     expect(result.state.realms.p.ap).toBe(0);
+  });
+});
+
+describe('portée du groupe avant le choix de destination', () => {
+  it('distingue les cases communes des cases réservées aux troupes rapides, sans changer le monde', () => {
+    const { view } = fixture(),
+      world = view(),
+      before = structuredClone(world);
+    const ids = ['slow', 'fast'];
+    const range = groupMovementRange(world, ids);
+    expect(range.total).toBe(2);
+    expect(range.cells.get('1,0')?.count).toBe(2);
+    expect(range.cells.get('5,2')?.count).toBe(1);
+    expect(range.cells.has('12,0')).toBe(false);
+    expect(range.cells.has('0,0')).toBe(false);
+    expect(range.cells.has('0,2')).toBe(false);
+    expect(groupMovementRange(world, ids)).toBe(range);
+    expect(groupMovementRange(world, ['slow']).cells.has('5,2')).toBe(false);
+    expect(world).toEqual(before);
+  });
+  it.each(['road', 'territory'] as const)(
+    'inclut les longues destinations du réseau %s',
+    (kind) => {
+      const { s, r, view } = fixture();
+      for (const p of disk(r.capital, 15)) {
+        const patch = kind === 'road' ? { road: true } : { ownerId: 'p' };
+        writeTile(s, p, patch);
+        Object.assign(r.explored[key(p)], patch);
+      }
+      expect(groupMovementRange(view(), ['slow', 'fast']).cells.get('14,0')?.count).toBe(2);
+    },
+  );
+  it('exclut les inconnus, les cases occupées et les murs ennemis pour les troupes au sol', () => {
+    const { s, view, unit } = fixture();
+    unit('blocker', 'GUARD', 1, 0).ownerId = 'enemy';
+    addBuilding(s, { ...s.realms.p, id: 'enemy' }, { q: 2, r: 0 }, 'WOOD_WALL', now);
+    const world = view();
+    world.tiles.find((t) => key(t) === '1,1')!.visibility = 'UNKNOWN';
+    const range = groupMovementRange(world, ['slow', 'fast']);
+    for (const k of ['1,0', '2,0', '1,1']) expect(range.cells.has(k), k).toBe(false);
+    const aircraft = structuredClone(world);
+    aircraft.units.find((u) => u.id === 'fast')!.kind = 'FIGHTER';
+    expect(groupMovementRange(aircraft, ['slow', 'fast']).cells.get('2,0')?.count).toBe(1);
+    expect(groupMovementRange(aircraft, ['slow', 'fast']).cells.has('1,0')).toBe(false);
+  });
+  it('respecte les coûts des terrains et actualise la portée après un changement du monde', () => {
+    const { view } = fixture(),
+      world = view(),
+      ids = ['slow', 'fast'];
+    expect(groupMovementRange(world, ids).cells.get('3,0')?.count).toBe(2);
+    const difficult = structuredClone(world);
+    for (const tile of difficult.tiles) tile.terrain = 'MOUNTAIN';
+    expect(groupMovementRange(difficult, ids).cells.has('3,0')).toBe(false);
   });
 });

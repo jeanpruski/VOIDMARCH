@@ -1,3 +1,7 @@
+import { biomeAt } from './biomes';
+export * from './biomes';
+import { allUnits } from './transports';
+export * from './transports';
 import { veteranRank, recruitmentLevel, UNIT_TERRAIN_AFFINITIES } from '@voidmarch/config';
 import {
   BUILDINGS,
@@ -218,6 +222,7 @@ export function generateTile(seed: string, p: Hex): Tile {
   return {
     ...p,
     terrain,
+    biome: biomeAt(seed, p),
     ...(terrain === 'RUINS'
       ? { poi: n < 0.01 ? ('RARE' as const) : ('COMMON' as const) }
       : terrain === 'ALIEN'
@@ -225,7 +230,10 @@ export function generateTile(seed: string, p: Hex): Tile {
         : {}),
   };
 }
-export const tileAt = (s: GameState, p: Hex): Tile => s.tiles[key(p)] ?? generateTile(s.seed, p);
+export const tileAt = (s: GameState, p: Hex): Tile => {
+  const saved = s.tiles[key(p)];
+  return saved ? saved.biome ? saved : { ...saved, biome: biomeAt(s.seed, p) } : generateTile(s.seed, p);
+};
 export function writeTile(s: GameState, p: Hex, patch: Partial<Tile>): Tile {
   const t = { ...tileAt(s, p), ...patch };
   s.tiles[key(p)] = t;
@@ -371,6 +379,7 @@ export function territoryMultiplier(count: number) {
 }
 export const realmUnits = (s: GameState, id: string) =>
   Object.values(s.units).filter((u) => u.ownerId === id);
+export const allRealmUnits = (s: GameState, id: string) => allUnits(realmUnits(s, id));
 export const realmBuildings = (s: GameState, id: string) =>
   Object.values(s.buildings).filter((b) => b.ownerId === id);
 export const realmTiles = (s: GameState, id: string) =>
@@ -378,7 +387,7 @@ export const realmTiles = (s: GameState, id: string) =>
 export function income(s: GameState, id: string): Wallet {
   const out = zeroWallet(),
     buildings = realmBuildings(s, id),
-    units = realmUnits(s, id),
+    units = allRealmUnits(s, id),
     tiles = realmTiles(s, id);
   for (const b of buildings) {
     for (const [k, v] of Object.entries(productionOnTerrain(b.kind, tileAt(s, b).terrain)))
@@ -416,7 +425,7 @@ export function accrueEconomy(s: GameState, r: Realm, now: number, grace = RULES
       );
     const buildings = realmBuildings(s, r.id),
       workers =
-        buildings.reduce((a, b) => a + b.population, 0) - armyPopulation(realmUnits(s, r.id));
+        buildings.reduce((a, b) => a + b.population, 0) - armyPopulation(allRealmUnits(s, r.id));
     if (r.wallet.FOOD > 5 && workers > 0)
       for (const b of buildings)
         if (['CAMP', 'HOUSE', 'VILLAGE', 'OUTPOST'].includes(b.kind))
@@ -438,7 +447,7 @@ export function realmValue(s: GameState, id: string) {
   const r = s.realms[id];
   return Math.round(
     amount(r.wallet) +
-      realmUnits(s, id).reduce(
+      allRealmUnits(s, id).reduce(
         (a, u) => a + (amount(UNITS[u.kind].cost) * u.hp) / unitStats(u).hp,
         0,
       ) +
@@ -493,6 +502,7 @@ export function observe(s: GameState, r: Realm, now: number) {
       r: p.r,
       visibility: 'EXPLORED',
       terrain: t.terrain,
+      biome: t.biome,
       ownerId: t.ownerId,
       enclosureOwnerId: t.enclosureOwnerId,
       road: t.road,
@@ -906,13 +916,14 @@ export function publicTile(
 ): ViewTile {
   const k = key(p);
   if (!visible.has(k))
-    return memory[k] ? { ...memory[k], visibility: 'EXPLORED' } : { ...p, visibility: 'UNKNOWN' };
+    return memory[k] ? { ...memory[k], biome: memory[k].biome ?? biomeAt(s.seed, p), visibility: 'EXPLORED' } : { ...p, visibility: 'UNKNOWN' };
   const t = tileAt(s, p);
   return {
     q: p.q,
     r: p.r,
     visibility: 'VISIBLE',
     terrain: t.terrain,
+    biome: t.biome,
     ownerId: t.ownerId,
     enclosureOwnerId: t.enclosureOwnerId,
     building: t.buildingId ? s.buildings[t.buildingId] : undefined,

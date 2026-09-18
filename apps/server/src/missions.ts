@@ -1,3 +1,4 @@
+import { destroyUnit } from './transports';
 import { missionRoster, missionPlacementOrder } from './mission-rosters';
 import { createMissionTrophy } from './mission-trophies';
 import { randomUUID } from 'node:crypto';
@@ -22,7 +23,8 @@ import {
   disk,
   distance,
   estimateDamage,
-  findPath,
+  DIRECTIONS,
+  vision,
   hash,
   key,
   neighbors,
@@ -45,7 +47,6 @@ import type {
   Unit,
 } from '@voidmarch/shared';
 import { defeat, log, refreshEnclosures, requireRule } from './engine';
-import { incapacitateHero } from './heroes';
 
 export function activeMissions(s: GameState): ActiveMission[] {
   return Object.values(s.missions ?? {}).flatMap((b) => (b.active ? [b.active] : []));
@@ -158,6 +159,17 @@ function missionSite(
 ): { center: Hex; spots: Hex[] } {
   const radius = offer.wallRadius ?? 2;
   const capital = s.realms[realmId].capital;
+  const visible = vision(s, s.realms[realmId]);
+  const terrainCache = new Map<string, ReturnType<typeof tileAt>>();
+  const terrainAt = (p: Hex) => {
+    const k = key(p);
+    let tile = terrainCache.get(k);
+    if (!tile) {
+      tile = tileAt(s, p);
+      terrainCache.set(k, tile);
+    }
+    return tile;
+  };
   const occupied = new Set(
     [
       ...Object.values(s.units),
@@ -170,10 +182,54 @@ function missionSite(
       .filter((b) => wallBlocks(b, realmId, 'INFANTRY', alliedRealmIds(s, realmId)))
       .map(key),
   );
-  const ring = disk(capital, 40).filter((p) => distance(p, capital) >= 20);
-  const offset = Math.floor(hash(salt) * ring.length);
-  for (let i = 0; i < ring.length; i++) {
-    const p = ring[(offset + i * 37) % ring.length];
+  // Grow with the amount of occupied/visible land, not the distance of a lone scout.
+  // Search lazily by hex ring: after the preferred band, the nearest valid ring wins.
+  const searchLimit = Math.max(
+    80,
+    Math.ceil(Math.sqrt((visible.size + Object.keys(s.tiles).length + occupied.size) / 3)) + 80,
+  );
+  function* candidates(): Generator<Hex> {
+    const preferred = disk(capital, 40).filter((p) => distance(p, capital) >= 20);
+    const offset = Math.floor(hash(salt) * preferred.length);
+    for (let i = 0; i < preferred.length; i++) yield preferred[(offset + i) % preferred.length];
+    for (let range = 41; range <= searchLimit; range++) {
+      const ring: Hex[] = [];
+      let p = { q: capital.q + DIRECTIONS[4].q * range, r: capital.r + DIRECTIONS[4].r * range };
+      for (const direction of DIRECTIONS)
+        for (let i = 0; i < range; i++) {
+          ring.push(p);
+          p = { q: p.q + direction.q, r: p.r + direction.r };
+        }
+      const offset = Math.floor(hash(`${salt}:${range}`) * ring.length);
+      for (let i = 0; i < ring.length; i++) yield ring[(offset + i) % ring.length];
+    }
+  }
+  // One reusable flood search instead of repeating a path search capped at 50 cells.
+  // It verifies a walkable route, regardless of the number of movement orders required.
+  const reachable = new Set([key(capital)]),
+    queue: Hex[] = [capital];
+  let cursor = 0;
+  const canReach = (target: Hex) => {
+    const targetKey = key(target);
+    while (!reachable.has(targetKey) && cursor < queue.length) {
+      const current = queue[cursor++];
+      for (const next of neighbors(current)) {
+        const k = key(next);
+        if (
+          reachable.has(k) ||
+          blocked.has(k) ||
+          distance(next, capital) > searchLimit + radius + 12
+        )
+          continue;
+        if (movementCost(terrainAt(next), 'INFANTRY') > UNITS.INFANTRY.move) continue;
+        reachable.add(k);
+        queue.push(next);
+      }
+    }
+    return reachable.has(targetKey);
+  };
+  for (const p of candidates()) {
+    if (visible.has(key(p))) continue;
     if (Object.values(s.realms).some((r) => !r.defeatedAt && distance(r.capital, p) < 12)) continue;
     if (activeMissions(s).some((m) => distance(m, p) <= (m.wallRadius ?? 2) + radius + 2)) continue;
     if (
@@ -185,8 +241,9 @@ function missionSite(
       continue;
     if (
       disk(p, radius + 1).some((h) => {
-        const t = tileAt(s, h);
+        const t = terrainAt(h);
         return (
+          visible.has(key(h)) ||
           t.ownerId ||
           t.buildingId ||
           t.road ||
@@ -198,19 +255,9 @@ function missionSite(
     )
       continue;
     // Only ordinary plains receive buildings; never flatten natural deposits to create a mission.
-    if ([p, neighbors(p)[0], neighbors(p)[3]].some((h) => tileAt(s, h).terrain !== 'PLAIN'))
+    if ([p, neighbors(p)[0], neighbors(p)[3]].some((h) => terrainAt(h).terrain !== 'PLAIN'))
       continue;
-    if (
-      !findPath(
-        capital,
-        p,
-        (h) => (distance(h, capital) <= 50 ? tileAt(s, h) : undefined),
-        250,
-        blocked,
-        'INFANTRY',
-      )
-    )
-      continue;
+    if (!canReach(p)) continue;
     const reserved = new Set(
       [p, neighbors(p)[0], neighbors(p)[3]].slice(0, offer.buildings.length).map(key),
     );
@@ -227,7 +274,7 @@ function missionSite(
             if (
               distance(h, p) >= radius ||
               connected.has(key(h)) ||
-              movementCost(tileAt(s, h), kind) >= 99
+              movementCost(terrainAt(h), kind) >= 99
             )
               continue;
             connected.add(key(h));
@@ -239,7 +286,7 @@ function missionSite(
         (h) =>
           !reserved.has(key(h)) &&
           connected!.has(key(h)) &&
-          movementCost(tileAt(s, h), kind) <= UNITS[kind].move,
+          movementCost(terrainAt(h), kind) <= UNITS[kind].move,
       );
       if (!spot) break;
       spots[index] = spot;
@@ -249,7 +296,7 @@ function missionSite(
   }
   requireRule(
     false,
-    'Aucun emplacement libre et accessible entre 20 et 40 cases. Réessayez après une évolution du territoire.',
+    'Aucun emplacement libre, hors de votre vision actuelle et accessible à pied n’a été trouvé. Réessayez après une évolution du territoire.',
   );
 }
 
@@ -294,6 +341,7 @@ export function missionAction(
     id,
     realmId,
     ownerId: `mission:${id}`,
+    losses: { units: 0, buildings: 0 },
     objectiveId: '',
     startedAt: now,
     distance: distance(p, r.capital),
@@ -439,7 +487,19 @@ export function reconcileMissions(s: GameState, now: number) {
           `+${formatNumber(value)} ${RESOURCE_NAMES[resource as Resource].toLowerCase()}`,
       )
       .join(' · ')}. Médaille « ${trophy.medal.name} » décernée à ${r.name}.`;
-    log(s, message, 'REALM', now, [m.realmId, ...alliedRealmIds(s, m.realmId)], m);
+    log(s, message, 'REALM', now, [m.realmId, ...alliedRealmIds(s, m.realmId)], m).victory = {
+      id: m.id,
+      title: m.title,
+      ownerId: m.realmId,
+      at: now,
+      q: m.q,
+      r: m.r,
+      reward,
+      captured: trophy.captured,
+      destroyed: trophy.destroyed,
+      losses: trophy.losses ?? { units: 0, buildings: 0 },
+      medal: trophy.medal,
+    };
     completed.push(message);
     refreshEnclosures(s, now);
   }
@@ -501,12 +561,14 @@ export function retaliateMission(
       },
     );
     if (target.hp <= 0) {
+      const losses = (m.losses ??= { units: 0, buildings: 0 });
+      if ('population' in target) losses.buildings++;
       if ('population' in target) {
         delete s.buildings[target.id];
         writeTile(s, target, { buildingId: undefined });
         const owner = s.realms[target.ownerId];
         if (owner && distance(owner.capital, target) === 0) defeat(s, owner, now);
-      } else if (!incapacitateHero(s, target, now)) delete s.units[target.id];
+      } else losses.units += destroyUnit(s, target, now);
     }
     return message;
   }

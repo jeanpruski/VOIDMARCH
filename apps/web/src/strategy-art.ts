@@ -76,7 +76,10 @@ export function drawStrategicOperations(
     );
   }
   if (!simple)
-    for (const f of d.fallout) if (visible(f)) hex(f, 0x89b643, Math.min(0.24, f.intensity / 400));
+    for (const f of d.fallout)
+      // A visible but light veil (8–14%) keeps the owner's banner color readable.
+      if (f.intensity > 0 && visible(f))
+        hex(f, 0x89b643, 0.08 + Math.min(100, f.intensity) * 0.0006);
   for (const strike of d.strikes.filter((s) => !s.resolvedAt)) {
     let count = 0;
     for (const p of disk(strike, nuclearStrikeRadius(strike)))
@@ -93,6 +96,15 @@ export function drawStrategicOperations(
       `${site.kind === 'RADIO' ? '◉' : site.kind === 'MINE' ? '◇' : '✦'} ${SITE_NAMES[site.kind]}`,
       world.realms.find((r) => r.id === site.ownerId)?.color ?? '#e8d597',
     );
+  for (const op of d.alliance?.operations ?? []) {
+    if (op.status !== 'PLANNING' && op.status !== 'ACTIVE') continue;
+    if (visible(op)) hex(op, 0xa5dbc7, 0.16);
+    label(
+      op,
+      `⚑ ${op.title} · ${op.status === 'PLANNING' ? 'PRÉPARATION' : Math.round(op.progress * 100) + ' %'}`,
+      '#b8e8d5',
+    );
+  }
   for (const marker of d.alliance?.markers ?? [])
     label(
       marker,

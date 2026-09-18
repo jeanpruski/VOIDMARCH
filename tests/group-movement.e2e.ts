@@ -40,6 +40,8 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
   await page.exposeFunction('fixtureSnapshot', view);
   await page.exposeFunction('fixtureAP', (ap: number) => {
     state.realms[id].ap = ap;
+    state.realms[id].apAt = now;
+    state.revision++;
     return view();
   });
   await page.exposeFunction('fixtureCommand', (raw: unknown) => {
@@ -51,7 +53,7 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
   await page.route(/socket__io-client\.js/, (route) =>
     route.fulfill({
       contentType: 'text/javascript',
-      body: `export function io(){const h={};const s={on(e,f){h[e]=f;if(e==='connect')queueMicrotask(f);return s;},emit(e){if(['world:join','chunks:subscribe','player:ping','world:sync'].includes(e))window.fixtureSnapshot().then(w=>h['world:snapshot']?.(w));return s;},timeout(){return s;},async emitWithAck(e,a){await new Promise(r=>setTimeout(r,500));const result=await window.fixtureCommand(a);h['world:snapshot']?.(result.world);return result.result;},disconnect(){}};return s;}`,
+      body: `export function io(){const h={};window.__groupSocketSnapshot=(w)=>h['world:snapshot']?.(w);let delayed=false;const s={on(e,f){h[e]=f;if(e==='connect')queueMicrotask(f);return s;},emit(e){if(e==='world:sync'&&delayed)return s;if(['world:join','chunks:subscribe','player:ping','world:sync'].includes(e))window.fixtureSnapshot().then(w=>h['world:snapshot']?.(w));return s;},timeout(){return s;},async emitWithAck(e,a){await new Promise(r=>setTimeout(r,500));const result=await window.fixtureCommand(a);if(a.type==='ARMY_SAVE'){delayed=true;setTimeout(()=>{delayed=false;h['world:snapshot']?.(result.world);},350);return result.result;}h['world:snapshot']?.(result.world);return result.result;},disconnect(){}};return s;}`,
     }),
   );
   await page.route('**/api/**', (route) =>
@@ -68,15 +70,13 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
       response,
       body: (await response.text()).replace(
         /\bcreate\(\)\s*\{/,
-        'create() { window.__groupScene = this;',
+        'create() { window.__groupScene = this; window.__groupStore = useGame;',
       ),
     });
   });
   await page.goto('/');
   await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false');
   await page.evaluate(async () => {
-    // @ts-expect-error Vite source module.
-    (window as any).__groupStore = (await import('/src/store.ts')).useGame;
     const scene = (window as any).__groupScene;
     scene.cameras.main.setZoom(0.8).centerOn(0, 100);
     scene.renderMap();
@@ -107,25 +107,55 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
   await expect(page.getByRole('button', { name: 'Sélection multiple', exact: true })).toBeVisible();
   await canvasClick(0, 2, true);
   await expect(page.locator('.group-movement h2')).toContainText('2 troupes');
+  // The range appears immediately, without choosing a target or spending PA.
+  await expect(page.locator('.group-range-legend')).toContainText('Toutes les troupes');
+  const rangeSize = () =>
+    page.evaluate(() => (window as any).__groupScene.highlights.getData('groupRangeCount'));
+  await expect.poll(rangeSize).toBeGreaterThan(0);
+  expect(await page.evaluate(() => (window as any).__groupStore.getState().groupTarget)).toBeNull();
+  expect(orders).toBe(0);
   await page.keyboard.press('d');
+  await page.keyboard.press('Space');
+  expect(orders).toBe(0);
+  await expect.poll(rangeSize).toBeGreaterThan(0);
+  await page.screenshot({ path: 'test-results/group-movement-range.png' });
+
   await page.evaluate(() => (window as any).__groupScene.click({ q: 8, r: 0 }));
   await expect(page.getByRole('button', { name: 'Confirmer · 2 PA', exact: true })).toBeEnabled();
   expect(orders).toBe(0);
   await expect(page.locator('.group-roster-list')).toContainText('Paysan');
   await page.evaluate(async () =>
-    (window as any).__groupStore.setState({ world: await (window as any).fixtureAP(1) }),
+    (window as any).__groupSocketSnapshot(await (window as any).fixtureAP(1)),
   );
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__groupStore.getState().world.player.ap))
+    .toBe(1);
   await expect(
     page.locator('.group-movement button').filter({ hasText: 'Confirmer · 2 PA' }),
   ).toBeDisabled();
   await expect(page.locator('.group-movement')).toContainText('PA insuffisants');
+  await page.keyboard.press('Space');
   expect(orders).toBe(0);
   await page.evaluate(async () =>
-    (window as any).__groupStore.setState({ world: await (window as any).fixtureAP(40) }),
+    (window as any).__groupSocketSnapshot(await (window as any).fixtureAP(40)),
   );
   await page.screenshot({ path: 'test-results/group-movement-preview.png' });
-  await page.getByRole('button', { name: 'Confirmer · 2 PA', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Confirmer · 2 PA', exact: true })).toHaveAttribute(
+    'aria-keyshortcuts',
+    'Space',
+  );
+  await page.evaluate(() => {
+    const input = document.createElement('input');
+    input.id = 'group-shortcut-input';
+    document.body.append(input);
+    input.focus();
+  });
+  await page.keyboard.press('Space');
+  expect(orders).toBe(0);
+  await page.locator('#group-shortcut-input').evaluate((el) => el.remove());
+  await page.keyboard.press('Space');
   await expect(page.locator('.group-movement')).toContainText('Déplacement du groupe en cours');
+  await page.keyboard.press('Space'); // A pending action cannot be submitted twice.
   await expect
     .poll(() =>
       page.evaluate(() => Object.keys((window as any).__groupStore.getState().movements).length),
@@ -138,8 +168,33 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
   expect(state.realms[id].ap).toBe(38);
   expect(state.units.u0.q).toBeGreaterThan(0);
   expect(state.units.u1.q).toBeGreaterThan(0);
+  await page.getByLabel('Formation du groupe').selectOption('PROTECTED');
+  await page.getByRole('button', { name: /^Déplacer/ }).click();
+  await page.evaluate(() => (window as any).__groupScene.click({ q: 8, r: 1 }));
+  await page.getByText('Enregistrer cette armée', { exact: true }).click();
+  await page.getByLabel('Nom de l’armée', { exact: true }).fill('Les Corbeaux');
+  await page.getByRole('button', { name: 'Enregistrer · 0 PA', exact: true }).click();
+  await expect(page.getByText('Mettre à jour « Les Corbeaux »', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__groupStore.getState().groupTarget)).toEqual({
+    q: 8,
+    r: 1,
+  });
+  expect(await page.evaluate(() => (window as any).__groupStore.getState().mode)).toBe('move');
+  await expect.poll(() => state.realms[id].armies?.length ?? 0).toBe(1);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__groupStore.getState().pending))
+    .toBe(false);
+  await page.evaluate(() => (window as any).__groupStore.setState({ panel: 'army' }));
+  await expect(page.locator('.saved-armies')).toContainText('Les Corbeaux');
+  await page.getByRole('button', { name: 'Sélectionner l’armée', exact: true }).click();
+  await expect(page.getByLabel('Formation du groupe')).toHaveValue('PROTECTED');
+  await expect(page.locator('.group-movement h2')).toContainText('2 troupes');
+  expect(state.realms[id].ap).toBe(38);
+  await page.getByLabel('Formation du groupe').selectOption('COMPACT');
+
   await page.keyboard.press('Escape');
   await expect(page.locator('.group-movement')).toHaveCount(0);
+  await expect.poll(rangeSize).toBe(0);
   await page.evaluate(() => (window as any).__groupScene.click({ q: 0, r: 4 }));
   await page.getByRole('button', { name: 'Sélection multiple', exact: true }).click();
   await page.evaluate(() => {
@@ -152,7 +207,9 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
   await page.getByRole('button', { name: /^Déplacer/ }).click();
   await page.evaluate(() => (window as any).__groupScene.click({ q: 9, r: 1 }));
   await expect(page.getByRole('button', { name: 'Confirmer · 2 PA', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Confirmer · 2 PA', exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole('button', { name: 'Confirmer · 2 PA', exact: true })).toBeInViewport({
+    ratio: 1,
+  });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/group-movement-mobile.png' });
   expect(errors).toEqual([]);

@@ -1,4 +1,11 @@
-import { UNITS, BUILDINGS, RESOURCES, RULES, MAX_GROUP_UNITS } from '@voidmarch/config';
+import {
+  UNITS,
+  BUILDINGS,
+  RESOURCES,
+  RULES,
+  MAX_GROUP_UNITS,
+  MAX_MOVE_STEPS,
+} from '@voidmarch/config';
 import { z } from 'zod';
 const hex = z
   .object({
@@ -22,6 +29,61 @@ const building = z.enum(
 const id = z.string().min(1).max(80);
 export const commandSchema = z.discriminatedUnion('type', [
   z.object({
+    type: z.literal('ARMY_SAVE'),
+    actorId: id,
+    payload: z
+      .object({
+        armyId: id.optional(),
+        name: z.string().trim().min(1).max(32),
+        unitIds: z.array(id).min(1).max(MAX_GROUP_UNITS),
+        formation: z.enum(['COMPACT', 'LINE', 'PROTECTED']),
+      })
+      .strict(),
+  }),
+  z.object({
+    type: z.literal('ARMY_DELETE'),
+    actorId: id,
+    payload: z.object({ armyId: id }).strict(),
+  }),
+  z.object({
+    type: z.literal('OPERATION_CREATE'),
+    actorId: id,
+    payload: hex
+      .extend({
+        title: z.string().trim().min(3).max(64),
+        objective: z.enum(['CAPTURE', 'HOLD', 'SIEGE']),
+        holdMinutes: z.union([z.literal(5), z.literal(15), z.literal(30)]).default(15),
+      })
+      .strict(),
+  }),
+  z.object({
+    type: z.literal('OPERATION_JOIN'),
+    actorId: id,
+    payload: z
+      .object({
+        operationId: id,
+        role: z.enum(['ASSAULT', 'ARTILLERY', 'AIR', 'SUPPORT']),
+        ready: z.boolean(),
+      })
+      .strict(),
+  }),
+  z.object({
+    type: z.literal('OPERATION_START'),
+    actorId: id,
+    payload: z.object({ operationId: id }).strict(),
+  }),
+  z.object({
+    type: z.literal('OPERATION_CANCEL'),
+    actorId: id,
+    payload: z.object({ operationId: id }).strict(),
+  }),
+  z.object({ type: z.literal('EMBARK'), actorId: id, payload: z.object({ unitId: id }).strict() }),
+  z.object({
+    type: z.literal('DISEMBARK'),
+    actorId: id,
+    payload: z.object({ unitId: id, q: hex.shape.q, r: hex.shape.r }).strict(),
+  }),
+  z.object({
     type: z.literal('MOVE_GROUP'),
     actorId: id,
     payload: z
@@ -33,7 +95,7 @@ export const commandSchema = z.discriminatedUnion('type', [
                 .object({
                   type: z.literal('MOVE'),
                   actorId: id,
-                  payload: z.object({ path: z.array(hex).min(1).max(12) }).strict(),
+                  payload: z.object({ path: z.array(hex).min(1).max(MAX_MOVE_STEPS) }).strict(),
                 })
                 .strict(),
               z.object({ type: z.literal('MOVE_ROAD'), actorId: id, payload: hex }).strict(),
@@ -111,7 +173,7 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('MOVE'),
     actorId: id,
-    payload: z.object({ path: z.array(hex).min(1).max(12) }),
+    payload: z.object({ path: z.array(hex).min(1).max(MAX_MOVE_STEPS) }),
   }),
   z.object({
     type: z.literal('GATHER'),

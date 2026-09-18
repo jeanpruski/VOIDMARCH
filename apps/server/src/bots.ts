@@ -131,7 +131,7 @@ export class BotDirector {
       bot.offlineAt = undefined;
       if (bot.nextBotAt > now) continue;
       refreshAP(bot, now, this.options.apInterval);
-      const count = randomInt(4);
+      const count = randomInt(3, 11);
       for (let i = 0; i < count; i++) {
         bot = s.realms[id];
         const choice = this.intent(s, bot, now);

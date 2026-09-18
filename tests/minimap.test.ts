@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createState, writeTile } from '@voidmarch/game-rules';
+import { biomeAt, createState, writeTile } from '@voidmarch/game-rules';
 import { addPlayer, worldView } from '../apps/server/src/engine';
 import {
   cameraViewport,
@@ -68,6 +68,7 @@ describe('mini-carte', () => {
     const tile = view.overview.find((t) => t.q === p.q && t.r === p.r);
     expect(tile).toEqual({
       ...p,
+      biome: biomeAt(state.seed, p),
       terrain: 'PLAIN',
       ownerId: 'former-owner',
       visibility: 'EXPLORED',

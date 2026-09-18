@@ -5,7 +5,14 @@ import { supportsWorldCatalog } from './catalog-compatibility';
 import type { CameraViewport } from './map-geometry';
 import { io, type Socket } from 'socket.io-client';
 import type { Action } from '@voidmarch/protocol';
-import type { ActionResult, AuthUser, Hex, WorldView } from '@voidmarch/shared';
+import type {
+  ActionResult,
+  ArmyFormation,
+  AuthUser,
+  Hex,
+  SavedArmy,
+  WorldView,
+} from '@voidmarch/shared';
 import type { WorldEffect } from './world-effects';
 import type { Settings } from '@voidmarch/config';
 import { UNIT_PROFILES, isWall } from '@voidmarch/config';
@@ -19,6 +26,7 @@ export type Command = Action extends infer A
     : never
   : never;
 export type Panel =
+  | 'online'
   | 'missions'
   | 'trophies'
   | 'realm'
@@ -51,6 +59,8 @@ interface GameStore {
   selectedUnitIds: string[];
   groupTarget: Hex | null;
   multiSelect: boolean;
+  groupFormation: ArmyFormation;
+  selectedArmyId: string | null;
   constructionBuilderId: string | null;
   mode: 'inspect' | 'move' | 'attack' | 'road' | 'terraform';
   roadTool: 'build' | 'remove';
@@ -83,6 +93,8 @@ export const useGame = create<GameStore>((set) => ({
   selectedUnitIds: [],
   groupTarget: null,
   multiSelect: false,
+  groupFormation: 'COMPACT',
+  selectedArmyId: null,
   constructionBuilderId: null,
   mode: 'inspect',
   roadTool: 'build',
@@ -230,6 +242,9 @@ function publishWorld(world: WorldView, effectPolicy: GameStore['effectPolicy'] 
     status: 'online',
     now: world.serverTimestamp,
     selection,
+    selectedArmyId: world.player.armies?.some((a) => a.id === previous.selectedArmyId)
+      ? previous.selectedArmyId
+      : null,
     selectedUnitIds: previous.selectedUnitIds.filter((id) =>
       world.units.some((u) => u.id === id && u.ownerId === world.player.id),
     ),
@@ -424,7 +439,8 @@ export async function send(command: Command) {
         }
       : {}),
     ...(closePanel ? { panel: null } : {}),
-    groupTarget: null,
+    groupTarget:
+      command.type === 'ARMY_SAVE' || command.type === 'ARMY_DELETE' ? state.groupTarget : null,
     pendingMovement: movement ? { unitId: movement.unitId, from: movement.from } : null,
     ...(prediction?.movements?.length && !state.world.player.settings.reducedMotion
       ? {
@@ -521,9 +537,11 @@ export async function send(command: Command) {
       window.dispatchEvent(new CustomEvent('vm:action', { detail: command }));
       useGame.setState({
         mode:
-          ['ROAD', 'REMOVE_ROAD'].includes(command.type) && current.mode === 'road'
-            ? 'road'
-            : 'inspect',
+          command.type === 'ARMY_SAVE' || command.type === 'ARMY_DELETE'
+            ? current.mode
+            : ['ROAD', 'REMOVE_ROAD'].includes(command.type) && current.mode === 'road'
+              ? 'road'
+              : 'inspect',
         combatTarget: null,
         ...(['BUILD', 'RECRUIT'].includes(command.type) ? { panel: null } : {}),
       });
@@ -600,6 +618,8 @@ export async function logout() {
     pendingMovement: null,
     status: 'offline',
     selectedUnitIds: [],
+    selectedArmyId: null,
+    groupFormation: 'COMPACT',
     groupTarget: null,
     multiSelect: false,
     selection: null,
@@ -614,7 +634,13 @@ export function focusMap(p: Hex, abovePanel = false) {
 export function focusHero() {
   const { world } = useGame.getState();
   if (!world) return;
-  const hero = world.units.find((u) => u.ownerId === world.player.id && u.kind === 'HERO');
+  const hero = world.units.find(
+    (u) =>
+      u.ownerId === world.player.id &&
+      (u.kind === 'HERO' || u.cargo?.some((p) => p.kind === 'HERO')),
+  );
+  if (hero?.kind !== 'HERO' && hero)
+    notify('Votre héros est à bord de ce transport. Débarquez-le pour utiliser ses pouvoirs.');
   if (!hero) {
     useGame.setState({ panel: 'realm', menuOpen: false, mode: 'inspect', combatTarget: null });
     const remaining = Math.ceil(((world.player.hero?.recoverAt ?? 0) - Date.now()) / 1000);
@@ -687,6 +713,7 @@ export function select(selection: Selection) {
         : null;
   useGame.setState({
     selection,
+    selectedArmyId: null,
     selectedUnitIds:
       selectedUnit?.ownerId === world?.player.id && selectedUnit ? [selectedUnit.id] : [],
     groupTarget: null,
@@ -729,4 +756,34 @@ export function openRoadTool(tool: 'build' | 'remove' = 'build') {
     combatTarget: null,
     menuOpen: false,
   });
+}
+
+export function recallArmy(army: SavedArmy) {
+  const state = useGame.getState();
+  if (!state.world || state.pending) return;
+  const units = army.unitIds.flatMap((id) => {
+    const u = state.world!.units.find(
+      (u) => u.id === id && u.ownerId === state.world!.player.id && u.hp > 0,
+    );
+    return u ? [u] : [];
+  });
+  if (!units.length) {
+    notify('Cette armée n’a plus de troupes disponibles.', true);
+    return;
+  }
+  const first = units[0];
+  useGame.setState({
+    selectedUnitIds: units.map((u) => u.id),
+    selectedArmyId: army.id,
+    groupFormation: army.formation,
+    selection: { kind: 'unit', id: first.id, q: first.q, r: first.r },
+    groupTarget: null,
+    multiSelect: false,
+    mode: 'inspect',
+    panel: null,
+    constructionBuilderId: null,
+    combatTarget: null,
+    showUnits: true,
+  });
+  focusMap(first);
 }

@@ -1,17 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Flag, MapPin, Shield, Swords, Clock3 } from 'lucide-react';
 import { BUILDINGS, UNITS, UNIT_PROFILES, UNIT_CATEGORY, formatNumber } from '@voidmarch/config';
-import {
-  canAfford,
-  missionReward,
-  missionWallCount,
-  distance,
-  unitStats,
-} from '@voidmarch/game-rules';
+import { canAfford, missionReward, missionWallCount, distance } from '@voidmarch/game-rules';
 import type { MissionOffer } from '@voidmarch/shared';
 import { focusMap, send, useGame } from './store';
 import { Cost, Duration } from './ui';
-import { missionDifficulty, missionTravel } from './mission-guidance';
+import { missionDifficulty } from './mission-guidance';
 import type { Hex, WorldView } from '@voidmarch/shared';
 
 function OfferDetails({ offer }: { offer: MissionOffer }) {
@@ -80,65 +74,13 @@ function MissionDifficulty({ offer }: { offer: MissionOffer }) {
   );
 }
 function MissionJourney({ world, target }: { world: WorldView; target: Hex }) {
-  const selection = useGame((s) => s.selection);
-  const [chosen, setChosen] = useState<string | null>(null);
-  const units = world.units.filter((u) => u.ownerId === world.player.id && u.hp > 0);
-  const selected = units.find((u) => u.id === (chosen ?? selection?.id));
-  const travel = useMemo(
-    () => (selected ? missionTravel(world, target, selected) : undefined),
-    [world, target.q, target.r, selected],
-  );
   return (
     <div className="mission-journey">
-      <strong>Distance et trajet</strong>
+      <strong>Distance</strong>
       <span>
         Depuis ta capitale : {formatNumber(distance(world.player.capital, target))} cases.
       </span>
-      {units.length > 0 ? (
-        <>
-          <label>
-            Estimer depuis une unité
-            <select value={selected?.id ?? ''} onChange={(e) => setChosen(e.target.value)}>
-              <option value="">Choisir une unité</option>
-              {units.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nickname ?? unitStats(u).name} · {u.q}, {u.r} ·{' '}
-                  {formatNumber(distance(u, target))} cases
-                </option>
-              ))}
-            </select>
-          </label>
-          {travel && (
-            <div className="mission-travel-result">
-              <strong>
-                Depuis cette unité : {formatNumber(travel.cases)} cases en ligne directe.
-              </strong>
-              <span>
-                {travel.basis === 'near'
-                  ? 'Déjà aux abords de l’objectif · 0 PA de trajet.'
-                  : travel.pa === null
-                    ? 'Cette unité ne peut pas se déplacer.'
-                    : travel.basis === 'road'
-                      ? 'Réseau connu jusqu’aux abords · 1 PA.'
-                      : travel.basis === 'known'
-                        ? `Trajet connu : environ ${formatNumber(travel.pa)} PA.`
-                        : `Repère en terrain ouvert : environ ${formatNumber(travel.pa)} PA, sans routes ni obstacles.`}
-              </span>
-              <small>
-                {travel.basis === 'unknown'
-                  ? 'Aucun trajet complet calculable sur la carte connue : le terrain, les routes et les remparts peuvent changer fortement cette estimation.'
-                  : 'Estimation avec les terrains, routes et obstacles connus ; la situation peut changer pendant le voyage.'}{' '}
-                Combats et brèches non compris.
-              </small>
-            </div>
-          )}
-        </>
-      ) : (
-        <small>
-          Recrute une unité pour estimer son trajet. La distance indiquée est directe, sans les
-          détours.
-        </small>
-      )}
+      <small>Distance directe en hexagones, sans les détours.</small>
     </div>
   );
 }
@@ -171,8 +113,10 @@ export function Missions() {
         <div>
           <h3>Une campagne, un objectif, une nouvelle place forte.</h3>
           <p>
-            Choisis une mission : sa forteresse apparaît à 20–40 cases de ta capitale. Seuls toi et
-            tes alliés pouvez l’attaquer.
+            La forteresse apparaît hors de ta vision actuelle, de préférence à 20–40 cases de ta
+            capitale. Sinon, elle est placée dans la zone libre la plus proche au-delà. Une zone
+            déjà explorée peut accueillir une mission si elle n’est plus visible. Seuls toi et tes
+            alliés pouvez l’attaquer.
           </p>
         </div>
       </div>
@@ -294,7 +238,8 @@ export function Missions() {
                 <h3>{offer.title}</h3>
                 <MissionDifficulty offer={offer} />
                 <p className="mission-offer-distance">
-                  À 20–40 cases de ta capitale après acceptation.
+                  20–40 cases si possible ; sinon au plus proche dans le brouillard au-delà.
+                  Distance exacte après acceptation.
                 </p>
                 <OfferDetails offer={offer} />
                 <MissionRewards offer={offer} />

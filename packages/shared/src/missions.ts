@@ -17,6 +17,7 @@ export interface MissionOffer {
   reward?: Partial<Wallet>;
 }
 export interface ActiveMission extends MissionOffer, Hex {
+  losses?: { units: number; buildings: number };
   id: string;
   realmId: string;
   ownerId: string;
@@ -80,8 +81,21 @@ export interface MissionTrophy {
     | 'wall'
     | 'wallRadius'
   >;
+  losses?: { units: number; buildings: number };
   completedAt: number;
   reward: Partial<Wallet>;
   captured: { units: number; buildings: number; walls: number };
   destroyed: { units: number; buildings: number; walls: number };
+}
+
+export interface MissionVictory extends Hex {
+  id: string;
+  title: string;
+  ownerId: string;
+  at: number;
+  reward: Partial<Wallet>;
+  captured: MissionTrophy['captured'];
+  destroyed: MissionTrophy['destroyed'];
+  losses: { units: number; buildings: number };
+  medal: MissionMedal;
 }
