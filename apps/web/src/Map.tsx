@@ -127,7 +127,18 @@ class WorldScene extends Phaser.Scene {
   constructor() {
     super('World');
   }
+  private mapLoadFailed = false;
   preload() {
+    this.mapLoadFailed = false;
+    this.load.on('progress', (progress: number) => this.game.events.emit('map:progress', progress));
+    this.load.on('loaderror', (file: Phaser.Loader.File) => {
+      this.mapLoadFailed = true;
+      this.game.events.emit(
+        'map:load-error',
+        'Une illustration n’a pas pu être chargée. Réessayez.',
+      );
+      console.error('VOIDMARCH : illustration inaccessible', file.key);
+    });
     this.load.image(HERO_BASE_SPRITE, `/assets/${HERO_BASE_SPRITE}.png`);
     for (const name of Object.values(HERO_SHEETS)) this.load.image(name, `/assets/${name}.png`);
     this.load.image('wall-materials', '/assets/wall-materials.png');
@@ -136,6 +147,19 @@ class WorldScene extends Phaser.Scene {
     this.load.spritesheet('terrain', '/assets/terrain.png', { frameWidth: 362, frameHeight: 362 });
   }
   create() {
+    if (this.mapLoadFailed) return;
+    try {
+      this.createWorld();
+      this.registry.set('map:prepared', true);
+    } catch (error) {
+      console.error('VOIDMARCH : échec de préparation de la carte', error);
+      this.game.events.emit(
+        'map:load-error',
+        'La préparation du plateau a échoué. Réessayez ou rechargez le jeu.',
+      );
+    }
+  }
+  private createWorld() {
     // Register cleanup before the first render, including when initialization fails.
     const cleanup = () => {
       this.unsubscribe?.();
@@ -1735,10 +1759,18 @@ class WorldScene extends Phaser.Scene {
 }
 export function GameMap() {
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [slow, setSlow] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!host.current) return;
     setLoading(true);
+    setProgress(0);
+    setLoadError(null);
+    setSlow(false);
+    const slowTimer = window.setTimeout(() => setSlow(true), 45000);
     // Each mount owns its container. Phaser destroys asynchronously, whereas React
     // StrictMode immediately mounts again; an old canvas must not shift the new one.
     const container = document.createElement('div');
@@ -1762,10 +1794,19 @@ export function GameMap() {
     // Assets loading is only the first step: wait until the populated map has
     // actually been rendered, including atlas normalization and scene creation.
     const onFirstFrame = () => {
-      if (!game.canvas.dataset.mapView) return;
+      if (!game.canvas.dataset.mapView || !game.registry.get('map:prepared')) return;
       game.events.off(Phaser.Core.Events.POST_RENDER, onFirstFrame);
+      clearTimeout(slowTimer);
       setLoading(false);
+      setLoadError(null);
     };
+    const onProgress = (value: number) => setProgress(Math.round(value * 100));
+    const onLoadError = (message: string) => {
+      clearTimeout(slowTimer);
+      setLoadError(message);
+    };
+    game.events.on('map:progress', onProgress);
+    game.events.on('map:load-error', onLoadError);
     game.events.on(Phaser.Core.Events.POST_RENDER, onFirstFrame);
     const resizeObserver = new ResizeObserver(() => {
       if (host.current && game.isBooted)
@@ -1773,27 +1814,48 @@ export function GameMap() {
     });
     resizeObserver.observe(host.current);
     return () => {
+      clearTimeout(slowTimer);
       resizeObserver.disconnect();
+      game.events.off('map:progress', onProgress);
+      game.events.off('map:load-error', onLoadError);
       game.events.off(Phaser.Core.Events.POST_RENDER, onFirstFrame);
       // Stop scene subscriptions synchronously; Phaser destroys the game next frame.
       for (const scene of game.scene.getScenes(false)) scene.scene.stop();
       container.remove();
       game.destroy(true);
     };
-  }, []);
+  }, [attempt]);
   return (
     <>
       <div
         className="game-canvas"
         ref={host}
         role="application"
-        aria-busy={loading}
+        aria-busy={loading && !loadError}
         aria-label="Carte hexagonale des Marches. Sélectionnez une unité, puis Déplacer. Flèches pour déplacer la caméra, molette pour zoomer."
       />
       {loading && (
-        <div className="map-loading" role="status" aria-live="polite">
-          <LoaderCircle className="spin" size={36} strokeWidth={1.5} aria-hidden="true" />
-          <p>Génération de la carte…</p>
+        <div className="map-loading" role={loadError ? 'alert' : 'status'} aria-live="polite">
+          {!loadError && (
+            <LoaderCircle className="spin" size={36} strokeWidth={1.5} aria-hidden="true" />
+          )}
+          <p>{loadError ? 'Impossible de charger la carte' : 'Génération de la carte…'}</p>
+          <small>
+            {loadError ??
+              (progress < 100
+                ? 'Chargement des illustrations… ' + progress + ' %'
+                : 'Préparation du plateau…')}
+          </small>
+          {slow && !loadError && (
+            <small>
+              Le chargement prend plus de temps que prévu. Vous pouvez patienter ou réessayer.
+            </small>
+          )}
+          {(slow || loadError) && (
+            <button className="primary" onClick={() => setAttempt((n) => n + 1)}>
+              Réessayer le chargement
+            </button>
+          )}
         </div>
       )}
     </>

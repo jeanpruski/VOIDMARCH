@@ -107,3 +107,9 @@ Ouvrir http://localhost:3001. Le conteneur applique les migrations puis sert l'i
 L'équilibrage des unités, du rythme et des coûts doit être éprouvé en partie. Les règles de bots et d'événements sont présentes, avec comportements et animations de prototype. Le stockage en agrégat transactionnel et les instantanés de vue conviennent à la validation d'un monde local ; la tenue à grande population doit être mesurée avant exploitation publique. La musique et les effets sont synthétiques. Docker est fourni ; sa validation exige un moteur Docker installé.
 
 Les sources techniques utilisées pour la structure sont le [modèle Phaser + TypeScript + Vite](https://phaser.io/news/2024/01/phaser-vite-typescript-template) et l'[adaptateur Redis officiel de Socket.IO](https://github.com/socketio/socket.io-redis-adapter).
+
+### Build et connexion sur N0C
+
+`npm run build` force maintenant `NODE_ENV=production` avant de charger Vite, même si le terminal N0C hérite du mode Development. Le client Socket.IO utilise exclusivement le transport HTTP polling : Passenger peut refuser les upgrades WebSocket. Choisir aussi le mode Production pour l’application dans N0C.
+
+Le chargement de la carte affiche la progression des illustrations, puis la préparation du plateau. Une illustration inaccessible ou une erreur de préparation affiche une erreur et un bouton de nouvelle tentative ; après 45 secondes, ce bouton apparaît également pendant un chargement lent. Le message disparaît seulement après la préparation réussie et le premier rendu.

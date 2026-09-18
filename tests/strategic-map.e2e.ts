@@ -67,7 +67,7 @@ test('vue stratégique : territoires, rendu léger, zoom et navigation', async (
     await route.continue();
   });
   await page.goto('/strategic-fixture', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('status')).toHaveText('Génération de la carte…');
+  await expect(page.getByRole('status')).toContainText('Génération de la carte…');
   await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'true');
   releaseTerrain();
   await expect(page.getByRole('status')).toHaveCount(0);

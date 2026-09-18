@@ -277,10 +277,10 @@ function connect() {
   clearInterval(heartbeat);
   socket = io({
     auth: { token: useGame.getState().token, codeSessionId },
-    transports: ['polling', 'websocket'],
-    // N0C serves polling successfully but rejects the WebSocket upgrade.
-    // Keep HTTP transport in production; local development can still upgrade.
-    upgrade: !import.meta.env.PROD,
+    // Passenger/N0C rejects WebSocket upgrades. Keep one transport regardless
+    // of the NODE_ENV inherited by the build or the application manager.
+    transports: ['polling'],
+    upgrade: false,
     reconnection: true,
   });
   socket.on('connect', () => {
