@@ -18,6 +18,7 @@ export type Command = Action extends infer A
     : never
   : never;
 export type Panel =
+  | 'missions'
   | 'realm'
   | 'army'
   | 'cities'

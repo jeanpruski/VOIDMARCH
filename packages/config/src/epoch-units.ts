@@ -1,3 +1,4 @@
+import { SPECIALIST_ERAS } from './specialist-units';
 import { CAMPAIGN_ERAS } from './campaign-units';
 import { ELITE_ERAS } from './elite-units';
 import {
@@ -107,7 +108,7 @@ export const EPOCH_PROFILES = {
     recruitAt: ['BARRACKS', 'ARSENAL'],
     requires: ['RADIO'],
     minRecruitLevel: 4,
-    role: 'Infanterie moderne mobile, fusil à longue portée et reconnaissance. Bâtiment recruteur niveau 4, relais radio nécessaire.',
+    role: 'Infanterie moderne mobile, fusil à longue portée et reconnaissance. Relais radio nécessaire.',
   },
   DRONE_OPERATOR: {
     recruitAt: ['WORKSHOP'],
@@ -127,6 +128,7 @@ export const EPOCH_PROFILES = {
 } satisfies Record<keyof typeof EPOCH_UNITS, UnitProfile>;
 
 export const UNIT_ERAS = {
+  ...SPECIALIST_ERAS,
   ...ELITE_ERAS,
   ...CAMPAIGN_ERAS,
   ...ERA_REINFORCEMENT_AGES,

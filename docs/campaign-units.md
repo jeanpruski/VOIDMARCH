@@ -2,7 +2,7 @@
 
 > Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
 
-96 unités supplémentaires, soit 24 par thème : 12 au niveau 2 et 12 au niveau 3. Avec les 48 élites du Soleil noir et du Shogunat néon, le catalogue compte 255 types d’unités, héros et civils compris.
+96 unités supplémentaires, soit 24 par thème : 12 au niveau 2 et 12 au niveau 3. Avec les 48 élites du Soleil noir et du Shogunat néon, le catalogue comptait alors 255 types d’unités, héros et civils compris.
 
 ## Identité et progression
 
@@ -148,3 +148,5 @@ Les prix ci-dessous sont les prix finaux. PV, attaque et défense sont indiqués
 16 atlas de six figurines avec transparence réelle et socles. La carte et les vignettes utilisent le même découpage isolé avec marges. [Sources et prompts](assets-campaign-units.json).
 
 Aucune nouvelle dépendance et aucune migration SQL. Déploiement : tirer la branche master, lancer npm run build, puis toucher tmp/restart.txt dans le répertoire de l’application Passenger. Les comptes et royaumes existants sont conservés.
+
+La répartition actuelle par bâtiment et les variantes complémentaires figurent dans [la progression du recrutement](recruitment-progression.md).

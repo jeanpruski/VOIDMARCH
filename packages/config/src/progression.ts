@@ -1,9 +1,11 @@
+import { SPECIALIST_TIERS } from './specialist-units';
 import { CAMPAIGN_TIERS } from './campaign-units';
 import { ELITE_TIERS } from './elite-units';
 import { ERA_REINFORCEMENT_TIERS } from './era-reinforcements';
 import type { UnitKind } from './index';
 export const BALANCE_VERSION = 4;
 export const UNIT_TIERS = {
+  ...SPECIALIST_TIERS,
   ...ELITE_TIERS,
   ...CAMPAIGN_TIERS,
   ...ERA_REINFORCEMENT_TIERS,

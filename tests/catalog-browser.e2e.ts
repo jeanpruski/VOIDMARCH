@@ -31,6 +31,8 @@ test('catalogues : pagination, filtres, détails, ressources fixes et achats sur
     'LIBRARY',
   ];
   kinds.forEach((kind, i) => addBuilding(state, realm, { q: i - 4, r: 2 }, kind, now));
+  const observatory = Object.values(state.buildings).find((b) => b.kind === 'BLACK_OBSERVATORY')!;
+  observatory.level = 2;
   const view = () =>
     worldView(state, 'a', Date.now(), [
       { q: 0, r: 0 },
@@ -174,6 +176,31 @@ test('catalogues : pagination, filtres, détails, ressources fixes et achats sur
   await expect(page.getByLabel('Univers', { exact: true })).toBeVisible();
   await page.screenshot({ animations: 'disabled', path: 'test-results/catalog-mobile.png' });
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await page.evaluate(
+    (selection) => (window as any).catalogStore.setState({ selection, panel: 'recruit' }),
+    { kind: 'building', id: observatory.id, q: observatory.q, r: observatory.r },
+  );
+  await page.getByLabel('Niveau requis', { exact: true }).selectOption('3');
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText('Observatoire noir niveau 3 nécessaire');
+  await page.getByLabel('Niveau requis', { exact: true }).selectOption('2');
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first()).toContainText('Commando');
+  await expect(cards.first()).toContainText('Nouveauté de ce niveau');
+  await expect(cards.first()).toContainText('Prêt à recruter');
+  await cards.first().getByText('Détails et prérequis', { exact: true }).click();
+  await expect(cards.first()).toContainText('Observatoire noir · niveau 2');
+  await expect(cards.first()).toContainText('Caserne · niveau 4');
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'test-results/recruitment-local-level.png',
+  });
+  await cards.first().getByRole('button', { name: 'Recruter · 1 PA', exact: true }).click();
+  await expect
+    .poll(() => Object.values(state.units).filter((u) => u.kind === 'COMMANDO').length)
+    .toBe(1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

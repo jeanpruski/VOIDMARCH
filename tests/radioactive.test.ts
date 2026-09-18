@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
+  recruitmentLevel,
   BUILDINGS,
   BUILDING_REQUIREMENTS,
   RADIOACTIVE_UNITS,
@@ -73,7 +74,7 @@ describe('division atomique', () => {
     expect(
       atomic.filter((k) => UNIT_PROFILES[k].recruitAt.some((b) => !newBuildings.includes(b)))
         .length,
-    ).toBe(28);
+    ).toBe(29);
     for (const kind of atomic) {
       expect(UNIT_PROFILES[kind].requires).toContain('NUCLEAR_REACTOR');
       expect(UNITS[kind].cost.GOLD).toBeGreaterThanOrEqual(300);
@@ -88,6 +89,7 @@ describe('division atomique', () => {
       const { s, r, buildings } = fixture(),
         profile = UNIT_PROFILES[kind];
       const recruiter = buildings.find((b) => b.kind === profile.recruitAt[0])!;
+      recruiter.level = recruitmentLevel(kind, recruiter.kind);
       const reactor = buildings.find((b) => b.kind === 'NUCLEAR_REACTOR')!;
       delete s.buildings[reactor.id];
       const denied = execute(s, r.id, order('RECRUIT', recruiter.id, { kind }), now);
@@ -106,7 +108,11 @@ describe('division atomique', () => {
       expect(fresh.hp).toBe(unitStats(fresh).hp);
       expect(recruited.state.realms.p.ap).toBe(39);
       expect(recruited.state.realms.p.wallet.GOLD).toBe(r.wallet.GOLD - UNITS[kind].cost.GOLD);
-      fresh.hp /= 2;
+      // A legacy army may predate the new recruitment levels. Upgrading still
+      // trains these existing troops and preserves their wounds.
+      recruited.state.buildings[recruiter.id].level = 1;
+      fresh.trainingBonus = 0;
+      fresh.hp = unitStats(fresh).hp / 2;
       const upgraded = execute(recruited.state, r.id, order('UPGRADE', recruiter.id), now);
       expect(upgraded.result.accepted).toBe(true);
       const veteran = upgraded.state.units[fresh.id];

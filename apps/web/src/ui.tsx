@@ -1,3 +1,4 @@
+import { SPECIALIST_FRAMES } from '@voidmarch/config';
 import { CAMPAIGN_FRAMES, CAMPAIGN_SHEETS } from '@voidmarch/config';
 import { ELITE_FRAMES, ELITE_SHEETS } from '@voidmarch/config';
 import { formatNumber } from '@voidmarch/config';
@@ -222,6 +223,7 @@ export function Modal({
   );
 }
 export const UNIT_FRAMES: Record<UnitKind, number> = {
+  ...SPECIALIST_FRAMES,
   ...ELITE_FRAMES,
   ...CAMPAIGN_FRAMES,
   HALBERDIER: 768,

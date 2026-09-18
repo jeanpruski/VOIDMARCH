@@ -1,35 +1,23 @@
 # Projet Glocke
 
-Trois cloches volantes et un bâtiment de création portent le catalogue à **84 unités et 52 bâtiments**. Inspiration fictionnelle : [Die Glocke](https://fr.wikipedia.org/wiki/Die_Glocke), récit d’arme secrète et d’antigravité présenté comme non prouvé par la référence. L’adaptation garde les factions imaginaires, les matières industrielles sombres et les accents occultes du jeu.
+Le complexe débloque cinq cloches volantes, une par niveau. Construire ce bâtiment exige un réacteur noir, une fonderie atomique et un observatoire noir. Ces trois infrastructures restent nécessaires au recrutement.
 
-## Accès en fin de progression
+Chaque recrutement coûte 1 PA ; chaque tir manuel coûte 2 PA et touche une seule cible. Les modèles volent au-dessus des remparts sans capturer de terres. Ils restent vulnérables à la DCA. Wacht escorte les aéronefs, Nacht assiège les bâtiments, Sturm chasse les blindés, Götterdämmerung constitue le modèle ultime.
 
-Construire un **Complexe des cloches** sur plaine ou ruines exige un **Réacteur noir**, une **Fonderie atomique** et un **Observatoire noir**. Leurs propres chaînes de prérequis restent obligatoires. Coût initial du complexe : 33 000 or, 7 500 bois, 10 500 pierre, 18 000 fer et 1 PA, avant réduction de faction. Il possède 750 PV de base, ne produit aucune ressource et ne tire pas automatiquement.
+## Modèles et coûts
 
-Le bâtiment débloque un modèle par niveau. Les évolutions coûtent 2 PA et les ressources du devis normal : ×2,5 le nouveau prix de base pour le niveau 2, puis ×5 pour le niveau 3, sans réduction de faction sur les améliorations. Le niveau est exigé sur le complexe sélectionné ; posséder un autre complexe plus avancé ne permet pas de recruter le modèle III depuis un complexe niveau 1. Les infrastructures de soutien doivent encore appartenir au joueur au recrutement.
+Statistiques sans entraînement ni rareté. Les coûts des améliorations sont ceux du devis normal (2 PA et ressources, jusqu’au niveau 5).
 
-## Trois modèles
+| Niveau | Modèle | PV | Attaque / siège | Défense | Déplacement / portée | Population | Coût |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | Die Glocke I — Vril | 200 | 52 / 140 | 10 | 5 / 4 | 18 | 27 000 or, 3 000 bois, 16 500 fer, 2 250 vivres |
+| 2 | Die Glocke — Wacht | 220 | 54 / 150 | 12 | 5 / 4 | 20 | 33 000 or, 3 600 bois, 19 500 fer, 2 700 vivres |
+| 3 | Die Glocke II — Nacht | 260 | 60 / 220 | 14 | 4 / 5 | 22 | 39 000 or, 4 200 bois, 24 000 fer, 3 000 vivres |
+| 4 | Die Glocke — Sturm | 290 | 62 / 250 | 15 | 4 / 5 | 24 | 48 000 or, 4 800 bois, 30 000 fer, 3 450 vivres |
+| 5 | Die Glocke III — Götterdämmerung | 320 | 64 / 290 | 16 | 3 / 6 | 26 | 57 000 or, 5 400 bois, 36 000 fer, 3 900 vivres |
 
-| Modèle                           | Niveau du complexe | PV de base | Attaque / siège de base | Défense | Déplacement / portée | Mobilisation | Prix de recrutement                       |
-| -------------------------------- | -----------------: | ---------: | ----------------------: | ------: | -------------------: | -----------: | ----------------------------------------- |
-| Die Glocke I — Vril              |                  1 |        200 |                 52 / 70 |      10 |                5 / 4 |           18 | 27 000 or, 16 500 fer, 3 000 bois, 2 250 vivres |
-| Die Glocke II — Nacht            |                  2 |        260 |                60 / 110 |      14 |                4 / 5 |           22 | 39 000 or, 24 000 fer, 4 200 bois, 3 000 vivres |
-| Die Glocke III — Götterdämmerung |                  3 |        320 |                64 / 145 |      16 |                3 / 6 |           26 | 57 000 or, 36 000 fer, 5 400 bois, 3 900 vivres |
+L’entraînement apporte +25 %, +60 %, +80 % puis +100 % aux niveaux 2 à 5. Au niveau 5, Götterdämmerung possède 640 PV, 128 d’attaque et 580 de siège avant rareté. Les améliorations conservent la proportion de blessures des cloches existantes.
 
-Chaque recrutement coûte 1 PA. Les statistiques ci-dessus précèdent l’entraînement. Au niveau 2, le complexe donne +25 % ; au niveau 3, +60 %, aux PV, à l’attaque, aux dégâts de siège et à la défense. La cloche III sort donc au minimum avec **512 PV, 102,4 d’attaque et 232 de siège**, avant rareté. Les cloches déjà créées bénéficient des améliorations en conservant leur proportion de blessures. La chance rare de 1 % et son bonus habituel restent applicables.
+Wacht et Sturm réutilisent respectivement les miniatures Vril et Nacht avec leur projectile électrique. Les trois figurines originales et celle du complexe sont documentées dans [assets-glocke.md](assets-glocke.md).
 
-## Combat et contraintes
-
-- Tir manuel à **2 PA**, sur une seule cible visible. Vril et Götterdämmerung émettent des décharges vertes ; Nacht projette un orbe violet. Aucun dégât de zone ni tir automatique.
-- Vol au-dessus des terrains et remparts, sans capture de cases. Les tirs aériens franchissent les remparts ; les trêves et protections habituelles restent respectées.
-- Les défenses antiaériennes bénéficient de leurs bonus contre elles. La mobilité diminue avec la puissance ; leur prix, mobilisation et entretien en or/fer/vivres sont élevés.
-- Machines mécaniques : réparations avec or et fer, soins biologiques inapplicables. Pas de ressource supplémentaire.
-- Onglet **Cloches occultes**, recherche par nom ou complexe, palier **Projet Glocke**, coûts et niveau minimal visibles. Les trois modèles ne sont pas inclus dans le filtre des 36 unités atomiques existantes.
-
-## Intégration et validation
-
-Les nouvelles clés utilisent les mécanismes existants de sauvegarde, recrutement, attaques, rareté, amélioration et animation. Aucune migration SQL. Le contrôle des infrastructures et du niveau de recrutement est partagé entre serveur, catalogue et prévisualisation optimiste.
-
-`tests/glocke.test.ts` vérifie la construction avancée, les refus sans prérequis ou niveau, les coûts, les statistiques des recrues, les améliorations, les tirs aériens et les contres. Les suites communes testent aussi leurs déplacements et les 84 recrutements. `tests/glocke.e2e.ts` vérifie les trois niveaux successifs, le recrutement, les images et le catalogue mobile.
-
-Les quatre figurines et leurs prompts sont documentés dans [assets-glocke.md](assets-glocke.md).
+Le contrôle du niveau local et des infrastructures est partagé entre serveur et aperçu optimiste. Les tests unitaires couvrent les coûts, le recrutement, les tirs et les contres ; le scénario navigateur couvre les quatre améliorations et les cinq recrutements et le catalogue mobile. Aucune migration SQL nécessaire.

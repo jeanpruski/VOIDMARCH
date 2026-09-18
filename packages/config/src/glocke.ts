@@ -55,13 +55,13 @@ export const GLOCKE_PROFILES = {
   GLOCKE_NACHT: {
     ...common,
     population: 22,
-    minRecruitLevel: 2,
-    role: 'Cloche volante de siège. Orbe du néant : 2 PA par tir, dégâts accrus aux bâtiments, une cible. Survole les remparts, sans capture ; vulnérable à l’antiaérien. Complexe des cloches niveau 2.',
+    minRecruitLevel: 3,
+    role: 'Cloche volante de siège. Orbe du néant : 2 PA par tir, dégâts accrus aux bâtiments, une cible. Survole les remparts, sans capture ; vulnérable à l’antiaérien. Complexe des cloches niveau 3.',
   },
   GLOCKE_APOCALYPSE: {
     ...common,
     population: 26,
-    minRecruitLevel: 3,
-    role: 'Cloche volante ultime, lente et très coûteuse. Décharge d’annihilation : 2 PA par tir, une cible, puissance de siège extrême. Sans capture ; vulnérable à l’antiaérien. Complexe des cloches niveau 3.',
+    minRecruitLevel: 5,
+    role: 'Cloche volante ultime, lente et très coûteuse. Décharge d’annihilation : 2 PA par tir, une cible, puissance de siège extrême. Sans capture ; vulnérable à l’antiaérien. Complexe des cloches niveau 5.',
   },
 } satisfies Record<keyof typeof GLOCKE_UNITS, UnitProfile>;

@@ -174,7 +174,12 @@ describe('aviation et défense antiaérienne', () => {
     const airfield = addBuilding(s, a, { q: 1, r: 0 }, 'AERODROME', now);
     expect(
       execute(s, 'a', order('RECRUIT', airfield.id, { kind: 'FIGHTER' }), now).result.reason,
+    ).toContain('niveau 2');
+    airfield.level = 2;
+    expect(
+      execute(s, 'a', order('RECRUIT', airfield.id, { kind: 'FIGHTER' }), now).result.reason,
     ).toContain('munitions');
+    airfield.level = 1;
     addBuilding(s, a, { q: 2, r: 0 }, 'MUNITIONS', now);
     const housing = addBuilding(s, a, { q: 3, r: 0 }, 'VILLAGE', now);
     housing.population = 100;

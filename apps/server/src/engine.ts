@@ -1,3 +1,12 @@
+import {
+  clearMission,
+  missionAction,
+  missionAttackReason,
+  missionForOwner,
+  missionsView,
+  reconcileMissions,
+  retaliateMission,
+} from './missions';
 import { strategyAction, strategyView, launchTrade } from './strategy';
 import { alliedRealmIds } from '@voidmarch/game-rules';
 import { formatNumber } from '@voidmarch/config';
@@ -276,6 +285,7 @@ export function restartRealm(s: GameState, id: string, now: number) {
   requireRule(previous && !previous.bot, 'Royaume humain introuvable.');
   s.archives[id] = archive(s, previous, now);
   const footprint = realmTiles(s, id).map(key);
+  clearMission(s, id);
   removePresence(s, previous);
   for (const tileKey of footprint) delete s.tiles[tileKey];
   for (const proposal of Object.values(s.proposals))
@@ -312,6 +322,7 @@ export function removePresence(s: GameState, r: Realm) {
 export function defeat(s: GameState, r: Realm, now: number) {
   if (r.defeatedAt) return;
   s.archives[r.id] = archive(s, r, now);
+  clearMission(s, r.id);
   removePresence(s, r);
   r.defeatedAt = now;
   log(
@@ -345,6 +356,8 @@ function spend(r: Realm, cost = 1) {
   r.ap -= cost;
 }
 function hostile(s: GameState, a: Realm, owner: string, now: number, options: EngineOptions) {
+  const missionReason = missionAttackReason(s, a.id, owner);
+  requireRule(!missionReason, missionReason ?? 'Mission inaccessible.');
   const b = s.realms[owner];
   if (!b) return;
   requireRule(a.id !== b.id, 'Vous ne pouvez pas attaquer votre royaume.');
@@ -562,8 +575,15 @@ export function applyAction(
       // Both the intended kingdom and an intervening third-party wall retain treaty protection.
       if (!('npc' in intended && intended.npc)) hostile(s, r, intended.ownerId, now, options);
       if (target.ownerId !== intended.ownerId) hostile(s, r, target.ownerId, now, options);
+      const mission = missionForOwner(s, target.ownerId);
       spendAction(attackCost(u));
-      const bounds = estimateDamage(u, target, tileAt(s, target), Object.values(s.units)),
+      const bounds = estimateDamage(
+          u,
+          target,
+          tileAt(s, target),
+          Object.values(s.units),
+          tileAt(s, u).terrain,
+        ),
         damage = bounds.min + Math.floor(hash(a.actionId) * (bounds.max - bounds.min + 1));
       if (npc)
         npc.npc!.contributions[id] =
@@ -617,13 +637,14 @@ export function applyAction(
         }
       } else if (npc && distance(npc, u) <= unitStats(npc).range) {
         const reply = resolveAttack(npc, u, Object.values(s.buildings));
-        if (reply.reason) break;
+        if (reply.reason || missionAttackReason(s, id, reply.target.ownerId)) break;
         const recipient = reply.target;
         const retaliation = estimateDamage(
           npc,
           recipient,
           tileAt(s, recipient),
           Object.values(s.units),
+          tileAt(s, npc).terrain,
         );
         const dealt =
           retaliation.min +
@@ -653,12 +674,22 @@ export function applyAction(
         }
       }
 
+      const victories = reconcileMissions(s, now);
+      if (victories.length) message += ` ${victories.join(' ')}`;
+      if (mission) {
+        const reply = retaliateMission(s, mission, u, now, a.actionId);
+        if (reply) message += ` ${reply}`;
+      }
       break;
     }
     case 'CAPTURE': {
       const u = ownedUnit(s, r, a.actorId),
         t = tileAt(s, u);
       requireRule(UNITS[u.kind].capture > 0, 'Cette unité ne peut pas revendiquer de territoire.');
+      requireRule(
+        !t.ownerId || !missionForOwner(s, t.ownerId),
+        'Accomplissez l’objectif de la mission pour rallier cette forteresse.',
+      );
       requireRule(t.ownerId !== id, 'Cet hexagone vous appartient déjà.');
       requireRule(
         !t.buildingId || !isWall(s.buildings[t.buildingId]?.kind ?? ''),
@@ -1227,7 +1258,7 @@ export function applyAction(
       break;
     }
     default: {
-      const result = strategyAction(s, id, a, now);
+      const result = missionAction(s, id, a, now) ?? strategyAction(s, id, a, now);
       requireRule(result !== undefined, 'Ordre inconnu.');
       message = result;
       break;
@@ -1398,6 +1429,7 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
   }));
   const onlineHumans = realms.filter((x) => !x.bot && x.online).length;
   return {
+    missions: missionsView(s, id),
     strategy: strategyView(s, id, now, visible),
     revision: s.revision,
     serverTimestamp: now,

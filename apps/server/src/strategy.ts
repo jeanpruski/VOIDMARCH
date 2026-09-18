@@ -1,3 +1,4 @@
+import { missionAttackReason } from './missions';
 import { randomUUID } from 'node:crypto';
 import {
   STRATEGY,
@@ -71,6 +72,7 @@ function peace(s: GameState, a: string, b: string, now: number) {
 function nuclearProtected(s: GameState, owner: string, launcher: string, now: number) {
   return (
     owner === launcher ||
+    !!missionAttackReason(s, launcher, owner) ||
     !!(
       s.realms[owner] &&
       s.realms[launcher] &&

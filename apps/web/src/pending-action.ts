@@ -4,6 +4,8 @@ import type { Hex, WorldView } from '@voidmarch/shared';
 import type { Prediction } from './optimistic-actions';
 
 const labels: Record<Action['type'], string> = {
+  MISSION_ACCEPT: 'Préparation de la campagne',
+  MISSION_ABANDON: 'Abandon de la mission',
   ALLIANCE_CREATE: 'Création de l’alliance',
   ALLIANCE_INVITE: 'Envoi de l’invitation',
   ALLIANCE_RESPOND: 'Réponse à l’alliance',

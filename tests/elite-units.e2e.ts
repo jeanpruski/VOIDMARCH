@@ -86,7 +86,8 @@ test('les élites filtrées par univers exigent le niveau 5 puis se recrutent', 
   const sapper = page
     .locator('.catalog article')
     .filter({ has: page.getByRole('heading', { name: 'Fusilier d’Anubis', exact: true }) });
-  await expect(sapper).toContainText('Âge atomique · recrutement niveau 5');
+  await expect(sapper).toContainText('Âge atomique');
+  await expect(sapper).toContainText('Débloqué au niveau 5');
   await expect(sapper).toContainText('Arsenal niveau 5 nécessaire');
   await expect(
     page.locator('.catalog').getByRole('heading', { name: 'Éclaireur des landes', exact: true }),

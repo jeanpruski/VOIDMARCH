@@ -4663,3 +4663,82 @@ button.radar-target {
     gap: 4px 10px;
   }
 }
+
+/* Positional traits stay compact enough to compare several recruits. */
+.terrain-affinity-card {
+  margin: 8px 0;
+  padding: 8px 0;
+  border-block: 1px solid var(--line, #414635);
+  font-size: 11px;
+}
+.terrain-affinity-card > span {
+  color: #cdbf8e;
+}
+.terrain-affinities {
+  list-style: none;
+  padding: 0;
+  margin: 5px 0;
+  display: grid;
+  gap: 4px;
+}
+.terrain-affinities li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 3px 10px;
+}
+.terrain-affinities strong {
+  color: #d8d9b7;
+  font-weight: 500;
+}
+.terrain-affinity-active,
+.terrain-affinity-active strong {
+  color: #bed49a;
+}
+.terrain-affinity-details {
+  max-width: 420px;
+  font-size: 11px;
+}
+.terrain-affinity-details summary {
+  cursor: pointer;
+  color: #cdbf8e;
+}
+.terrain-affinity-details p {
+  color: #aaa;
+  margin: 5px 0;
+}
+.combat-terrain-bonuses {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #414635;
+  background: #152019;
+}
+.combat-terrain-bonuses p {
+  margin: 0 0 5px;
+  font-size: 13px;
+}
+.combat-terrain-bonuses small {
+  color: #b8bba9;
+}
+
+/* Campaign board */
+.missions-panel { display: grid; gap: 18px; }
+.mission-intro { display: flex; align-items: flex-start; gap: 14px; }
+.mission-intro > svg { flex-shrink: 0; color: var(--gold, #bc9860); margin-top: 8px; }
+.mission-intro h3, .mission-intro p { margin: 4px 0; }
+.mission-offers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.mission-card, .mission-active { border: 1px solid #bc98604d; background: #151c18; padding: 20px; border-radius: 8px; }
+.mission-card { display: flex; flex-direction: column; gap: 8px; }
+.mission-card h3, .mission-card p { margin: 3px 0; }
+.mission-objective { display: flex; align-items: flex-start; gap: 8px; color: #e5cfa2; }
+.mission-objective svg { flex-shrink: 0; margin-top: 3px; }
+.mission-price { margin-top: auto; padding: 12px 0; }
+.mission-price small { display: block; margin-bottom: 7px; }
+.mission-progress { display: flex; flex-wrap: wrap; gap: 10px 24px; padding: 16px 0; }
+.mission-abandon { margin-top: 20px; padding-top: 16px; border-top: 1px solid #bc986033; display: grid; justify-items: start; gap: 10px; }
+.mission-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+.mission-error { color: #f39c90; }
+.mission-result { border-left: 3px solid #bc9860; padding: 12px 18px; background: #bc986012; }
+.mission-allied { display: grid; gap: 10px; }
+.mission-allied h3 { display: flex; gap: 8px; align-items: center; }
+@media(max-width: 850px) { .mission-offers { grid-template-columns: 1fr; } }

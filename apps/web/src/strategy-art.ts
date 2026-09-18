@@ -65,6 +65,16 @@ export function drawStrategicOperations(
         .setName('strategy-label'),
     );
   };
+  for (const mission of [world.missions?.active, ...(world.missions?.allied ?? [])]) {
+    if (!mission) continue;
+    const objective = 'objectivePosition' in mission ? (mission.objectivePosition as Hex) : mission;
+    if (visible(objective)) hex(objective, 0xe2b767, 0.2);
+    label(
+      objective,
+      `⚑ ${mission.realmId === world.player.id ? 'OBJECTIF' : 'MISSION ALLIÉE'} · ${mission.title}`,
+      '#f2cc85',
+    );
+  }
   if (!simple)
     for (const f of d.fallout) if (visible(f)) hex(f, 0x89b643, Math.min(0.24, f.intensity / 400));
   for (const strike of d.strikes.filter((s) => !s.resolvedAt)) {

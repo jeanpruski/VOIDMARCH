@@ -1,3 +1,5 @@
+import type { MissionBoard, MissionsView } from './missions';
+export type { MissionOffer, ActiveMission, MissionBoard, MissionsView } from './missions';
 import type { StrategyState, StrategyView } from './strategy';
 export * from './strategy';
 import type {
@@ -205,6 +207,7 @@ export interface RealmArchive {
   tiles: Tile[];
 }
 export interface GameState {
+  missions?: Record<string, MissionBoard>;
   strategy?: StrategyState;
   version: 1;
   balanceVersion?: number;
@@ -259,6 +262,7 @@ export interface PlayerState extends Omit<
 }
 export type OverviewTile = Pick<ViewTile, 'q' | 'r' | 'terrain' | 'ownerId' | 'visibility'>;
 export interface WorldView {
+  missions?: MissionsView;
   strategy?: StrategyView;
   /** Secret radar only: never included in ordinary player views. */
   enemyCapitals?: { realmId: string; position: Hex }[];

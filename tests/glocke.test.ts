@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { GLOCKE_UNITS, BUILDINGS, UNITS, UNIT_PROFILES, type UnitKind } from '@voidmarch/config';
+import {
+  trainingBonusAt,
+  GLOCKE_UNITS,
+  BUILDINGS,
+  UNITS,
+  UNIT_PROFILES,
+  type UnitKind,
+} from '@voidmarch/config';
 import {
   createState,
   createRealm,
@@ -76,7 +83,7 @@ describe('Projet Glocke', () => {
   });
   it.each(kinds)('%s exige toutes ses infrastructures et son bâtiment dédié', (kind) => {
     const { s, r, b } = fixture(false);
-    b.level = 3;
+    b.level = 5;
     const rejected = execute(s, 'a', order('RECRUIT', b.id, { kind }), now);
     expect(rejected.result.accepted).toBe(false);
     expect(rejected.result.reason).toContain('Réacteur noir');
@@ -101,7 +108,7 @@ describe('Projet Glocke', () => {
     const result = execute(s, 'a', action, now, { ...defaultOptions, recruitBonus: () => 0 });
     expect(result.result.accepted, result.result.reason).toBe(true);
     const u = Object.values(result.state.units).find((u) => u.kind === kind)!;
-    expect(u.trainingBonus ?? 0).toBe([0, 25, 60][level - 1]);
+    expect(u.trainingBonus ?? 0).toBe(trainingBonusAt('GLOCKE_COMPLEX', level));
     expect(u.hp).toBe(unitStats(u).hp);
     expect(result.state.realms.a.wallet.GOLD).toBe(r.wallet.GOLD - UNITS[kind].cost.GOLD);
     expect(result.state.realms.a.ap).toBe(r.ap - 1);

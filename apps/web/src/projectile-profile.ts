@@ -1,3 +1,4 @@
+import { SPECIALIST_WEAPONS } from '@voidmarch/config';
 import {
   CAMPAIGN_KINDS,
   CAMPAIGN_ROSTER,
@@ -20,6 +21,7 @@ export type ProjectileKind =
   | 'flame';
 /** Deliberate weapon assignments: new ranged troops must choose their ammunition. */
 export const PROJECTILE_WEAPONS = {
+  ...SPECIALIST_WEAPONS,
   ...Object.fromEntries(
     CAMPAIGN_KINDS.filter((k) => CAMPAIGN_ROSTER[k].weapon !== 'none').map((k) => [
       k,

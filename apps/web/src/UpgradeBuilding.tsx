@@ -1,3 +1,4 @@
+import { recruitmentLevel, type UnitKind } from '@voidmarch/config';
 import { ActionButton } from './ActionButton';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -44,10 +45,10 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
   const unlocked = upgrade
     ? Object.entries(UNIT_PROFILES)
         .filter(
-          ([, p]) =>
+          ([kind, p]) =>
             p.recruitAt.includes(upgrade.kind) &&
-            (p.minRecruitLevel ?? 1) <= upgrade.level &&
-            (!p.recruitAt.includes(b.kind) || (p.minRecruitLevel ?? 1) > b.level),
+            recruitmentLevel(kind as UnitKind, upgrade.kind) <= upgrade.level &&
+            (!p.recruitAt.includes(b.kind) || recruitmentLevel(kind as UnitKind, b.kind) > b.level),
         )
         .map(([kind]) => UNITS[kind as keyof typeof UNITS].name)
     : [];

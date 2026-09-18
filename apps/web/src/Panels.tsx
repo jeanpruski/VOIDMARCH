@@ -1,3 +1,7 @@
+import { Missions } from './Missions';
+import { TerrainAffinities } from './TerrainAffinities';
+import { terrainCombatBonus } from '@voidmarch/game-rules';
+import { recruitmentLevel, UNIT_TERRAIN_AFFINITIES } from '@voidmarch/config';
 import { CatalogToolbar, CatalogDetails, useCatalogPage } from './CatalogBrowser';
 import { UNIT_FAMILIES, unitUniverse } from '@voidmarch/config';
 import { constructionSiteReason } from './construction';
@@ -100,6 +104,7 @@ export function Panels() {
   if (target) return <Combat />;
   if (!panel) return null;
   const titles = {
+    missions: 'Missions',
     realm: 'Votre royaume',
     army: 'Les armées',
     cities: 'Villes & domaines',
@@ -118,9 +123,11 @@ export function Panels() {
       title={titles[panel]}
       className={['build', 'recruit'].includes(panel) ? 'catalog-modal' : undefined}
       toolbar={['build', 'recruit'].includes(panel) ? <CatalogResources /> : undefined}
-      wide={['trade', 'economy', 'build', 'recruit', 'rank'].includes(panel)}
+      wide={['missions', 'trade', 'economy', 'build', 'recruit', 'rank'].includes(panel)}
     >
-      {panel === 'realm' ? (
+      {panel === 'missions' ? (
+        <Missions />
+      ) : panel === 'realm' ? (
         <RealmPanel />
       ) : panel === 'army' ? (
         <ArmyPanel />
@@ -1382,13 +1389,18 @@ function Recruit() {
           : sort === 'attack'
             ? unitStats({ kind: b[0], trainingBonus: trainingByKind.get(b[0]) }).attack -
               unitStats({ kind: a[0], trainingBonus: trainingByKind.get(a[0]) }).attack
-            : compareRecruits(a, b)),
+            : (building
+                ? recruitmentLevel(a[0], building.kind) - recruitmentLevel(b[0], building.kind)
+                : 0) || compareRecruits(a, b)),
     )
     .filter(([kind]) => category === 'Toutes' || UNIT_CATEGORY[kind] === category)
     .filter(([kind]) => !atomicOnly || UNIT_PROFILES[kind].radioactive)
     .filter(([kind]) => family === 'all' || unitUniverse(kind)?.family === family)
     .filter(
-      ([kind]) => level === 'all' || (UNIT_PROFILES[kind].minRecruitLevel ?? 1) === Number(level),
+      ([kind]) =>
+        level === 'all' ||
+        recruitmentLevel(kind, building?.kind ?? UNIT_PROFILES[kind].recruitAt[0]) ===
+          Number(level),
     )
     .filter(([kind, u]) =>
       matchesCollectionSearch(
@@ -1397,6 +1409,7 @@ function Recruit() {
         UNIT_PROFILES[kind].role,
         unitUniverse(kind) ? UNIT_FAMILIES[unitUniverse(kind)!.family] : '',
         UNIT_CATEGORY[kind],
+        ...UNIT_TERRAIN_AFFINITIES[kind].map((a) => TERRAINS[a.terrain].name),
       ),
     );
   const available = matching.filter(([kind]) => !reasons.get(kind));
@@ -1412,6 +1425,10 @@ function Recruit() {
           ? `${BUILDINGS[building.kind].name} · niveau ${building.level}`
           : 'Sélectionnez un bâtiment'}{' '}
         · Mobilisation : {format(mobilized)}/{format(capacity)}
+      </p>
+      <p className="catalog-context">
+        Les filières militaires débloquent de nouvelles recrues à chaque niveau. Les niveaux
+        précédents restent disponibles ; les infrastructures requises restent nécessaires.
       </p>
       <CatalogToolbar
         query={query}
@@ -1467,7 +1484,15 @@ function Recruit() {
             <option value="all">Tous les niveaux</option>
             {[1, 2, 3, 4, 5].map((l) => (
               <option key={l} value={l}>
-                Niveau {l}
+                Niveau {l} ·{' '}
+                {
+                  recruits.filter(
+                    ([kind]) =>
+                      recruitmentLevel(kind, building?.kind ?? UNIT_PROFILES[kind].recruitAt[0]) ===
+                      l,
+                  ).length
+                }{' '}
+                unités
               </option>
             ))}
           </select>
@@ -1535,7 +1560,7 @@ function Recruit() {
               <h4>{u.name}</h4>
               <span className="building-stage">
                 {kind in UNIT_ERAS
-                  ? `${BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1]} · recrutement niveau ${UNIT_ERAS[kind as keyof typeof UNIT_ERAS]}`
+                  ? `${BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1]}`
                   : `${UNIT_TIERS[kind] ? `Palier ${UNIT_TIERS[kind]} · ` : ''}${TIER_NAMES[UNIT_TIERS[kind]]}`}
               </span>
               {unitUniverse(kind) && (
@@ -1544,6 +1569,19 @@ function Recruit() {
                 </span>
               )}
               {profile.radioactive && <span className="atomic-badge">☢ Division atomique</span>}
+              {building && (
+                <span
+                  className={
+                    building.level < recruitmentLevel(kind, building.kind)
+                      ? 'recruitment-missing'
+                      : 'building-stage'
+                  }
+                >
+                  {building.level === recruitmentLevel(kind, building.kind)
+                    ? 'Nouveauté de ce niveau'
+                    : `Débloqué au niveau ${recruitmentLevel(kind, building.kind)}`}
+                </span>
+              )}
               <p className="catalog-brief">{profile.role}</p>
               <p className="catalog-combat-stats">
                 {format(trainedStats.hp)} PV · ATQ {format(trainedStats.attack)} · DÉF{' '}
@@ -1554,6 +1592,7 @@ function Recruit() {
                 {unitPopulation(kind)} places
                 {trainedStats.attack > 0 && ` · Attaque : ${profile.siege ? 2 : 1} PA`}
               </p>
+              <TerrainAffinities kind={kind} />
               <Cost cost={cost} wallet={w.player.wallet} />
               <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
               {reason && <p className="catalog-unavailable recruitment-missing">{reason}</p>}
@@ -1588,19 +1627,21 @@ function Recruit() {
                     .join(' · ')}
                 </p>
                 <p>
-                  Formation : {profile.recruitAt.map((k) => BUILDINGS[k].name).join(', ')}
-                  {profile.minRecruitLevel && (
-                    <span
-                      className={
-                        building && building.level < profile.minRecruitLevel
-                          ? 'recruitment-missing'
-                          : undefined
-                      }
-                    >
-                      {' '}
-                      · niveau {profile.minRecruitLevel} minimum
+                  Formation :{' '}
+                  {profile.recruitAt.map((k, index) => (
+                    <span key={k}>
+                      {index > 0 && ', '}
+                      <span
+                        className={
+                          building?.kind === k && building.level < recruitmentLevel(kind, k)
+                            ? 'recruitment-missing'
+                            : undefined
+                        }
+                      >
+                        {BUILDINGS[k].name} · niveau {recruitmentLevel(kind, k)}
+                      </span>
                     </span>
-                  )}
+                  ))}
                   .
                 </p>
                 {profile.requires.length > 0 && (
@@ -1664,8 +1705,9 @@ function Combat() {
     intended: Unit | Building | undefined =
       w.units.find((u) => u.id === targetId) ??
       w.tiles.find((t) => t.building?.id === targetId)?.building;
+  const attackerTile = attacker ? w.tiles.find((t) => key(t) === key(attacker)) : undefined;
   const intendedTile = intended ? w.tiles.find((t) => key(t) === key(intended)) : undefined;
-  if (!attacker || !intended || !intendedTile?.terrain)
+  if (!attacker || !intended || !intendedTile?.terrain || !attackerTile?.terrain)
     return (
       <Modal title="Cible indisponible">
         <p>Cette cible n’est plus visible. Revenez à la carte pour choisir votre prochain ordre.</p>
@@ -1686,6 +1728,7 @@ function Combat() {
         terrain,
       },
       w.units,
+      attackerTile.terrain,
     ),
     enemy = w.realms.find((r) => r.id === target.ownerId),
     truce = w.treaties.some(
@@ -1696,6 +1739,12 @@ function Combat() {
     ),
     ap = attackCost(attacker),
     reason =
+      (intended.ownerId.startsWith('mission:') &&
+      ![w.missions?.active, ...(w.missions?.allied ?? [])].some(
+        (m) => m?.ownerId === intended.ownerId,
+      )
+        ? 'Forteresse réservée à un autre royaume et à ses alliés.'
+        : undefined) ||
       resolution.reason ||
       (w.strategy?.alliance?.members.some((id) => opponents.some((r) => r.id === id))
         ? 'Votre alliance interdit cette attaque.'
@@ -1738,7 +1787,12 @@ function Combat() {
             {'population' in target ? BUILDINGS[target.kind].name : unitStats(target).name}
           </strong>
           <span>
-            {format(target.hp)} PV · {'npc' in target && target.npc ? 'PNJ neutre' : enemy?.name}
+            {format(target.hp)} PV ·{' '}
+            {'npc' in target && target.npc
+              ? 'PNJ neutre'
+              : target.ownerId.startsWith('mission:')
+                ? 'Garnison de mission'
+                : enemy?.name}
           </span>
         </div>
       </div>
@@ -1759,6 +1813,31 @@ function Combat() {
           }[attackTrajectory(attacker)]
         }
       </p>
+      <div className="combat-terrain-bonuses">
+        <p>
+          Attaquant · {TERRAINS[attackerTile.terrain].name} :{' '}
+          <strong>
+            ATQ +
+            {format(
+              'population' in attacker
+                ? 0
+                : terrainCombatBonus(attacker, attackerTile.terrain).attack,
+            )}{' '}
+            %
+          </strong>
+        </p>
+        <p>
+          Défenseur · {TERRAINS[terrain].name} :{' '}
+          <strong>
+            DÉF +{format('population' in target ? 0 : terrainCombatBonus(target, terrain).defense)}{' '}
+            %
+          </strong>
+        </p>
+        <small>
+          Affinités incluses dans les dégâts estimés. Le bonus offensif vient de la case de départ ;
+          le bonus défensif de la case de la cible réelle.
+        </small>
+      </div>
       <div className="damage-estimate">
         <span>DÉGÂTS ESTIMÉS</span>
         <strong>
@@ -1790,11 +1869,18 @@ function Combat() {
                   terrain: ground,
                 },
                 w.units,
+                terrain,
               );
               return `S’il survit : riposte estimée de ${format(retaliation.min)} à ${format(retaliation.max)} dégâts${reply.intercepted ? ' sur le rempart qui vous protège' : ''}.`;
             })()}
           </p>
         </>
+      )}
+      {target.ownerId.startsWith('mission:') && (
+        <p className="warning">
+          Un défenseur à portée peut riposter à chaque attaque, y compris contre un bâtiment.
+          Détruire l’objectif met fin au combat et rallie les survivants.
+        </p>
       )}
       {isWall(target.kind) && (
         <p>
@@ -1802,9 +1888,11 @@ function Combat() {
           siège utilisent leurs dégâts contre les bâtiments.
         </p>
       )}
-      {w.player.protectedUntil > now && !('npc' in target && target.npc) && (
-        <p className="warning">Donner cet ordre mettra fin à votre protection initiale.</p>
-      )}
+      {w.player.protectedUntil > now &&
+        !target.ownerId.startsWith('mission:') &&
+        !('npc' in target && target.npc) && (
+          <p className="warning">Donner cet ordre mettra fin à votre protection initiale.</p>
+        )}
       {reason && <p className="form-error">{reason}</p>}
       <button
         className="primary danger full-width"

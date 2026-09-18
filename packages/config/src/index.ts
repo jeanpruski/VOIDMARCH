@@ -1,3 +1,9 @@
+import { createTerrainAffinities } from './terrain-affinities';
+export type { TerrainAffinity } from './terrain-affinities';
+import { arrangeRecruitment } from './recruitment';
+export { RECRUITMENT_TRACKS } from './recruitment';
+import { SPECIALIST_UNITS, SPECIALIST_PROFILES, SPECIALIST_CATEGORIES } from './specialist-units';
+export * from './specialist-units';
 import {
   balanceProfiles,
   balanceUnits,
@@ -69,6 +75,8 @@ export const RULES = {
   tradeDuration: 3_600_000,
 };
 export const ACTION_COST = {
+  MISSION_ACCEPT: 0,
+  MISSION_ABANDON: 0,
   ALLIANCE_CREATE: 0,
   ALLIANCE_INVITE: 0,
   ALLIANCE_RESPOND: 0,
@@ -163,6 +171,7 @@ export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
   terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
 export const TERRAFORM_COST: Partial<Wallet> = { WOOD: 20, IRON: 10 };
 const UNIT_BASE_CATALOG = {
+  ...SPECIALIST_UNITS,
   ...ELITE_UNITS,
   ...CAMPAIGN_UNITS,
   ...EPOCH_UNITS,
@@ -1273,7 +1282,9 @@ export function productionOnTerrain(kind: BuildingKind, terrain: Terrain): Parti
 
 export interface UnitProfile {
   hero?: boolean;
+  /** Primary recruiter only. Use recruitmentLevel() for a selected building. */
   minRecruitLevel?: number;
+  recruitLevels?: Partial<Record<BuildingKind, number>>;
   radioactive?: boolean;
   population?: number;
   role: string;
@@ -1291,6 +1302,7 @@ export interface UnitProfile {
   healer?: boolean;
 }
 const BASE_UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  ...SPECIALIST_PROFILES,
   ...ELITE_PROFILES,
   ...CAMPAIGN_PROFILES,
   ...EPOCH_PROFILES,
@@ -1577,7 +1589,15 @@ const BASE_UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
   },
 };
 export const GATHER_YIELD: Wallet = { STONE: 20, GOLD: 16, WOOD: 24, IRON: 16, FOOD: 24 };
-export const UNIT_PROFILES = balanceProfiles(BASE_UNIT_PROFILES, UNIT_TIERS);
+export const UNIT_PROFILES = balanceProfiles(
+  arrangeRecruitment(BASE_UNIT_PROFILES, UNIT_TIERS),
+  UNIT_TIERS,
+);
+export const UNIT_TERRAIN_AFFINITIES = createTerrainAffinities(UNIT_PROFILES, UNIT_BASE_CATALOG);
+export function recruitmentLevel(kind: UnitKind, building: BuildingKind): number {
+  const profile = UNIT_PROFILES[kind];
+  return profile.recruitLevels?.[building] ?? profile.minRecruitLevel ?? 1;
+}
 export const UNITS = balanceUnits(UNIT_BASE_CATALOG, UNIT_TIERS, UNIT_PROFILES, (kind) =>
   UNIT_TIERS[kind] <= 1 ? 1 : PRICE_MULTIPLIERS[UNIT_TIERS[kind]],
 );
@@ -1642,13 +1662,13 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   ABYSSAL_MINE:
     'Forage occulte des profondeurs : 100 fer/min, uniquement sur colline. Exige une mine industrielle et un laboratoire des cendres. Production +80 % au niveau 2, +200 % au niveau 3, +400 % au niveau 4 et +700 % au niveau 5 ; stockage local dès le niveau 2.',
   GLOCKE_COMPLEX:
-    'Armes occultes de fin de progression : exige réacteur noir, fonderie atomique et observatoire noir. Recrute Die Glocke I au niveau 1, II au niveau 2, III au niveau 3. Entraînement +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5 pour les cloches existantes et futures. Aucun revenu ni tir automatique.',
+    'Armes occultes de fin de progression : exige réacteur noir, fonderie atomique et observatoire noir. Une cloche par niveau : Vril, Wacht (escorte), Nacht (siège), Sturm (antiblindage), puis Götterdämmerung au niveau 5. Entraînement +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5 pour les cloches existantes et futures. Aucun revenu ni tir automatique.',
   ISOTOPE_LAB:
     'Recherche atomique : débloque le réacteur noir et l’héliport. Ne produit pas de ressources et ne forme pas de troupes directement. Confine les réacteurs à trois cases : réduit les émissions de 2 points par niveau, suppression complète au niveau 3.',
   NUCLEAR_REACTOR:
     'Débloque la division atomique et la garde à neutrons dans leurs bâtiments de formation. Produit 120 or/min ; production +80 / +200 / +400 / +700 % aux niveaux 2 / 3 / 4 / 5. Contamine sept cases alentour : un laboratoire isotopique peut confiner ses émissions. Au niveau 5, permet les frappes atomiques avec un silo de niveau 5.',
   HELIPAD:
-    'Forme les 6 hélicoptères atomiques : reconnaissance, assaut, précision, interception et siège. Réacteur noir requis ; fonderie atomique pour les deux modèles ultimes. +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5, pour les appareils existants et futurs.',
+    'Débloque progressivement les hélicoptères sur cinq niveaux : reconnaissance, assaut, précision, interception et siège. Réacteur noir requis ; fonderie atomique pour les deux modèles ultimes. +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5, pour les appareils existants et futurs.',
   ATOMIC_FOUNDRY:
     'Assemble le char Mausolée et le chenillé de l’Apocalypse ; débloque les unités atomiques ultimes des autres filières. Améliorations : +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5 pour les unités qu’elle forme, existantes et futures.',
   AERODROME:
@@ -1656,7 +1676,7 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   AIRSHIP_YARD:
     'Assemble les dirigeables de guerre et l’aile de l’Apocalypse : bombardement et observation. Chaque amélioration renforce vos dirigeables existants et futurs de +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5.',
   DRAGON_ROOST:
-    'Invoque les dragons occultes cuirassés ; exige une fonderie alchimique pour les recruter. Chaque amélioration renforce les dragons existants et futurs de +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5.',
+    'Invoque successivement drakes des cendres, dragons occultes, wyvernes des tempêtes, dragons au radium et séraphins du réacteur. Chaque modèle exige ses infrastructures. Chaque amélioration renforce les dragons existants et futurs de +25 / +60 / +80 / +100 % aux niveaux 2 / 3 / 4 / 5.',
   FLAK_BATTERY:
     'Recrute les canons antiaériens Flak et les chenillés Flak gamma avec la filière atomique. Défense du bâtiment +3 ; les tirs sont effectués par les canons recrutés, sur votre ordre. Amélioration : +25 % puis +60 % aux canons existants et futurs. Niveaux 4 et 5 : +80 % et +100 %.',
   WOOD_WALL: `Occupe une case, bloque les ennemis terrestres et laisse passer vos unités. Se raccorde aux remparts voisins. Une enceinte fermée revendique les terres neutres intérieures ; en cas de brèche, les cases sans bâtiment redeviennent neutres. Évolue avec ${BUILDINGS.STONE_WALL.cost.STONE} pierre, puis ${BUILDINGS.STEEL_WALL.cost.IRON} fer pour l’acier (2 PA par évolution). Sélectionnez le mur pour y installer une tourelle à tir manuel.`,
@@ -1671,7 +1691,8 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   CRYPT_BARRACKS:
     'Forme grenadiers revenants et cavaliers spectraux, puis exécuteurs et éclaireurs blafards avec la filière atomique.',
   ALCHEMY_FOUNDRY: 'Produit 10 or par minute et débloque marcheurs de siège et chars possédés.',
-  BLACK_OBSERVATORY: 'Observe dans un rayon de 12 cases et forme les chasseurs de maléfices.',
+  BLACK_OBSERVATORY:
+    'Observe dans un rayon de 12 cases. Filière de reconnaissance : chasseurs de maléfices, commandos, opérateurs de drones, tireurs isotopiques, puis chasseurs blafards à moto.',
   FARM: 'Produit des vivres pour nourrir les habitants et entretenir les troupes.',
   LUMBER: 'Exploite le bois en forêt ; finance les premières constructions.',
   MINE: 'Extrait le fer des collines pour les armes, les véhicules et les réparations.',
@@ -1711,12 +1732,14 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   FISHERY: 'Production importante de vivres sur rivière ou marais.',
   STABLE:
     'Recrute cavalerie légère et chevaliers, puis hussards, lanciers, cuirassiers et dragons des cendres avec un réacteur noir.',
-  ARCHERY: 'Recrute archers, rôdeurs et arbalétriers.',
+  ARCHERY:
+    'Filière de précision : archers au niveau 1, arbalétriers au niveau 2, tireurs au niveau 3, fusils électromagnétiques au niveau 4 et tireurs isotopiques au niveau 5. Les armes avancées exigent leurs infrastructures.',
   MONASTERY:
-    'Recrute guérisseuses et paladins, puis paladins gamma avec la filière atomique ; accélère la croissance de population.',
+    'Filière spirituelle sur cinq niveaux : guérisseuses, paladins, acolytes du Vide, voltigeurs Tesla, puis paladins gamma ; accélère la croissance de population. Les unités avancées exigent les infrastructures occultes ou atomiques.',
   FORGE:
     'Transforme les équipements et débloque les troupes lourdement équipées ; le fer vient des mines.',
-  LIBRARY: 'Débloque les acolytes du Vide et étend la vision de tous vos bâtiments.',
+  LIBRARY:
+    'Savoir et surveillance : prérequis des acolytes du Vide, recrutés au laboratoire des cendres ou au monastère. Étend la vision de tous vos bâtiments.',
   BAKERY: 'Transforme votre domaine agricole en production abondante de vivres.',
   WELL: 'Produit des vivres et accélère la croissance de population.',
 };
@@ -1814,6 +1837,7 @@ export const UNIT_TABS = [
 ] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
+  ...SPECIALIST_CATEGORIES,
   ...ELITE_CATEGORIES,
   ...CAMPAIGN_CATEGORIES,
   ...ERA_REINFORCEMENT_CATEGORIES,

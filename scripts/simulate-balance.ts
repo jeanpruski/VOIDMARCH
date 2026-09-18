@@ -199,7 +199,7 @@ export function simulateCombat(
 ) {
   const a = specimen(attacker, trainingBonusAt(UNIT_PROFILES[attacker].recruitAt[0], level));
   const b = specimen(target, trainingBonusAt(UNIT_PROFILES[target].recruitAt[0], targetLevel));
-  const damage = estimateDamage(a, b, { q: 0, r: 0, terrain: 'PLAIN' });
+  const damage = estimateDamage(a, b, { q: 0, r: 0, terrain: 'PLAIN' }, [], 'PLAIN');
   return {
     damage,
     shots: Math.ceil(b.hp / damage.min),

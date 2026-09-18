@@ -1,3 +1,4 @@
+import { reconcileMissions } from './missions';
 import { tickStrategy } from './strategy';
 import { wallBlocks, alliedRealmIds } from '@voidmarch/game-rules';
 import { formatNumber, RESOURCE_NAMES, type Resource } from '@voidmarch/config';
@@ -113,6 +114,7 @@ export function tickWorld(
     }
   }
   tickStrategy(s, now, connected);
+  reconcileMissions(s, now);
   new BotDirector(options).tick(s, now, humans);
   tickNpcs(s, now, connected);
   for (const p of Object.values(s.proposals))

@@ -1,3 +1,5 @@
+import { TerrainAffinities } from './TerrainAffinities';
+import { unitCombatStats } from '@voidmarch/game-rules';
 import { constructionSiteReason } from './construction';
 import { ActionButton, activateSelectionShortcut } from './ActionButton';
 import { NuclearAlerts, NuclearControls, StrategyUnitControls } from './Strategy';
@@ -109,6 +111,7 @@ const nav: { panel: Panel; label: string; icon: typeof Crown }[] = [
   { panel: 'cities', label: 'Villes & domaines', icon: Castle },
   { panel: 'economy', label: 'Économie', icon: TrendingUp },
   { panel: 'trade', label: 'Commerce & diplomatie', icon: Handshake },
+  { panel: 'missions', label: 'Missions', icon: Swords },
 ];
 import { CapitalRadar } from './CapitalRadar';
 let booted = false;
@@ -764,11 +767,11 @@ function SelectionPanel() {
             </div>
             <div>
               <span>ATTAQUE</span>
-              <strong>{format(unitStats(u).attack)}</strong>
+              <strong>{format(unitCombatStats(u, tile?.terrain).attack)}</strong>
             </div>
             <div>
               <span>DÉFENSE</span>
-              <strong>{format(unitStats(u).defense)}</strong>
+              <strong>{format(unitCombatStats(u, tile?.terrain).defense)}</strong>
             </div>
             <div>
               <span>MOUV.</span>
@@ -779,6 +782,7 @@ function SelectionPanel() {
               <strong>{UNITS[u.kind].vision}</strong>
             </div>
           </div>
+          {!u.npc && <TerrainAffinities kind={u.kind} terrain={tile?.terrain} collapsible />}
           {u.npc && <NpcInfo unit={u} />}
           {own && u.kind === 'PEASANT' && (
             <ContextHelp title="Aide aux actions">
@@ -809,6 +813,27 @@ function SelectionPanel() {
           >
             {own ? (
               <>
+                {UNIT_PROFILES[u.kind].builder && (
+                  <ActionButton
+                    shortcut="C"
+                    className="secondary"
+                    title="Construire sur la case du bâtisseur. Pour bâtir à côté, sélectionnez d’abord une case voisine éclairée."
+                    onClick={() => {
+                      if (tile?.building) {
+                        notify(
+                          'Cette case contient déjà un bâtiment. Sélectionnez une case libre autour du bâtisseur.',
+                          true,
+                        );
+                        return;
+                      }
+                      select({ kind: 'tile', q: u.q, r: u.r });
+                      useGame.setState({ panel: 'build' });
+                    }}
+                  >
+                    <Hammer size={15} />
+                    Construire <small>1 PA + ressources</small>
+                  </ActionButton>
+                )}
                 <ActionButton
                   shortcut="D"
                   className={`primary ${mode === 'move' ? 'chosen' : ''}`}
@@ -932,27 +957,6 @@ function SelectionPanel() {
                   </ActionButton>
                 )}
                 {UNIT_PROFILES[u.kind].builder && <RoadAction tile={tile} />}
-                {UNIT_PROFILES[u.kind].builder && (
-                  <ActionButton
-                    shortcut="C"
-                    className="secondary"
-                    title="Construire sur la case du bâtisseur. Pour bâtir à côté, sélectionnez d’abord une case voisine éclairée."
-                    onClick={() => {
-                      if (tile?.building) {
-                        notify(
-                          'Cette case contient déjà un bâtiment. Sélectionnez une case libre autour du bâtisseur.',
-                          true,
-                        );
-                        return;
-                      }
-                      select({ kind: 'tile', q: u.q, r: u.r });
-                      useGame.setState({ panel: 'build' });
-                    }}
-                  >
-                    <Hammer size={15} />
-                    Construire <small>1 PA + ressources</small>
-                  </ActionButton>
-                )}
                 {u.kind !== 'PEASANT' && u.kind !== 'HERO' && (
                   <ActionButton
                     shortcut="R"

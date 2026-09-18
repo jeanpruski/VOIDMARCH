@@ -188,7 +188,8 @@ export class BotDirector {
         !wallBlocks(s.buildings[tile.buildingId ?? ''], r.id) &&
         tile.ownerId !== r.id &&
         (!tile.ownerId ||
-          !hostileReason(s, r, s.realms[tile.ownerId], now, this.options.offlineProtection))
+          (s.realms[tile.ownerId] &&
+            !hostileReason(s, r, s.realms[tile.ownerId], now, this.options.offlineProtection)))
       )
         add(
           { type: 'CAPTURE', actorId: u.id, payload: {} },
@@ -214,6 +215,7 @@ export class BotDirector {
         const resolved = resolveAttack(u, enemy, Object.values(s.buildings));
         if (
           resolved.reason ||
+          !s.realms[resolved.target.ownerId] ||
           hostileReason(
             s,
             r,

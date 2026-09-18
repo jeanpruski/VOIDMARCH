@@ -119,7 +119,7 @@ describe('fondation sans ressources', () => {
 });
 
 describe('catalogue étendu', () => {
-  it.each(Object.keys(UNITS).filter(k=>k!=='HERO') as UnitKind[])(
+  it.each(Object.keys(UNITS).filter((k) => k !== 'HERO') as UnitKind[])(
     'recrute %s avec ses prérequis et son bâtiment',
     (kind) => {
       const s = established(),
@@ -159,6 +159,7 @@ describe('catalogue étendu', () => {
     const s = established(),
       r = s.realms.founder,
       b = addBuilding(s, r, { q: 8, r: 0 }, 'ARCHERY', now);
+    b.level = 2;
     const result = execute(s, r.id, action('RECRUIT', b.id, { kind: 'CROSSBOW' }), now);
     expect(result.result.accepted).toBe(false);
     expect(result.result.reason).toContain('Forge');

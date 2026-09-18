@@ -1,3 +1,4 @@
+import { clearMission } from './missions';
 import { refreshEnclosures } from './engine.js';
 import { RULES } from '@voidmarch/config';
 import { transfer } from '@voidmarch/game-rules';
@@ -5,6 +6,8 @@ import type { GameState } from '@voidmarch/shared';
 import type { Prisma } from '@prisma/client';
 
 export function removeGuestRealm(s: GameState, id: string) {
+  clearMission(s, id);
+  if (s.missions) delete s.missions[id];
   for (const [key, unit] of Object.entries(s.units)) if (unit.ownerId === id) delete s.units[key];
   for (const [key, building] of Object.entries(s.buildings))
     if (building.ownerId === id) delete s.buildings[key];

@@ -22,6 +22,16 @@ const building = z.enum(
 const id = z.string().min(1).max(80);
 export const commandSchema = z.discriminatedUnion('type', [
   z.object({
+    type: z.literal('MISSION_ACCEPT'),
+    actorId: id,
+    payload: z.object({ offerId: id }).strict(),
+  }),
+  z.object({
+    type: z.literal('MISSION_ABANDON'),
+    actorId: id,
+    payload: z.object({ missionId: id }).strict(),
+  }),
+  z.object({
     type: z.literal('ALLIANCE_CREATE'),
     actorId: id,
     payload: z.object({

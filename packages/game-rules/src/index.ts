@@ -1,4 +1,4 @@
-import { veteranRank } from '@voidmarch/config';
+import { veteranRank, recruitmentLevel, UNIT_TERRAIN_AFFINITIES } from '@voidmarch/config';
 import {
   BUILDINGS,
   heroAura,
@@ -43,8 +43,8 @@ export function recruitmentRequirement(
   if (profile.hero) return 'Le héros est unique et ne peut pas être recruté.';
   if (!profile.recruitAt.includes(building.kind))
     return `Formation : ${BUILDINGS[profile.recruitAt[0]].name}`;
-  if (building.level < (profile.minRecruitLevel ?? 1))
-    return `${BUILDINGS[building.kind].name} niveau ${profile.minRecruitLevel} nécessaire`;
+  if (building.level < recruitmentLevel(kind, building.kind))
+    return `${BUILDINGS[building.kind].name} niveau ${recruitmentLevel(kind, building.kind)} nécessaire`;
   const missing = profile.requires.find(
     (k) => !owned.some((b) => b.ownerId === building.ownerId && b.kind === k && b.hp > 0),
   );
@@ -613,9 +613,32 @@ export function unitStats(
   };
 }
 
+/** Affinities are positional, never persisted into a unit's permanent stats. */
+export function terrainCombatBonus(unit: Pick<Unit, 'kind' | 'npc'>, terrain?: Terrain) {
+  if (unit.npc || !terrain) return { attack: 0, defense: 0 };
+  return (
+    UNIT_TERRAIN_AFFINITIES[unit.kind].find((a) => a.terrain === terrain) ?? {
+      attack: 0,
+      defense: 0,
+    }
+  );
+}
+export function unitCombatStats(unit: Parameters<typeof unitStats>[0], terrain?: Terrain) {
+  const stats = unitStats(unit);
+  const bonus = terrainCombatBonus(unit, terrain);
+  const boosted = (value: number, percent: number) =>
+    Math.round(value * (1 + percent / 100) * 100) / 100;
+  return {
+    ...stats,
+    attack: boosted(stats.attack, bonus.attack),
+    buildingAttack: boosted(stats.buildingAttack, bonus.attack),
+    defense: boosted(stats.defense, bonus.defense),
+  };
+}
+
 /** Shared targeting restrictions for server orders, bots and the combat preview. */
-export function attackStats(attacker: Unit | Building) {
-  if (!('population' in attacker)) return unitStats(attacker);
+export function attackStats(attacker: Unit | Building, terrain?: Terrain) {
+  if (!('population' in attacker)) return unitCombatStats(attacker, terrain);
   const turret = turretStats(attacker);
   return {
     name: turret?.name ?? BUILDINGS[attacker.kind].name,
@@ -712,8 +735,9 @@ export function estimateDamage(
   target: Unit | Building,
   tile: Tile,
   units: readonly Unit[] = [],
+  attackerTerrain?: Terrain,
 ) {
-  const a = attackStats(attacker);
+  const a = attackStats(attacker, attackerTerrain);
   const aura = (actor: Unit | Building) =>
     'population' in actor || actor.kind === 'HERO'
       ? 0
@@ -733,7 +757,7 @@ export function estimateDamage(
   const defense =
     'population' in target
       ? Math.floor(target.level / 2) + (BUILDING_DEFENSE[target.kind] ?? 0)
-      : unitStats(target).defense;
+      : unitCombatStats(target, tile.terrain).defense;
   const counterMultiplier =
     'population' in attacker
       ? 1
@@ -761,8 +785,6 @@ export function estimateDamage(
           ['GUARD', 'PALADIN', 'KNIGHT'].includes(target.kind)
         ? 6 * counterMultiplier
         : 0;
-  const cover =
-    !('population' in target) && target.kind === 'RANGER' && tile.terrain === 'FOREST' ? 2 : 0;
   const base = Math.max(
     1,
     Math.round(
@@ -770,7 +792,6 @@ export function estimateDamage(
         bonus +
         antiAir -
         defense * (1 + aura(target)) * (antiArmor ? 0.25 : antiAir > 0 ? 0.5 : 1) -
-        cover -
         targetTerrainDefense(target, tile.terrain),
     ),
   );

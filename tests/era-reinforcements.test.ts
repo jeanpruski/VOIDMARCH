@@ -47,13 +47,13 @@ const unit = (kind: UnitKind): Unit => ({
   updatedAt: now,
 });
 describe('renforts des cinq époques', () => {
-  it('ajoute quatre silhouettes par époque avec un recrutement de même niveau', () => {
+  it('ajoute quatre silhouettes par époque avec une époque conservée et des niveaux de formation locaux', () => {
     expect(kinds).toHaveLength(20);
     expect(new Set(kinds.map((k) => UNIT_FRAMES[k])).size).toBe(20);
     for (const age of [1, 2, 3, 4, 5])
       expect(kinds.filter((k) => UNIT_ERAS[k] === age)).toHaveLength(4);
     for (const kind of kinds) {
-      expect(UNIT_PROFILES[kind].minRecruitLevel).toBe(ERA_REINFORCEMENT_AGES[kind]);
+      expect(UNIT_ERAS[kind]).toBe(ERA_REINFORCEMENT_AGES[kind]);
       expect(SPRITE_ATLASES[miniatureTexture(UNIT_FRAMES[kind])]).toEqual({ columns: 2, rows: 2 });
       expect(miniatureFrame(UNIT_FRAMES[kind])).toBeLessThan(4);
     }
@@ -104,7 +104,8 @@ describe('renforts des cinq époques', () => {
     expect(paid.state.realms.p.ap).toBe(r.ap - 1);
   });
   it('maintient les contres cavalerie, blindage et aviation avec leurs bonus entraînés', () => {
-    const tile = { q: 0, r: 0, terrain: 'PLAIN' as const };
+    // Neutral ground isolates counter bonuses from the new positional affinities.
+    const tile = { q: 0, r: 0, terrain: 'SCORCHED' as const };
     for (const kind of ['HALBERDIER', 'IMPERIAL_PIKEMAN'] as const) {
       const target = unit('LIGHT_CAVALRY');
       expect(estimateDamage(unit(kind), target, tile).min).toBe(

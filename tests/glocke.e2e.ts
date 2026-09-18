@@ -10,12 +10,13 @@ import {
 } from '../apps/server/src/engine';
 import { actionSchema } from '@voidmarch/protocol';
 
-test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', async ({ page }) => {
+test('Projet Glocke : déblocage par niveau, cinq recrutements et sprites', async ({ page }) => {
+  page.setDefaultTimeout(15000);
   const now = Date.now();
   let state = createState('aviation-browser', now);
   const id = 'pilot';
   const realm = addPlayer(state, id, 'Escadrille noire', 'ASH', now);
-  realm.wallet = { GOLD: 500000, WOOD: 500000, STONE: 500000, IRON: 500000, FOOD: 500000 };
+  realm.wallet = { GOLD: 2000000, WOOD: 2000000, STONE: 2000000, IRON: 2000000, FOOD: 2000000 };
   realm.protectedUntil = 0;
   const positions = disk({ q: 0, r: 0 }, 5).filter((p) => p.q !== 0 || p.r !== 0);
   const buildings = (Object.keys(BUILDINGS) as BuildingKind[]).map((kind, i) =>
@@ -77,38 +78,59 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
     user: { id, username: 'Escadrille noire', faction: 'ASH', guest: true },
   };
   await page.route('**/api/**', (route) => route.fulfill({ json: session }));
+  await page.route(/\/src\/Map\.tsx(?:\?.*)?$/, async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      body: (await response.text()).replace(
+        /\bcreate\(\)\s*\{/,
+        'create() { window.__glockeStore=useGame;',
+      ),
+    });
+  });
   await page.goto('/');
+  // Keep this recruitment scenario independent of decorative landing-page motion.
+  await page.addStyleTag({
+    content: '*, *::before, *::after { animation: none !important; transition: none !important; }',
+  });
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
   await expect(page.locator('.board canvas')).toBeVisible();
+  await expect(page.locator('.map-loading')).toHaveCount(0, { timeout: 60000 });
   const complex = buildings.find((b) => b.kind === 'GLOCKE_COMPLEX')!;
   const open = async () => {
     await page.evaluate(async (b) => {
-      // @ts-expect-error Vite fixture import.
-      const { useGame, focusMap } = await import('/src/store.ts');
-      focusMap(b);
+      const useGame = (window as any).__glockeStore;
+      window.dispatchEvent(new CustomEvent('vm:camera', { detail: b }));
       useGame.setState({
         selection: { kind: 'building', id: b.id, q: b.q, r: b.r },
         panel: 'recruit',
         combatTarget: null,
       });
     }, complex);
-    await page.getByRole('tab', { name: 'Cloches occultes', exact: true }).click();
-    await expect(page.getByRole('dialog').locator('article')).toHaveCount(3);
+    await page.getByLabel('Type', { exact: true }).selectOption('Cloches occultes');
+    await expect(page.getByRole('dialog').locator('article')).toHaveCount(5);
   };
   const names = [
     'Die Glocke I — Vril',
+    'Die Glocke — Wacht',
     'Die Glocke II — Nacht',
+    'Die Glocke — Sturm',
     'Die Glocke III — Götterdämmerung',
   ];
-  const kinds = ['GLOCKE_VRIL', 'GLOCKE_NACHT', 'GLOCKE_APOCALYPSE'] as const;
+  const kinds = [
+    'GLOCKE_VRIL',
+    'GLOCKE_WACHT',
+    'GLOCKE_NACHT',
+    'GLOCKE_STURM',
+    'GLOCKE_APOCALYPSE',
+  ] as const;
   await open();
   await expect(page.getByRole('dialog')).toContainText('niveau 2 nécessaire');
   await expect(page.getByRole('dialog')).toContainText('niveau 3 nécessaire');
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     if (i) {
       await page.evaluate(async (b) => {
-        // @ts-expect-error Vite fixture import.
-        const { useGame } = await import('/src/store.ts');
+        const useGame = (window as any).__glockeStore;
         useGame.setState({
           panel: null,
           selection: { kind: 'building', id: b.id, q: b.q, r: b.r },
@@ -119,6 +141,7 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
       await page.getByRole('button', { name: 'Améliorer · 2 PA', exact: true }).click();
       const dialog = page.getByRole('dialog');
       await expect(dialog).toContainText('À payer pour cette amélioration');
+      await expect(dialog).toContainText(names[i]);
       await expect(dialog.getByRole('columnheader', { name: 'Après paiement' })).toBeVisible();
       const gold = dialog
         .getByRole('row')
@@ -129,7 +152,7 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
       await expect(gold.getByRole('cell').nth(3)).toHaveText(
         Math.floor(before.GOLD - quote.cost.GOLD!).toLocaleString('fr-FR'),
       );
-      if (i === 2) {
+      if (i === 4) {
         await page.setViewportSize({ width: 390, height: 844 });
         await expect(dialog).toBeVisible();
         expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
@@ -153,8 +176,8 @@ test('Projet Glocke : déblocage par niveau, trois recrutements et sprites', asy
       .filter({ has: page.getByRole('heading', { name: names[i], exact: true }) });
     await expect(card).toContainText('2 PA par tir');
     await expect(card.locator('.miniature')).toHaveCSS('background-image', /blob:/);
-    if (i === 2) {
-      await expect(card).toContainText('ATQ 102,4');
+    if (i === 4) {
+      await expect(card).toContainText('ATQ 128');
       await card.scrollIntoViewIfNeeded();
       await page.screenshot({ path: 'test-results/glocke-catalogue.png' });
     }
