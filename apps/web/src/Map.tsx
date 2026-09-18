@@ -12,7 +12,8 @@ import {
 } from './hero-art';
 import { unitStats, turretStats, attackStats } from '@voidmarch/game-rules';
 import { worldEffects, type WorldEffect } from './world-effects';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
 import Phaser from 'phaser';
 import {
   RULES,
@@ -1705,9 +1706,11 @@ class WorldScene extends Phaser.Scene {
   }
 }
 export function GameMap() {
+  const [loading, setLoading] = useState(true);
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!host.current) return;
+    setLoading(true);
     // Each mount owns its container. Phaser destroys asynchronously, whereas React
     // StrictMode immediately mounts again; an old canvas must not shift the new one.
     const container = document.createElement('div');
@@ -1728,6 +1731,14 @@ export function GameMap() {
       audio: { noAudio: true },
       input: { activePointers: 2 },
     });
+    // Assets loading is only the first step: wait until the populated map has
+    // actually been rendered, including atlas normalization and scene creation.
+    const onFirstFrame = () => {
+      if (!game.canvas.dataset.mapView) return;
+      game.events.off(Phaser.Core.Events.POST_RENDER, onFirstFrame);
+      setLoading(false);
+    };
+    game.events.on(Phaser.Core.Events.POST_RENDER, onFirstFrame);
     const resizeObserver = new ResizeObserver(() => {
       if (host.current && game.isBooted)
         game.scale.setParentSize(host.current.clientWidth, host.current.clientHeight);
@@ -1735,6 +1746,7 @@ export function GameMap() {
     resizeObserver.observe(host.current);
     return () => {
       resizeObserver.disconnect();
+      game.events.off(Phaser.Core.Events.POST_RENDER, onFirstFrame);
       // Stop scene subscriptions synchronously; Phaser destroys the game next frame.
       for (const scene of game.scene.getScenes(false)) scene.scene.stop();
       container.remove();
@@ -1742,11 +1754,20 @@ export function GameMap() {
     };
   }, []);
   return (
-    <div
-      className="game-canvas"
-      ref={host}
-      role="application"
-      aria-label="Carte hexagonale des Marches. Sélectionnez une unité, puis Déplacer. Flèches pour déplacer la caméra, molette pour zoomer."
-    />
+    <>
+      <div
+        className="game-canvas"
+        ref={host}
+        role="application"
+        aria-busy={loading}
+        aria-label="Carte hexagonale des Marches. Sélectionnez une unité, puis Déplacer. Flèches pour déplacer la caméra, molette pour zoomer."
+      />
+      {loading && (
+        <div className="map-loading" role="status" aria-live="polite">
+          <LoaderCircle className="spin" size={36} strokeWidth={1.5} aria-hidden="true" />
+          <p>Génération de la carte…</p>
+        </div>
+      )}
+    </>
   );
 }

@@ -53,7 +53,20 @@ test('vue stratégique : territoires, rendu léger, zoom et navigation', async (
   await page.route('**/strategic-fixture', (route) =>
     route.fulfill({ contentType: 'text/html', body: html }),
   );
-  await page.goto('/strategic-fixture');
+  let releaseTerrain!: () => void;
+  const terrainReady = new Promise<void>((resolve) => {
+    releaseTerrain = resolve;
+  });
+  await page.route('**/assets/terrain.png', async (route) => {
+    await terrainReady;
+    await route.continue();
+  });
+  await page.goto('/strategic-fixture', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('status')).toHaveText('Génération de la carte…');
+  await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'true');
+  releaseTerrain();
+  await expect(page.getByRole('status')).toHaveCount(0);
+  await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false');
   const canvas = page.locator('.board canvas');
   await expect(canvas).toHaveAttribute('data-map-view', 'detailed');
   const objects = () =>
