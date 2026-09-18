@@ -24,7 +24,6 @@ import {
   Eye,
   EyeOff,
   Flag,
-  Globe2,
   Handshake,
   Hammer,
   Hexagon,
@@ -493,18 +492,9 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
           </button>
         ))}
         <div className="nav-separator" />
-        <button onClick={() => useGame.setState({ panel: 'events', menuOpen: false })}>
-          <Globe2 size={17} />
-          <span>Événements du monde</span>
-          <i className="small-dot" />
-        </button>
         <button onClick={() => useGame.setState({ panel: 'rank', menuOpen: false })}>
           <Flag size={17} />
           <span>Les royaumes</span>
-        </button>
-        <button onClick={() => useGame.setState({ panel: 'help', menuOpen: false })}>
-          <CircleHelp size={17} />
-          <span>Aide & règles</span>
         </button>
       </nav>
       <div className="sidebar-bottom">
@@ -519,6 +509,12 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             </div>
           </div>
         )}
+        <nav className="sidebar-help" aria-label="Aide du jeu">
+          <button onClick={() => useGame.setState({ panel: 'help', menuOpen: false })}>
+            <CircleHelp size={17} />
+            <span>Aide & règles</span>
+          </button>
+        </nav>
         <button className="exit-button" onClick={() => void logout()}>
           <LogOut size={14} /> Quitter les Marches
         </button>
