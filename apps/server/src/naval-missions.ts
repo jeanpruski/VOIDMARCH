@@ -1,3 +1,4 @@
+import { placementOrder } from './mission-placement';
 import { UNIT_PROFILES, UNITS, isSea, type UnitKind } from '@voidmarch/config';
 import {
   disk,
@@ -11,12 +12,22 @@ import {
 } from '@voidmarch/game-rules';
 import type { GameState, Hex, MissionOffer } from '@voidmarch/shared';
 
-/** Search only the sea connected to an existing friendly ship; no inaccessible lake targets. */
+/** Prefer the existing fleet’s sea, then search distant coasts even before a fleet exists. */
 export function navalMissionSite(s: GameState, realmId: string, offer: MissionOffer) {
   const ships = Object.values(s.units).filter(
     (u) => u.ownerId === realmId && UNIT_PROFILES[u.kind].naval && u.hp > 0,
   );
-  if (!ships.length) return;
+  if (!s.oceanVersion) return;
+  const terrainCache = new Map<string, ReturnType<typeof tileAt>>();
+  const terrainAt = (p: Hex) => {
+    const k = key(p);
+    let t = terrainCache.get(k);
+    if (!t) {
+      t = tileAt(s, p);
+      terrainCache.set(k, t);
+    }
+    return t;
+  };
   const visible = vision(s, s.realms[realmId]);
   const occupied = new Set(
     [
@@ -34,7 +45,7 @@ export function navalMissionSite(s: GameState, realmId: string, offer: MissionOf
   // Finite work per acceptance. Expansion follows water, never cuts across continents.
   for (let i = 0; i < queue.length && i < 30000; i++)
     for (const n of neighbors(queue[i])) {
-      const t = tileAt(s, n),
+      const t = terrainAt(n),
         k = key(n);
       if (isSea(t.terrain)) {
         if (!sea.has(k) && ships.some((ship) => distance(ship, n) <= 160)) {
@@ -43,6 +54,31 @@ export function navalMissionSite(s: GameState, realmId: string, offer: MissionOf
         }
       } else if (['BEACH', 'PLAIN', 'HILL'].includes(t.terrain)) shoreline.set(k, n);
     }
+  const connectedCoasts = new Set(shoreline.keys());
+  // A fixed, bounded survey includes distant seas without tying missions to fleet ownership.
+  // Search out to at least 1,200 hexes, beyond legacy explored-land protection when necessary.
+  const maxRange = Object.keys(s.protectedLand ?? {}).reduce((limit, k) => {
+    const [q, r] = k.split(',').map(Number);
+    return Math.max(limit, distance(capital, { q: q * 16, r: r * 16 }) + 200);
+  }, 1200);
+  for (let i = 0; i < 6000; i++) {
+    const range = 20 + ((maxRange - 20) * i) / 6000;
+    const angle = (hash(`${s.seed}:${realmId}:coasts`) + i * 0.38196601125) * Math.PI * 2;
+    const q = Math.cos(angle),
+      r = Math.sin(angle);
+    const norm = (Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2;
+    const p = {
+      q: capital.q + Math.round((q / norm) * range),
+      r: capital.r + Math.round((r / norm) * range),
+    };
+    if (terrainAt(p).terrain !== 'COAST') continue;
+    for (const n of disk(p, 2))
+      if (
+        ['BEACH', 'PLAIN', 'HILL'].includes(terrainAt(n).terrain) &&
+        neighbors(n).some((h) => isSea(terrainAt(h).terrain))
+      )
+        shoreline.set(key(n), n);
+  }
   const candidates = [...shoreline.values()]
     .filter((p) => distance(p, capital) >= 20)
     .sort((a, b) => {
@@ -50,17 +86,19 @@ export function navalMissionSite(s: GameState, realmId: string, offer: MissionOf
         const d = distance(p, capital);
         return d <= 40 ? hash(`${offer.id}:${key(p)}`) * 20 : d;
       };
-      return score(a) - score(b);
+      return (
+        Number(connectedCoasts.has(key(b))) - Number(connectedCoasts.has(key(a))) ||
+        score(a) - score(b)
+      );
     });
-  for (const center of candidates) {
+  for (const center of placementOrder(s, realmId, candidates, visible, 4)) {
     if (Object.values(s.realms).some((r) => !r.defeatedAt && distance(r.capital, center) < 12))
       continue;
     const area = disk(center, 4);
     if (
       area.some((p) => {
-        const t = tileAt(s, p);
+        const t = terrainAt(p);
         return (
-          visible.has(key(p)) ||
           occupied.has(key(p)) ||
           t.ownerId ||
           t.buildingId ||
@@ -79,10 +117,10 @@ export function navalMissionSite(s: GameState, realmId: string, offer: MissionOf
       continue;
     const buildingSpots = [center, ...neighbors(center)]
       .filter((p) => {
-        const t = tileAt(s, p);
+        const t = terrainAt(p);
         return (
           ['BEACH', 'PLAIN', 'HILL'].includes(t.terrain) &&
-          neighbors(p).some((n) => sea.has(key(n)))
+          neighbors(p).some((n) => isSea(terrainAt(n).terrain))
         );
       })
       .slice(0, offer.buildings.length);
@@ -93,8 +131,8 @@ export function navalMissionSite(s: GameState, realmId: string, offer: MissionOf
       const p = area.find(
         (p) =>
           !used.has(key(p)) &&
-          (!UNIT_PROFILES[kind].naval || sea.has(key(p))) &&
-          movementCost(tileAt(s, p), kind) <= UNITS[kind].move,
+          (!UNIT_PROFILES[kind].naval || isSea(terrainAt(p).terrain)) &&
+          movementCost(terrainAt(p), kind) <= UNITS[kind].move,
       );
       if (!p) break;
       spots.push(p);

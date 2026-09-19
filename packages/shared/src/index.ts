@@ -83,6 +83,8 @@ export interface Unit extends Hex {
   hero?: { appearance: HeroAppearance; name: string; xp: number };
   npc?: {
     kind: NpcKind;
+    /** Spawn-time rank; legacy encounters default to 1. */
+    level?: number;
     maxHp: number;
     attack: number;
     defense: number;

@@ -1,3 +1,5 @@
+import { placementOrder, completedExpeditionSites } from './mission-placement';
+import { exceptionalOfferIndex } from './exceptional-missions';
 import { developmentStage, EXPEDITION_GOLD, expeditionSearchCost } from '@voidmarch/config';
 import { expeditionHabitatMatches } from './expedition-habitats';
 import { randomUUID } from 'node:crypto';
@@ -45,15 +47,24 @@ export function expeditionOffers(s: GameState, id: string, now: number): Mission
   if (!r || board?.active || (board?.availableAt ?? 0) > now) return [];
   const anchor = Math.max(r.createdAt, board?.lastResult?.at ?? 0);
   const slot = Math.floor(Math.max(0, now - anchor) / 600000);
-  const level = developmentStage(realmBuildings(s, id));
+  const baseLevel = developmentStage(realmBuildings(s, id));
+  const exceptionalIndex = exceptionalOfferIndex(
+    `${worldIdentity(s, id)}:${id}:expedition:${board?.generation ?? 0}:${anchor}:${slot}`,
+    [baseLevel, baseLevel, baseLevel],
+  );
+  const completed = completedExpeditionSites(s, id);
   const ctx = searchContext(s, id);
-  const seed = `${worldIdentity(s, id)}:${id}:${key(r.capital)}:adventure:${board?.generation ?? 0}:${anchor}:${slot}:${level}:${ctx.ships.length > 0}`;
+  const seed = `${worldIdentity(s, id)}:${id}:${key(r.capital)}:adventure:${board?.generation ?? 0}:${anchor}:${slot}:${baseLevel}:${ctx.ships.length > 0}:${[...completed].sort().join(',')}`;
   let survey = surveys.get(seed);
   if (!survey || (!survey.plans.length && now - survey.at >= 30000)) {
-    const available = surveySites(s, id, seed, ctx);
+    const surveyed = surveySites(s, id, seed, ctx);
+    const fresh = surveyed.filter((x) => !completed.has(x.site.id));
+    const available = fresh.length ? fresh : surveyed;
     available.sort((a, b) => hash(seed + ':' + a.site.id) - hash(seed + ':' + b.site.id));
     const plans: PlannedOffer[] = available.length
       ? MODES.map((mode, i) => {
+          const exceptional = i === exceptionalIndex;
+          const level = baseLevel + (exceptional ? 1 : 0);
           const { site, position } = available[i % available.length];
           const targetDistance = distance(r.capital, position);
           const factor =
@@ -62,25 +73,29 @@ export function expeditionOffers(s: GameState, id: string, now: number): Mission
             [1, 1.4, 2.2][i] *
             (site.environment === 'SEA' ? 1.25 : 1);
           const reward = {
-            GOLD: Math.round(factor),
-            WOOD: Math.round(0.8 * factor),
-            STONE: Math.round(0.65 * factor),
-            IRON: Math.round(0.5 * factor),
-            FOOD: Math.round(0.9 * factor),
+            GOLD: Math.round(factor * 1.3),
+            WOOD: Math.round(0.8 * factor * 1.3),
+            STONE: Math.round(0.65 * factor * 1.3),
+            IRON: Math.round(0.5 * factor * 1.3),
+            FOOD: Math.round(0.9 * factor * 1.3),
           };
           return {
             position,
             offer: {
-              id: `adventure:${board?.generation ?? 0}:${anchor}:${slot}:${level}:${i}:${site.id}:${Math.floor(hash(key(position) + ':' + position.orientation) * 1e9)}`,
+              id: `adventure:${board?.generation ?? 0}:${anchor}:${slot}:${level}:${i}:${site.id}:${Math.floor(hash(key(position) + ':' + position.orientation) * 1e9)}${exceptional ? ':exceptional' : ''}`,
               title: site.name,
+              completedBefore: completed.has(site.id),
+              discoveredBefore:
+                completed.has(site.id) || !!board?.discoveredSites?.includes(site.id),
               level,
+              ...(exceptional ? { exceptional: true } : {}),
               difficulty: i === 0 ? 'Escarmouche' : i === 1 ? 'Assaut' : 'Siège',
               objective: 'BUILDING',
               buildings: [],
               units: [],
               abandonmentCost: {
-                GOLD: Math.round(reward.GOLD / 5),
-                FOOD: Math.round(reward.FOOD / 5),
+                GOLD: Math.round(Math.round(factor) / 5),
+                FOOD: Math.round(Math.round(0.9 * factor) / 5),
               },
               reward,
               expedition: { siteId: site.id, mode, route: site.environment, targetDistance },
@@ -92,7 +107,7 @@ export function expeditionOffers(s: GameState, id: string, now: number): Mission
     if (surveys.size >= 128) surveys.delete(surveys.keys().next().value!);
     surveys.set(seed, survey);
   }
-  // A newly occupied or revealed place is no longer advertised. Never move it to another biome.
+  // Occupation invalidates a quote; revealing it does not. Never relocate its habitat.
   return survey.plans
     .filter(
       ({ offer, position }) =>
@@ -233,7 +248,6 @@ function freePosition(s: GameState, id: string, p: Position, naval: boolean, ctx
     disk(p, 2).some((h) => {
       const t = ctx.tile(h);
       return (
-        ctx.seen.has(key(h)) ||
         ctx.occupied.has(key(h)) ||
         t.ownerId ||
         t.buildingId ||
@@ -285,7 +299,9 @@ function surveySites(
   onlySite?: string,
 ) {
   const found = new Map<string, { site: (typeof EXPEDITION_SITES)[number]; position: Position }>();
+  const completed = completedExpeditionSites(s, id);
   let paths = 0;
+  const candidates: Position[] = [];
   for (let i = 0; i < 840; i++) {
     const range = 60 + ((i * 37) % 141);
     const angle = (hash(seed + ':angle') + i * 0.38196601125) * Math.PI * 2;
@@ -297,6 +313,9 @@ function surveySites(
       r: s.realms[id].capital.r + Math.round((dr / norm) * range),
       orientation: Math.floor(hash(seed + ':orientation:' + i) * 6),
     };
+    candidates.push(p);
+  }
+  for (const p of placementOrder(s, id, candidates, ctx.seen, 2)) {
     const naval = isSea(ctx.tile(p).terrain);
     if (!freePosition(s, id, p, naval, ctx)) continue;
     const matches = EXPEDITION_SITES.filter(
@@ -310,9 +329,9 @@ function surveySites(
     if (accessiblePosition(s, id, p, naval, ctx))
       for (const site of matches) found.set(site.id, { site, position: p });
     if (
-      ++paths >= 12 ||
+      ++paths >= ([...found.keys()].some((site) => !completed.has(site)) ? 12 : 48) ||
       (onlySite && found.size) ||
-      (found.size >= 8 &&
+      ([...found.keys()].filter((site) => !completed.has(site)).length >= 8 &&
         (!ctx.ships.length || [...found.values()].some((v) => v.site.environment === 'SEA')))
     )
       break;
@@ -355,7 +374,7 @@ export function acceptExpedition(
     p,
     offer.expedition?.route === 'SEA'
       ? 'Ce site maritime n’est plus disponible ou accessible depuis votre flotte. Consultez les offres actualisées.'
-      : 'Ce site n’est plus libre, hors de votre vision ou accessible. Consultez les offres actualisées.',
+      : 'Ce site n’est plus libre ou accessible. Consultez les offres actualisées.',
   );
   const mid = randomUUID();
   const m: ActiveMission = {
@@ -387,6 +406,11 @@ export function reconcileExpeditions(s: GameState, now: number) {
   for (const board of Object.values(s.missions ?? {})) {
     const m = board.active,
       exp = m?.expedition;
+    if (m && exp && !(board.discoveredSites ?? []).includes(exp.siteId)) {
+      const visible = vision(s, s.realms[m.realmId]);
+      if (expeditionFootprint(m).some((p) => visible.has(key(p))))
+        (board.discoveredSites ??= []).push(exp.siteId);
+    }
     if (!m || !exp || exp.phase !== 'RETURN') continue;
     const carrier = expeditionCarrier(s, m);
     if (

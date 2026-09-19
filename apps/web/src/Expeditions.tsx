@@ -1,3 +1,4 @@
+import { MissionProgression, ExceptionalMissionBadge } from './MissionProgression';
 import { expeditionSearchCost } from '@voidmarch/config';
 import { useState } from 'react';
 import { Compass, MapPin, BookOpen, Anchor } from 'lucide-react';
@@ -27,6 +28,7 @@ export function ExpeditionDescription({
     <div className="expedition-description">
       <img src={expeditionImage(site.id)} alt={site.name} loading="lazy" />
       <p>{site.story}</p>
+      {'referenceNote' in site && <small>{site.referenceNote}</small>}
       {exp.mode === 'RECOVER' && (
         <p>
           Fouille sur place : 3 PA et <Cost cost={expeditionSearchCost(offer.level)} />. Les vivres
@@ -38,7 +40,7 @@ export function ExpeditionDescription({
         Inspiré de {site.realPlace}
       </a>
       <small>
-        Lieu réel réinventé dans VOIDMARCH · 3 hexagones · approche possible par chaque bord.
+        Lieu ou légende réinventé dans VOIDMARCH · 3 hexagones · approche possible par chaque bord.
       </small>
     </div>
   );
@@ -143,19 +145,24 @@ export function Expeditions() {
   const board = w.missions!,
     active = board.active?.expedition ? board.active : undefined;
   const trophies = (board.trophies ?? []).filter((t) => t.mission.expedition);
-  const completed = new Set(trophies.map((t) => t.mission.expedition!.siteId));
+  const discovered = new Set([
+    ...(board.discoveredSites ?? []),
+    ...trophies.map((t) => t.mission.expedition!.siteId),
+  ]);
   const expired = !!board.offersRefreshAt && now >= board.offersRefreshAt;
   const missions = [...(active ? [active] : []), ...board.allied.filter((m) => m.expedition)];
   return (
     <div className="expeditions-panel">
+      <MissionProgression expedition />
       <div className="mission-intro">
         <Compass />
         <div>
           <h3>Expéditions & aventures</h3>
           <p>
-            25 lieux à découvrir, à 60–200 cases de ta capitale. Les offres correspondent aux
-            biomes, aux reliefs et aux accès disponibles autour de ton royaume. Pars seul ou avec
-            tes alliés ; le lieu apparaît seulement après acceptation, hors de ta vision actuelle.
+            {EXPEDITION_SITES.length} lieux à découvrir, à 60–200 cases de ta capitale. Les offres
+            correspondent aux biomes, aux reliefs et aux accès disponibles autour de ton royaume.
+            Pars seul ou avec tes alliés ; le lieu apparaît après acceptation. Priorité aux zones
+            inconnues, puis hors de vue ; une zone visible libre peut servir de repli.
           </p>
         </div>
       </div>
@@ -167,19 +174,28 @@ export function Expeditions() {
       )}
       <button className="secondary" onClick={() => setAlbum(!album)}>
         <BookOpen size={16} />{' '}
-        {album ? 'Revenir aux expéditions' : `Carnet des découvertes · ${completed.size}/25`}
+        {album
+          ? 'Revenir aux expéditions'
+          : `Carnet des découvertes · ${discovered.size}/${EXPEDITION_SITES.length}`}
       </button>
       {album ? (
         <div className="expedition-album">
           {EXPEDITION_SITES.map((site) => {
             const visits = trophies.filter((t) => t.mission.expedition!.siteId === site.id);
             return (
-              <article key={site.id} className={visits.length ? 'discovered' : 'undiscovered'}>
+              <article
+                key={site.id}
+                className={discovered.has(site.id) ? 'discovered' : 'undiscovered'}
+              >
                 <img src={expeditionImage(site.id)} alt={site.name} loading="lazy" />
                 <h4>{site.name}</h4>
                 <small>{site.realPlace}</small>
                 <p>
-                  {visits.length ? `${visits.length} expédition(s) accomplie(s)` : 'À découvrir'}
+                  {visits.length
+                    ? `${visits.length} expédition(s) accomplie(s)`
+                    : discovered.has(site.id)
+                      ? 'Lieu découvert · objectif encore à accomplir'
+                      : 'À découvrir'}
                 </p>
                 {visits.map((t) => (
                   <div key={t.id}>
@@ -206,6 +222,7 @@ export function Expeditions() {
                 {EXPEDITION_MODES[m.expedition!.mode]}
               </span>
               <h3>{m.title}</h3>
+              <ExceptionalMissionBadge offer={m} />
               <ExpeditionDescription offer={m} />
               <p>
                 <strong>
@@ -270,11 +287,11 @@ export function Expeditions() {
                           })
                         }
                       >
-                        Confirmer l’abandon · 0 PA
+                        Confirmer l’abandon
                       </button>
                     </>
                   ) : (
-                    <button onClick={() => setConfirm(true)}>Abandonner… · 0 PA</button>
+                    <button onClick={() => setConfirm(true)}>Abandonner…</button>
                   )}
                 </div>
               )}
@@ -289,9 +306,9 @@ export function Expeditions() {
               )}
               {!board.expeditionOffers?.length && (board.availableAt ?? 0) <= now && (
                 <p className="inset" role="status">
-                  Aucun site compatible, libre et accessible n’a été repéré hors de ta vision entre
-                  60 et 200 cases. Les environs sont réexaminés régulièrement. Disposer d’un navire
-                  ouvre aussi les expéditions maritimes.
+                  Aucun site compatible, libre et accessible n’a été repéré entre 60 et 200 cases.
+                  Les environs sont réexaminés régulièrement. Disposer d’un navire ouvre aussi les
+                  expéditions maritimes.
                 </p>
               )}
               <div className="mission-offers">
@@ -304,6 +321,18 @@ export function Expeditions() {
                         {EXPEDITION_MODES[exp.mode]} · ÉPOQUE {offer.level}
                       </span>
                       <h3>{offer.title}</h3>
+                      <ExceptionalMissionBadge offer={offer} />
+                      <p className="mission-history">
+                        {offer.expedition
+                          ? offer.discoveredBefore
+                            ? 'Lieu déjà découvert'
+                            : 'Lieu à découvrir'
+                          : offer.completedBefore
+                            ? 'Campagne déjà accomplie'
+                            : 'Nouvelle campagne'}
+                        {offer.expedition &&
+                          (offer.completedBefore ? ' · Déjà accomplie' : ' · Jamais accomplie')}
+                      </p>
                       <ExpeditionDescription offer={offer} />
                       <p className="mission-offer-distance">
                         Site repéré à {exp.targetDistance} cases · milieu et accès vérifiés.
@@ -345,7 +374,7 @@ export function Expeditions() {
                           })
                         }
                       >
-                        Accepter l’expédition · 0 PA
+                        Accepter l’expédition
                       </button>
                     </article>
                   );

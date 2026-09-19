@@ -52,7 +52,8 @@ export function GroupMovement() {
           {adding ? 'Terminer la sélection' : 'Ajouter / retirer des troupes'}
         </button>
         <ActionButton shortcut="D" className="primary" disabled={pending} onClick={start}>
-          <ArrowUpRight size={16} /> Déplacer <small>1 PA par troupe déplacée</small>
+          <ArrowUpRight size={16} /> Déplacer{' '}
+          <small>Gratuit sur routes / enceintes · sinon 1 PA par troupe</small>
         </ActionButton>
         {plan && (
           <ActionButton
@@ -68,7 +69,7 @@ export function GroupMovement() {
                 });
             }}
           >
-            Confirmer · {plan.cost} PA
+            Confirmer{plan.cost > 0 ? ` · ${plan.cost} PA` : ''}
           </ActionButton>
         )}
         <button
@@ -143,9 +144,9 @@ export function GroupMovement() {
                 </span>
                 <span>
                   {end
-                    ? `→ ${end.q}, ${end.r} · ${journey!.path.length} cases${journey!.network ? ' · routes / territoire' : ''} · 1 PA`
+                    ? `→ ${end.q}, ${end.r} · ${journey!.path.length} cases${journey!.network ? ' · routes / enceintes · gratuit' : ' · 1 PA'}`
                     : stopped
-                      ? `${stopped.reason} · 0 PA`
+                      ? `${stopped.reason}`
                       : 'En sélection'}
                 </span>
                 <button

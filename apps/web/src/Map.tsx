@@ -1,3 +1,4 @@
+import { installMapPinch } from './map-pinch';
 import { drawExpeditionSites } from './expedition-art';
 import { isSea } from '@voidmarch/config';
 import { drawCoastalTerrain, drawCoastalBlend, coastalField, type CoastalField } from './ocean-art';
@@ -345,7 +346,28 @@ class WorldScene extends Phaser.Scene {
       this.centerSet = true;
       this.renderMap();
     }
+    const pinch = installMapPinch(this.game.canvas, {
+      camera: () => this.cameras.main,
+      size: () => ({ width: this.scale.width, height: this.scale.height }),
+      change: (next) => {
+        const c = this.cameras.main;
+        c.setZoom(next.zoom).setScroll(next.scrollX, next.scrollY);
+      },
+      cancelDrag: () => {
+        this.down = undefined;
+        this.moved = true;
+      },
+      redraw: () => {
+        if (this.sys.isActive()) this.renderMap();
+      },
+      finish: () => {
+        if (this.sys.isActive()) this.subscribeVisible();
+      },
+    });
+    this.events.once('shutdown', () => pinch.destroy());
+    this.events.once('destroy', () => pinch.destroy());
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pinch.capturing) return;
       // Phaser also forwards window events: HTML panels must never issue map orders.
       if (pointer.event.target !== this.game.canvas) return;
       this.down = {
@@ -357,6 +379,7 @@ class WorldScene extends Phaser.Scene {
       this.moved = false;
     });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (pinch.capturing) return;
       const camera = this.cameras.main;
       if (this.down && pointer.isDown) {
         const dx = pointer.x - this.down.x,
@@ -379,6 +402,7 @@ class WorldScene extends Phaser.Scene {
       }
     });
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      if (pinch.capturing) return;
       if (
         this.down &&
         !this.moved &&
@@ -2074,7 +2098,7 @@ export function GameMap() {
         ref={host}
         role="application"
         aria-busy={loading && !loadError}
-        aria-label="Carte hexagonale des Marches. Sélectionnez une unité, puis Déplacer. Flèches pour déplacer la caméra, molette pour zoomer."
+        aria-label="Carte hexagonale des Marches. Sélectionnez une unité, puis Déplacer. Flèches pour déplacer la caméra, molette ou pincement à deux doigts pour zoomer."
       />
       {loading && (
         <div className="map-loading" role={loadError ? 'alert' : 'status'} aria-live="polite">

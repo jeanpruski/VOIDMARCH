@@ -29,20 +29,50 @@ function region(biome: Biome, sea = false, boat = false, suffix = '') {
       createdAt: now,
       updatedAt: now,
     };
-  const mock = vi
-    .spyOn(rules, 'tileAt')
-    .mockImplementation((_s, p) => ({
-      ...p,
-      biome,
-      terrain: sea ? 'SEA' : p.q % 7 === 0 ? 'HILL' : 'PLAIN',
-    }));
+  const mock = vi.spyOn(rules, 'tileAt').mockImplementation((_s, p) => ({
+    ...p,
+    biome,
+    terrain: sea ? 'SEA' : p.q % 7 === 0 ? 'HILL' : 'PLAIN',
+  }));
   return { s, r, mock };
 }
 describe('milieux des expéditions', () => {
-  it('définit un milieu pour chacun des 25 lieux', () => {
-    expect(Object.keys(EXPEDITION_HABITATS)).toHaveLength(25);
+  it('définit un milieu pour chacun des 45 lieux', () => {
+    expect(Object.keys(EXPEDITION_HABITATS)).toHaveLength(45);
     for (const site of EXPEDITION_SITES)
       expect(EXPEDITION_HABITATS[site.id].biomes.length).toBeGreaterThan(0);
+  });
+  it('respecte les climats et les rivages des nouveaux sites', () => {
+    const p = { q: 50, r: 50 };
+    expect(expeditionHabitatMatches('habitat', 'baychimo', p, tile('SNOW', 'SEA'))).toBe(true);
+    expect(expeditionHabitatMatches('habitat', 'baychimo', p, tile('DESERT', 'SEA'))).toBe(false);
+    for (const id of ['dahab', 'skeletoncoast']) {
+      expect(expeditionHabitatMatches('habitat', id, p, tile('DESERT', 'SEA'))).toBe(false);
+      expect(
+        expeditionHabitatMatches('habitat', id, p, (h) => ({
+          ...h,
+          biome: 'DESERT',
+          terrain: h.q === 53 ? 'BEACH' : 'SEA',
+        })),
+      ).toBe(true);
+      expect(expeditionHabitatMatches('habitat', id, p, tile('SNOW', 'BEACH'))).toBe(false);
+    }
+    for (const id of ['portarthur', 'isledead']) {
+      expect(expeditionHabitatMatches('habitat', id, p, tile('TEMPERATE'))).toBe(false);
+      expect(
+        expeditionHabitatMatches('habitat', id, p, (h) => ({
+          ...h,
+          biome: 'TEMPERATE',
+          terrain: h.q === 53 ? 'COAST' : 'PLAIN',
+        })),
+      ).toBe(true);
+    }
+    expect(expeditionHabitatMatches('habitat', 'hoerverde', p, tile('TEMPERATE', 'FOREST'))).toBe(
+      true,
+    );
+    expect(expeditionHabitatMatches('habitat', 'hoerverde', p, tile('SNOW', 'FOREST'))).toBe(false);
+    for (const id of ['devilsea', 'chuuk', 'yonaguni', 'joyita', 'ourangmedan'])
+      expect(expeditionHabitatMatches('habitat', id, p, tile('SNOW', 'SEA'))).toBe(false);
   });
   it('refuse les pyramides dans la neige et vérifie aussi les alentours', () => {
     const p = { q: 0, r: 0 };

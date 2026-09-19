@@ -154,7 +154,7 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
   expect(orders).toBe(0);
   await page.locator('#group-shortcut-input').evaluate((el) => el.remove());
   await page.keyboard.press('Space');
-  await expect(page.locator('.group-movement')).toContainText('Déplacement du groupe en cours');
+  await expect(page.locator('.group-movement')).toContainText('Ordre du groupe en cours');
   await page.keyboard.press('Space'); // A pending action cannot be submitted twice.
   await expect
     .poll(() =>
@@ -173,7 +173,7 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
   await page.evaluate(() => (window as any).__groupScene.click({ q: 8, r: 1 }));
   await page.getByText('Enregistrer cette armée', { exact: true }).click();
   await page.getByLabel('Nom de l’armée', { exact: true }).fill('Les Corbeaux');
-  await page.getByRole('button', { name: 'Enregistrer · 0 PA', exact: true }).click();
+  await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
   await expect(page.getByText('Mettre à jour « Les Corbeaux »', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as any).__groupStore.getState().groupTarget)).toEqual({
     q: 8,

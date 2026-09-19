@@ -63,7 +63,7 @@ import {
   RADIOACTIVE_RECON,
 } from './radioactive';
 export { RADIOACTIVE_UNITS } from './radioactive';
-export { NPCS, NPC_RULES, type NpcKind } from './npcs';
+export { NPCS, NPC_RULES, NPC_LEVELS, type NpcKind } from './npcs';
 export { BALANCE_VERSION, UNIT_TIERS, TIER_NAMES } from './progression';
 export * from './ages';
 export * from './development';
@@ -121,7 +121,7 @@ export const ACTION_COST = {
   INSTALL_TURRET: 2,
   UPGRADE_TURRET: 2,
   MOVE: 1,
-  MOVE_ROAD: 1,
+  MOVE_ROAD: 0,
   GATHER: 1,
   ATTACK: 1,
   CAPTURE: 1,

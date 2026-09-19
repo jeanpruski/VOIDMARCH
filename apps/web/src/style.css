@@ -5007,3 +5007,60 @@ button.radar-target {
   .creation-steps button { flex-direction:column; padding:8px 4px; font-size:12px; }
   .login-content.realm-registration { width:calc(100% - 24px); }
 }
+
+.mission-progression {
+  margin: 14px 0;
+}
+.mission-progression h4 {
+  margin: 0 0 10px;
+}
+.mission-progression-checklist {
+  padding-left: 0;
+  list-style: none;
+}
+.mission-progression-checklist li {
+  margin: 8px 0;
+}
+.mission-progression-checklist .fulfilled {
+  color: #a9c59b;
+}
+.exceptional-mission-badge {
+  padding: 10px 12px;
+  border: 1px solid #b8a668;
+  border-radius: 6px;
+  background: #b8a66812;
+  color: #e6ce8c;
+}
+.exceptional-mission-badge strong,
+.exceptional-mission-badge small {
+  display: block;
+}
+.exceptional-mission-badge small {
+  margin-top: 6px;
+  color: #b8bda9;
+}
+
+/* Comfortable spacing across action, catalogue and campaign panels. */
+.modal-body :where(p, li, small, label),
+.selection-panel :where(p, small),
+.context-help { line-height: 1.55; }
+.modal-body :where(.inset, .event-card, .mission-card, .mission-active) { min-width: 0; }
+.modal-body :where(h3, h4, p, label) { overflow-wrap: anywhere; }
+.modal-body :where(button, input, select) { max-width: 100%; }
+.button-row { flex-wrap: wrap; align-items: center; gap: 10px; }
+.modal-body :where(p, .cost) + :where(button, .button-row, details) { margin-top: 12px; }
+.modal-body :where(button, .button-row) + :where(p, .cost) { margin-top: 12px; }
+.mission-card, .mission-active { padding: clamp(16px, 3vw, 24px); }
+.mission-card { gap: 12px; }
+.mission-card > button { margin-top: auto; }
+.mission-history { color: #b9c8a4; font-size: 12px; }
+.mission-progression-checklist li { padding: 4px 0; }
+.modal-body details > summary { padding-block: 8px; }
+.catalog article .cost { gap: 8px 12px; line-height: 1.5; }
+.selection-actions > button { gap: 8px; padding: 10px 14px; }
+.selection-actions > button small { line-height: 1.4; }
+@media (max-width: 600px) {
+  .modal-body { padding: 18px 16px 24px; }
+  .modal > header { padding: 18px 16px; gap: 12px; }
+  .button-row > button { flex: 1 1 auto; }
+}

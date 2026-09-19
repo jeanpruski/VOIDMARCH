@@ -69,7 +69,7 @@ export function missionTravel(world: WorldView, target: Hex, unit: Unit) {
   if (!goals.length) return rough;
   const roads = roadPaths(unit, tiles, blocked, unit.kind, unit.ownerId);
   if (goals.some((p) => roadPathTo(p, roads, blocked)?.length))
-    return { cases, pa: 1, basis: 'road' as const };
+    return { cases, pa: 0, basis: 'road' as const };
   const maxBudget = unitMovementBudget(
     unit,
     UNIT_BIOME_ADAPTATIONS[unit.kind],
@@ -112,7 +112,7 @@ export function missionTravel(world: WorldView, target: Hex, unit: Unit) {
         network = network && travelNetworkTile(t, unit.ownerId, unit.kind);
         const canStop = !blocked.has(key(points[j]));
         if (canStop && (network || (spent <= stepBudget && j - i <= MAX_MOVE_STEPS)))
-          costs[j] = Math.min(costs[j], costs[i] + 1);
+          costs[j] = Math.min(costs[j], costs[i] + (network ? 0 : 1));
         if (!network && (spent > stepBudget || j - i >= MAX_MOVE_STEPS)) break;
       }
     }

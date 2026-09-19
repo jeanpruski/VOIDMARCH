@@ -17,5 +17,5 @@ export function roadOrderReason(world: WorldView, tile: ViewTile | undefined, to
   return '';
 }
 export function roadBenefit(tile?: ViewTile) {
-  return `${tile?.terrain === 'RIVER' ? 'Pont' : 'Route'} : distance illimitée pour 1 PA sur un trajet continu de cases à vous et de routes explorées.`;
+  return `${tile?.terrain === 'RIVER' ? 'Pont' : 'Route'} : distance illimitée gratuitement sur un trajet continu de cases dans vos enceintes fermées et de routes explorées.`;
 }

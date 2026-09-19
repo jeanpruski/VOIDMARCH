@@ -3,7 +3,7 @@ import {
   constructionDevelopmentStage,
   upgradeDevelopmentStage,
 } from '@voidmarch/config';
-import { expeditionDistance } from '@voidmarch/game-rules';
+import { movementAPCost, anomalyAPReward, expeditionDistance } from '@voidmarch/game-rules';
 import { isSea } from '@voidmarch/config';
 import { expeditionInteraction } from './expeditions';
 import {
@@ -513,7 +513,20 @@ export function applyAction(
         new Set(orders.map((o) => o.actorId)).size === orders.length,
         'Une troupe ne peut se déplacer qu’une fois par ordre.',
       );
-      const totalCost = orders.reduce((total, o) => total + ACTION_COST[o.type], 0);
+      const totalCost = orders.reduce(
+        (total, o) =>
+          total +
+          (o.type === 'MOVE'
+            ? movementAPCost(
+                ownedUnit(s, r, o.actorId),
+                o.payload.path,
+                (p) => tileAt(s, p),
+                id,
+                ownedUnit(s, r, o.actorId).kind,
+              )
+            : ACTION_COST[o.type]),
+        0,
+      );
       requireRule(
         r.unlimitedAP || r.ap >= totalCost,
         `Ce déplacement groupé demande ${totalCost} PA. Aucune troupe n’a bougé.`,
@@ -529,18 +542,18 @@ export function applyAction(
         );
         if (result.movement) movements.push(result.movement);
       }
-      message = `${orders.length} troupe(s) déplacée(s) · ${orders.reduce((total, o) => total + ACTION_COST[o.type], 0)} PA.`;
+      message = `${orders.length} troupe(s) déplacée(s) · ${totalCost} PA.`;
       break;
     }
     case 'MOVE_ROAD': {
       const u = ownedUnit(s, r, a.actorId);
       requireRule(
         travelNetworkTile(tileAt(s, u), id, u.kind),
-        'L’unité doit être sur vos terres praticables ou sur une route.',
+        'L’unité doit être dans une enceinte fermée ou sur une route.',
       );
       requireRule(
         distance(u, a.payload) > 0,
-        'Choisissez une autre case de vos terres ou du réseau routier.',
+        'Choisissez une autre case de vos enceintes ou du réseau routier.',
       );
       const seen = vision(s, r);
       const roads = new Map(
@@ -563,13 +576,13 @@ export function applyAction(
       const path = roadPathTo(a.payload, roadPaths(u, roads, blocked, u.kind, id), blocked);
       requireRule(
         path?.length,
-        'Aucun trajet continu et exploré sur vos terres ou les routes : vérifiez les coupures, les terrains impraticables, les unités et les remparts.',
+        'Aucun trajet continu et exploré dans vos enceintes ou sur les routes : vérifiez les coupures, les terrains impraticables, les unités et les remparts.',
       );
       spendAction();
       movement = { unitId: u.id, from: { q: u.q, r: u.r }, path };
       Object.assign(u, a.payload, { updatedAt: now });
       syncCargo(u, now);
-      message = `${UNITS[u.kind].name} arrivé : ${path.length} cases sur vos terres et les routes · 1 PA.`;
+      message = `${UNITS[u.kind].name} arrivé : ${path.length} cases via vos enceintes et les routes · déplacement gratuit.`;
       break;
     }
     case 'MOVE': {
@@ -604,7 +617,7 @@ export function applyAction(
         );
         cursor = p;
       }
-      spendAction();
+      spendAction(movementAPCost(u, a.payload.path, (p) => tileAt(s, p), id, u.kind));
       movement = { unitId: u.id, from: { q: u.q, r: u.r }, path: a.payload.path };
       Object.assign(u, cursor, { updatedAt: now });
       syncCargo(u, now);
@@ -1270,8 +1283,10 @@ export function applyAction(
         );
         e.claimedBy = id;
         transfer(r.wallet, e.reward);
+        const apReward = anomalyAPReward(s.seed, e.id);
+        r.ap += apReward;
         if (e.relic) r.relics.push(e.relic);
-        message = `${e.title} : ${rewardText(e.reward)}${e.relic ? ` · Relique : ${e.relic}` : ''}.`;
+        message = `${e.title} : ${rewardText(e.reward)} · +${apReward} PA${e.relic ? ` · Relique : ${e.relic}` : ''}.`;
         log(s, message, 'WORLD', now, [id], e);
       } else {
         const t = tileAt(s, u);
@@ -1280,7 +1295,9 @@ export function applyAction(
         writeTile(s, t, { exhausted: true });
         transfer(r.wallet, { GOLD: t.poi === 'MYTHIC' ? 100 : 35, IRON: 15 });
         if (t.poi === 'MYTHIC' || t.poi === 'RARE') r.relics.push(`Fragment de ${key(u)}`);
-        message = `Ruines explorées : +${t.poi === 'MYTHIC' ? 100 : 35} or · +15 fer${t.poi === 'MYTHIC' || t.poi === 'RARE' ? ' · Fragment antique obtenu' : ''}.`;
+        const apReward = anomalyAPReward(s.seed, key(t));
+        r.ap += apReward;
+        message = `Ruines explorées : +${apReward} PA · +${t.poi === 'MYTHIC' ? 100 : 35} or · +15 fer${t.poi === 'MYTHIC' || t.poi === 'RARE' ? ' · Fragment antique obtenu' : ''}.`;
       }
       break;
     }

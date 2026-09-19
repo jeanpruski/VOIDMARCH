@@ -13,7 +13,7 @@ import { addBuilding, execute, worldView } from '../apps/server/src/engine';
 import { actionSchema } from '@voidmarch/protocol';
 import type { ActiveMission } from '@voidmarch/shared';
 
-test('25 illustrations, île de Jeff sur la carte, extraction et carnet de voyage', async ({
+test('45 illustrations, île de Jeff sur la carte, extraction et carnet de voyage', async ({
   page,
 }) => {
   test.setTimeout(180000);
@@ -131,12 +131,16 @@ test('25 illustrations, île de Jeff sur la carte, extraction et carnet de voyag
   const layers = await page.evaluate(() => {
     const objects = (window as any).expeditionScene.children.list;
     const depth = (name: string) => objects.find((o: any) => o.name === name)?.depth;
-    return { site: depth('expedition-site:jeff'), unit: depth('unit-sprite:boat'), oval: depth('unit-owner:boat') };
+    return {
+      site: depth('expedition-site:jeff'),
+      unit: depth('unit-sprite:boat'),
+      oval: depth('unit-owner:boat'),
+    };
   });
   expect(layers.unit).toBeGreaterThan(layers.site);
   expect(layers.oval).toBeGreaterThan(layers.site);
   // Real game renders at the same scale: no image compositing or mock illustration.
-  const examples = ['chernobyl', 'area51', 'boyard', 'alcatraz', 'giza', 'jeff'];
+  const examples = ['houska', 'hoerengracht', 'baychimo', 'yonaguni', 'dahab', 'jeff'];
   const renders: { name: string; image: string }[] = [];
   for (const [i, siteId] of examples.entries()) {
     const site = EXPEDITION_SITES.find((s) => s.id === siteId)!;
@@ -150,7 +154,7 @@ test('25 illustrations, île de Jeff sur la carte, extraction et carnet de voyag
     state.units.boat.kind = site.environment === 'SEA' ? 'TROOP_FERRY' : 'PEASANT';
     for (const p of disk(mission, 10))
       writeTile(state, p, {
-        biome: ['area51', 'giza'].includes(siteId) ? 'DESERT' : 'TEMPERATE',
+        biome: siteId === 'baychimo' ? 'SNOW' : siteId === 'dahab' ? 'DESERT' : 'TEMPERATE',
         terrain:
           site.environment === 'SEA'
             ? 'SEA'
@@ -199,12 +203,12 @@ test('25 illustrations, île de Jeff sur la carte, extraction et carnet de voyag
   await page.evaluate(() => (window as any).expeditionPush());
   await page.getByRole('button', { name: 'Livrer l’objet · 1 PA', exact: true }).click();
   await expect(
-    page.getByRole('button', { name: 'Carnet des découvertes · 1/25', exact: true }),
+    page.getByRole('button', { name: 'Carnet des découvertes · 1/45', exact: true }),
   ).toBeVisible();
   expect(state.missions!.pilot.trophies).toHaveLength(1);
   await expect(page.getByText('Expédition accomplie', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Fermer le bilan de victoire' }).click();
-  await page.getByRole('button', { name: 'Carnet des découvertes · 1/25', exact: true }).click();
+  await page.getByRole('button', { name: 'Carnet des découvertes · 1/45', exact: true }).click();
   await expect(page.locator('.expedition-album .discovered')).toHaveCount(1);
   await page.screenshot({ animations: 'disabled', path: 'output/expedition-journal.png' });
   await page.getByRole('button', { name: 'Revenir aux expéditions', exact: true }).click();
@@ -255,9 +259,20 @@ test('25 illustrations, île de Jeff sur la carte, extraction et carnet de voyag
     expect(a.clear, a.id + ' transparence').toBeGreaterThan(0.15);
     expect(a.opaque, a.id + ' illustration').toBeGreaterThan(0.12);
   }
+  await page.setViewportSize({ width: 1440, height: 1800 });
   await page.screenshot({
     animations: 'disabled',
     path: 'output/expedition-landmarks-contact-sheet.png',
+  });
+  await page.evaluate(() => {
+    const main = document.body.lastElementChild!;
+    [...main.children].slice(0, 25).forEach((el) => el.remove());
+    main.querySelectorAll('img').forEach((img) => (img.style.height = '220px'));
+  });
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.screenshot({
+    animations: 'disabled',
+    path: 'output/expedition-mysteries-contact-sheet.png',
   });
   await page.setViewportSize({ width: 1440, height: 1720 });
   await page.evaluate(async (renders) => {

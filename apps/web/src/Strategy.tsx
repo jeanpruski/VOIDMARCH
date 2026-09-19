@@ -136,7 +136,7 @@ export function AlliancePanel() {
             </select>
           </label>
           <button className="primary" disabled={pending}>
-            Fonder · 0 PA
+            Fonder
           </button>
         </form>
       ) : (
@@ -179,7 +179,7 @@ export function AlliancePanel() {
                   </select>
                 </label>
                 <button className="secondary" disabled={pending}>
-                  Envoyer l’invitation · 0 PA
+                  Envoyer l’invitation
                 </button>
               </form>
             )}
@@ -192,7 +192,7 @@ export function AlliancePanel() {
                 Vous perdrez les flèches et la discussion. Trêve de 24 heures avec vos anciens
                 alliés.{' '}
                 <Order danger command={{ type: 'ALLIANCE_LEAVE', actorId: id, payload: {} }}>
-                  Confirmer le départ · 0 PA
+                  Confirmer le départ
                 </Order>{' '}
                 <button className="text-button" onClick={() => setLeave(false)}>
                   Annuler
@@ -244,7 +244,7 @@ export function AlliancePanel() {
                 />
               </label>
               <button className="secondary" disabled={pending}>
-                Envoyer · 0 PA
+                Envoyer
               </button>
             </form>
           </div>
@@ -289,7 +289,6 @@ export function AlliancePanel() {
               </div>
               <button className="secondary" disabled={pending}>
                 Partager ({(selection ?? w.player.capital).q}, {(selection ?? w.player.capital).r})
-                · 0 PA
               </button>
             </form>
             {a.markers.map((m) => (
@@ -302,7 +301,7 @@ export function AlliancePanel() {
                   <Order
                     command={{ type: 'ALLIANCE_UNMARK', actorId: id, payload: { markerId: m.id } }}
                   >
-                    Retirer · 0 PA
+                    Retirer
                   </Order>
                 )}
               </div>
@@ -328,7 +327,7 @@ export function AlliancePanel() {
                   payload: { invitationId: i.id, accept: true },
                 }}
               >
-                Accepter · 0 PA
+                Accepter
               </Order>
               <Order
                 command={{
@@ -337,7 +336,7 @@ export function AlliancePanel() {
                   payload: { invitationId: i.id, accept: false },
                 }}
               >
-                Refuser · 0 PA
+                Refuser
               </Order>
             </>
           )}
@@ -419,7 +418,7 @@ function StrategyPanel() {
           <Coordinates q={q} r={r} setQ={setQ} setR={setR} />
         )}
         <button className="secondary danger" disabled={pending}>
-          Déclarer · 0 PA
+          Déclarer
         </button>
       </form>
       {(w.strategy?.wars ?? []).map((war) => (
@@ -441,7 +440,7 @@ function StrategyPanel() {
           {war.objective !== 'TRIBUTE' && <Position p={war} />}{' '}
           {war.to === id && war.status === 'ACTIVE' && war.objective === 'TRIBUTE' && (
             <Order command={{ type: 'SETTLE_WAR', actorId: id, payload: { warId: war.id } }}>
-              Payer {format(war.tributeGold)} or · 0 PA
+              Payer {format(war.tributeGold)} or
             </Order>
           )}
         </div>
@@ -639,7 +638,7 @@ export function StrategyUnitControls({ unit }: { unit: Unit }) {
             {veteranRank(unit.victories) * 5} % attaque / défense
           </span>
           <button className="text-button" onClick={() => setRename(!rename)}>
-            Renommer · 0 PA
+            Renommer
           </button>
           {rename && (
             <form
@@ -660,7 +659,7 @@ export function StrategyUnitControls({ unit }: { unit: Unit }) {
                 onChange={(e) => setName(e.target.value)}
               />
               <button className="secondary" disabled={pending}>
-                Enregistrer · 0 PA
+                Enregistrer
               </button>
             </form>
           )}

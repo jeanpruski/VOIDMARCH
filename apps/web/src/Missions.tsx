@@ -1,3 +1,4 @@
+import { MissionProgression, ExceptionalMissionBadge } from './MissionProgression';
 import { useState, useEffect } from 'react';
 import { Expeditions } from './Expeditions';
 import { Flag, MapPin, Shield, Swords, Clock3 } from 'lucide-react';
@@ -15,10 +16,10 @@ function OfferDetails({ offer }: { offer: MissionOffer }) {
     <>
       {offer.maritime && (
         <p className="catalog-brief">
-          Expédition maritime : une rade ou une forteresse insulaire accessible depuis votre flotte.
+          Expédition maritime : une rade ou une forteresse insulaire à atteindre avec des navires.
           Détruisez le port maître ; les navires et la batterie survivants vous rejoignent. Prévoyez
-          un sonar dès l’ère industrielle. La traversée peut dépasser 40 cases si la côte proche est
-          déjà visible.
+          un sonar dès l’ère industrielle. La côte choisie peut être très éloignée : construisez un
+          port et préparez votre flotte avant de partir.
         </p>
       )}
       <p className="mission-objective">
@@ -148,6 +149,7 @@ export function Missions() {
     return (
       <div className="missions-panel">
         {tabs}
+        <MissionProgression />
         <p>
           Une expédition est en cours. Termine-la ou abandonne-la avant d’accepter une conquête.
         </p>
@@ -162,15 +164,16 @@ export function Missions() {
         </p>
       )}
       {tabs}
+      <MissionProgression />
       <div className="mission-intro">
         <Swords size={25} />
         <div>
           <h3>Une campagne, un objectif, une nouvelle place forte.</h3>
           <p>
-            La forteresse apparaît hors de ta vision actuelle, de préférence à 20–40 cases de ta
-            capitale. Sinon, elle est placée dans la zone libre la plus proche au-delà. Une zone
-            déjà explorée peut accueillir une mission si elle n’est plus visible. Seuls toi et tes
-            alliés pouvez l’attaquer.
+            La forteresse apparaît de préférence à 20–40 cases de ta capitale, sinon plus loin. Les
+            zones inconnues sont prioritaires, puis celles explorées hors de vue. Si nécessaire, une
+            zone visible libre et peu occupée sert de repli. Seuls toi et tes alliés pouvez
+            l’attaquer. Les missions maritimes peuvent être beaucoup plus éloignées.
           </p>
         </div>
       </div>
@@ -185,6 +188,7 @@ export function Missions() {
             MISSION EN COURS · {active.difficulty} · NIVEAU {active.level}
           </span>
           <h3>{active.title}</h3>
+          <ExceptionalMissionBadge offer={active} />
           <MissionDifficulty offer={active} />
           <OfferDetails offer={active} />
           <MissionRewards offer={active} />
@@ -235,12 +239,12 @@ export function Missions() {
                       })
                     }
                   >
-                    Confirmer l’abandon · 0 PA
+                    Confirmer l’abandon
                   </button>
                 </div>
               </>
             ) : (
-              <button onClick={() => setConfirmAbandon(active.id)}>Abandonner… · 0 PA</button>
+              <button onClick={() => setConfirmAbandon(active.id)}>Abandonner…</button>
             )}
           </div>
         </article>
@@ -297,10 +301,23 @@ export function Missions() {
                   {offer.difficulty} · NIVEAU {offer.level}
                 </span>
                 <h3>{offer.title}</h3>
+                <ExceptionalMissionBadge offer={offer} />
+                <p className="mission-history">
+                  {offer.expedition
+                    ? offer.discoveredBefore
+                      ? 'Lieu déjà découvert'
+                      : 'Lieu à découvrir'
+                    : offer.completedBefore
+                      ? 'Campagne déjà accomplie'
+                      : 'Nouvelle campagne'}
+                  {offer.expedition &&
+                    (offer.completedBefore ? ' · Déjà accomplie' : ' · Jamais accomplie')}
+                </p>
                 <MissionDifficulty offer={offer} />
                 <p className="mission-offer-distance">
-                  20–40 cases si possible ; sinon au plus proche dans le brouillard au-delà.
-                  Distance exacte après acceptation.
+                  {offer.maritime
+                    ? 'Expédition navale : une rade même lointaine peut être choisie. Préparez un port et des navires ; distance exacte après acceptation.'
+                    : '20–40 cases si possible ; sinon recherche plus loin. Priorité aux lieux inconnus, puis hors de vue ; une zone visible libre peut servir de repli.'}
                 </p>
                 <OfferDetails offer={offer} />
                 <MissionRewards offer={offer} />
@@ -319,7 +336,7 @@ export function Missions() {
                     })
                   }
                 >
-                  Accepter · 0 PA
+                  Accepter
                 </button>
               </article>
             ))}
@@ -346,6 +363,7 @@ export function Missions() {
                 <h4>
                   {m.title} · {w.realms.find((r) => r.id === m.realmId)?.name ?? 'Allié'}
                 </h4>
+                <ExceptionalMissionBadge offer={m} />
                 <MissionDifficulty offer={m} />
                 <MissionJourney world={w} target={m} />
                 <button onClick={() => focusMap(m)}>

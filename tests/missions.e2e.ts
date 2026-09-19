@@ -167,9 +167,7 @@ test('missions : trois offres, acceptation unique, navigation, abandon payant, v
     s.setState({ now: s.getState().world.missions.offersRefreshAt });
   });
   await expect(page.getByRole('timer')).toContainText('Renouvellement des offres en cours');
-  for (const button of await page
-    .getByRole('button', { name: 'Accepter · 0 PA', exact: true })
-    .all())
+  for (const button of await page.getByRole('button', { name: 'Accepter', exact: true }).all())
     await expect(button).toBeDisabled();
   await page.evaluate(async () => {
     const world = await (window as any).fixtureAdvance(600000);
@@ -179,7 +177,7 @@ test('missions : trois offres, acceptation unique, navigation, abandon payant, v
   const newTitles = await page.locator('.mission-card h3').allTextContents();
   newTitles.forEach((title, i) => expect(title).not.toBe(oldTitles[i]));
   const gold = state.realms.a.wallet.GOLD;
-  await page.getByRole('button', { name: 'Accepter · 0 PA', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Accepter', exact: true }).first().click();
   await expect(page.locator('.mission-active')).toBeVisible();
   await expect(page.locator('.mission-card')).toHaveCount(0);
   await expect(page.locator('.mission-active')).toContainText('Objectif :');
@@ -200,12 +198,12 @@ test('missions : trois offres, acceptation unique, navigation, abandon payant, v
     view().missions!.active!.objectivePosition.q,
   );
   await page.evaluate(() => (window as any).catalogStore.setState({ panel: 'missions' }));
-  await page.getByRole('button', { name: 'Abandonner… · 0 PA', exact: true }).click();
+  await page.getByRole('button', { name: 'Abandonner…', exact: true }).click();
   await expect(page.getByText('Les ressources seront déduites.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Continuer la mission' }).click();
   await expect(page.locator('.mission-active')).toBeVisible();
-  await page.getByRole('button', { name: 'Abandonner… · 0 PA', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirmer l’abandon · 0 PA' }).click();
+  await page.getByRole('button', { name: 'Abandonner…', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmer l’abandon' }).click();
   await expect(page.locator('.mission-card')).toHaveCount(3);
   expect(state.realms.a.wallet.GOLD).toBe(gold - mission.abandonmentCost.GOLD!);
   await expect(page.locator('.mission-result')).toContainText('Mission abandonnée');
@@ -214,7 +212,7 @@ test('missions : trois offres, acceptation unique, navigation, abandon payant, v
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
-  await page.getByRole('button', { name: 'Accepter · 0 PA', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Accepter', exact: true }).first().click();
   await expect(page.locator('.mission-active')).toBeVisible();
   await page.screenshot({
     path: 'test-results/missions-mobile.png',
@@ -304,7 +302,7 @@ test('missions : trois offres, acceptation unique, navigation, abandon payant, v
   await expect(campaign.locator('.mission-roster-details')).toContainText(
     UNITS[quoted.units[0]].name,
   );
-  await campaign.getByRole('button', { name: 'Accepter · 0 PA', exact: true }).click();
+  await campaign.getByRole('button', { name: 'Accepter', exact: true }).click();
   await expect(page.locator('.mission-active')).toContainText('Grande campagne');
   expect(state.missions!.a.active!.units).toHaveLength(quoted.units.length);
   await page.locator('.modal-body').evaluate((el) => el.scrollTo({ top: 0 }));

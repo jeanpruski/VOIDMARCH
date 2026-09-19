@@ -262,9 +262,9 @@ describe('missions de campagne', () => {
     for (const p of disk(mission, (mission.wallRadius ?? 2) + 1))
       expect(tileAt(s, p).ownerId).toBeUndefined();
   });
-  it('garde la préférence 20–40 cases sur des terres explorées qui ne sont plus visibles', () => {
+  it('retombe sur des terres explorées hors de vue quand la région est connue', () => {
     const s = fixture();
-    for (const p of disk(s.realms.a.capital, 50))
+    for (const p of disk(s.realms.a.capital, 95))
       s.realms.a.explored[key(p)] = { ...tileAt(s, p), visibility: 'EXPLORED' };
     const seen = vision(s, s.realms.a),
       mission = activeMissions(accept(s))[0];
@@ -583,8 +583,8 @@ describe('missions de campagne', () => {
     prepareDevelopment(s, 'a', 5, now);
     const offer = missionOffers(s, 'a', now)[index];
     expect(offer.reward).toEqual({
-      GOLD: offer.abandonmentCost.GOLD! * multiplier,
-      FOOD: offer.abandonmentCost.FOOD! * multiplier,
+      GOLD: Math.round(offer.abandonmentCost.GOLD! * multiplier * 1.3 * 10) / 10,
+      FOOD: Math.round(offer.abandonmentCost.FOOD! * multiplier * 1.3 * 10) / 10,
     });
     s = accept(s, index);
     const m = activeMissions(s)[0];

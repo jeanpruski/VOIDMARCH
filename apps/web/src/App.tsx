@@ -1,3 +1,4 @@
+import { anomalyAPReward } from '@voidmarch/game-rules';
 import { ExpeditionInteraction } from './Expeditions';
 import { fishingYield, coastlineHelp } from '@voidmarch/game-rules';
 import { eventAvailable } from './world-events';
@@ -421,12 +422,15 @@ function Topbar() {
             <span className="full">{p.unlimitedAP ? '∞' : `${ap} / ${RULES.maxAP}`}</span>
           </span>
         </div>
-        <span className="ap-countdown">
+        <span
+          className="ap-countdown"
+          title="Les PA de départ et des anomalies peuvent dépasser le plafond. La régénération reprend sous 20 PA."
+        >
           {p.unlimitedAP ? (
             'PA ILLIMITÉS'
           ) : ap >= RULES.maxAP ? (
             ap > RULES.maxAP ? (
-              `BONUS DE DÉPART · +${ap - RULES.maxAP}`
+              `RÉSERVE BONUS · +${ap - RULES.maxAP}`
             ) : (
               'RÉSERVE PLEINE'
             )
@@ -928,7 +932,7 @@ function SelectionPanel() {
                 <ActionButton
                   shortcut="D"
                   className={`primary ${mode === 'move' ? 'chosen' : ''}`}
-                  disabled={pending || (!w.player.unlimitedAP && w.player.ap < 1)}
+                  disabled={pending}
                   onClick={() =>
                     useGame.setState({
                       mode: mode === 'move' ? 'inspect' : 'move',
@@ -937,12 +941,12 @@ function SelectionPanel() {
                     })
                   }
                   title={
-                    'Distance illimitée pour 1 PA sur un trajet continu de vos terres et de routes explorées. Ailleurs : portée normale. Les obstacles et terrains impraticables restent bloquants.'
+                    'Déplacement gratuit et sans limite de distance sur un trajet continu de routes explorées et de vos enceintes fermées. Ailleurs : portée normale. Les obstacles et terrains impraticables restent bloquants.'
                   }
                 >
                   <ArrowUpRight size={16} />
                   {mode === 'move' ? 'Choisir une destination' : 'Déplacer'}
-                  <small>1 PA</small>
+                  <small>Gratuit sur routes / enceintes · sinon 1 PA</small>
                 </ActionButton>
                 <button
                   disabled={pending}
@@ -959,9 +963,9 @@ function SelectionPanel() {
                   <Users size={15} />{' '}
                   {multiSelect ? 'Sélection multiple active' : 'Sélection multiple'}
                 </button>
-                {(tile?.road || tile?.ownerId === w.player.id) && (
+                {(tile?.road || tile?.enclosureOwnerId === w.player.id) && (
                   <span className="road-status">
-                    Vos terres + routes : distance illimitée · 1 PA
+                    Enceintes fermées + routes : déplacement gratuit et illimité
                   </span>
                 )}
                 <ActionButton
@@ -1124,7 +1128,8 @@ function SelectionPanel() {
                     className="secondary"
                     onClick={() => void send({ type: 'INTERACT', actorId: u.id, payload: {} })}
                   >
-                    Fouiller · 1 PA
+                    Fouiller · 1 PA{' '}
+                    <small>Butin : +{anomalyAPReward(w.seed, key(u))} PA et ressources</small>
                   </ActionButton>
                 )}
                 {[w.missions?.active, ...(w.missions?.allied ?? [])]
@@ -1152,6 +1157,7 @@ function SelectionPanel() {
                       }
                     >
                       <Eye size={14} /> Explorer l’anomalie · 1 PA
+                      <small>Butin : +{anomalyAPReward(w.seed, e.id)} PA et ressources</small>
                     </ActionButton>
                   ))}
                 {w.caravans

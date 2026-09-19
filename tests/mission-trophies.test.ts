@@ -45,6 +45,43 @@ describe('médailles de campagne', () => {
     expect(settingsSchema.safeParse({ emblem: 'unknown-symbol' }).success).toBe(false);
   });
 
+  it('varie les motifs, ornements, gemmes et finitions, sans changer les anciennes médailles', () => {
+    const medals = Array.from(
+      { length: 1000 },
+      (_, i) => createMissionTrophy({ ...mission, id: `design-${i}` }, now, captured, reward).medal,
+    );
+    for (const [field, count] of [
+      ['shape', 10],
+      ['ribbon', 10],
+      ['ribbonPattern', 6],
+      ['ornament', 6],
+      ['gem', 6],
+      ['finish', 3],
+    ] as const)
+      expect(new Set(medals.map((m) => m[field])).size).toBe(count);
+    const legacy = {
+      name: 'Ancienne médaille',
+      shape: 'round',
+      ribbon: 'pine',
+      metal: 'bronze',
+      emblem: EMBLEM_IDS[0],
+    } as const;
+    const svg = renderToStaticMarkup(createElement(MissionMedal, { medal: legacy }));
+    expect(svg).not.toContain('undefined');
+    expect(svg).not.toContain('NaN');
+    for (const route of ['LAND', 'SEA'] as const) {
+      const trophy = createMissionTrophy(
+        {
+          ...mission,
+          expedition: { siteId: 'test', mode: 'RECON', route, phase: 'VISIT', targetDistance: 80 },
+        },
+        now,
+        captured,
+        reward,
+      );
+      expect(trophy.medal.theme).toBe(route === 'LAND' ? 'land' : 'sea');
+    }
+  });
   it('crée une décoration stable et un bilan complet, indépendant des objets du monde', () => {
     const m = structuredClone(mission),
       survivors = { ...captured },
@@ -75,7 +112,7 @@ describe('médailles de campagne', () => {
       (_, i) =>
         createMissionTrophy({ ...mission, id: `campaign-${i}` }, now, captured, reward).medal,
     );
-    expect(new Set(medals.map((m) => m.shape)).size).toBe(4);
+    expect(new Set(medals.map((m) => m.shape)).size).toBe(10);
     expect(new Set(medals.map((m) => m.ribbon)).size).toBeGreaterThan(3);
     expect(new Set(medals.map((m) => m.emblem)).size).toBeGreaterThan(3);
     expect(new Set(medals.map((m) => JSON.stringify(m))).size).toBeGreaterThan(40);

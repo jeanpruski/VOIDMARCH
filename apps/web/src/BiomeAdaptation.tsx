@@ -40,7 +40,7 @@ export function BiomeAdaptation({
       </p>
       <p>
         Il s’ajoute au soutien militaire et aux bonus de faction. Le coût des terrains et les
-        obstacles restent applicables. Les routes gardent leur déplacement sans limite pour 1 PA.
+        obstacles restent applicables. Les routes gardent leur déplacement sans limite et gratuit.
       </p>
       <p>
         Aux frontières, c’est le biome indiqué dans les informations du terrain qui compte, même si

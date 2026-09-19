@@ -1,3 +1,4 @@
+import { movementAPCost, anomalyAPReward } from '@voidmarch/game-rules';
 import {
   developmentReason,
   constructionDevelopmentStage,
@@ -142,7 +143,10 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
               movementBiome(world.seed, tiles.get(key(unit))),
               player.faction,
             )) ||
-        !pay()
+        !pay(
+          {},
+          movementAPCost(unit, path, (p) => tiles.get(key(p)), id, unit.kind),
+        )
       )
         return;
       movement = { unitId: unit.id, from: { q: unit.q, r: unit.r }, path };
@@ -388,7 +392,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       break;
     }
     case 'INTERACT': {
-      if (!unit || action.payload.caravanId) return;
+      if (!unit || action.payload.caravanId || action.payload.expeditionId) return;
       let reward: Partial<Wallet>, relic: string | undefined;
       if (action.payload.eventId) {
         const event = world.events.find((e) => e.id === action.payload.eventId);
@@ -413,6 +417,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       if (!pay()) return;
       for (const [resource, value] of Object.entries(reward))
         player.wallet[resource as keyof Wallet] += value;
+      player.ap += anomalyAPReward(world.seed, action.payload.eventId ?? key(unit));
       if (relic) player.relics.push(relic);
       break;
     }

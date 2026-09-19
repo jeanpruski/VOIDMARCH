@@ -1,5 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { NPCS, NPC_RULES, RESOURCES, RULES, type NpcKind, type Wallet } from '@voidmarch/config';
+import {
+  NPCS,
+  NPC_RULES,
+  NPC_LEVELS,
+  developmentStage,
+  RESOURCES,
+  type NpcKind,
+  type Wallet,
+} from '@voidmarch/config';
 import {
   chunkOf,
   disk,
@@ -12,14 +20,24 @@ import {
 } from '@voidmarch/game-rules';
 import type { GameState, Hex, Unit } from '@voidmarch/shared';
 
-export function createNpc(s: GameState, position: Hex, kind: NpcKind, now: number): Unit {
+export function createNpc(s: GameState, position: Hex, kind: NpcKind, now: number, rank = 1): Unit {
+  const level = Math.max(1, Math.min(5, Math.floor(rank)));
+  const scaling = NPC_LEVELS[level - 1];
   const profile = NPCS[kind],
     id = randomUUID();
   const roll = (salt: string) => hash(`${s.seed}:${id}:${salt}`);
-  const maxHp = profile.hp + Math.floor(roll('hp') * 5) - 2;
+  const maxHp = Math.round((profile.hp + Math.floor(roll('hp') * 5) - 2) * scaling.stats);
+  const attack = Math.round((profile.attack + Math.floor(roll('atk') * 3) - 1) * scaling.stats);
+  const defense = Math.round(
+    Math.max(0, profile.defense + Math.floor(roll('def') * 3) - 1) * scaling.stats,
+  );
+  const strength =
+    (maxHp / (profile.hp * scaling.stats) + attack / (profile.attack * scaling.stats)) / 2;
   const reward: Partial<Wallet> = {};
   for (const [resource, amount] of Object.entries(profile.reward))
-    reward[resource as keyof Wallet] = Math.round(amount * (0.8 + roll(resource) * 0.4));
+    reward[resource as keyof Wallet] = Math.round(
+      amount * scaling.loot * strength * (0.9 + roll(resource) * 0.2),
+    );
   const npc: Unit = {
     id,
     ...position,
@@ -30,11 +48,12 @@ export function createNpc(s: GameState, position: Hex, kind: NpcKind, now: numbe
     updatedAt: now,
     npc: {
       kind,
+      level,
       maxHp,
-      attack: profile.attack + Math.floor(roll('atk') * 3) - 1,
-      defense: Math.max(0, profile.defense + Math.floor(roll('def') * 3) - 1),
+      attack,
+      defense,
       reward,
-      bonusAP: roll('ap') < NPC_RULES.apChance ? (roll('ap-amount') < 0.25 ? 2 : 1) : 0,
+      bonusAP: roll('ap') < NPC_RULES.apChance ? 1 + Math.floor(roll('ap-amount') * 3) : 0,
       expiresAt: now + NPC_RULES.lifetime,
       contributions: {},
     },
@@ -78,19 +97,41 @@ export function tickNpcs(s: GameState, now: number, connected: Set<string>, rand
         !t.poi &&
         ['PLAIN', 'FOREST', 'HILL'].includes(t.terrain) &&
         Object.values(s.realms).every((r) => r.defeatedAt || distance(r.capital, p) >= 6) &&
-        Object.values(s.units).every((u) => distance(u, p) >= (u.npc ? 5 : 2)) &&
+        Object.values(s.units).every((u) => distance(u, p) >= (u.npc ? 8 : 2)) &&
         Object.values(s.events).every((e) => e.claimedBy || e.endsAt <= now || distance(e, p) > 1)
       );
     });
     if (!places.length) continue;
     const kinds = Object.keys(NPCS) as NpcKind[];
+    const position = places[Math.floor(random(seed + ':position') * places.length)];
     createNpc(
       s,
-      places[Math.floor(random(seed + ':position') * places.length)],
+      position,
       kinds[Math.floor(random(seed + ':kind') * kinds.length)],
       now,
+      npcEncounterLevel(s, position),
     );
   }
+}
+
+/** Use the least advanced neighbouring human realm, including offline towns. Never reroll an existing NPC. */
+export function npcEncounterLevel(s: GameState, position: Hex): number {
+  const neighbours = Object.values(s.realms).filter(
+    (r) =>
+      !r.bot &&
+      !r.defeatedAt &&
+      (distance(r.capital, position) <= 16 ||
+        Object.values(s.units).some(
+          (u) => u.ownerId === r.id && u.hp > 0 && distance(u, position) <= 16,
+        )),
+  );
+  return neighbours.length
+    ? Math.min(
+        ...neighbours.map((r) =>
+          developmentStage(Object.values(s.buildings).filter((b) => b.ownerId === r.id)),
+        ),
+      )
+    : 1;
 }
 
 /** Largest-remainder sharing: no last-hit theft, no resource duplication from rounding. */
@@ -129,7 +170,7 @@ export function npcRewards(s: GameState, npc: Unit, now: number) {
     const realm = s.realms[reward.realmId];
     transfer(realm.wallet, reward.resources);
     refreshAP(realm, now);
-    reward.ap = Math.min(apShares[i], Math.max(0, RULES.maxAP - realm.ap));
+    reward.ap = apShares[i];
     realm.ap += reward.ap;
   }
   return rewards;

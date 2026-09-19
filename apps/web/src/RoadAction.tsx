@@ -16,8 +16,8 @@ export function RoadAction({ tile }: { tile?: ViewTile }) {
   return (
     <>
       {tile.road && (
-        <span className="road-status" title="Le trajet complet coûte toujours 1 PA.">
-          {bridge ? 'Pont' : 'Route'} · réseau continu : distance illimitée pour 1 PA
+        <span className="road-status" title="Trajet gratuit sur les routes et à l’intérieur de vos enceintes fermées.">
+          {bridge ? 'Pont' : 'Route'} · réseau continu : distance illimitée gratuitement
         </span>
       )}
       {!reason && (

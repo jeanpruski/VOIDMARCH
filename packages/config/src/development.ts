@@ -56,6 +56,23 @@ export function developmentStage(sites: readonly Site[]) {
   while (stage < 5 && !developmentMissing(sites, stage + 1).length) stage++;
   return stage;
 }
+export const missionRecruiters = () => [
+  ...new Set(
+    Object.values(UNIT_PROFILES)
+      .filter((p) => !p.builder && !p.hero)
+      .flatMap((p) => p.recruitAt),
+  ),
+];
+export function militaryDevelopmentLevel(sites: readonly Site[]) {
+  const recruiters = missionRecruiters();
+  return Math.max(
+    1,
+    ...sites.filter((b) => b.hp > 0 && recruiters.includes(b.kind)).map((b) => b.level),
+  );
+}
+export function conquestDevelopmentLevel(sites: readonly Site[]) {
+  return Math.min(developmentStage(sites), militaryDevelopmentLevel(sites));
+}
 export function developmentReason(sites: readonly Site[], stage: number) {
   const missing = developmentMissing(sites, stage);
   return missing.length

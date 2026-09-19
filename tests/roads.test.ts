@@ -104,7 +104,7 @@ describe('routes et ponts', () => {
     const w = worldView(s, 'p', now),
       t = w.tiles.find((t) => t.q === p.q && t.r === p.r)!;
     expect(roadOrderReason(w, t, 'build')).toBe('');
-    expect(roadBenefit(t)).toContain('distance illimitée pour 1 PA');
+    expect(roadBenefit(t)).toContain('distance illimitée gratuitement');
     w.player.wallet.WOOD = 0;
     expect(roadOrderReason(w, t, 'build')).toContain('30 bois et 10 fer');
     t.road = true;

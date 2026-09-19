@@ -42,13 +42,13 @@ function fixture(length = 80) {
   return { s, r };
 }
 describe('liaisons routières sans limite de distance', () => {
-  it('traverse plusieurs chunks pour exactement 1 PA et sans dépense de matériaux', () => {
+  it('traverse plusieurs chunks gratuitement et sans dépense de matériaux', () => {
     const { s, r } = fixture(),
       destination = { q: 80, r: 0 };
     const result = execute(s, r.id, order('MOVE_ROAD', 'worker', destination), now);
     expect(result.result.accepted).toBe(true);
     expect(result.state.units.worker).toMatchObject(destination);
-    expect(result.state.realms.p.ap).toBe(39);
+    expect(result.state.realms.p.ap).toBe(40);
     expect(result.state.realms.p.wallet).toEqual(r.wallet);
     expect(result.result.message).toContain('80 cases');
     expect(result.result.movement?.from).toEqual({ q: 0, r: 0 });
@@ -56,7 +56,7 @@ describe('liaisons routières sans limite de distance', () => {
     expect(result.result.movement?.path.at(-1)).toEqual(destination);
     expect(tileAt(result.state, { q: 40, r: 0 }).ownerId).toBeUndefined();
   });
-  it.each(['start', 'end', 'gap', 'unexplored', 'unknownRoad', 'unit', 'ap', 'same'] as const)(
+  it.each(['start', 'end', 'gap', 'unexplored', 'unknownRoad', 'unit', 'same'] as const)(
     'refuse %s sans dépenser ni déplacer',
     (condition) => {
       const { s, r } = fixture();
@@ -68,7 +68,6 @@ describe('liaisons routières sans limite de distance', () => {
       if (condition === 'unknownRoad') r.explored['40,0'].road = false;
       if (condition === 'unit')
         s.units.block = { ...s.units.worker, id: 'block', ownerId: 'enemy', q: 40 };
-      if (condition === 'ap') r.ap = 0;
       if (condition === 'same') destination = { q: 0, r: 0 };
       const result = execute(s, r.id, order('MOVE_ROAD', 'worker', destination), now);
       expect(result.result.accepted).toBe(false);
@@ -135,7 +134,7 @@ describe('déplacement illimité sur terres et routes reliées', () => {
       if (t.road) writeTile(f.s, t, { road: false, ownerId: f.r.id, enclosureOwnerId: f.r.id });
     return f;
   }
-  it('traverse une enceinte de 80 cases sans route, pour 1 PA, avec le même trajet anticipé', () => {
+  it('traverse une enceinte de 80 cases sans route, gratuitement, avec le même trajet anticipé', () => {
     const { s, r } = territory();
     const command = order('MOVE_ROAD', 'worker', { q: 80, r: 0 });
     const before = worldView(s, r.id, now, [{ q: 0, r: 0 }]);
@@ -146,7 +145,7 @@ describe('déplacement illimité sur terres et routes reliées', () => {
     expect(result.result.movement?.path).toHaveLength(80);
     expect(prediction.movement).toEqual(result.result.movement);
     expect(prediction.world.units).toEqual(worldView(result.state, r.id, now).units);
-    expect(result.state.realms.p.ap).toBe(39);
+    expect(result.state.realms.p.ap).toBe(40);
     expect(result.state.realms.p.wallet).toEqual(r.wallet);
   });
   it('enchaîne ses terres, une route neutre ou adverse, puis ses terres en un ordre', () => {
@@ -156,9 +155,9 @@ describe('déplacement illimité sur terres et routes reliées', () => {
     const result = execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now);
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.result.movement?.path).toHaveLength(80);
-    expect(result.state.realms.p.ap).toBe(39);
+    expect(result.state.realms.p.ap).toBe(40);
   });
-  it.each(['neutral', 'enemy', 'unit', 'wall', 'terrain', 'ap'] as const)(
+  it.each(['neutral', 'enemy', 'unit', 'wall', 'terrain'] as const)(
     'refuse le trajet coupé (%s) sans consommer de PA',
     (condition) => {
       const { s, r } = territory();
@@ -171,7 +170,6 @@ describe('déplacement illimité sur terres et routes reliées', () => {
         s.units.worker.kind = 'TANK';
         writeTile(s, gap, { terrain: 'MOUNTAIN' });
       }
-      if (condition === 'ap') r.ap = 0;
       r.explored[key(gap)] = { ...gap, terrain: 'PLAIN', road: false, visibility: 'EXPLORED' };
       const result = execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now);
       expect(result.result.accepted).toBe(false);
@@ -181,12 +179,12 @@ describe('déplacement illimité sur terres et routes reliées', () => {
       ).toBeUndefined();
     },
   );
-  it('les terres revendiquées sans enceinte fonctionnent aussi, sans bonus pour les ennemis', () => {
+  it('les terres revendiquées sans enceinte ne donnent pas de déplacement gratuit', () => {
     const { s, r } = territory();
     for (const t of Object.values(s.tiles)) delete t.enclosureOwnerId;
     expect(
       execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now).result.accepted,
-    ).toBe(true);
+    ).toBe(false);
     for (const t of Object.values(s.tiles)) if (t.ownerId === r.id) t.ownerId = 'enemy';
     expect(
       execute(s, r.id, order('MOVE_ROAD', 'worker', { q: 80, r: 0 }), now).result.accepted,

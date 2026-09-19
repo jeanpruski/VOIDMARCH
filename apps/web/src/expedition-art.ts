@@ -4,7 +4,7 @@ import { key, expeditionFootprint, expeditionCenter } from '@voidmarch/game-rule
 import type { WorldView } from '@voidmarch/shared';
 import { hexToPixel, cameraViewport, SIZE, Y_SCALE } from './map-geometry';
 const pending = new WeakMap<Phaser.Scene, Set<string>>();
-/** Load only accepted, disclosed landmarks. The 25 illustrations never delay initial map loading. */
+/** Load only accepted, disclosed landmarks. The illustrations never delay initial map loading. */
 export function drawExpeditionSites(scene: Phaser.Scene, world: WorldView, redraw: () => void) {
   const objects: Phaser.GameObjects.GameObject[] = [];
   const c = scene.cameras.main,

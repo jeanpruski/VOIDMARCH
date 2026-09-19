@@ -125,12 +125,17 @@ describe('déplacement groupé', () => {
     expect(execute(s, 'p', command(plan.orders), now).result.accepted).toBe(true);
   });
   it.each(['road', 'territory'])(
-    'déplace plusieurs types sans limite sur un réseau %s pour 1 PA chacun',
+    'déplace plusieurs types sans limite sur un réseau %s gratuitement',
     (kind) => {
       const { s, r, view } = fixture();
       for (const p of disk(r.capital, 15)) {
-        writeTile(s, p, { ...(kind === 'road' ? { road: true } : { ownerId: 'p' }) });
-        Object.assign(r.explored[key(p)], kind === 'road' ? { road: true } : { ownerId: 'p' });
+        writeTile(s, p, {
+          ...(kind === 'road' ? { road: true } : { ownerId: 'p', enclosureOwnerId: 'p' }),
+        });
+        Object.assign(
+          r.explored[key(p)],
+          kind === 'road' ? { road: true } : { ownerId: 'p', enclosureOwnerId: 'p' },
+        );
       }
       const source = view(),
         plan = planGroupMovement(source, ['slow', 'fast'], { q: 14, r: 0 });
@@ -141,7 +146,7 @@ describe('déplacement groupé', () => {
       );
       const actual = execute(s, 'p', command(plan.orders), now);
       expect(actual.result.accepted, actual.result.reason).toBe(true);
-      expect(actual.state.realms.p.ap).toBe(r.ap - 2);
+      expect(actual.state.realms.p.ap).toBe(r.ap);
       expect(actual.result.movements).toEqual(plan.journeys.map(({ network, ...m }) => m));
     },
   );
@@ -242,7 +247,7 @@ describe('portée du groupe avant le choix de destination', () => {
     (kind) => {
       const { s, r, view } = fixture();
       for (const p of disk(r.capital, 15)) {
-        const patch = kind === 'road' ? { road: true } : { ownerId: 'p' };
+        const patch = kind === 'road' ? { road: true } : { ownerId: 'p', enclosureOwnerId: 'p' };
         writeTile(s, p, patch);
         Object.assign(r.explored[key(p)], patch);
       }

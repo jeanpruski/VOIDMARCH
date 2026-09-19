@@ -75,7 +75,7 @@ export function ArmyEditor() {
               placeholder="Légion noire"
             />
           </label>
-          <button disabled={pending}>{existing ? 'Mettre à jour' : 'Enregistrer'} · 0 PA</button>
+          <button disabled={pending}>{existing ? 'Mettre à jour' : 'Enregistrer'}</button>
           {existing && (
             <button
               type="button"
@@ -142,7 +142,7 @@ export function SavedArmies() {
                   })
                 }
               >
-                Retirer du registre · 0 PA
+                Retirer du registre
               </button>
             </div>
             {editing === a.id && (
@@ -166,7 +166,7 @@ export function SavedArmies() {
                     onChange={(e) => setName(e.target.value)}
                   />
                 </label>
-                <button disabled={pending || !living.length}>Enregistrer · 0 PA</button>
+                <button disabled={pending || !living.length}>Enregistrer</button>
               </form>
             )}
           </article>

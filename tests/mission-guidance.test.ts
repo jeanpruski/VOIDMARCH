@@ -60,16 +60,16 @@ describe('indications des missions', () => {
     expect(mountain.basis).toBe('known');
     expect(mountain.pa!).toBeGreaterThan(plain.pa!);
   });
-  it('compte une seule PA sur une route ou des terres propres connectées', () => {
+  it('ne facture pas les routes et enceintes connectées', () => {
     for (const network of ['road', 'land']) {
       const { world, unit } = fixture();
       world.tiles = world.tiles.map((t) => ({
         ...t,
-        ...(network === 'road' ? { road: true } : { ownerId: 'a' }),
+        ...(network === 'road' ? { road: true } : { ownerId: 'a', enclosureOwnerId: 'a' }),
       }));
       expect(missionTravel(world, { q: 11, r: 0 }, unit)).toEqual({
         cases: 11,
-        pa: 1,
+        pa: 0,
         basis: 'road',
       });
     }

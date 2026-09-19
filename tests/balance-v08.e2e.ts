@@ -100,8 +100,8 @@ test('équilibrage : jalons expliqués, amélioration sous le feu, vivres et aba
   await page.getByRole('button', { name: 'Fermer', exact: true }).click();
   await page.locator('.supply-details summary').click();
   await expect(page.locator('.supply-details')).toContainText('Pénurie : 15 min');
-  await page.getByRole('button', { name: 'Abandonner… · 0 PA' }).click();
-  const abandon = page.getByRole('button', { name: 'Confirmer l’abandon · 0 PA' });
+  await page.getByRole('button', { name: 'Abandonner…' }).click();
+  const abandon = page.getByRole('button', { name: 'Confirmer l’abandon' });
   await expect(abandon).toBeEnabled();
   await abandon.click();
   await expect(page.getByRole('status').filter({ hasText: 'Réorganisation' })).toContainText(

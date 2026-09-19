@@ -11,14 +11,88 @@ export function createMissionTrophy(
 ): MissionTrophy {
   const pick = <T>(values: readonly T[], salt: string): T =>
     values[Math.floor(hash(`${mission.id}:medal:${salt}`) * values.length)];
-  const shape = pick(['round', 'shield', 'star', 'diamond'] as const, 'shape');
+  const shape = pick(
+    [
+      'round',
+      'shield',
+      'star',
+      'diamond',
+      'cross',
+      'hexagon',
+      'octagon',
+      'sun',
+      'oval',
+      'crest',
+    ] as const,
+    'shape',
+  );
   const emblem = pick(EMBLEM_IDS, 'emblem');
   const ribbon = pick(
-    ['crimson', 'pine', 'midnight', 'violet', 'ochre', 'slate'] as const,
+    [
+      'crimson',
+      'pine',
+      'midnight',
+      'violet',
+      'ochre',
+      'slate',
+      'teal',
+      'ivory',
+      'amber',
+      'black',
+    ] as const,
     'ribbon',
   );
+  const theme = mission.expedition
+    ? mission.expedition.route === 'SEA'
+      ? 'sea'
+      : 'land'
+    : 'campaign';
+  const ribbonPattern = pick(
+    ['classic', 'stripes', 'chevron', 'split', 'diagonal', 'cross'] as const,
+    'pattern',
+  );
+  const ornament = pick(
+    ['none', 'laurel', 'wings', 'swords', 'chain', 'rays'] as const,
+    'ornament',
+  );
+  const gem = pick(['ruby', 'emerald', 'sapphire', 'amber', 'amethyst', 'onyx'] as const, 'gem');
+  const finish = pick(['polished', 'antique', 'enamel'] as const, 'finish');
+  const themedNames =
+    theme === 'sea'
+      ? [
+          'des Profondeurs',
+          'des Marées Noires',
+          'du Dernier Phare',
+          'des Brisants',
+          'de l’Abysse',
+          'des Océans Perdus',
+        ]
+      : theme === 'land'
+        ? [
+            'des Horizons',
+            'des Cités Perdues',
+            'des Archives Oubliées',
+            'des Terres Lointaines',
+            'des Ruines',
+            'des Pionniers',
+          ]
+        : ['du Bastion', 'des Victoires', 'du Siège', 'des Lames', 'des Alliés', 'du Rempart'];
   const epithet = pick(
-    ['de la Cendre', 'du Dernier Serment', 'du Voile', 'de Minuit', 'des Marches', 'du Corbeau'],
+    [
+      'de la Cendre',
+      'du Dernier Serment',
+      'du Voile',
+      'de Minuit',
+      'des Marches',
+      'du Corbeau',
+      'du Soleil Noir',
+      'de l’Aube',
+      'des Braises',
+      'du Silence',
+      'de l’Éclipse',
+      'des Veilleurs',
+      ...themedNames,
+    ],
     'name',
   );
   const metal: MissionMedal['metal'] = ['Siège', 'Grande campagne'].includes(mission.difficulty)
@@ -28,7 +102,18 @@ export function createMissionTrophy(
       : 'bronze';
   return {
     id: mission.id,
-    medal: { name: `${EMBLEM_NAMES[emblem]} ${epithet}`, shape, emblem, ribbon, metal },
+    medal: {
+      name: `${EMBLEM_NAMES[emblem]} ${epithet}`,
+      shape,
+      emblem,
+      ribbon,
+      metal,
+      ribbonPattern,
+      ornament,
+      gem,
+      finish,
+      theme,
+    },
     mission: structuredClone({
       title: mission.title,
       difficulty: mission.difficulty,

@@ -99,10 +99,10 @@ function OperationCard({ op }: { op: AllianceOperation }) {
           </label>
           <div className="selection-actions">
             <button disabled={pending} onClick={() => join(false)}>
-              Participer / actualiser · 0 PA
+              Participer / actualiser
             </button>
             <button disabled={pending} onClick={() => join(!me?.ready)}>
-              {me?.ready ? 'Je ne suis plus prêt' : 'Je suis prêt'} · 0 PA
+              {me?.ready ? 'Je ne suis plus prêt' : 'Je suis prêt'}
             </button>
             {coordinator && op.status === 'PLANNING' && (
               <button
@@ -116,7 +116,7 @@ function OperationCard({ op }: { op: AllianceOperation }) {
                   })
                 }
               >
-                Lancer · 0 PA
+                Lancer
               </button>
             )}
             {coordinator && (
@@ -130,7 +130,7 @@ function OperationCard({ op }: { op: AllianceOperation }) {
                   })
                 }
               >
-                Annuler l’opération · 0 PA
+                Annuler l’opération
               </button>
             )}
           </div>
@@ -253,7 +253,7 @@ export function AllianceOperations() {
               </label>
             )}
             <button className="primary" disabled={pending}>
-              Partager le plan · 0 PA
+              Partager le plan
             </button>
           </form>
         </details>

@@ -15,6 +15,10 @@ export interface ExpeditionDetails {
 }
 
 export interface MissionOffer {
+  completedBefore?: boolean;
+  discoveredBefore?: boolean;
+  /** One level above this board's normal access when it was rolled. */
+  exceptional?: boolean;
   expedition?: ExpeditionDetails;
   maritime?: boolean;
   id: string;
@@ -41,6 +45,8 @@ export interface ActiveMission extends MissionOffer, Hex {
   distance: number;
 }
 export interface MissionBoard {
+  /** Personal discoveries, also retained when an extraction is later abandoned. */
+  discoveredSites?: string[];
   /** Recovery after an abandonment that could not be fully paid. */
   availableAt?: number;
   trophies?: MissionTrophy[];
@@ -58,6 +64,7 @@ export interface MissionBoard {
   };
 }
 export interface MissionsView {
+  discoveredSites?: string[];
   availableAt?: number;
   trophies?: MissionTrophy[];
   /** Server deadline for unaccepted offers; absent during an active mission. */
@@ -76,9 +83,35 @@ export interface MissionsView {
 
 export interface MissionMedal {
   name: string;
-  shape: 'round' | 'shield' | 'star' | 'diamond';
+  shape:
+    | 'round'
+    | 'shield'
+    | 'star'
+    | 'diamond'
+    | 'cross'
+    | 'hexagon'
+    | 'octagon'
+    | 'sun'
+    | 'oval'
+    | 'crest';
   emblem: EmblemId;
-  ribbon: 'crimson' | 'pine' | 'midnight' | 'violet' | 'ochre' | 'slate';
+  ribbon:
+    | 'crimson'
+    | 'pine'
+    | 'midnight'
+    | 'violet'
+    | 'ochre'
+    | 'slate'
+    | 'teal'
+    | 'ivory'
+    | 'amber'
+    | 'black';
+  /** Optional so previously awarded medals keep their original appearance. */
+  ribbonPattern?: 'classic' | 'stripes' | 'chevron' | 'split' | 'diagonal' | 'cross';
+  ornament?: 'none' | 'laurel' | 'wings' | 'swords' | 'chain' | 'rays';
+  gem?: 'ruby' | 'emerald' | 'sapphire' | 'amber' | 'amethyst' | 'onyx';
+  finish?: 'polished' | 'antique' | 'enamel';
+  theme?: 'campaign' | 'land' | 'sea';
   metal: 'bronze' | 'silver' | 'gold';
 }
 export interface MissionTrophy {

@@ -1,3 +1,4 @@
+import { prepareDevelopment } from './fixtures/development';
 import { test, expect } from '@playwright/test';
 import { resolve } from 'node:path';
 import { createState, disk, writeTile } from '@voidmarch/game-rules';
@@ -33,6 +34,7 @@ test('catalogues : pagination, filtres, détails, ressources fixes et achats sur
   kinds.forEach((kind, i) => addBuilding(state, realm, { q: i - 4, r: 2 }, kind, now));
   const observatory = Object.values(state.buildings).find((b) => b.kind === 'BLACK_OBSERVATORY')!;
   observatory.level = 2;
+  prepareDevelopment(state, 'a', 3, now);
   const view = () =>
     worldView(state, 'a', Date.now(), [
       { q: 0, r: 0 },
@@ -134,7 +136,7 @@ test('catalogues : pagination, filtres, détails, ressources fixes et achats sur
   await page.getByRole('button', { name: 'Réinitialiser les filtres' }).click();
   await page.getByLabel('Production', { exact: true }).selectOption('WOOD');
   await expect(cards).toHaveCount(3);
-  await expect(page.locator('.catalog-results-bar strong')).toHaveText('1');
+  await expect(page.locator('.catalog-results-bar strong')).toHaveText('2');
   await expect
     .poll(() =>
       cards

@@ -208,7 +208,7 @@ describe('transports', () => {
       }).accepted,
     ).toBe(true);
     expect(f.s.units.carrier.cargo?.[0].q).toBe(37);
-    expect(f.s.realms.p.ap).toBe(38);
+    expect(f.s.realms.p.ap).toBe(39);
   });
   it('évacue les passagers blessés sur des cases distinctes et perd ceux sans issue', () => {
     const f = fixture();

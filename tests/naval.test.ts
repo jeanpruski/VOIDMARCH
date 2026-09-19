@@ -295,10 +295,10 @@ describe('expéditions, commerce et contenu', () => {
       false,
     );
   });
-  it('propose une mission maritime seulement après acquisition d’une flotte et cherche une rade sur sa mer', () => {
+  it('propose une mission maritime avant la flotte et garantit une offre après sa création', () => {
     const s = fixture();
     s.oceanVersion = 1;
-    expect(missionOffers(s, 'p', now).some((m) => m.maritime)).toBe(false);
+    expect(missionOffers(s, 'p', now).some((m) => m.maritime)).toBe(true);
     unit(s, 'war', 'WAR_GALLEY', { q: 3, r: 0 });
     // A controlled long coastline, unseen outside the port.
     for (let q = 0; q <= 8; q++)

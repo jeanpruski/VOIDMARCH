@@ -275,6 +275,7 @@ export const missionWallCount = (offer: Pick<MissionOffer, 'wall' | 'wallRadius'
   offer.wall ? 6 * (offer.wallRadius ?? 2) : 0;
 export function missionReward(
   offer: Pick<MissionOffer, 'difficulty' | 'abandonmentCost' | 'reward'>,
+  bonus = 1,
 ): Partial<Wallet> {
   if (offer.reward) return { ...offer.reward };
   const multiplier = { Escarmouche: 2, Assaut: 2.5, Siège: 3, 'Grande campagne': 3 }[
@@ -283,7 +284,7 @@ export function missionReward(
   return Object.fromEntries(
     Object.entries(offer.abandonmentCost).map(([resource, cost]) => [
       resource,
-      Math.round(cost * multiplier * 10) / 10,
+      Math.round(cost * multiplier * bonus * 10) / 10,
     ]),
   );
 }
@@ -632,8 +633,8 @@ export function findPath(
   }
   return null;
 }
-type TravelTile = Hex & Partial<Pick<Tile, 'road' | 'ownerId' | 'terrain'>>;
-/** Roads are public; only the unit owner's land extends the unlimited travel network. */
+type TravelTile = Hex & Partial<Pick<Tile, 'road' | 'ownerId' | 'enclosureOwnerId' | 'terrain'>>;
+/** Roads are public; only closed friendly enclosure interiors extend the free network. */
 export function travelNetworkTile(tile: TravelTile | undefined, ownerId?: string, kind?: UnitKind) {
   return (
     !!tile &&
@@ -642,11 +643,28 @@ export function travelNetworkTile(tile: TravelTile | undefined, ownerId?: string
     (!!tile.road ||
       (!!ownerId &&
         tile.ownerId === ownerId &&
+        tile.enclosureOwnerId === ownerId &&
         !!tile.terrain &&
         movementCost({ ...tile, terrain: tile.terrain }, kind) < 99))
   );
 }
-/** Traverse connected roads and owned land without a movement-budget or chunk limit. */
+/** Waive AP only when the origin and every step belong to the free network. */
+export function movementAPCost(
+  start: Hex,
+  path: readonly Hex[],
+  getTile: (p: Hex) => TravelTile | undefined,
+  ownerId: string,
+  kind: UnitKind,
+) {
+  return path.length && [start, ...path].every((p) => travelNetworkTile(getTile(p), ownerId, kind))
+    ? 0
+    : 1;
+}
+/** Stable 1–6 AP reward, shared by previews and collection; reloads cannot reroll it. */
+export function anomalyAPReward(seed: string, identity: string) {
+  return 1 + Math.floor(hash(`${seed}:anomaly-ap:${identity}`) * 6);
+}
+/** Traverse connected roads and closed enclosures without a movement-budget or chunk limit. */
 export function roadPaths(
   start: Hex,
   roads: ReadonlyMap<string, TravelTile>,

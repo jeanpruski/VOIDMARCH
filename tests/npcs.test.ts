@@ -1,3 +1,4 @@
+import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { NPCS, NPC_RULES, RESOURCES, type NpcKind } from '@voidmarch/config';
@@ -12,7 +13,7 @@ import {
   tileAt,
 } from '@voidmarch/game-rules';
 import { addPlayer, addBuilding, execute, worldView } from '../apps/server/src/engine';
-import { createNpc, npcRewards, tickNpcs } from '../apps/server/src/npcs';
+import { createNpc, npcRewards, tickNpcs, npcEncounterLevel } from '../apps/server/src/npcs';
 import { actionSchema } from '@voidmarch/protocol';
 const now = 1_900_000_000_000;
 function fixture(kind: NpcKind = 'deserter') {
@@ -62,6 +63,36 @@ describe('rencontres neutres', () => {
       expect(npc.ownerId).toBe(NPC_RULES.ownerId);
     },
   );
+  it('lie les rencontres avancées au développement local et protège le voisin débutant', () => {
+    const { s, r } = fixture();
+    prepareDevelopment(s, r.id, 5, now);
+    expect(npcEncounterLevel(s, { q: 2, r: 0 })).toBe(5);
+    const newcomer = addPlayer(s, 'new', 'Débutant', 'ASH', now);
+    newcomer.capital = { q: 3, r: 0 };
+    expect(npcEncounterLevel(s, { q: 2, r: 0 })).toBe(1);
+    expect(npcEncounterLevel(s, { q: 1000, r: 1000 })).toBe(1);
+    const low = createNpc(s, { q: 8, r: 0 }, 'mutant', now, 1);
+    const high = createNpc(s, { q: 9, r: 0 }, 'mutant', now, 5);
+    expect(high.npc!.attack).toBeGreaterThan(low.npc!.attack * 3);
+    expect(high.hp).toBeGreaterThan(low.hp * 4);
+    const loot = (u: typeof high) => Object.values(u.npc!.reward).reduce((sum, n) => sum + n, 0);
+    expect(loot(low)).toBeGreaterThan(250);
+    expect(loot(high)).toBeGreaterThan(loot(low) * 12);
+    expect(high.npc!.level).toBe(5);
+  });
+
+  it('donne régulièrement des PA, jamais plus de trois, et conserve le butin au rechargement', () => {
+    const { s } = fixture();
+    const mobs = Array.from({ length: 300 }, () => createNpc(s, { q: 2, r: 0 }, 'deserter', now));
+    const rewarded = mobs.filter((u) => u.npc!.bonusAP > 0);
+    expect(rewarded.length).toBeGreaterThan(140);
+    expect(rewarded.length).toBeLessThan(260);
+    for (const npc of mobs) {
+      expect(npc.npc!.bonusAP).toBeGreaterThanOrEqual(0);
+      expect(npc.npc!.bonusAP).toBeLessThanOrEqual(3);
+      expect(JSON.parse(JSON.stringify(npc))).toEqual(npc);
+    }
+  });
   it('riposte sans consommer de PA supplémentaire ni retirer la protection du joueur', () => {
     const { s, r, npc } = fixture();
     npc.hp = 100;
@@ -124,7 +155,7 @@ describe('rencontres neutres', () => {
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.state.buildings[wall.id]).toBeUndefined();
   });
-  it('partage au prorata, ignore les royaumes disparus et plafonne les PA sans réduire le bonus de départ', () => {
+  it('partage au prorata et conserve tous les PA même au-dessus du plafond', () => {
     const { s, r, npc } = fixture();
     s.realms.b = createRealm('b', 'Allié', 'ASH', { q: 50, r: 0 }, now);
     r.ap = 19;
@@ -135,7 +166,7 @@ describe('rencontres neutres', () => {
     const rewards = npcRewards(s, npc, now);
     expect(rewards.find((x) => x.realmId === 'a')!.resources).toEqual({ GOLD: 76, IRON: 5 });
     expect(rewards.find((x) => x.realmId === 'b')!.resources).toEqual({ GOLD: 25, IRON: 2 });
-    expect(r.ap).toBe(20);
+    expect(r.ap).toBe(21);
     expect(s.realms.b.ap).toBe(40);
   });
   it('ne révèle pas les PNJ cachés et refuse un combat expiré ou sans PA', () => {
@@ -152,12 +183,12 @@ describe('rencontres neutres', () => {
   });
 });
 describe('apparition rare et bornée', () => {
-  it('ne fait rien hors ligne, tente une fois par période avec un seuil de 10 %', () => {
+  it('ne fait rien hors ligne, tente une fois par période avec un seuil de 5 %', () => {
     const { s, npc } = fixture();
     delete s.units[npc.id];
     tickNpcs(s, now, new Set(), () => 0);
     expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(0);
-    tickNpcs(s, now, new Set(['a']), () => 0.1);
+    tickNpcs(s, now, new Set(['a']), () => 0.05);
     expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(0);
     tickNpcs(s, now + 1000, new Set(['a']), () => 0);
     expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(0);
@@ -171,7 +202,7 @@ describe('apparition rare et bornée', () => {
     const { s, npc } = fixture();
     delete s.units[npc.id];
     for (let i = 0; i < 10; i++) tickNpcs(s, now + i * NPC_RULES.interval, new Set(['a']), () => 0);
-    expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(2);
+    expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(1);
     tickNpcs(s, now + 86_400_000, new Set(['a']), () => 0);
     expect(Object.values(s.units).filter((u) => u.npc)).toHaveLength(1);
   });

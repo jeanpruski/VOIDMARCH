@@ -10,6 +10,7 @@ test('PNJ : cinq figurines, aperçu, riposte, butin et disparition', async ({ pa
   let state = createState('npc-browser', now);
   const realm = addPlayer(state, 'a', 'Les Chasseurs', 'ASH', now);
   realm.settings.reducedMotion = false;
+  realm.settings.tutorialCompleted = true;
   realm.ap = 10;
   for (const p of disk({ q: 0, r: 0 }, 8)) writeTile(state, p, { terrain: 'PLAIN' });
   state.units.soldier = {
@@ -78,8 +79,7 @@ test('PNJ : cinq figurines, aperçu, riposte, butin et disparition', async ({ pa
     await route.fulfill({ json: session });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
-  await page.waitForFunction(() => (window as any).__npcScene?.view);
+  await page.waitForFunction(() => (window as any).__npcScene?.view, undefined, { timeout: 90000 });
 
   const textures = await page.evaluate(
     (ids) =>

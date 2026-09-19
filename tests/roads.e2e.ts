@@ -8,11 +8,13 @@ test.use({ hasTouch: true });
 test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur ordinateur et mobile', async ({
   page,
 }) => {
+  page.setDefaultTimeout(15000);
   const now = Date.now(),
     id = 'roads';
   let state = createState('roads-browser', now);
   const realm = addPlayer(state, id, 'Les voies obscures', 'MASK', now),
     capital = realm.capital;
+  realm.settings.tutorialCompleted = true;
   realm.wallet = { GOLD: 100, WOOD: 100, STONE: 100, IRON: 100, FOOD: 100 };
   for (const p of disk(capital, 3))
     writeTile(state, p, { terrain: 'FOREST', ownerId: id, road: false });
@@ -31,7 +33,7 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
   await page.route(/socket__io-client\.js/, (route) =>
     route.fulfill({
       contentType: 'text/javascript',
-      body: `export function io(){const handlers={};const socket={on(event,fn){handlers[event]=fn;if(event==='connect')queueMicrotask(fn);return socket;},emit(event){if(['world:join','chunks:subscribe','player:ping'].includes(event))window.fixtureSnapshot().then(w=>handlers['world:snapshot']?.(w));return socket;},timeout(){return socket;},async emitWithAck(event,action){const r=await window.fixtureCommand(action);handlers['world:snapshot']?.(r.world);return r.result;},disconnect(){}};return socket;}`,
+      body: `export function io(){const handlers={};window.__roadSnapshot=w=>handlers['world:snapshot']?.(w);const socket={on(event,fn){handlers[event]=fn;if(event==='connect')queueMicrotask(fn);return socket;},emit(event){if(['world:join','world:sync','chunks:subscribe','player:ping'].includes(event))window.fixtureSnapshot().then(w=>handlers['world:snapshot']?.(w));return socket;},timeout(){return socket;},async emitWithAck(event,action){const r=await window.fixtureCommand(action);handlers['world:snapshot']?.(r.world);return r.result;},disconnect(){}};return socket;}`,
     }),
   );
   const session = {
@@ -40,7 +42,10 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
   };
   await page.route('**/api/**', (route) => route.fulfill({ json: session }));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
+  await expect(
+    page.locator('.game-canvas'),
+    `Erreurs carte : ${errors.join('; ')}`,
+  ).toHaveAttribute('aria-busy', 'false', { timeout: 60000 });
   await expect(page.locator('.board canvas')).toBeVisible();
   const point = (p: { q: number; r: number }) =>
     page.evaluate(async (p) => {
@@ -56,6 +61,10 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
         y: rect.top + ((pixel.y - v.y) * rect.height) / v.height,
       };
     }, p);
+  const centerX = async () => {
+    const rect = (await page.locator('.board canvas').boundingBox())!;
+    return rect.x + rect.width / 2;
+  };
   const clickHex = async (p: { q: number; r: number }) => {
     const pos = await point(p);
     expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, pos)).toBe(
@@ -95,8 +104,13 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
   // The original action on the selected tile remains available, including beneath a building.
   await page.evaluate(async (capital) => {
     // @ts-expect-error Vite test source module.
-    const { select } = await import('/src/store.ts');
-    select({ kind: 'tile', ...capital });
+    const { select, useGame } = await import('/src/store.ts');
+    const b = useGame
+      .getState()
+      .world!.tiles.find(
+        (t: { q: number; r: number }) => t.q === capital.q && t.r === capital.r,
+      )!.building!;
+    select({ kind: 'building', id: b.id, ...capital });
   }, capital);
   await page.getByRole('button', { name: /Tracer une route/ }).click();
   await expect.poll(() => !!tileAt(state, capital).road).toBe(true);
@@ -146,7 +160,7 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
     createdAt: now,
     updatedAt: now,
   };
-  state.units.worker = worker;
+  state.units = { worker };
   const neutral = { q: capital.q, r: capital.r + 1 };
   writeTile(state, neutral, { ownerId: undefined, terrain: 'PLAIN', road: false });
   await page.setViewportSize({ width: 1440, height: 960 });
@@ -157,20 +171,20 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
         const { useGame, focusMap, select } = await import('/src/store.ts');
         // @ts-expect-error Playwright fixture transport.
         const world = await window.fixtureSnapshot();
-        useGame.setState({ world });
-        if (selectUnit)
-          select({
-            kind: 'unit',
-            id: 'worker',
-            ...world.units.find((u: { id: string }) => u.id === 'worker'),
-          });
+        (window as any).__roadSnapshot(world);
+        if (selectUnit) {
+          const worker = world.units.find((u: { id: string }) => u.id === 'worker')!;
+          select({ kind: 'unit', id: worker.id, q: worker.q, r: worker.r });
+        }
         focusMap(center);
       },
       { center, selectUnit },
     );
   await refresh(capital, true);
   await page.getByRole('button', { name: 'Mode routes', exact: true }).first().click();
-  await expect.poll(async () => Math.abs((await point(capital)).x - 705.5)).toBeLessThan(1);
+  await expect
+    .poll(async () => Math.abs((await point(capital)).x - (await centerX())))
+    .toBeLessThan(1);
   await clickHex(neutral);
   await expect.poll(() => !!tileAt(state, neutral).road).toBe(true);
   expect(tileAt(state, neutral).ownerId).toBeUndefined();
@@ -189,17 +203,21 @@ test('poser plusieurs routes et un pont puis les retirer depuis la carte, sur or
     };
   }
   const destination = { q: capital.q + 40, r: capital.r };
+  state.realms[id].ap = 0;
+  state.realms[id].apAt = Date.now();
   await refresh(destination, true);
   await expect(page.getByRole('region', { name: 'Sélection actuelle' })).toContainText(
-    'distance illimitée',
+    'déplacement gratuit et illimité',
   );
-  await page.getByRole('button', { name: 'Déplacer 1 PA', exact: true }).click();
-  await expect.poll(async () => Math.abs((await point(destination)).x - 705.5)).toBeLessThan(1);
+  await page.getByRole('button', { name: /^Déplacer/ }).click();
+  await expect
+    .poll(async () => Math.abs((await point(destination)).x - (await centerX())))
+    .toBeLessThan(1);
   const beforeAP = state.realms[id].ap;
   await clickHex(destination);
   await expect.poll(() => state.units.worker.q).toBe(destination.q);
-  expect(state.realms[id].ap).toBe(beforeAP - 1);
-  await expect(page.getByRole('button', { name: 'Déplacer 1 PA', exact: true })).toBeVisible();
+  expect(state.realms[id].ap).toBe(beforeAP);
+  await expect(page.getByRole('button', { name: /^Déplacer/ })).toBeVisible();
   await page.screenshot({ path: 'test-results/roads-long-travel.png' });
   expect(errors).toEqual([]);
 });

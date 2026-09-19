@@ -74,10 +74,11 @@ function unit(s: GameState, id = 'scout', ownerId = 'a', kind: Unit['kind'] = 'P
   });
 }
 describe('expéditions et aventures', () => {
-  it('25 lieux réels uniques, 15 terrestres et 10 maritimes', () => {
-    expect(EXPEDITION_SITES).toHaveLength(25);
-    expect(new Set(EXPEDITION_SITES.map((s) => s.id)).size).toBe(25);
-    expect(EXPEDITION_SITES.filter((s) => s.environment === 'LAND')).toHaveLength(15);
+  it('45 lieux et légendes uniques, 25 terrestres et 20 maritimes', () => {
+    expect(EXPEDITION_SITES).toHaveLength(45);
+    expect(new Set(EXPEDITION_SITES.map((s) => s.id)).size).toBe(45);
+    expect(EXPEDITION_SITES.filter((s) => s.environment === 'LAND')).toHaveLength(25);
+    expect(EXPEDITION_SITES.filter((s) => s.environment === 'SEA')).toHaveLength(20);
     expect(EXPEDITION_SITES.every((s) => s.source.startsWith('https://') && s.realPlace)).toBe(
       true,
     );
@@ -334,7 +335,7 @@ describe('expéditions et aventures', () => {
     writeTile(s, m, { terrain: 'SEA' });
     expect(run(s, 'INTERACT', 'boat', { expeditionId: m.id }).result.accepted).toBe(true);
   });
-  it('un site entièrement visible est refusé et aucun terrain ni royaume n’est modifié', () => {
+  it('une région entièrement occupée est refusée sans écraser les unités', () => {
     const s = fixture();
     const previousOffer = offer(s);
     for (const p of disk(s.realms.a.capital, 200))

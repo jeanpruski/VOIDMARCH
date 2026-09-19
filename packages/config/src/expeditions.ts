@@ -204,6 +204,203 @@ export const EXPEDITION_SITES = [
     story: 'Un rempart de brique entoure un ancien dépôt maritime perdu entre les récifs.',
     source: 'https://en.wikipedia.org/wiki/Fort_Jefferson',
   },
+  {
+    id: 'houska',
+    name: 'Houska — la porte scellée',
+    realPlace: 'Château de Houska — Tchéquie',
+    environment: 'LAND',
+    story:
+      'Une lueur filtre sous la chapelle condamnée. Le dernier gardien a enfermé son coffre au-dessus du gouffre.',
+    source: 'https://hradhouska.cz/en/houska-castle/',
+    referenceNote:
+      'Château réel ; la porte infernale appartient au folklore. Le trésor est fictif.',
+  },
+  {
+    id: 'hoerverde',
+    name: 'Hoer Verde — la forêt sans voix',
+    realPlace: 'Hoer Verde — légende brésilienne',
+    environment: 'LAND',
+    story:
+      'Un hameau noyé dans les lianes a cessé de répondre. Dans sa petite école, des caisses scellées attendent une expédition.',
+    source: 'https://ensaiosenotas.com/2023/12/04/hoer-verde/',
+    referenceNote:
+      'Légende non localisée avec certitude ; décor fictif inspiré des forêts du Brésil.',
+  },
+  {
+    id: 'hoerengracht',
+    name: 'Hoerengracht — le quartier condamné',
+    realPlace: 'Anciens canaux d’Amsterdam — Pays-Bas',
+    environment: 'LAND',
+    story:
+      'Les ponts du quartier ont été barricadés. Une lanterne rouge désigne le dépôt oublié derrière les façades penchées.',
+    source: 'https://en.wikipedia.org/wiki/De_Wallen',
+    referenceNote:
+      '« Hoerengracht » est ici un nom fictif, inspiré des anciens quartiers de canaux d’Amsterdam.',
+  },
+  {
+    id: 'leap',
+    name: 'Leap — le donjon de l’Élémental',
+    realPlace: 'Château de Leap — Irlande',
+    environment: 'LAND',
+    story:
+      'Les marches de la chapelle résonnent sans visiteurs. Un reliquaire militaire dort derrière la porte du donjon.',
+    source: 'https://leapcastle.net/history/',
+    referenceNote: 'Forteresse réelle ; l’Élémental relève des récits de hantise.',
+  },
+  {
+    id: 'londontower',
+    name: 'La Tour des derniers corbeaux',
+    realPlace: 'Tour de Londres — Angleterre',
+    environment: 'LAND',
+    story:
+      'Les corbeaux gardent une cour silencieuse. Sous la tour blanche, un ancien arsenal contient encore les réserves de la garnison.',
+    source: 'https://www.hrp.org.uk/tower-of-london/whats-on/white-tower/',
+  },
+  {
+    id: 'portarthur',
+    name: 'Port Arthur — le bagne silencieux',
+    realPlace: 'Pénitencier de Port Arthur — Tasmanie',
+    environment: 'LAND',
+    story:
+      'Le vent traverse les fenêtres sans vitres. Les registres du bagne indiquent un entrepôt muré au fond de la cour.',
+    source: 'https://portarthur.org.au/what-to-do/',
+  },
+  {
+    id: 'waverly',
+    name: 'Waverly Hills — le pavillon des ombres',
+    realPlace: 'Sanatorium de Waverly Hills — Kentucky',
+    environment: 'LAND',
+    story:
+      'Les couloirs du sanatorium sont vides, mais une lampe reste allumée au dernier étage. Le sous-sol cache une réserve médicale.',
+    source: 'https://en.wikipedia.org/wiki/Waverly_Hills_Sanatorium',
+    referenceNote: 'Ancien sanatorium réel ; les apparitions sont des récits de hantise.',
+  },
+  {
+    id: 'edinburgh',
+    name: 'Édimbourg — la citadelle des échos',
+    realPlace: 'Château d’Édimbourg — Écosse',
+    environment: 'LAND',
+    story:
+      'Une mélodie monte des tunnels sous la citadelle. Une expédition y a abandonné ses instruments et sa solde.',
+    source: 'https://www.edinburghcastle.scot/',
+  },
+  {
+    id: 'frochot',
+    name: 'Frochot — la demeure aux volets clos',
+    realPlace: '1 avenue Frochot — Paris',
+    environment: 'LAND',
+    story:
+      'Les volets sont fermés depuis des années. Derrière les grilles, la verrière protège une collection d’objets occultes.',
+    source: 'https://www.paris.fr/pages/oserez-vous-visiter-ces-lieux-hantes-de-paris-25204',
+    referenceNote: 'Adresse réelle ; la malédiction appartient aux légendes parisiennes.',
+  },
+  {
+    id: 'isledead',
+    name: 'Le cimetière des noms effacés',
+    realPlace: 'Isle of the Dead — Port Arthur, Tasmanie',
+    environment: 'LAND',
+    story:
+      'Des pierres usées couvrent une butte au bord de l’eau. La loge du gardien conserve les effets d’une mission disparue.',
+    source: 'https://portarthur.org.au/whats-on/isle-of-the-dead-cemetery-tour/',
+    referenceNote:
+      'Île-cimetière réelle ; dans le jeu, son adaptation se visite à pied depuis le littoral.',
+  },
+  {
+    id: 'devilsea',
+    name: 'La mer du Dragon endormi',
+    realPlace: 'Mer du Diable — sud du Japon',
+    environment: 'SEA',
+    story:
+      'Trois balises dérivent autour d’un remous immobile. Le sonar détecte une cargaison sous la surface.',
+    source: 'https://en.wikipedia.org/wiki/Devil%27s_Sea',
+    referenceNote:
+      'Région réelle associée à des récits de disparitions ; les explications paranormales ne sont pas établies.',
+  },
+  {
+    id: 'baychimo',
+    name: 'Baychimo — le cargo des glaces',
+    realPlace: 'SS Baychimo — Arctique',
+    environment: 'SEA',
+    story:
+      'Le cargo dérive encore entre les plaques de glace. Ses cales verrouillées n’attendent plus que des mains assez courageuses.',
+    source: 'https://en.wikipedia.org/wiki/SS_Baychimo',
+  },
+  {
+    id: 'chuuk',
+    name: 'Chuuk — le lagon des carcasses',
+    realPlace: 'Lagon de Chuuk — Micronésie',
+    environment: 'SEA',
+    story:
+      'Des mâts émergent d’une eau trop calme. Entre les épaves, des coffres militaires reposent sous les coraux.',
+    source: 'https://en.wikipedia.org/wiki/Chuuk_Lagoon',
+  },
+  {
+    id: 'skeletoncoast',
+    name: 'La côte des carcasses',
+    realPlace: 'Skeleton Coast — Namibie',
+    environment: 'SEA',
+    story:
+      'Une coque éventrée s’enfonce dans les dunes. À marée basse, le sable révèle des caisses que le brouillard avait cachées.',
+    source: 'https://en.wikipedia.org/wiki/Skeleton_Coast',
+  },
+  {
+    id: 'yonaguni',
+    name: 'Yonaguni — les marches submergées',
+    realPlace: 'Monument de Yonaguni — Japon',
+    environment: 'SEA',
+    story:
+      'Des terrasses de roche plongent sous l’eau. Une balise abandonnée signale un dépôt au pied des grandes marches.',
+    source: 'https://en.wikipedia.org/wiki/Yonaguni_Monument',
+    referenceNote:
+      'Formation rocheuse réelle ; son interprétation comme ouvrage humain reste controversée.',
+  },
+  {
+    id: 'balticanomaly',
+    name: 'L’anomalie du disque froid',
+    realPlace: 'Anomalie de la mer Baltique',
+    environment: 'SEA',
+    story:
+      'Les instruments dessinent un cercle au fond de l’eau. Un ancien câble mène vers la capsule d’une mission scientifique perdue.',
+    source: 'https://en.wikipedia.org/wiki/Baltic_Sea_anomaly',
+    referenceNote: 'Écho sonar réel ; les interprétations extraterrestres ne sont pas établies.',
+  },
+  {
+    id: 'joyita',
+    name: 'Joyita — la dérive silencieuse',
+    realPlace: 'MV Joyita — Pacifique Sud',
+    environment: 'SEA',
+    story:
+      'Le petit navire flotte de travers, sans équipage. Une cale presque sèche abrite encore des provisions et du matériel.',
+    source: 'https://en.wikipedia.org/wiki/MV_Joyita',
+  },
+  {
+    id: 'maryceleste',
+    name: 'Mary Celeste — les voiles désertes',
+    realPlace: 'Mary Celeste — Atlantique',
+    environment: 'SEA',
+    story:
+      'Les cordages grincent sur un pont désert. Le journal s’interrompt avant la dernière escale ; la cargaison est toujours là.',
+    source: 'https://en.wikipedia.org/wiki/Mary_Celeste',
+  },
+  {
+    id: 'ourangmedan',
+    name: 'Ourang Medan — le dernier signal',
+    realPlace: 'SS Ourang Medan — légende du détroit de Malacca',
+    environment: 'SEA',
+    story:
+      'Un appel radio tourne en boucle dans la brume. Les portes de la cale sont scellées autour d’une cargaison inconnue.',
+    source: 'https://en.wikipedia.org/wiki/Ourang_Medan',
+    referenceNote: 'Légende maritime : l’existence du navire et le récit ne sont pas confirmés.',
+  },
+  {
+    id: 'dahab',
+    name: 'Dahab — l’œil des profondeurs',
+    realPlace: 'Trou bleu de Dahab — Égypte',
+    environment: 'SEA',
+    story:
+      'Un cercle bleu sombre interrompt le récif. Une station de plongée abandonnée indique l’emplacement d’une sonde chargée de minerais.',
+    source: 'https://en.wikipedia.org/wiki/Blue_Hole_(Red_Sea)',
+  },
 ] as const;
 export type ExpeditionSiteId = (typeof EXPEDITION_SITES)[number]['id'];
 export type ExpeditionMode = 'RECON' | 'RECOVER' | 'EXTRACT';
@@ -280,4 +477,58 @@ export const EXPEDITION_HABITATS: Record<ExpeditionSiteId, ExpeditionHabitat> = 
   },
   stromboli: { biomes: ['TEMPERATE', 'DESERT'], description: 'Mer hors des régions froides' },
   jefferson: { biomes: ['TEMPERATE', 'DESERT'], description: 'Mer hors des régions froides' },
+  houska: {
+    biomes: ['TEMPERATE', 'AUTUMN'],
+    description: 'Relief tempéré ou automnal',
+    nearby: ['HILL', 'MOUNTAIN'],
+  },
+  hoerverde: {
+    biomes: ['TEMPERATE'],
+    description: 'Région tempérée et boisée',
+    nearby: ['FOREST'],
+  },
+  hoerengracht: {
+    biomes: ['TEMPERATE', 'AUTUMN'],
+    description: 'Région tempérée ou automnale, près de l’eau',
+    nearby: ['RIVER', 'COAST', 'SEA'],
+  },
+  leap: { biomes: ['TEMPERATE', 'AUTUMN'], description: 'Région tempérée ou automnale' },
+  londontower: { biomes: ['TEMPERATE', 'AUTUMN'], description: 'Région tempérée ou automnale' },
+  portarthur: {
+    biomes: ['TEMPERATE', 'AUTUMN'],
+    description: 'Région tempérée ou automnale, près du littoral',
+    nearby: ['COAST', 'SEA'],
+  },
+  waverly: { biomes: ['TEMPERATE', 'AUTUMN'], description: 'Région tempérée ou automnale' },
+  edinburgh: {
+    biomes: ['TEMPERATE', 'AUTUMN', 'SNOW'],
+    description: 'Relief tempéré, automnal ou enneigé',
+    nearby: ['HILL', 'MOUNTAIN'],
+  },
+  frochot: { biomes: ['TEMPERATE', 'AUTUMN'], description: 'Région tempérée ou automnale' },
+  isledead: {
+    biomes: ['TEMPERATE', 'AUTUMN'],
+    description: 'Cimetière terrestre tempéré ou automnal, près du littoral',
+    nearby: ['COAST', 'SEA'],
+  },
+  devilsea: { biomes: ['TEMPERATE', 'DESERT'], description: 'Mer hors des régions froides' },
+  baychimo: { biomes: ['SNOW'], description: 'Mer enneigée et banquise' },
+  chuuk: { biomes: ['TEMPERATE', 'DESERT'], description: 'Mer hors des régions froides' },
+  skeletoncoast: {
+    biomes: ['DESERT'],
+    description: 'Mer désertique, près d’une plage',
+    nearby: ['BEACH'],
+  },
+  yonaguni: { biomes: ['TEMPERATE', 'DESERT'], description: 'Mer hors des régions froides' },
+  balticanomaly: {
+    biomes: ['TEMPERATE', 'AUTUMN', 'SNOW'],
+    description: 'Mer tempérée, automnale ou froide',
+  },
+  joyita: { biomes: ['TEMPERATE', 'DESERT'], description: 'Mer hors des régions froides' },
+  maryceleste: {
+    biomes: ['TEMPERATE', 'AUTUMN', 'DESERT'],
+    description: 'Mer tempérée, automnale ou désertique',
+  },
+  ourangmedan: { biomes: ['TEMPERATE', 'DESERT'], description: 'Mer hors des régions froides' },
+  dahab: { biomes: ['DESERT'], description: 'Mer désertique, près d’une plage', nearby: ['BEACH'] },
 };

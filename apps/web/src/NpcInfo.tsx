@@ -1,5 +1,5 @@
 import { ActionButton } from './ActionButton';
-import { NPCS, RULES } from '@voidmarch/config';
+import { NPCS, NPC_LEVELS } from '@voidmarch/config';
 import { resolveAttack, attackCost, attackStats, distance } from '@voidmarch/game-rules';
 import type { Unit } from '@voidmarch/shared';
 import { Cost, Duration } from './ui';
@@ -12,7 +12,7 @@ export function NpcInfo({ unit }: { unit: Unit }) {
       <strong>
         {unit.expedition
           ? 'Expédition coopérative · Très dangereux'
-          : `Rencontre neutre · ${NPCS[unit.npc.kind].danger}`}{' '}
+          : `Rencontre neutre · ${NPC_LEVELS[Math.max(0, Math.min(4, (unit.npc.level ?? 1) - 1))].name} · niveau ${unit.npc.level ?? 1} · ${NPCS[unit.npc.kind].danger}`}{' '}
         · portée {NPCS[unit.npc.kind].range}
       </strong>
       <p>
@@ -22,9 +22,7 @@ export function NpcInfo({ unit }: { unit: Unit }) {
       <span>Butin total, partagé selon les dégâts infligés :</span>
       <Cost cost={unit.npc.reward} />
       {unit.npc.bonusAP > 0 && (
-        <span>
-          Bonus : {unit.npc.bonusAP} PA à partager, sans dépasser {RULES.maxAP} PA.
-        </span>
+        <span>Bonus : {unit.npc.bonusAP} PA à partager, conservés même au-delà du plafond.</span>
       )}
       <small>
         Départ dans <Duration until={unit.npc.expiresAt} />. Sélectionnez une troupe puis « Attaquer

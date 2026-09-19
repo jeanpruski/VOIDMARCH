@@ -1,3 +1,6 @@
+import { placementOrder, completedMissionTitles } from './mission-placement';
+import { conquestDevelopmentLevel } from '@voidmarch/config';
+import { exceptionalOfferIndex } from './exceptional-missions';
 import { findPath, unitMovementBudget } from '@voidmarch/game-rules';
 import { developmentStage } from '@voidmarch/config';
 import { missionAbandonPlan } from '@voidmarch/game-rules';
@@ -75,11 +78,6 @@ export function missionAttackReason(s: GameState, realmId: string, owner: string
     : undefined;
 }
 
-const militaryRecruiters = new Set(
-  Object.values(UNIT_PROFILES)
-    .filter((p) => !p.builder && !p.hero)
-    .flatMap((p) => p.recruitAt ?? []),
-);
 const titles = [
   'Le relais des Cendres',
   'Le bastion du Corbeau',
@@ -99,21 +97,36 @@ function offerWindow(s: GameState, realmId: string, now: number) {
 export function missionOffers(s: GameState, realmId: string, now: number): MissionOffer[] {
   if (s.missions?.[realmId]?.active || (s.missions?.[realmId]?.availableAt ?? 0) > now) return [];
   const generation = s.missions?.[realmId]?.generation ?? 0;
-  const level = Math.min(
-    developmentStage(realmBuildings(s, realmId)),
-    Math.max(
-      1,
-      ...realmBuildings(s, realmId)
-        .filter((b) => militaryRecruiters.has(b.kind))
-        .map((b) => b.level),
-    ),
+  const sites = realmBuildings(s, realmId);
+  const baseLevel = conquestDevelopmentLevel(sites);
+  const fleet = Object.values(s.units).filter(
+    (u) =>
+      u.ownerId === realmId && u.hp > 0 && UNIT_PROFILES[u.kind].naval && UNITS[u.kind].attack > 0,
   );
   const { anchor, slot } = offerWindow(s, realmId, now);
-  const baseSeed = `${s.seed}:${realmId}:missions:${generation}:${level}:${anchor}`;
+  const naval =
+    !!s.oceanVersion &&
+    (fleet.length > 0 ||
+      hash(`${s.seed}:${realmId}:maritime:${generation}:${anchor}:${slot}`) < 0.5);
+  const navalBaseLevel = Math.min(
+    developmentStage(sites),
+    Math.max(1, ...fleet.map((u) => UNIT_PROFILES[u.kind].minRecruitLevel ?? 1)),
+  );
+  const levels = [baseLevel, baseLevel, naval ? navalBaseLevel : baseLevel];
+  const baseSeed = `${s.seed}:${realmId}:missions:${generation}:${baseLevel}:${anchor}`;
+  const exceptionalIndex = exceptionalOfferIndex(
+    `${s.seed}:${s.createdAt}:${realmId}:${s.realms[realmId].createdAt}:conquest:${generation}:${anchor}:${slot}`,
+    levels,
+  );
   const seed = `${baseSeed}:${slot}`;
   // At least the title changes for each card, even if random roster rolls repeat.
-  const offset = (Math.floor(hash(baseSeed) * titles.length) + slot) % titles.length;
+  const completed = completedMissionTitles(s, realmId);
+  const freshTitles = titles.filter((title) => !completed.has(title));
+  const pool = freshTitles.length ? freshTitles : titles;
+  const offset = (Math.floor(hash(baseSeed) * pool.length) + slot) % pool.length;
   const offers: MissionOffer[] = [0, 1, 2].map((i) => {
+    const exceptional = i === exceptionalIndex;
+    const level = levels[i] + (exceptional ? 1 : 0);
     const campaign =
       i === 2 &&
       level >= 3 &&
@@ -135,12 +148,14 @@ export function missionOffers(s: GameState, realmId: string, now: number): Missi
       FOOD: Math.ceil(30 * level * level * scale + armyFood * 0.02),
     };
     return {
-      id: `offer:v2:${generation}:${level}:${anchor.toString(36)}:${slot}:${i}:${campaign ? 'campaign' : 'standard'}`,
+      id: `offer:v2:${generation}:${level}:${anchor.toString(36)}:${slot}:${i}:${campaign ? 'campaign' : 'standard'}${exceptional ? ':exceptional' : ''}`,
       title: campaign
-        ? `Grande campagne · ${titles[(offset + i) % titles.length]}`
-        : titles[(offset + i) % titles.length],
+        ? `Grande campagne · ${pool[(offset + i) % pool.length]}`
+        : pool[(offset + i) % pool.length],
       difficulty,
+      completedBefore: completed.has(pool[(offset + i) % pool.length]),
       level,
+      ...(exceptional ? { exceptional: true } : {}),
       objective: i === Math.floor(hash(`${seed}:objective`) * 3) ? 'COMMANDER' : 'BUILDING',
       buildings:
         i === 0
@@ -157,29 +172,27 @@ export function missionOffers(s: GameState, realmId: string, now: number): Missi
           ? WALL_KINDS[Math.min(level - 1, 4)]
           : undefined,
       abandonmentCost,
-      reward: missionReward({ difficulty, abandonmentCost }),
+      reward: missionReward({ difficulty, abandonmentCost }, 1.3),
     };
   });
-  const fleet = Object.values(s.units).filter(
-    (u) => u.ownerId === realmId && UNIT_PROFILES[u.kind].naval && UNITS[u.kind].attack > 0,
-  );
-  if (s.oceanVersion && fleet.length) {
-    const navalLevel = Math.min(
-      developmentStage(realmBuildings(s, realmId)),
-      Math.max(1, ...fleet.map((u) => UNIT_PROFILES[u.kind].minRecruitLevel ?? 1)),
-    );
+  if (naval) {
+    const navalLevel = offers[2].level;
     const units = navalMissionFleet(navalLevel);
     const cost = {
       GOLD: Math.ceil(units.reduce((n, k) => n + UNITS[k].cost.GOLD, 0) * 0.08 + 200 * navalLevel),
       FOOD: 500 * navalLevel,
     };
+    const navalTitles = ['La rade des Naufragés', 'Le fort du soleil noyé', 'Les quais de l’Abîme'];
+    const freshNavalTitles = navalTitles.filter((title) => !completed.has(title));
+    const navalPool = freshNavalTitles.length ? freshNavalTitles : navalTitles;
+    const title = navalPool[(slot + generation) % navalPool.length];
     offers[2] = {
       ...offers[2],
       id: offers[2].id + ':naval',
       maritime: true,
-      title: ['La rade des Naufragés', 'Le fort du soleil noyé', 'Les quais de l’Abîme'][
-        (slot + generation) % 3
-      ],
+      difficulty: 'Siège',
+      title,
+      completedBefore: completed.has(title),
       level: navalLevel,
       objective: 'BUILDING',
       buildings: ['PORT', 'COASTAL_BATTERY'],
@@ -187,7 +200,7 @@ export function missionOffers(s: GameState, realmId: string, now: number): Missi
       wall: undefined,
       wallRadius: 4,
       abandonmentCost: cost,
-      reward: missionReward({ difficulty: 'Siège', abandonmentCost: cost }),
+      reward: missionReward({ difficulty: 'Siège', abandonmentCost: cost }, 1.3),
     };
   }
   return offers;
@@ -203,7 +216,7 @@ function missionSite(
     const site = navalMissionSite(s, realmId, offer);
     requireRule(
       site,
-      'Aucune rade libre et hors de votre vision trouvée sur cette mer. Explorez avec votre flotte avant de reprendre cette mission.',
+      'Aucune rade libre trouvée. Les bâtiments et unités existants restent protégés ; réessayez au prochain renouvellement.',
     );
     return site;
   }
@@ -278,8 +291,7 @@ function missionSite(
     }
     return reachable.has(targetKey);
   };
-  for (const p of candidates()) {
-    if (visible.has(key(p))) continue;
+  for (const p of placementOrder(s, realmId, [...candidates()], visible, radius + 1)) {
     if (Object.values(s.realms).some((r) => !r.defeatedAt && distance(r.capital, p) < 12)) continue;
     if (activeMissions(s).some((m) => distance(m, p) <= (m.wallRadius ?? 2) + radius + 2)) continue;
     if (
@@ -293,7 +305,6 @@ function missionSite(
       disk(p, radius + 1).some((h) => {
         const t = terrainAt(h);
         return (
-          visible.has(key(h)) ||
           t.ownerId ||
           t.buildingId ||
           t.road ||
@@ -346,7 +357,7 @@ function missionSite(
   }
   requireRule(
     false,
-    'Aucun emplacement libre, hors de votre vision actuelle et accessible à pied n’a été trouvé. Réessayez après une évolution du territoire.',
+    'Aucun emplacement libre et accessible à pied n’a été trouvé. Réessayez après une évolution du territoire.',
   );
 }
 
@@ -362,6 +373,7 @@ export function missionAction(
   if (action.type === 'MISSION_ABANDON') {
     const m = board.active;
     requireRule(m && m.id === action.payload.missionId, 'Cette mission n’est plus active.');
+    reconcileExpeditions(s, now);
     const plan = missionAbandonPlan(r.wallet, m.abandonmentCost);
     transfer(r.wallet, plan.paid, -1);
     board.availableAt = now + plan.delay;
@@ -694,6 +706,7 @@ export function missionsView(s: GameState, realmId: string, now: number): Missio
   return {
     availableAt: board?.availableAt,
     trophies: board?.trophies ?? [],
+    discoveredSites: board?.discoveredSites ?? [],
     offers: missionOffers(s, realmId, now),
     expeditionOffers: expeditionOffers(s, realmId, now),
     ...(!m ? { offersRefreshAt: offerWindow(s, realmId, now).refreshAt } : {}),

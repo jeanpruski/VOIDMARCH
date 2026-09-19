@@ -6,6 +6,7 @@ test('molette sur la carte après chargement et repli des panneaux', async ({ pa
   const now = Date.now(),
     state = createState('wheel-browser', now);
   const realm = addPlayer(state, 'a', 'Molette', 'ASH', now);
+  realm.settings.tutorialCompleted = true;
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.exposeFunction('wheelSnapshot', () => worldView(state, 'a', Date.now()));
@@ -45,8 +46,9 @@ test('molette sur la carte après chargement et repli des panneaux', async ({ pa
     });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
-  await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false', {
+    timeout: 90000,
+  });
   const zoom = () => page.evaluate(() => (window as any).__wheelScene.cameras.main.zoom);
   const canvas = page.locator('.board canvas');
   const wheel = async (dy: number) => {

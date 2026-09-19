@@ -164,10 +164,10 @@ test('alliance, radar, chat, frappe et vue stratégique sans compte réel', asyn
 
   await page.getByRole('button', { name: 'Diplomatie', exact: true }).click();
   await page.getByLabel('Nom', { exact: true }).fill('Les Veilleurs du seuil');
-  await page.getByRole('button', { name: 'Fonder · 0 PA' }).click();
+  await page.getByRole('button', { name: 'Fonder' }).click();
   await expect(page.getByRole('dialog')).toContainText('Les Veilleurs du seuil');
   await page.getByLabel('Inviter un joueur').selectOption('b');
-  await page.getByRole('button', { name: 'Envoyer l’invitation · 0 PA' }).click();
+  await page.getByRole('button', { name: 'Envoyer l’invitation' }).click();
   await expect.poll(() => Object.keys(state.strategy!.invitations).length).toBe(1);
   const invitation = Object.values(state.strategy!.invitations)[0];
   state = execute(
@@ -185,7 +185,7 @@ test('alliance, radar, chat, frappe et vue stratégique sans compte réel', asyn
   await page.evaluate((w) => (window as any).__strategyStore.setState({ world: w }), world());
   await expect(page.locator('.radar-target')).toContainText('Allié · Les Astres');
   await page.getByLabel('Message', { exact: true }).fill('Protégez le relais.');
-  await page.getByRole('button', { name: 'Envoyer · 0 PA', exact: true }).click();
+  await page.getByRole('button', { name: 'Envoyer', exact: true }).click();
   await expect(page.getByRole('log')).toContainText('Protégez le relais.');
   await page.screenshot({ path: 'test-results/strategy-alliance.png' });
   await page.getByRole('button', { name: 'Opérations d’alliance', exact: true }).click();
@@ -193,12 +193,12 @@ test('alliance, radar, chat, frappe et vue stratégique sans compte réel', asyn
   await page.getByLabel('Nom de l’opération', { exact: true }).fill('Tenir le seuil');
   await page.locator('.alliance-operations').getByLabel('Coordonnée Q', { exact: true }).fill('-4');
   await page.locator('.alliance-operations').getByLabel('Coordonnée R', { exact: true }).fill('2');
-  await page.getByRole('button', { name: 'Partager le plan · 0 PA', exact: true }).click();
+  await page.getByRole('button', { name: 'Partager le plan', exact: true }).click();
   await expect(page.locator('.operation-card')).toContainText('Tenir le seuil');
   await page.getByLabel('Rôle pour Tenir le seuil').selectOption('ARTILLERY');
-  await page.getByRole('button', { name: 'Je suis prêt · 0 PA', exact: true }).click();
+  await page.getByRole('button', { name: 'Je suis prêt', exact: true }).click();
   await expect(page.locator('.operation-roles')).toContainText('Artillerie · Prêt');
-  await page.getByRole('button', { name: 'Lancer · 0 PA', exact: true }).click();
+  await page.getByRole('button', { name: 'Lancer', exact: true }).click();
   await expect(page.locator('.operation-heading')).toContainText('En cours');
   await page.screenshot({ path: 'test-results/alliance-operation.png' });
 

@@ -72,8 +72,8 @@ export function RoadTools() {
         <summary>À quoi servent les routes ?</summary>
         <p>
           Une unité déjà sur une route peut rejoindre n’importe quelle case du même réseau continu
-          et exploré pour 1 PA, sans limite de distance. Sélectionnez l’unité, puis Déplacer et la
-          destination : le chemin est calculé automatiquement, même entre deux cités éloignées.
+          et exploré gratuitement, sans limite de distance. Sélectionnez l’unité, puis Déplacer et
+          la destination : le chemin est calculé automatiquement, même entre deux cités éloignées.
         </p>
         <p>
           Pour rejoindre la route ou la quitter, la portée normale de l’unité s’applique. Entrer sur

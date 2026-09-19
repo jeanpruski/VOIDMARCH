@@ -4,7 +4,7 @@ Les conquêtes gardent leurs trois offres. Un nouvel onglet propose jusqu’à t
 
 ## Les lieux
 
-25 illustrations indépendantes : 15 lieux terrestres et 10 destinations maritimes. Chaque fiche nomme son inspiration réelle et fournit un lien vers sa description. Les histoires, coffres et récompenses sont de la fiction. La liste complète et ses références sont dans [expedition-sites.json](expedition-sites.json).
+45 illustrations indépendantes : 25 lieux terrestres et 20 destinations maritimes. Chaque fiche nomme son inspiration et fournit un lien vers sa description ; les récits incertains sont explicitement signalés. Les histoires, coffres et récompenses sont de la fiction. La liste complète et ses références sont dans [expedition-sites.json](expedition-sites.json).
 
 L’île de Jeff reprend Little Saint James avec le pavillon rayé bleu et blanc et une coupole dorée. Les destinations maritimes sont des points d’intérêt illustrés sur l’eau : le bateau approche leur débarcadère et son équipe effectue l’exploration. Le décor de petite île ne transforme pas les cases marines en nouvelles terres constructibles.
 
@@ -26,13 +26,13 @@ La perte du porteur remet la quête en phase de récupération au prochain rappr
 
 Le devis dépend du palier de développement réel ([règles v0.8](balance-v08.md)), de la distance réelle, de l’objectif et du milieu. Base or par palier : 300 / 900 / 3 000 / 9 000 / 24 000, multipliée par `0,65 + distance/150`, puis ×1,4 pour récupération ou ×2,2 pour extraction, puis ×1,25 en mer. Les ratios bois/pierre/fer/vivres sont 0,8 / 0,65 / 0,5 / 0,9 de l’or. Les quantités promises restent enregistrées à l’acceptation, y compris pour les missions anciennes. L’abandon demande un cinquième de l’or et des vivres garantis.
 
-Le butin porte sur les cinq ressources, est payé intégralement au-delà du plafond de production passive, et a 20 % de chances d’être augmenté de 25 %. Ce tirage dépend de l’identifiant unique de la quête : il ne change pas au rechargement. Une médaille conserve le lieu, l’objectif, la distance, les participants et le butin réellement reçu. Le carnet montre les 25 destinations et l’historique des réussites ; les médailles rejoignent également la salle des trophées existante.
+Le butin porte sur les cinq ressources, est payé intégralement au-delà du plafond de production passive, et a 20 % de chances d’être augmenté de 25 %. Ce tirage dépend de l’identifiant unique de la quête : il ne change pas au rechargement. Une médaille conserve le lieu, l’objectif, la distance, les participants et le butin réellement reçu. Le carnet montre les 45 destinations et l’historique des réussites ; les médailles rejoignent également la salle des trophées existante.
 
 ## Images et vérifications
 
-Outil : **imagegen intégré**, une génération indépendante par lieu, transparence conservée. Les 25 fichiers sont dans `apps/web/public/assets/expeditions/`. Prompts complets : [expedition-art-prompts.json](expedition-art-prompts.json). Les sources sont conservées dans le répertoire de génération Codex ; le jeu utilise uniquement les copies du dépôt. Les illustrations du plateau se chargent à la demande, après découverte du site, sans ralentir son chargement initial.
+Outil : **imagegen intégré**, une génération indépendante par lieu, transparence conservée. Les 45 fichiers sont dans `apps/web/public/assets/expeditions/`. Prompts complets : [expedition-art-prompts.json](expedition-art-prompts.json). Les sources sont conservées dans le répertoire de génération Codex ; le jeu utilise uniquement les copies du dépôt. Les illustrations du plateau se chargent à la demande, après découverte du site, sans ralentir son chargement initial.
 
-`tests/expeditions.test.ts` contrôle le catalogue, les offres, le placement, les PA, les restrictions, les récompenses uniques, le transport, les alliances, la perte du porteur et l’abandon. `tests/expeditions.e2e.ts` vérifie une extraction de l’île de Jeff dans Chrome, le carnet et la transparence des 25 images. Les données s’enregistrent dans l’état JSON existant : aucune migration SQL ni remise à zéro des joueurs.
+`tests/expeditions.test.ts` contrôle le catalogue, les offres, le placement, les PA, les restrictions, les récompenses uniques, le transport, les alliances, la perte du porteur et l’abandon. `tests/expeditions.e2e.ts` vérifie une extraction de l’île de Jeff dans Chrome, le carnet et la transparence des 45 images. Les données s’enregistrent dans l’état JSON existant : aucune migration SQL ni remise à zéro des joueurs.
 
 ## Lieux sur trois hexagones
 
@@ -44,7 +44,7 @@ Un seul objectif, une seule récompense et une seule médaille sont conservés. 
 
 ## Offres adaptées aux régions voisines
 
-`EXPEDITION_HABITATS` définit le milieu des 25 lieux. Gizeh, Zone 51 et Baïkonour exigent le désert ; Svalbard exige la neige et un relief proche ; les complexes boisés exigent une forêt, les mines et bunkers souterrains un relief, Hoover une rivière dans une région désertique. Les destinations maritimes ont aussi des climats compatibles : les îles avec palmiers ne sont pas proposées dans la neige. Ces contraintes sont des choix du jeu pour les illustrations réinventées.
+`EXPEDITION_HABITATS` définit le milieu des 45 lieux. Gizeh, Zone 51 et Baïkonour exigent le désert ; Svalbard exige la neige et un relief proche ; les complexes boisés exigent une forêt, les mines et bunkers souterrains un relief, Hoover une rivière dans une région désertique. Les destinations maritimes ont aussi des climats compatibles : les îles avec palmiers ne sont pas proposées dans la neige. Ces contraintes sont des choix du jeu pour les illustrations réinventées.
 
 Les trois cases et le voisinage de rayon 2 doivent appartenir à un milieu compatible ; une contribution visuelle d’au moins 15 % d’un biome incompatible exclut aussi la transition. Le relief/forêt/rivière requis est recherché dans un rayon de 3. Aucune case n’est repeinte ni transformée pour faire apparaître un lieu.
 
@@ -53,3 +53,13 @@ Une prospection déterministe bornée examine la géographie entre 60 et 200 cas
 Les emplacements et leur accès sont à nouveau vérifiés à l’acceptation. Un site devenu indisponible est refusé gratuitement, jamais déplacé arbitrairement ou remplacé par un autre lieu. Les expéditions déjà acceptées conservent leur position et leur objectif.
 
 `tests/expedition-habitats.test.ts` couvre les quatre climats, les alentours, les besoins de relief, l’absence/présence de flotte, l’invalidation d’un site occupé, l’absence de coordonnées publiques et la réutilisation de la prospection après copie de l’état.
+
+## Lieux mystérieux : vingt destinations supplémentaires
+
+Dix terrestres : Houska, Hoer Verde, Hoerengracht, Leap, la Tour de Londres, Port Arthur, Waverly Hills, Édimbourg, Frochot et le cimetière de l’Isle of the Dead. Dix maritimes : mer du Diable, Baychimo, Chuuk, Skeleton Coast, Yonaguni, anomalie baltique, Joyita, Mary Celeste, Ourang Medan et Dahab.
+
+Les nouveaux lieux utilisent les mêmes trois objectifs, les mêmes paliers, le butin annoncé, les trophées et l’historique personnel. Les destinations déjà acceptées sont conservées ; les nouvelles entrent dans les prochains tirages. Le total du carnet est calculé depuis le catalogue.
+
+Hoer Verde est une légende non localisée avec certitude. « Hoerengracht » désigne ici un quartier fictif inspiré des canaux d’Amsterdam, pas un quartier historique maudit attesté. L’Ourang Medan est présenté comme une légende dont le navire n’est pas confirmé. Les phénomènes occultes des autres sites appartiennent au récit du jeu. L’île-cimetière reste un objectif terrestre conformément au classement demandé : son décor est adapté au littoral, avec une approche à pied vérifiée.
+
+Le Baychimo exige une mer enneigée ; Skeleton Coast et Dahab une mer désertique voisine d’une plage. Les sites tropicaux refusent la neige. Houska et Édimbourg exigent un relief, Hoer Verde une forêt, Port Arthur et le cimetière un littoral, le quartier de canaux de l’eau à proximité. Aucun de ces tirages ne transforme le terrain pour forcer l’apparition d’un lieu.

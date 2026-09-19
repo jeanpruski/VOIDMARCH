@@ -1,3 +1,4 @@
+import { anomalyAPReward } from '@voidmarch/game-rules';
 import { Development } from './Development';
 import { developmentReason, constructionDevelopmentStage } from '@voidmarch/config';
 import { IdentityEditor, RealmPreview } from './RealmIdentity';
@@ -923,6 +924,7 @@ function Events() {
               <h3>{e.title}</h3>
               <p>{e.description}</p>
               <Cost cost={e.reward} />
+              <p>+{anomalyAPReward(w.seed, e.id)} PA · conservés même au-delà de 20</p>
               <small>
                 Disparaît dans <Duration until={e.endsAt} />
               </small>
@@ -1381,11 +1383,11 @@ function Build() {
         <p>
           Ouvrez le mode Routes pour poser ou retirer plusieurs tronçons en cliquant sur la carte.
           Pose possible sur votre territoire, même sous un bâtiment, ou sur terrain neutre avec un
-          paysan ou un ingénieur à une case maximum. Depuis vos terres ou une route, une unité peut
-          voyager sans limite de distance pour 1 PA, tant que chaque case du trajet est à vous ou
-          porte une route explorée. Cela inclut les terres capturées à l’intérieur des remparts. Les
-          obstacles et terrains impraticables restent bloquants. Ailleurs, sa portée normale
-          s’applique.
+          paysan ou un ingénieur à une case maximum. Dans vos enceintes fermées ou sur une route,
+          une unité peut voyager gratuitement sans limite de distance, tant que chaque case du
+          trajet reste dans une enceinte à vous ou porte une route explorée. Les terres possédées
+          hors enceinte gardent un déplacement normal à 1 PA. Les obstacles et terrains
+          impraticables restent bloquants. Ailleurs, sa portée normale s’applique.
         </p>
         <p>
           Une route sous un rempart le transforme visuellement en porte, selon son matériau. Elle
@@ -2268,8 +2270,9 @@ function Help() {
               Vous commencez avec {RULES.startingAP} PA. Le bonus au-dessus de {RULES.maxAP} se
               dépense sans se régénérer ; ensuite vous gagnez 1 PA toutes les{' '}
               {RULES.apInterval / 1000} secondes, jusqu’à {RULES.maxAP}. Le commerce et les
-              négociations n’en consomment pas. Glissez la carte, utilisez la molette ou les boutons
-              de zoom.
+              négociations n’en consomment pas. Les anomalies rapportent 1 à 6 PA, même au-delà du
+              plafond. Les déplacements sur routes et dans vos enceintes fermées sont gratuits.
+              Glissez la carte ; zoomez avec la molette, les boutons ou en écartant deux doigts.
             </p>
           </div>
         </li>
@@ -2346,7 +2349,7 @@ function Help() {
         </p>
         <p>
           Les raccourcis sont inactifs pendant la saisie, dans les fenêtres et pendant une action en
-          attente. Les flèches déplacent la caméra ; la molette règle le zoom.
+          attente. Les flèches déplacent la caméra ; la molette ou le pincement à deux doigts règle le zoom.
         </p>
       </ContextHelp>
       <button

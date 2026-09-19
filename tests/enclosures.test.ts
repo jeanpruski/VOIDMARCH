@@ -128,7 +128,7 @@ describe('territoires revendiqués par les remparts', () => {
     const result = execute(s, 'a', move, now);
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.result.movement?.path).toHaveLength(4);
-    expect(result.state.realms.a.ap).toBe(s.realms.a.ap - 1);
+    expect(result.state.realms.a.ap).toBe(s.realms.a.ap);
     const opened = execute(s, 'a', order('DEMOLISH', tileAt(s, gap).buildingId!), now);
     expect(opened.result.accepted).toBe(true);
     expect(tileAt(opened.state, destination).ownerId).toBeUndefined();
