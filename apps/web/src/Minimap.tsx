@@ -1,4 +1,4 @@
-import { biomeTerrainColor } from './biome-art';
+import { biomeAppearance, blendedTerrainColor } from './biome-art';
 import { useMemo, useRef } from 'react';
 import { Compass } from 'lucide-react';
 import { key } from '@voidmarch/game-rules';
@@ -22,7 +22,9 @@ export function Minimap() {
           return `${p.x + Math.cos(a) * SIZE * projection.scale},${p.y + Math.sin(a) * SIZE * Y_SCALE * projection.scale}`;
         }).join(' ');
         const terrain = t.terrain
-          ? `#${biomeTerrainColor(t.terrain, t.biome).toString(16).padStart(6, '0')}`
+          ? `#${blendedTerrainColor(t.terrain, biomeAppearance(world.seed, t, t.biome).blend)
+              .toString(16)
+              .padStart(6, '0')}`
           : '#344438';
         const color = t.ownerId
           ? (world.realms.find((r) => r.id === t.ownerId)?.color ?? terrain)
@@ -36,7 +38,7 @@ export function Minimap() {
           />
         );
       }),
-    [tiles, projection, world.realms],
+    [tiles, projection, world.realms, world.seed],
   );
   const gesture = useRef<typeof projection | null>(null);
   const capital = projection.project(hexToPixel(world.player.capital));

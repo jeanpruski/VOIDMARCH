@@ -1,5 +1,5 @@
 import { BIOMES } from '@voidmarch/config';
-import { biomeTerrainColor, biomeTexture } from './biome-art';
+import { biomeAppearance, blendedTerrainColor } from './biome-art';
 import { TRANSPORTS } from '@voidmarch/config';
 import { cargoUsed } from '@voidmarch/game-rules';
 import { VictoryBanners } from './victory-animation';
@@ -1007,8 +1007,10 @@ class WorldScene extends Phaser.Scene {
       const p = hexToPixel(t),
         unknown = t.visibility === 'UNKNOWN',
         explored = t.visibility === 'EXPLORED',
-        biome = BIOMES[t.biome ?? 'TEMPERATE'],
-        base = t.terrain ? biomeTerrainColor(t.terrain, t.biome) : 0x25312c,
+        appearance = unknown ? undefined : biomeAppearance(world.seed, t, t.biome),
+        biome = appearance?.palette ?? BIOMES[t.biome ?? 'TEMPERATE'],
+        base =
+          t.terrain && appearance ? blendedTerrainColor(t.terrain, appearance.blend) : 0x25312c,
         n = hash(key(t));
       const tint = Phaser.Display.Color.IntegerToColor(base);
       if (explored) tint.darken(32);
@@ -1109,11 +1111,16 @@ class WorldScene extends Phaser.Scene {
                   ? 52
                   : 78;
           const scenery = this.add
-            .image(p.x, p.y - (t.terrain === 'MOUNTAIN' ? 18 : 10), biomeTexture(t.biome), frame)
+            .image(p.x, p.y - (t.terrain === 'MOUNTAIN' ? 18 : 10), appearance!.texture, frame)
             .setDisplaySize(size, size)
             .setDepth(depth(1000, p.y))
             .setAlpha(explored ? 0.42 : t.terrain === 'PLAIN' ? 0.48 : 0.95)
-            .setName(`terrain:${t.biome ?? 'TEMPERATE'}:${key(t)}`);
+            .setName(`terrain:${t.biome ?? 'TEMPERATE'}:${key(t)}`)
+            .setData({
+              biome: appearance!.blend.primary,
+              sceneryBiome: appearance!.blend.scenery,
+              biomeWeights: appearance!.blend.weights,
+            });
           if (explored) scenery.setTint(0x899082);
           this.pieces.push(scenery);
         }

@@ -6,6 +6,14 @@ Le biome habille les terrains : les noms, ressources, déplacements et règles d
 
 Compatibilité : les anciennes cases et mémoires explorées reçoivent leur biome à la lecture, sans modification de leurs bâtiments, routes, propriétaires ou ressources. Aucun effacement du monde ni migration SQL. La vue stratégique conserve son rendu simple.
 
+## Transitions entre régions
+
+Sur une bande irrégulière d’environ 2 à 5 hexagones au total, le sol et l’eau mélangent progressivement les couleurs des biomes voisins. Les arbres et reliefs alternent entre leurs illustrations, sans superposition transparente des silhouettes. Le cœur des régions conserve son ambiance. La minicarte reprend les couleurs mélangées ; les couleurs des royaumes et le brouillard restent prioritaires.
+
+Ce rendu dépend uniquement de la graine du monde et des coordonnées : même résultat après rechargement, déplacement de caméra ou nouvelle visite. Les frontières existantes, noms, ressources et propriétés ne changent pas. Aucun nouvel atlas ni aucune réinitialisation nécessaires. Le calcul visuel utilise un cache borné partagé entre carte et minicarte.
+
+Validation : tests de continuité des couleurs, déterminisme après éviction du cache, préservation des régions et des terrains spéciaux ; test navigateur sur une frontière naturelle, rechargement et aperçu `test-results/biome-transitions.png`.
+
 ## Illustrations
 
 Validation : tests de déterminisme, taille des régions, compatibilité des anciennes cases, brouillard de guerre et couleurs des terres brûlées ; contrôle Chrome des quatre ambiances, des 12 décors de chaque atlas et de leur transparence. Compilation de production validée. Aperçu de comparaison dans `test-results/biomes-map.png` (les bandes rapprochées servent uniquement à comparer les ambiances, elles ne représentent pas la taille réelle des régions).

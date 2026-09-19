@@ -1,3 +1,5 @@
+import { biomeBlend, type BiomeBlend } from '@voidmarch/game-rules';
+import type { Hex } from '@voidmarch/shared';
 import { BIOMES, TERRAINS, type Biome, type Terrain } from '@voidmarch/config';
 const colors: Record<Exclude<Biome, 'TEMPERATE'>, Partial<Record<Terrain, number>>> = {
   SNOW: {
@@ -39,3 +41,46 @@ export function biomeTerrainColor(terrain: Terrain, biome: Biome = 'TEMPERATE'):
   return colors[biome][terrain] ?? BIOMES[biome].ground;
 }
 export const biomeTexture = (biome?: Biome) => BIOMES[biome ?? 'TEMPERATE'].texture;
+
+function mixColor(blend: BiomeBlend, get: (biome: Biome) => number) {
+  let red = 0,
+    green = 0,
+    blue = 0;
+  for (const { biome, weight } of blend.weights) {
+    const value = get(biome);
+    red += ((value >> 16) & 255) * weight;
+    green += ((value >> 8) & 255) * weight;
+    blue += (value & 255) * weight;
+  }
+  return (Math.round(red) << 16) | (Math.round(green) << 8) | Math.round(blue);
+}
+function appearance(seed: string, p: Hex, savedBiome?: Biome) {
+  const blend = biomeBlend(seed, p, savedBiome);
+  return {
+    blend,
+    texture: biomeTexture(blend.scenery),
+    palette: {
+      ground: mixColor(blend, (b) => BIOMES[b].ground),
+      water: mixColor(blend, (b) => BIOMES[b].water),
+      ripple: mixColor(blend, (b) => BIOMES[b].ripple),
+      light: mixColor(blend, (b) => BIOMES[b].light),
+      dark: mixColor(blend, (b) => BIOMES[b].dark),
+    },
+  };
+}
+// Bounded cache shared by the map and minimap; eviction never changes the result.
+const appearances = new Map<string, ReturnType<typeof appearance>>();
+export function biomeAppearance(seed: string, p: Hex, savedBiome?: Biome) {
+  const id = `${seed}:${p.q},${p.r}:${savedBiome ?? ''}`;
+  let value = appearances.get(id);
+  if (!value) {
+    value = appearance(seed, p, savedBiome);
+    if (appearances.size >= 24000) appearances.delete(appearances.keys().next().value!);
+    appearances.set(id, value);
+  }
+  return value;
+}
+export function blendedTerrainColor(terrain: Terrain, blend: BiomeBlend) {
+  if (terrain === 'SCORCHED' || terrain === 'ALIEN') return TERRAINS[terrain].color;
+  return mixColor(blend, (b) => biomeTerrainColor(terrain, b));
+}
