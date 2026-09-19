@@ -1,11 +1,18 @@
-import { RULES, UNIT_PROFILES } from '@voidmarch/config';
-import { distance, key } from '@voidmarch/game-rules';
+import { RULES, UNIT_PROFILES, isSea } from '@voidmarch/config';
+import { distance, key, expeditionDistance } from '@voidmarch/game-rules';
 import type { Unit, ViewTile, WorldView } from '@voidmarch/shared';
 
 /** Site eligibility shared by the map overlay, terrain actions and building catalogue. */
 export function constructionSiteReason(world: WorldView, tile?: ViewTile) {
   if (!tile?.terrain || tile.visibility === 'UNKNOWN')
     return 'Explorez ce terrain avant de construire.';
+  if (
+    [world.missions?.active, ...(world.missions?.allied ?? [])].some(
+      (m) => m?.expedition && expeditionDistance(m, tile) === 0,
+    )
+  )
+    return 'Les 3 cases de ce lieu sont réservées à une expédition en cours.';
+  if (isSea(tile.terrain)) return 'Construisez les ports sur la terre, au bord de la mer.';
   if (tile.building) return 'Un bâtiment occupe déjà cette case.';
   if (world.strategy?.sites.some((site) => key(site) === key(tile)))
     return 'Ce site stratégique doit rester libre de construction.';

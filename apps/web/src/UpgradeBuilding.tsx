@@ -1,3 +1,5 @@
+import { developmentReason, upgradeDevelopmentStage } from '@voidmarch/config';
+import { TrainingUpgrade } from './ArmySupport';
 import { recruitmentLevel, type UnitKind } from '@voidmarch/config';
 import { ActionButton } from './ActionButton';
 import { useState } from 'react';
@@ -30,7 +32,18 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
   const [open, setOpen] = useState(false);
   const world = useGame((s) => s.world)!;
   const pending = useGame((s) => s.pending);
+  const now = useGame((s) => s.now);
   const upgrade = buildingUpgrade(b.kind, b.level);
+  const developmentError = upgrade
+    ? developmentReason(
+        world.tiles.flatMap((t) => (t.building?.ownerId === world.player.id ? [t.building] : [])),
+        upgradeDevelopmentStage(b.kind, upgrade.level),
+      )
+    : '';
+  const combatError =
+    b.lastDamagedAt && now - b.lastDamagedAt < 90000
+      ? 'Attendez 90 secondes sans dégâts avant d’améliorer.'
+      : '';
   const costAP = ACTION_COST.UPGRADE;
   const missing = upgrade
     ? RESOURCES.filter((r) => world.player.wallet[r] < (upgrade.cost[r] ?? 0))
@@ -40,7 +53,9 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
     pending ||
     (!world.player.unlimitedAP && world.player.ap < costAP) ||
     missing.length > 0 ||
-    populationMissing;
+    populationMissing ||
+    !!developmentError ||
+    !!combatError;
   const capacity = populationCapacity;
   const unlocked = upgrade
     ? Object.entries(UNIT_PROFILES)
@@ -105,6 +120,9 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                 </figure>
               </div>
               <p>Ce bâtiment évolue sur sa case actuelle.</p>
+              {(developmentError || combatError) && (
+                <p className="negative">{developmentError || combatError}</p>
+              )}
               {b.turretLevel && (
                 <p>
                   La tourelle est conservée au niveau {b.turretLevel}. Son arme s’améliore
@@ -158,14 +176,6 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                     vivres restent déduits du revenu net.
                   </li>
                 )}
-                {trainingBonusAt(upgrade.kind, upgrade.level) > 0 && (
-                  <li>
-                    Entraînement : +{format(trainingBonusAt(b.kind, b.level))} % → +
-                    {format(trainingBonusAt(upgrade.kind, upgrade.level))} % aux PV, attaque et
-                    défense des types d’unités formés ici, y compris les troupes existantes. Le
-                    meilleur bonus s’applique, sans cumul entre bâtiments.
-                  </li>
-                )}
                 {storageBonus(upgrade.kind, upgrade.level) > 0 && (
                   <li>
                     Stockage ajouté : {format(storageBonus(b.kind, b.level))} →{' '}
@@ -182,6 +192,15 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                   </li>
                 )}
               </ul>
+              {trainingBonusAt(upgrade.kind, upgrade.level) > 0 && (
+                <TrainingUpgrade
+                  building={b}
+                  next={{ ...b, ...upgrade }}
+                  owned={world.tiles.flatMap((t) =>
+                    t.building?.ownerId === world.player.id ? [t.building] : [],
+                  )}
+                />
+              )}
               <h3>À payer pour cette amélioration</h3>
               <p>
                 Les {costAP} PA et les ressources ci-dessous sont déduits de votre stock à la

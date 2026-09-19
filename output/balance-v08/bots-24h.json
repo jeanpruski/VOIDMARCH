@@ -1,0 +1,1110 @@
+[
+  {
+    "seed": "bot-a",
+    "counts": {
+      "RECRUIT": 26,
+      "MOVE": 813,
+      "BUILD": 32,
+      "UPGRADE": 71
+    },
+    "failures": [],
+    "history": [
+      {
+        "minute": 60,
+        "buildings": 11,
+        "builders": 2,
+        "level": 2,
+        "tier": 2,
+        "food": 22.5
+      },
+      {
+        "minute": 120,
+        "buildings": 17,
+        "builders": 2,
+        "level": 2,
+        "tier": 2,
+        "food": 53.4
+      },
+      {
+        "minute": 180,
+        "buildings": 18,
+        "builders": 2,
+        "level": 3,
+        "tier": 2,
+        "food": 48.1
+      },
+      {
+        "minute": 240,
+        "buildings": 21,
+        "builders": 3,
+        "level": 3,
+        "tier": 2,
+        "food": 54.5
+      },
+      {
+        "minute": 300,
+        "buildings": 25,
+        "builders": 3,
+        "level": 3,
+        "tier": 2,
+        "food": 54.5
+      },
+      {
+        "minute": 360,
+        "buildings": 27,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 44.5
+      },
+      {
+        "minute": 420,
+        "buildings": 31,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 44.5
+      },
+      {
+        "minute": 480,
+        "buildings": 33,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 40.6
+      },
+      {
+        "minute": 540,
+        "buildings": 33,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 35.1
+      },
+      {
+        "minute": 600,
+        "buildings": 33,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.5
+      },
+      {
+        "minute": 660,
+        "buildings": 33,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.5
+      },
+      {
+        "minute": 720,
+        "buildings": 33,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38
+      },
+      {
+        "minute": 780,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 36.4
+      },
+      {
+        "minute": 840,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 36.4
+      },
+      {
+        "minute": 900,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 36.4
+      },
+      {
+        "minute": 960,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 36.4
+      },
+      {
+        "minute": 1020,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 36.4
+      },
+      {
+        "minute": 1080,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 36.4
+      },
+      {
+        "minute": 1140,
+        "buildings": 37,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 36.4
+      },
+      {
+        "minute": 1200,
+        "buildings": 38,
+        "builders": 3,
+        "level": 4,
+        "tier": 5,
+        "food": 34.9
+      },
+      {
+        "minute": 1260,
+        "buildings": 38,
+        "builders": 3,
+        "level": 4,
+        "tier": 5,
+        "food": 34.9
+      },
+      {
+        "minute": 1320,
+        "buildings": 39,
+        "builders": 3,
+        "level": 4,
+        "tier": 5,
+        "food": 34.9
+      },
+      {
+        "minute": 1380,
+        "buildings": 39,
+        "builders": 3,
+        "level": 4,
+        "tier": 5,
+        "food": 31.7
+      },
+      {
+        "minute": 1440,
+        "buildings": 39,
+        "builders": 3,
+        "level": 4,
+        "tier": 5,
+        "food": 31.7
+      }
+    ],
+    "buildings": [
+      [
+        "VILLAGE",
+        3
+      ],
+      [
+        "FARM",
+        2
+      ],
+      [
+        "MINE",
+        5
+      ],
+      [
+        "LUMBER",
+        5
+      ],
+      [
+        "VILLAGE",
+        2
+      ],
+      [
+        "MARKET",
+        4
+      ],
+      [
+        "BARRACKS",
+        4
+      ],
+      [
+        "QUARRY",
+        5
+      ],
+      [
+        "WORKSHOP",
+        4
+      ],
+      [
+        "FORGE",
+        3
+      ],
+      [
+        "STEAM_SAWMILL",
+        3
+      ],
+      [
+        "GOLD_MINE",
+        2
+      ],
+      [
+        "HOUSE",
+        1
+      ],
+      [
+        "WELL",
+        1
+      ],
+      [
+        "ARCHERY",
+        4
+      ],
+      [
+        "STABLE",
+        4
+      ],
+      [
+        "BAKERY",
+        1
+      ],
+      [
+        "GARAGE",
+        4
+      ],
+      [
+        "MONASTERY",
+        4
+      ],
+      [
+        "LIBRARY",
+        1
+      ],
+      [
+        "REFINERY",
+        4
+      ],
+      [
+        "ARSENAL",
+        4
+      ],
+      [
+        "MUNITIONS",
+        1
+      ],
+      [
+        "MECHANIZED_QUARRY",
+        3
+      ],
+      [
+        "INDUSTRIAL_MINE",
+        3
+      ],
+      [
+        "RADIO",
+        1
+      ],
+      [
+        "OCCULT_LAB",
+        3
+      ],
+      [
+        "OCCULT_SAWMILL",
+        3
+      ],
+      [
+        "TANK_FACTORY",
+        3
+      ],
+      [
+        "AERODROME",
+        3
+      ],
+      [
+        "FLAK_BATTERY",
+        4
+      ],
+      [
+        "CRYPT_BARRACKS",
+        4
+      ],
+      [
+        "BLACK_OBSERVATORY",
+        3
+      ],
+      [
+        "AIRSHIP_YARD",
+        3
+      ],
+      [
+        "ISOTOPE_LAB",
+        2
+      ],
+      [
+        "DRAGON_ROOST",
+        2
+      ],
+      [
+        "RUNIC_QUARRY",
+        1
+      ],
+      [
+        "ABYSSAL_MINE",
+        1
+      ],
+      [
+        "NUCLEAR_REACTOR",
+        2
+      ]
+    ],
+    "wallet": {
+      "STONE": 27860,
+      "GOLD": 2054.7199999999975,
+      "WOOD": 28420,
+      "IRON": 19135.999999999993,
+      "FOOD": 34300
+    }
+  },
+  {
+    "seed": "bot-b",
+    "counts": {
+      "RECRUIT": 26,
+      "MOVE": 811,
+      "BUILD": 32,
+      "UPGRADE": 67
+    },
+    "failures": [],
+    "history": [
+      {
+        "minute": 60,
+        "buildings": 10,
+        "builders": 2,
+        "level": 2,
+        "tier": 2,
+        "food": 28.2
+      },
+      {
+        "minute": 120,
+        "buildings": 11,
+        "builders": 2,
+        "level": 3,
+        "tier": 2,
+        "food": 26.7
+      },
+      {
+        "minute": 180,
+        "buildings": 18,
+        "builders": 2,
+        "level": 3,
+        "tier": 2,
+        "food": 48.8
+      },
+      {
+        "minute": 240,
+        "buildings": 21,
+        "builders": 3,
+        "level": 3,
+        "tier": 2,
+        "food": 43.1
+      },
+      {
+        "minute": 300,
+        "buildings": 25,
+        "builders": 3,
+        "level": 3,
+        "tier": 3,
+        "food": 44.6
+      },
+      {
+        "minute": 360,
+        "buildings": 27,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 44.3
+      },
+      {
+        "minute": 420,
+        "buildings": 31,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 41
+      },
+      {
+        "minute": 480,
+        "buildings": 33,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 37.1
+      },
+      {
+        "minute": 540,
+        "buildings": 33,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 35.5
+      },
+      {
+        "minute": 600,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.9
+      },
+      {
+        "minute": 660,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 720,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 780,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 840,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 900,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 960,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 1020,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 1080,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 1140,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 1200,
+        "buildings": 37,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 38.4
+      },
+      {
+        "minute": 1260,
+        "buildings": 38,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.8
+      },
+      {
+        "minute": 1320,
+        "buildings": 38,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 31.5
+      },
+      {
+        "minute": 1380,
+        "buildings": 38,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 31.5
+      },
+      {
+        "minute": 1440,
+        "buildings": 39,
+        "builders": 3,
+        "level": 4,
+        "tier": 5,
+        "food": 34.7
+      }
+    ],
+    "buildings": [
+      [
+        "VILLAGE",
+        3
+      ],
+      [
+        "FARM",
+        2
+      ],
+      [
+        "MINE",
+        5
+      ],
+      [
+        "LUMBER",
+        5
+      ],
+      [
+        "VILLAGE",
+        2
+      ],
+      [
+        "MARKET",
+        4
+      ],
+      [
+        "BARRACKS",
+        4
+      ],
+      [
+        "QUARRY",
+        5
+      ],
+      [
+        "WORKSHOP",
+        4
+      ],
+      [
+        "FORGE",
+        3
+      ],
+      [
+        "STEAM_SAWMILL",
+        3
+      ],
+      [
+        "GOLD_MINE",
+        2
+      ],
+      [
+        "HOUSE",
+        1
+      ],
+      [
+        "WELL",
+        1
+      ],
+      [
+        "ARCHERY",
+        4
+      ],
+      [
+        "STABLE",
+        4
+      ],
+      [
+        "BAKERY",
+        1
+      ],
+      [
+        "GARAGE",
+        4
+      ],
+      [
+        "REFINERY",
+        4
+      ],
+      [
+        "ARSENAL",
+        4
+      ],
+      [
+        "MUNITIONS",
+        1
+      ],
+      [
+        "MECHANIZED_QUARRY",
+        3
+      ],
+      [
+        "INDUSTRIAL_MINE",
+        3
+      ],
+      [
+        "MONASTERY",
+        4
+      ],
+      [
+        "LIBRARY",
+        1
+      ],
+      [
+        "RADIO",
+        1
+      ],
+      [
+        "OCCULT_LAB",
+        3
+      ],
+      [
+        "OCCULT_SAWMILL",
+        3
+      ],
+      [
+        "TANK_FACTORY",
+        3
+      ],
+      [
+        "AERODROME",
+        3
+      ],
+      [
+        "FLAK_BATTERY",
+        4
+      ],
+      [
+        "CRYPT_BARRACKS",
+        3
+      ],
+      [
+        "BLACK_OBSERVATORY",
+        3
+      ],
+      [
+        "AIRSHIP_YARD",
+        2
+      ],
+      [
+        "ISOTOPE_LAB",
+        2
+      ],
+      [
+        "DRAGON_ROOST",
+        1
+      ],
+      [
+        "RUNIC_QUARRY",
+        1
+      ],
+      [
+        "ABYSSAL_MINE",
+        1
+      ],
+      [
+        "NUCLEAR_REACTOR",
+        1
+      ]
+    ],
+    "wallet": {
+      "STONE": 34300,
+      "GOLD": 6603.559999999921,
+      "WOOD": 34300,
+      "IRON": 32255,
+      "FOOD": 33971.15
+    }
+  },
+  {
+    "seed": "bot-c",
+    "counts": {
+      "RECRUIT": 26,
+      "MOVE": 825,
+      "BUILD": 32,
+      "UPGRADE": 71,
+      "CAPTURE": 1
+    },
+    "failures": [],
+    "history": [
+      {
+        "minute": 60,
+        "buildings": 11,
+        "builders": 2,
+        "level": 2,
+        "tier": 2,
+        "food": 22.5
+      },
+      {
+        "minute": 120,
+        "buildings": 17,
+        "builders": 2,
+        "level": 2,
+        "tier": 2,
+        "food": 50.8
+      },
+      {
+        "minute": 180,
+        "buildings": 18,
+        "builders": 2,
+        "level": 3,
+        "tier": 2,
+        "food": 47.8
+      },
+      {
+        "minute": 240,
+        "buildings": 20,
+        "builders": 3,
+        "level": 3,
+        "tier": 2,
+        "food": 53.1
+      },
+      {
+        "minute": 300,
+        "buildings": 24,
+        "builders": 3,
+        "level": 3,
+        "tier": 2,
+        "food": 53.1
+      },
+      {
+        "minute": 360,
+        "buildings": 27,
+        "builders": 3,
+        "level": 3,
+        "tier": 3,
+        "food": 50.3
+      },
+      {
+        "minute": 420,
+        "buildings": 31,
+        "builders": 3,
+        "level": 3,
+        "tier": 3,
+        "food": 48.7
+      },
+      {
+        "minute": 480,
+        "buildings": 33,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 44.8
+      },
+      {
+        "minute": 540,
+        "buildings": 33,
+        "builders": 3,
+        "level": 3,
+        "tier": 4,
+        "food": 31.5
+      },
+      {
+        "minute": 600,
+        "buildings": 33,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 31.5
+      },
+      {
+        "minute": 660,
+        "buildings": 33,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 31.5
+      },
+      {
+        "minute": 720,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 36
+      },
+      {
+        "minute": 780,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.7
+      },
+      {
+        "minute": 840,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.7
+      },
+      {
+        "minute": 900,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.7
+      },
+      {
+        "minute": 960,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.7
+      },
+      {
+        "minute": 1020,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.7
+      },
+      {
+        "minute": 1080,
+        "buildings": 34,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.7
+      },
+      {
+        "minute": 1140,
+        "buildings": 37,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 33.7
+      },
+      {
+        "minute": 1200,
+        "buildings": 38,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 31.4
+      },
+      {
+        "minute": 1260,
+        "buildings": 38,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 32.7
+      },
+      {
+        "minute": 1320,
+        "buildings": 39,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 32.7
+      },
+      {
+        "minute": 1380,
+        "buildings": 39,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 30.4
+      },
+      {
+        "minute": 1440,
+        "buildings": 39,
+        "builders": 3,
+        "level": 4,
+        "tier": 4,
+        "food": 30.4
+      }
+    ],
+    "buildings": [
+      [
+        "VILLAGE",
+        3
+      ],
+      [
+        "FARM",
+        2
+      ],
+      [
+        "MINE",
+        5
+      ],
+      [
+        "LUMBER",
+        5
+      ],
+      [
+        "VILLAGE",
+        2
+      ],
+      [
+        "MARKET",
+        4
+      ],
+      [
+        "BARRACKS",
+        4
+      ],
+      [
+        "QUARRY",
+        5
+      ],
+      [
+        "WORKSHOP",
+        4
+      ],
+      [
+        "FORGE",
+        3
+      ],
+      [
+        "STEAM_SAWMILL",
+        3
+      ],
+      [
+        "GOLD_MINE",
+        2
+      ],
+      [
+        "HOUSE",
+        1
+      ],
+      [
+        "WELL",
+        1
+      ],
+      [
+        "ARCHERY",
+        4
+      ],
+      [
+        "STABLE",
+        4
+      ],
+      [
+        "BAKERY",
+        1
+      ],
+      [
+        "GARAGE",
+        4
+      ],
+      [
+        "MONASTERY",
+        4
+      ],
+      [
+        "LIBRARY",
+        1
+      ],
+      [
+        "REFINERY",
+        4
+      ],
+      [
+        "ARSENAL",
+        4
+      ],
+      [
+        "MUNITIONS",
+        1
+      ],
+      [
+        "MECHANIZED_QUARRY",
+        3
+      ],
+      [
+        "INDUSTRIAL_MINE",
+        3
+      ],
+      [
+        "OCCULT_LAB",
+        3
+      ],
+      [
+        "RADIO",
+        1
+      ],
+      [
+        "OCCULT_SAWMILL",
+        3
+      ],
+      [
+        "TANK_FACTORY",
+        3
+      ],
+      [
+        "AERODROME",
+        3
+      ],
+      [
+        "FLAK_BATTERY",
+        4
+      ],
+      [
+        "CRYPT_BARRACKS",
+        4
+      ],
+      [
+        "BLACK_OBSERVATORY",
+        3
+      ],
+      [
+        "AIRSHIP_YARD",
+        3
+      ],
+      [
+        "ISOTOPE_LAB",
+        2
+      ],
+      [
+        "DRAGON_ROOST",
+        2
+      ],
+      [
+        "RUNIC_QUARRY",
+        1
+      ],
+      [
+        "ABYSSAL_MINE",
+        1
+      ],
+      [
+        "NUCLEAR_REACTOR",
+        2
+      ]
+    ],
+    "wallet": {
+      "STONE": 27860,
+      "GOLD": 2077.383333333277,
+      "WOOD": 28420,
+      "IRON": 20001.20000000002,
+      "FOOD": 34300
+    }
+  }
+]

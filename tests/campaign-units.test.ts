@@ -1,3 +1,5 @@
+import { prepareDevelopment } from './fixtures/development';
+import { unitDevelopmentStage } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -103,6 +105,7 @@ describe('Quatre armées de milieu de partie', () => {
         expect(denied.result.reason).toContain('niveau');
         expect(denied.state).toEqual(state);
       }
+      prepareDevelopment(state, realm.id, unitDevelopmentStage(kind), now);
       building.level = profile.minRecruitLevel!;
       for (const needed of profile.requires) {
         const prerequisite = Object.values(state.buildings).find((b) => b.kind === needed)!;

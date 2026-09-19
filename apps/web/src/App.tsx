@@ -1,4 +1,14 @@
-import { BIOMES } from '@voidmarch/config';
+import { ExpeditionInteraction } from './Expeditions';
+import { fishingYield, coastlineHelp } from '@voidmarch/game-rules';
+import { eventAvailable } from './world-events';
+import { Supplies } from './Supplies';
+import { repairPlan } from '@voidmarch/game-rules';
+import { Banner } from './Banner';
+import { BiomeAdaptation } from './BiomeAdaptation';
+import { movementBiome, unitMovementBudget } from '@voidmarch/game-rules';
+import { UnitTrainingDetails } from './UnitTrainingDetails';
+import { ArmySupport } from './ArmySupport';
+import { BIOMES, isSea } from '@voidmarch/config';
 import { TransportControls } from './TransportControls';
 import { VictoryReport } from './VictoryReport';
 import { GroupMovement } from './GroupMovement';
@@ -481,9 +491,9 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>
       <div className="realm-banner" onClick={() => useGame.setState({ panel: 'profile' })}>
-        <Sigil symbol={p.settings.emblem} color={p.settings.bannerColor} size={39} />
+        <Banner settings={p.settings} size={90} />
         <div className="eyebrow">{FACTIONS[p.faction].short}</div>
-        <h2>{p.name}</h2>
+        <h2>{p.settings.realmName || p.name}</h2>
       </div>
       <div className="realm-numbers">
         <span>
@@ -653,6 +663,7 @@ function TileHint() {
   );
 }
 function SelectionPanel() {
+  const now = useGame((s) => s.now);
   const selectedUnitIds = useGame((s) => s.selectedUnitIds);
   const multiSelect = useGame((s) => s.multiSelect);
   const w = useGame((s) => s.world)!,
@@ -756,7 +767,17 @@ function SelectionPanel() {
             {u ? 'UNITÉ SÉLECTIONNÉE' : b ? 'DOMAINE SÉLECTIONNÉ' : 'HEXAGONE SÉLECTIONNÉ'}
           </span>
           <h2>{name}</h2>
-          {u?.trainingBonus ? (
+          {u && own && !u.npc && !UNIT_PROFILES[u.kind].hero && !UNIT_PROFILES[u.kind].builder ? (
+            <UnitTrainingDetails
+              key={u.id}
+              unit={u}
+              terrain={tile?.terrain}
+              biome={movementBiome(w.seed, tile)}
+              buildings={w.tiles.flatMap((t) =>
+                t.building?.ownerId === u.ownerId ? [t.building] : [],
+              )}
+            />
+          ) : u?.trainingBonus ? (
             <span className="rare-tag">Entraînement · +{format(u.trainingBonus)} %</span>
           ) : null}
           {u?.rareBonus && (
@@ -764,7 +785,9 @@ function SelectionPanel() {
               ✦ Rare · +{format(u.rareBonus)} %
             </span>
           )}
-          {!u && !b && tile?.terrain && tile.biome && <span className="biome-label">Biome {BIOMES[tile.biome].name.toLowerCase()}</span>}
+          {!u && !b && tile?.terrain && tile.biome && (
+            <span className="biome-label">Biome {BIOMES[tile.biome].name.toLowerCase()}</span>
+          )}
           <span className="selection-owner">
             {u?.npc
               ? 'PNJ neutre · sans royaume'
@@ -796,14 +819,60 @@ function SelectionPanel() {
             </div>
             <div>
               <span>MOUV.</span>
-              <strong>{unitStats(u).move}</strong>
+              <strong>
+                {unitMovementBudget(
+                  u,
+                  movementBiome(w.seed, tile),
+                  own ? w.player.faction : w.realms.find((r) => r.id === u.ownerId)?.faction,
+                )}
+              </strong>
             </div>
             <div>
               <span>VISION</span>
-              <strong>{UNITS[u.kind].vision}</strong>
+              <strong>{unitStats(u).vision}</strong>
             </div>
           </div>
-          {!u.npc && <TerrainAffinities kind={u.kind} terrain={tile?.terrain} collapsible />}
+          {UNIT_PROFILES[u.kind].naval && (
+            <ContextHelp title="Navigation et rôle du navire">
+              <p>{UNIT_PROFILES[u.kind].role}</p>
+              <p>
+                Navigation en mer et eaux côtières uniquement. Un déplacement coûte 1 PA, dans la
+                limite de la portée indiquée ; les routes terrestres ne s’appliquent pas. Les ports
+                ravitaillent à deux cases.
+              </p>
+              {!!UNIT_PROFILES[u.kind].sonar && (
+                <p>
+                  Sonar : détecte les sous-marins à {UNIT_PROFILES[u.kind].sonar} cases. Un contact
+                  hors de votre vision reste masqué.
+                </p>
+              )}
+            </ContextHelp>
+          )}
+          {own && UNIT_PROFILES[u.kind].submarine && (
+            <p className="catalog-brief">
+              {(u.revealedUntil ?? 0) > now
+                ? `Sous-marin révélé après tir : encore ${Math.ceil(((u.revealedUntil ?? 0) - now) / 1000)} s.`
+                : 'Sous-marin immergé · détectable uniquement par un sonar ennemi proche.'}
+            </p>
+          )}
+          {own && <Supplies units={[u]} />}
+          <ArmySupport bonus={u.supportBonus} />
+          {!!u.foodPenalty && (
+            <span className="negative">
+              Pénurie de vivres · −{format(u.foodPenalty)} % d’attaque
+            </span>
+          )}
+          {!u.npc && (
+            <TerrainAffinities
+              kind={u.kind}
+              supportBonus={u.supportBonus}
+              terrain={tile?.terrain}
+              collapsible
+            />
+          )}
+          {!u.npc && (
+            <BiomeAdaptation kind={u.kind} biome={movementBiome(w.seed, tile)} showStatus />
+          )}
           {u.npc && <NpcInfo unit={u} />}
           {own && u.kind === 'PEASANT' && (
             <ContextHelp title="Aide aux actions">
@@ -926,28 +995,43 @@ function SelectionPanel() {
                 <ActionButton
                   shortcut="S"
                   className="secondary"
-                  title={
-                    UNIT_PROFILES[u.kind].mechanical
-                      ? 'Réparer · 1 PA, 10 or, 10 fer'
-                      : 'Soigner · 1 PA, 10 or, 10 vivres'
-                  }
+                  title={`${repairPlan(u, now).underFire ? 'Sous le feu : soins réduits, un soin toutes les 30 secondes. ' : ''}Restaure ${format(repairPlan(u, now).restored)} PV${repairPlan(u, now).supplied ? ' · consomme 1 provision' : ''}. Coût proportionnel aux PV restaurés et au prix de recrutement.`}
                   aria-label={
-                    UNIT_PROFILES[u.kind].mechanical ? 'Réparer le véhicule' : 'Soigner l’unité'
+                    UNIT_PROFILES[u.kind].mechanical || UNIT_PROFILES[u.kind].naval
+                      ? 'Réparer le véhicule'
+                      : 'Soigner l’unité'
                   }
                   disabled={
                     pending ||
                     u.hp >= unitStats(u).hp ||
                     (!w.player.unlimitedAP && w.player.ap < 1) ||
-                    !canAfford(w.player.wallet, {
-                      GOLD: 10,
-                      ...(UNIT_PROFILES[u.kind].mechanical ? { IRON: 10 } : { FOOD: 10 }),
-                    })
+                    !!repairPlan(u, now).reason ||
+                    !canAfford(w.player.wallet, repairPlan(u, now).cost)
                   }
                   onClick={() => action('REPAIR')}
                 >
-                  <Plus size={17} /> {UNIT_PROFILES[u.kind].mechanical ? 'Réparer' : 'Soigner'} · 1
-                  PA
+                  <Plus size={17} />{' '}
+                  {UNIT_PROFILES[u.kind].mechanical || UNIT_PROFILES[u.kind].naval
+                    ? 'Réparer'
+                    : 'Soigner'}{' '}
+                  · 1 PA · +{format(repairPlan(u, now).restored)} PV{' '}
+                  <Cost cost={repairPlan(u, now).cost} wallet={w.player.wallet} />
                 </ActionButton>
+                {UNIT_PROFILES[u.kind].fishing && (
+                  <ActionButton
+                    disabled={
+                      pending ||
+                      !fishingYield(u, tile) ||
+                      (!w.player.unlimitedAP && w.player.ap < 1) ||
+                      w.player.wallet.FOOD >= w.player.capacity
+                    }
+                    onClick={() =>
+                      void send({ type: 'GATHER', actorId: u.id, payload: { resource: 'FOOD' } })
+                    }
+                  >
+                    Pêcher +{UNIT_PROFILES[u.kind].fishing} vivres · 1 PA
+                  </ActionButton>
+                )}
                 {u.kind === 'PEASANT' &&
                   RESOURCES.map((resource) => {
                     const accessible = w.tiles.some(
@@ -1043,8 +1127,21 @@ function SelectionPanel() {
                     Fouiller · 1 PA
                   </ActionButton>
                 )}
+                {[w.missions?.active, ...(w.missions?.allied ?? [])]
+                  .filter((m) => m?.expedition)
+                  .map((m) => (
+                    <ExpeditionInteraction key={m!.id} mission={m!} unit={u} />
+                  ))}
                 {w.events
-                  .filter((e) => !e.claimedBy && distance(e, u) <= 1)
+                  .filter(
+                    (e) =>
+                      eventAvailable(e, Math.max(now, w.serverTimestamp)) &&
+                      distance(e, u) <= 1 &&
+                      (!!UNIT_PROFILES[u.kind].naval ||
+                        !isSea(
+                          w.tiles.find((t) => t.q === e.q && t.r === e.r)?.terrain ?? 'PLAIN',
+                        )),
+                  )
                   .map((e, index) => (
                     <ActionButton
                       shortcut={index === 0 ? 'E' : undefined}
@@ -1092,9 +1189,9 @@ function SelectionPanel() {
         <>
           <div className="building-info">
             {b.kind === 'NUCLEAR_REACTOR' && <span>☢ Source radioactive · rayon de 1 case</span>}
-            {b.turretLevel && (
+            {turretStats(b) && (
               <span>
-                {turretStats(b)?.name} · niveau {b.turretLevel}/5 · ATQ{' '}
+                {turretStats(b)?.name} · niveau {b.turretLevel ?? b.level}/5 · ATQ{' '}
                 {format(turretStats(b)?.attack ?? 0)} · portée {turretStats(b)?.range}
               </span>
             )}
@@ -1129,19 +1226,19 @@ function SelectionPanel() {
           {b.kind === 'NUCLEAR_REACTOR' && (
             <ContextHelp title="☢ Radioactivité et confinement">
               <p>
-                En fonctionnement, le Réacteur noir peut contaminer sa case et les six voisines.
-                Les contours et le voile verts indiquent les cases contaminées.
-                Dès 30 points de contamination, la production de ressources des bâtiments touchés
-                est divisée par deux.
+                En fonctionnement, le Réacteur noir peut contaminer sa case et les six voisines. Les
+                contours et le voile verts indiquent les cases contaminées. Dès 30 points de
+                contamination, la production de ressources des bâtiments touchés est divisée par
+                deux.
               </p>
               <p>
-                Un laboratoire isotopique à trois cases maximum réduit les émissions de 2 points
-                par niveau ; au niveau 3, il les bloque complètement. La contamination déjà
-                présente se dissipe progressivement.
+                Un laboratoire isotopique à trois cases maximum réduit les émissions de 2 points par
+                niveau ; au niveau 3, il les bloque complètement. La contamination déjà présente se
+                dissipe progressivement.
               </p>
               <p>
-                Un ingénieur ou un terrassier peut nettoyer jusqu’à sept cases pour 2 PA,
-                20 or et 50 fer.
+                Un ingénieur ou un terrassier peut nettoyer jusqu’à sept cases pour 2 PA, 20 or et
+                50 fer.
               </p>
             </ContextHelp>
           )}
@@ -1161,7 +1258,15 @@ function SelectionPanel() {
                   <Users size={15} /> Recruter
                 </ActionButton>
                 <UpgradeBuilding key={b.id} building={b} />
-                {isWall(b.kind) && <TurretControls key={`turret-${b.id}`} building={b} />}
+                {(isWall(b.kind) || b.kind === 'COASTAL_BATTERY') && (
+                  <TurretControls key={`turret-${b.id}`} building={b} />
+                )}
+                {repairPlan(b, now).underFire && (
+                  <p className="negative">
+                    Sous le feu : réparation limitée à 10 % des PV toutes les 30 s ; amélioration
+                    après 90 s sans dégâts. {repairPlan(b, now).reason}
+                  </p>
+                )}
                 <DemolishBuilding key={`demolish-${b.id}`} building={b} />
                 <NuclearControls key={`nuclear-${b.id}`} building={b} />
                 <RoadAction tile={tile} />
@@ -1172,11 +1277,13 @@ function SelectionPanel() {
                     pending ||
                     b.hp >= BUILDINGS[b.kind].hp * b.level ||
                     (!w.player.unlimitedAP && w.player.ap < 1) ||
-                    !canAfford(w.player.wallet, { GOLD: 10, WOOD: 15 })
+                    !!repairPlan(b, now).reason ||
+                    !canAfford(w.player.wallet, repairPlan(b, now).cost)
                   }
                   onClick={() => action('REPAIR')}
                 >
-                  <Hammer size={15} /> Réparer · 1 PA
+                  <Hammer size={15} /> Réparer · 1 PA · +{format(repairPlan(b, now).restored)} PV{' '}
+                  <Cost cost={repairPlan(b, now).cost} wallet={w.player.wallet} />
                 </ActionButton>
               </>
             ) : (
@@ -1210,6 +1317,7 @@ function SelectionPanel() {
                           : 'Aucune ressource récoltable sur ce terrain.';
                       })()}
                 </p>
+                {coastlineHelp(tile) && <p>{coastlineHelp(tile)}</p>}
                 <span>
                   Bonus de défense du terrain : +{format(TERRAINS[tile.terrain].defense)}
                   {tile.road ? ' · Route présente' : ''}

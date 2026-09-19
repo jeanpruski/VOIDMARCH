@@ -1,3 +1,10 @@
+import { drawExpeditionSites } from './expedition-art';
+import { isSea } from '@voidmarch/config';
+import { drawCoastalTerrain, drawCoastalBlend, coastalField, type CoastalField } from './ocean-art';
+import { eventAvailable } from './world-events';
+import { RadiationOverlay } from './radiation-art';
+import { bannerCanvas, realmBanner } from './banner-art';
+import { movementBiome, unitMovementBudget } from '@voidmarch/game-rules';
 import { BIOMES } from '@voidmarch/config';
 import { biomeAppearance, blendedTerrainColor } from './biome-art';
 import { TRANSPORTS } from '@voidmarch/config';
@@ -93,12 +100,15 @@ class WorldScene extends Phaser.Scene {
   private grid!: Phaser.GameObjects.Graphics;
   private territories!: Phaser.GameObjects.Graphics;
   private banners!: Phaser.GameObjects.Graphics;
+  private radiation?: RadiationOverlay;
+  private bannerDesigns = new Map<string, string>();
   private highlights!: Phaser.GameObjects.Graphics;
   private pendingMarker!: Phaser.GameObjects.Graphics;
   private pendingLabel!: Phaser.GameObjects.Text;
   private pieces: Phaser.GameObjects.GameObject[] = [];
   private view?: WorldView;
   private tileMap = new Map<string, ViewTile>();
+  private coastCache?: { tiles: Map<string, ViewTile>; field: CoastalField };
   private unsubscribe?: () => void;
   private down?: { x: number; y: number; scrollX: number; scrollY: number };
   private moved = false;
@@ -174,6 +184,8 @@ class WorldScene extends Phaser.Scene {
     const cleanup = () => {
       this.victoryBanners.clear();
       this.damageNumbers.clear();
+      this.radiation?.destroy();
+      this.radiation = undefined;
       this.unsubscribe?.();
       this.unsubscribe = undefined;
       for (const cancel of this.projectiles.values()) cancel();
@@ -215,6 +227,7 @@ class WorldScene extends Phaser.Scene {
     this.territories = this.add.graphics().setName('territory-borders').setDepth(3000);
     this.banners = this.add.graphics().setDepth(13000);
     this.ambient = this.add.graphics().setName('ambient-life').setDepth(9200);
+    this.radiation = new RadiationOverlay(this);
     this.highlights = this.add.graphics().setName('hex-highlights').setDepth(3500);
     this.pendingMarker = this.add
       .graphics()
@@ -300,6 +313,17 @@ class WorldScene extends Phaser.Scene {
         }
         this.renderMap();
       }
+      if (
+        s.world === previous.world &&
+        s.world &&
+        s.now !== previous.now &&
+        s.world.events.some(
+          (event) =>
+            eventAvailable(event, Math.max(s.world!.serverTimestamp, previous.now)) !==
+            eventAvailable(event, Math.max(s.world!.serverTimestamp, s.now)),
+        )
+      )
+        this.renderMap();
       if (
         s.constructionBuilderId !== previous.constructionBuilderId ||
         s.selection !== previous.selection ||
@@ -661,8 +685,11 @@ class WorldScene extends Phaser.Scene {
         const t = this.tileMap.get(key(h));
         return t?.terrain ? { q: t.q, r: t.r, terrain: t.terrain, road: t.road } : undefined;
       },
-      UNITS[u.kind].move +
-        (UNIT_PROFILES[u.kind].mounted && this.view?.player.faction === 'IRON' ? 1 : 0),
+      unitMovementBudget(
+        u,
+        movementBiome(this.view!.seed, this.tileMap.get(key(u))),
+        this.view!.player.faction,
+      ),
       blocked,
       u.kind,
     );
@@ -797,7 +824,11 @@ class WorldScene extends Phaser.Scene {
     for (const tile of this.strategicTiles) {
       const p = hexToPixel(tile);
       if (!onScreen(p, SIZE)) continue;
-      const ink = tile.ownerId ? (colors.get(tile.ownerId) ?? 0x877d63) : 0x29382f;
+      const ink = isSea(tile.terrain)
+        ? 0x182e3b
+        : tile.ownerId
+          ? (colors.get(tile.ownerId) ?? 0x877d63)
+          : 0x29382f;
       const fill = fills.get(ink) ?? [];
       fill.push(p);
       fills.set(ink, fill);
@@ -945,6 +976,17 @@ class WorldScene extends Phaser.Scene {
     this.pieces = [];
     this.unitVisuals.clear();
     this.ambient?.clear();
+    this.radiation?.sync(
+      world,
+      cameraViewport(
+        this.cameras.main.scrollX,
+        this.cameras.main.scrollY,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        this.cameras.main.zoom,
+      ),
+      this.strategic,
+    );
     if (this.strategic) {
       this.renderStrategicMap(world);
       this.pieces.push(...drawStrategicOperations(this, world, true));
@@ -952,13 +994,23 @@ class WorldScene extends Phaser.Scene {
       return;
     }
     const c = this.cameras.main,
-      topLeft = c.getWorldPoint(-160, -160),
-      bottomRight = c.getWorldPoint(this.scale.width + 160, this.scale.height + 160),
+      // The camera matrix updates on the next frame. Cull from current scroll/zoom
+      // so a jump to a distant coast never renders an empty old viewport.
+      viewport = cameraViewport(c.scrollX, c.scrollY, c.width, c.height, c.zoom),
+      margin = 160 / c.zoom,
+      topLeft = { x: viewport.x - margin, y: viewport.y - margin },
+      bottomRight = {
+        x: viewport.x + viewport.width + margin,
+        y: viewport.y + viewport.height + margin,
+      },
       visible = world.tiles
         .filter((t) => {
           const p = hexToPixel(t);
           return (
-            p.x >= topLeft.x && p.x <= bottomRight.x && p.y >= topLeft.y && p.y <= bottomRight.y
+            p.x >= viewport.x - margin &&
+            p.x <= viewport.x + viewport.width + margin &&
+            p.y >= viewport.y - margin &&
+            p.y <= viewport.y + viewport.height + margin
           );
         })
         .sort((a, b) => a.r - b.r || a.q - b.q);
@@ -968,6 +1020,7 @@ class WorldScene extends Phaser.Scene {
           ? world.player.settings.bannerColor
           : (world.realms.find((r) => r.id === id)?.color ?? '#877d63'),
       );
+    const secondaryColor = (id?: string) => color(realmBanner(world, id).secondary);
     const drawBanner = (
       ownerId: string,
       x: number,
@@ -975,34 +1028,32 @@ class WorldScene extends Phaser.Scene {
       alpha = 1,
       target = this.banners,
     ) => {
-      const g = target;
-      const square =
-        (ownerId === world.player.id
-          ? world.player.settings.bannerShape
-          : world.realms.find((r) => r.id === ownerId)?.bannerShape) === 'square';
-      const flag = square
-        ? [
-            { x, y },
-            { x: x + 14, y },
-            { x: x + 14, y: y + 10 },
-            { x, y: y + 10 },
-          ]
-        : [
-            { x, y },
-            { x: x + 15, y: y + 5 },
-            { x, y: y + 11 },
-          ];
-      g.lineStyle(4, 0x101814, 0.9 * alpha);
-      g.lineBetween(x, y - 1, x, y + 22);
-      g.lineStyle(1.5, 0xd6c9a5, alpha);
-      g.lineBetween(x, y - 1, x, y + 22);
-      g.fillStyle(factionColor(ownerId), alpha);
-      g.fillPoints(flag, true);
-      g.lineStyle(3, 0x101814, alpha);
-      g.strokePoints(flag, true);
-      g.lineStyle(0.8, 0xe0d7bd, 0.8 * alpha);
-      g.strokePoints(flag, true);
+      const design = realmBanner(world, ownerId);
+      const texture = `realm-banner:${ownerId}`;
+      const signature = JSON.stringify(design);
+      if (this.bannerDesigns.get(ownerId) !== signature || !this.textures.exists(texture)) {
+        if (this.textures.exists(texture)) this.textures.remove(texture);
+        this.textures.addCanvas(texture, bannerCanvas(design));
+        this.bannerDesigns.set(ownerId, signature);
+      }
+      target.lineStyle(4, 0x101814, 0.9 * alpha);
+      target.lineBetween(x, y - 1, x, y + 22);
+      target.lineStyle(1.5, 0xd6c9a5, alpha);
+      target.lineBetween(x, y - 1, x, y + 22);
+      const flag = this.add
+        .image(x, y, texture)
+        .setOrigin(0, 0)
+        .setDisplaySize(18, 12.6)
+        .setAlpha(alpha)
+        .setDepth(13000)
+        .setName(`realm-flag:${ownerId}`);
+      this.pieces.push(flag);
+      return flag;
     };
+    const coastalTiles = this.tileMap;
+    if (this.coastCache?.tiles !== coastalTiles)
+      this.coastCache = { tiles: coastalTiles, field: coastalField(world.seed, coastalTiles) };
+    const coast = this.coastCache.field;
     for (const t of visible) {
       const p = hexToPixel(t),
         unknown = t.visibility === 'UNKNOWN',
@@ -1010,16 +1061,21 @@ class WorldScene extends Phaser.Scene {
         appearance = unknown ? undefined : biomeAppearance(world.seed, t, t.biome),
         biome = appearance?.palette ?? BIOMES[t.biome ?? 'TEMPERATE'],
         base =
-          t.terrain && appearance ? blendedTerrainColor(t.terrain, appearance.blend) : 0x25312c,
+          coast.get(key(t))?.color ??
+          (t.terrain && appearance ? blendedTerrainColor(t.terrain, appearance.blend) : 0x25312c),
         n = hash(key(t));
       const tint = Phaser.Display.Color.IntegerToColor(base);
       if (explored) tint.darken(32);
       else if (unknown) tint.darken(12);
-      else tint.lighten(n * 5);
+      else if (!coast.has(key(t))) tint.lighten(n * 5);
       g.fillStyle(unknown ? 0x151f1b : 0x1b211b, 1);
       g.fillPoints(points({ x: p.x, y: p.y + 6 }), true);
       g.fillStyle(tint.color, 1);
       g.fillPoints(points(p, SIZE - 1), true);
+      if (!unknown)
+        drawCoastalBlend(g, t, p, coast, coastalTiles, world.seed, (ink) =>
+          explored ? Phaser.Display.Color.IntegerToColor(ink).darken(32).color : ink,
+        );
       if (!unknown && t.ownerId) {
         const own = t.ownerId === world.player.id;
         g.fillStyle(factionColor(t.ownerId), explored ? 0.07 : own ? 0.3 : 0.18);
@@ -1070,6 +1126,7 @@ class WorldScene extends Phaser.Scene {
         );
         d.fillEllipse(p.x + rx, p.y + ry, 2 + n * 4, 1.4);
       }
+      drawCoastalTerrain(d, t, p, coastalTiles);
       if (t.terrain === 'RIVER') {
         d.fillStyle(biome.water, explored ? 0.25 : 0.5);
         d.fillEllipse(p.x, p.y, 64, 36);
@@ -1079,6 +1136,8 @@ class WorldScene extends Phaser.Scene {
       }
       if (
         !t.building &&
+        !isSea(t.terrain) &&
+        t.terrain !== 'BEACH' &&
         t.terrain !== 'ALIEN' &&
         t.terrain !== 'RIVER' &&
         t.terrain !== 'SCORCHED'
@@ -1176,16 +1235,18 @@ class WorldScene extends Phaser.Scene {
             const maxLevel = !buildingUpgrade(b.kind, b.level);
             const x = p.x - 41.5,
               y = p.y + 10;
-            this.banners.fillStyle(0x111c18, 0.95 * opacity);
+            this.banners.fillStyle(secondaryColor(t.ownerId), 0.95 * opacity);
             this.banners.fillRoundedRect(x - 13.5, y - 8, 27, 16, 3);
-            this.banners.lineStyle(0.8, maxLevel ? 0xd6ba79 : ink, opacity);
+            this.banners.lineStyle(0.8, ink, opacity);
             this.banners.strokeRoundedRect(x - 13.5, y - 8, 27, 16, 3);
             const badge = this.add
               .text(x, y, `${level} ${maxLevel ? '✓' : '↑'}`, {
                 fontFamily: 'Arial, sans-serif',
                 fontSize: '10px',
                 fontStyle: 'bold',
-                color: maxLevel ? '#edcf8e' : '#e1e5d2',
+                color: maxLevel ? '#edcf8e' : '#ffffff',
+                stroke: '#101814',
+                strokeThickness: 2,
                 resolution: 2,
               })
               .setOrigin(0.5)
@@ -1349,6 +1410,10 @@ class WorldScene extends Phaser.Scene {
         halo.strokeEllipse(0, 0, 63, 30);
         halo.lineStyle(2.4 / Math.min(1, this.cameras.main.zoom), u.npc ? 0xffd47b : ink, 0.95);
         halo.strokeEllipse(0, 0, 63, 30);
+        if (!u.npc) {
+          halo.lineStyle(1.2 / Math.min(1, this.cameras.main.zoom), secondaryColor(u.ownerId), 1);
+          halo.strokeEllipse(0, 0, 57, 24);
+        }
         this.pieces.push(halo);
         parts.push({ object: halo, x: 0, y: 9, layer: 6600 });
         if (!world.player.settings.reducedMotion)
@@ -1379,6 +1444,10 @@ class WorldScene extends Phaser.Scene {
       marker.strokeEllipse(0, 30, markerWidth, markerHeight);
       marker.lineStyle(2, factionColor(u.ownerId), 1);
       marker.strokeEllipse(0, 30, markerWidth, markerHeight);
+      if (!u.npc) {
+        marker.lineStyle(1.2, secondaryColor(u.ownerId), 1);
+        marker.strokeEllipse(0, 30, markerWidth - 5, markerHeight - 4);
+      }
       this.pieces.push(marker);
       parts.push({ object: marker, x: 0, y: -20, layer: 6400 });
       const heroTexture = u.hero ? `${heroArtKey(u.hero.appearance)}:map` : undefined;
@@ -1501,8 +1570,11 @@ class WorldScene extends Phaser.Scene {
         .graphics({ x: p.x, y: p.y })
         .setDepth(depth(13000, p.y))
         .setName(`unit-banner:${u.id}`);
-      if (!u.npc) drawBanner(u.ownerId, 20, -26, 1, banner);
-      else {
+      if (!u.npc) {
+        const flag = drawBanner(u.ownerId, 20, -26, 1, banner);
+        flag.setPosition(p.x + 20, p.y - 26);
+        parts.push({ object: flag, x: 20, y: -26, layer: 13000 });
+      } else {
         const tag = this.add
           .text(p.x, p.y - 55, u.expedition ? '◆ EXPÉDITION' : '◆ PNJ', {
             fontSize: '11px',
@@ -1536,26 +1608,36 @@ class WorldScene extends Phaser.Scene {
     }
     for (const event of world.events) {
       const t = this.tileMap.get(key(event));
-      if (t?.visibility !== 'VISIBLE' || event.claimedBy) continue;
+      if (
+        t?.visibility !== 'VISIBLE' ||
+        !eventAvailable(event, Math.max(world.serverTimestamp, useGame.getState().now))
+      )
+        continue;
       const p = hexToPixel(event);
       if (event.kind !== 'MONOLITH') {
+        const maritime = ['SHIPWRECK', 'SEA_OBELISK', 'DRIFTING_CARGO', 'SUB_WRECK'].indexOf(
+          event.kind,
+        );
         const frame =
-          event.kind === 'PORTAL'
-            ? 23
-            : event.kind === 'METEOR'
-              ? 20
-              : event.kind === 'ROYAL_CARAVAN'
-                ? 22
-                : event.kind === 'COLOSSUS'
-                  ? 21
-                  : 19;
+          maritime >= 0
+            ? maritime
+            : event.kind === 'PORTAL'
+              ? 23
+              : event.kind === 'METEOR'
+                ? 20
+                : event.kind === 'ROYAL_CARAVAN'
+                  ? 22
+                  : event.kind === 'COLOSSUS'
+                    ? 21
+                    : 19;
         const sprite = this.add
-          .image(p.x, p.y - 14, 'miniatures', frame)
+          .image(p.x, p.y - 14, maritime >= 0 ? 'naval-events' : 'miniatures', frame)
           .setDisplaySize(
             event.kind === 'COLOSSUS' ? 135 : 84,
             event.kind === 'COLOSSUS' ? 135 : 84,
           )
-          .setDepth(depth(5000, p.y));
+          .setDepth(depth(5000, p.y))
+          .setName(`world-event-sprite:${event.id}`);
         this.pieces.push(sprite);
       }
       const label = this.add
@@ -1568,14 +1650,21 @@ class WorldScene extends Phaser.Scene {
           letterSpacing: 1,
         })
         .setOrigin(0.5)
-        .setDepth(depth(9500, p.y));
+        .setDepth(depth(9500, p.y))
+        .setName(`world-event-label:${event.id}`);
       this.pieces.push(label);
     }
     this.pieces.push(...drawStrategicOperations(this, world, false));
+    this.pieces.push(...drawExpeditionSites(this, world, () => this.renderMap()));
     for (const caravan of showUnits ? world.caravans : []) {
       const p = hexToPixel(caravan),
         sprite = this.add
-          .image(p.x, p.y - 10, 'miniatures', 22)
+          .image(
+            p.x,
+            p.y - 10,
+            caravan.maritime ? miniatureTexture(UNIT_FRAMES.TROOP_BRIG) : 'miniatures',
+            caravan.maritime ? miniatureFrame(UNIT_FRAMES.TROOP_BRIG) : 22,
+          )
           .setDisplaySize(58, 58)
           .setDepth(depth(7000, p.y));
       this.pieces.push(sprite);
@@ -1740,8 +1829,11 @@ class WorldScene extends Phaser.Scene {
       const destinations = new Map(
         disk(
           u,
-          UNITS[u.kind].move +
-            (UNIT_PROFILES[u.kind].mounted && this.view.player.faction === 'IRON' ? 1 : 0),
+          unitMovementBudget(
+            u,
+            movementBiome(this.view.seed, this.tileMap.get(key(u))),
+            this.view.player.faction,
+          ),
         ).map((p) => [key(p), p]),
       );
       for (const t of this.view.tiles)
@@ -1857,6 +1949,7 @@ class WorldScene extends Phaser.Scene {
   update(_time: number, delta: number) {
     if (!this.strategic && this.view && _time - this.lastAmbientAt > 50) {
       this.lastAmbientAt = _time;
+      this.radiation?.update(_time);
       const state = useGame.getState();
       drawAmbient(
         this.ambient,

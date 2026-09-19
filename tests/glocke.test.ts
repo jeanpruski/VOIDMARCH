@@ -1,3 +1,4 @@
+import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -58,6 +59,7 @@ function fixture(prerequisites = true) {
     addBuilding(s, r, { q: -1, r: 1 }, 'ATOMIC_FOUNDRY', now);
     addBuilding(s, r, { q: -1, r: 0 }, 'BLACK_OBSERVATORY', now);
   }
+  if (prerequisites) prepareDevelopment(s, r.id, 5, now);
   return { s, r, b };
 }
 describe('Projet Glocke', () => {
@@ -75,6 +77,7 @@ describe('Projet Glocke', () => {
       ['NUCLEAR_REACTOR', 'ATOMIC_FOUNDRY', 'BLACK_OBSERVATORY'] as const
     ).entries())
       addBuilding(s, r, { q: -2, r: i }, kind, now);
+    prepareDevelopment(s, r.id, 5, now);
     const built = execute(s, 'a', action, now);
     expect(built.result.accepted, built.result.reason).toBe(true);
     expect(

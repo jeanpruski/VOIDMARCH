@@ -76,11 +76,11 @@ describe('équilibrage global v0.7', () => {
     for (const producerLevel of [3, 5] as const) {
       const result = simulateDevelopment(producerLevel);
       expect(result.find((r) => r.action === 'Marché')!.minutes).toBeLessThan(30);
-      expect(result.find((r) => r.action === 'Arsenal niveau 3')!.minutes).toBeLessThan(300);
+      expect(result.find((r) => r.action === 'Arsenal niveau 3')!.minutes).toBeLessThan(500);
       const end = result.at(-1)!;
-      expect(end.action).toBe('Arsenal niveau 5');
-      expect(end.minutes).toBeGreaterThan(300);
-      expect(end.minutes).toBeLessThan(900);
+      expect(end.action).toBe('Complexe des cloches niveau 5');
+      expect(end.minutes).toBeGreaterThan(24 * 60);
+      expect(end.minutes).toBeLessThan(48 * 60);
       expect(end.cap).toBeGreaterThanOrEqual(10000);
       expect(result.every((r) => RESOURCES.every((k) => Number.isFinite(r.rates[k])))).toBe(true);
     }

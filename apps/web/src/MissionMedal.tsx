@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { Castle, Swords, Eye, Moon, Flame, Star } from 'lucide-react';
+import { emblemIcon } from './emblems';
 import type { MissionMedal as Medal } from '@voidmarch/shared';
 
 const ribbons = {
@@ -15,12 +15,11 @@ const metals = {
   silver: ['#f8f7df', '#bac9c4', '#657976', '#344746'],
   gold: ['#fff1bb', '#d7b665', '#947032', '#53421e'],
 };
-const icons = { tower: Castle, swords: Swords, eye: Eye, moon: Moon, flame: Flame, star: Star };
 export function MissionMedal({ medal, level = 1 }: { medal: Medal; level?: number }) {
   const id = useId().replace(/:/g, '');
   const metal = metals[medal.metal],
     ribbon = ribbons[medal.ribbon],
-    Icon = icons[medal.emblem];
+    Icon = emblemIcon(medal.emblem);
   const shape =
     medal.shape === 'round' ? (
       <circle cx="80" cy="100" r="46" />

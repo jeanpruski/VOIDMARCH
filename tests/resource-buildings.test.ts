@@ -1,3 +1,5 @@
+import { prepareDevelopment } from './fixtures/development';
+import { constructionDevelopmentStage } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -27,6 +29,7 @@ function fixture(kind: (typeof kinds)[number], prerequisites = true, terrain?: T
     (BUILDING_REQUIREMENTS[kind] ?? []).forEach((k, i) =>
       addBuilding(s, r, { q: r.capital.q - 1, r: r.capital.r + i }, k, now),
     );
+  if (prerequisites) prepareDevelopment(s, r.id, constructionDevelopmentStage(kind), now);
   const action = actionSchema.parse({
     type: 'BUILD',
     actorId: r.id,

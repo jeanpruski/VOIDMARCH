@@ -1,8 +1,10 @@
+import { NAVAL_BUILDING_TIERS } from './naval';
 import type { BuildingKind, Wallet } from './index';
 
 /** Multipliers relative to the v0.4 catalogue. Foundations remain accessible. */
 export const PRICE_MULTIPLIERS = [1, 1.5, 2.5, 4, 7, 10, 12, 15] as const;
 export const BUILDING_ECONOMIC_TIERS = {
+  ...NAVAL_BUILDING_TIERS,
   CAMP: 0,
   OUTPOST: 0,
   VILLAGE: 1,

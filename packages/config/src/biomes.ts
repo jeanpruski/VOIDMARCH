@@ -1,4 +1,4 @@
-/** A biome is a visual climate; terrain names, resources and rules remain universal. */
+/** Climate identity: scenery and native unit mobility. Terrain resources and costs remain universal. */
 export const BIOMES = {
   TEMPERATE: {
     name: 'Tempéré',

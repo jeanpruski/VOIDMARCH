@@ -1,5 +1,11 @@
-import { hasBuildingEvolutionArt, type BuildingKind } from '@voidmarch/config';
-import { isolateSprites } from './sprite-atlas';
+import {
+  hasBuildingEvolutionArt,
+  isNavalBuilding,
+  NAVAL_BUILDING_FRAMES,
+  NAVAL_SHEETS,
+  type BuildingKind,
+} from '@voidmarch/config';
+import { isolateSprites, normalizedAtlas } from './sprite-atlas';
 
 /** One compact four-frame strip per building, loaded only when its upgrades are visible. */
 const atlases = new Map<BuildingKind, Promise<HTMLCanvasElement>>();
@@ -12,6 +18,33 @@ export function buildingAtlas(kind: BuildingKind): Promise<HTMLCanvasElement> {
   let request = atlases.get(kind);
   if (!request) {
     request = (async () => {
+      if (isNavalBuilding(kind)) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+        const frame = NAVAL_BUILDING_FRAMES[kind] % 24;
+        await Promise.all(
+          NAVAL_SHEETS.slice(1).map(async (sheet, i) => {
+            const img = new Image();
+            img.src = `/assets/${sheet}.png`;
+            await img.decode();
+            const atlas = normalizedAtlas(sheet, img);
+            ctx.drawImage(
+              atlas,
+              (frame % 6) * 256,
+              Math.floor(frame / 6) * 256,
+              256,
+              256,
+              i * 256,
+              0,
+              256,
+              256,
+            );
+          }),
+        );
+        return canvas;
+      }
       const source = new Image();
       source.src = `/assets/ages/${kind.toLowerCase()}.png`;
       await source.decode();

@@ -13,8 +13,8 @@ describe('transitions naturelles entre biomes', () => {
     expect(transitions.length / samples.length).toBeLessThan(0.12);
     for (const { p, blend } of samples) {
       expect(blend.primary).toBe(biomeAt(seed, p));
-      expect(blend.width).toBeGreaterThanOrEqual(2);
-      expect(blend.width).toBeLessThanOrEqual(5);
+      expect(blend.width).toBeGreaterThanOrEqual(3);
+      expect(blend.width).toBeLessThanOrEqual(7);
       expect(blend.weights.reduce((sum, b) => sum + b.weight, 0)).toBeCloseTo(1, 12);
       expect(blend.weights.some((b) => b.biome === blend.scenery && b.weight > 0)).toBe(true);
       if (blend.weights.length === 1) {

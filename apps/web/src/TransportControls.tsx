@@ -37,7 +37,7 @@ function PassengerRow({ unit, carrier, world }: { unit: Unit; carrier: Unit; wor
           {unit.nickname ?? (unit.kind === 'HERO' ? world.player.name : UNITS[unit.kind].name)}
         </strong>
         <small>
-          {passengerSize(unit)} place(s) · {format(unit.hp)} PV
+          {passengerSize(unit, carrier.kind)} place(s) · {format(unit.hp)} PV
         </small>
       </div>
       {dock ? (
@@ -110,7 +110,8 @@ export function TransportControls({ unit }: { unit: Unit }) {
     const nearby = world.units.filter(
       (u) => u.ownerId === world.player.id && TRANSPORTS[u.kind] && distance(u, unit) === 1,
     );
-    if (!nearby.length || passengerSize(unit) === null) return null;
+    if (!nearby.length || nearby.every((carrier) => passengerSize(unit, carrier.kind) === null))
+      return null;
     return (
       <details className="transport-controls">
         <summary>Embarquer dans un transport voisin</summary>
@@ -141,8 +142,9 @@ export function TransportControls({ unit }: { unit: Unit }) {
         Transport · {cargoUsed(unit)}/{spec.capacity} places · {unit.cargo?.length ?? 0} passager(s)
       </summary>
       <p>
-        Fantassin : 1 place{spec.vehicles ? ' · cavalerie : 2 · moto / voiture légère : 4' : ''}.
-        Embarquement et débarquement : 1 PA par troupe. Déplacement : 1 PA pour tout le chargement.
+        Fantassin : 1 place{spec.vehicles ? ' · cavalerie : 2 · moto / voiture légère : 4' : ''}
+        {spec.heavy ? ' · blindé lourd / siège : 8' : ''}. Embarquement et débarquement : 1 PA par
+        troupe. Déplacement : 1 PA pour tout le chargement.
       </p>
       <p className="muted">
         Vision : 2 cases. Les passagers ne révèlent rien et ne peuvent pas agir à bord. Destruction

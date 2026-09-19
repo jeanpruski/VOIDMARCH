@@ -40,7 +40,7 @@ describe('guerre industrielle', () => {
       STONE: 0,
       GOLD: 490,
       WOOD: 500,
-      IRON: 490,
+      IRON: 445,
       FOOD: 500,
     });
     expect(result.state.units.TANK.hp).toBe(60);

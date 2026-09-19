@@ -2,6 +2,14 @@ import type { BuildingKind, UnitKind, UnitProfile } from './index';
 
 /** A building level is a local training milestone, not the unit's historical era. */
 export const RECRUITMENT_TRACKS: Partial<Record<BuildingKind, readonly (readonly UnitKind[])[]>> = {
+  SHIPYARD: [
+    ['WAR_GALLEY', 'SCOUT_LONGSHIP'],
+    ['CANNON_FRIGATE', 'ESCORT_CORVETTE'],
+    ['SONAR_DESTROYER'],
+    ['MISSILE_ESCORT'],
+    ['NUCLEAR_DREADNOUGHT'],
+  ],
+  SUBMARINE_BASE: [[], [], ['BLACK_SUBMARINE'], ['HUNTER_SUBMARINE'], ['ABYSSAL_SUBMARINE']],
   BARRACKS: [
     [],
     ['BERSERKER'],

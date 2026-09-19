@@ -1,0 +1,35 @@
+// Read-only audit: synthetic worlds only, no repository/database/network access.
+import { writeFileSync } from 'node:fs';
+import { BUILDINGS, UNITS, UNIT_PROFILES, UNIT_TIERS, RULES, RESOURCES, TURRETS, WALL_KINDS, buildingUpgrade, productionMultiplier, storageBonus, trainingBonusAt, recruitmentLevel, unitPopulation, unitUpkeep, type UnitKind, type BuildingKind } from '@voidmarch/config';
+import { createState, createRealm, unitStats, estimateDamage, attackCost, repairPlan, income, accrueEconomy, refreshArmyTraining, armyTraining, recruitmentRequirement, writeTile } from '@voidmarch/game-rules';
+import { addPlayer, addBuilding, execute } from '../../apps/server/src/engine';
+import { expeditionOffers } from '../../apps/server/src/expeditions';
+import { simulateDevelopment, simulateSkirmish } from '../../scripts/simulate-balance';
+import { simulateBot } from '../../scripts/simulate-bots';
+import type { Unit, Building } from '@voidmarch/shared';
+const now=1900000000000;
+const total=(x:object)=>Object.values(x).reduce((a,b)=>a+Number(b),0);
+const u=(kind:UnitKind,level=1):Unit=>({id:kind,ownerId:'a',kind,q:0,r:0,hp:unitStats({kind,trainingBonus:trainingBonusAt(UNIT_PROFILES[kind].recruitAt[0],level)}).hp,trainingBonus:trainingBonusAt(UNIT_PROFILES[kind].recruitAt[0],level),createdAt:now,updatedAt:now});
+const b=(kind:BuildingKind,level=1):Building=>({id:kind,ownerId:'b',kind,q:1,r:0,level,hp:BUILDINGS[kind].hp*level,population:0,createdAt:now,updatedAt:now});
+const report:any={rules:RULES,counts:{units:Object.keys(UNITS).length,buildings:Object.keys(BUILDINGS).length},economy:[],combat:[],siege:[],bots:[],expeditions:[],development:[]};
+for(const kind of ['WELL','HOUSE','FARM','LUMBER','QUARRY','MINE','MARKET','GOLD_MINE','STEAM_SAWMILL','MECHANIZED_QUARRY','INDUSTRIAL_MINE','OCCULT_SAWMILL','RUNIC_QUARRY','ABYSSAL_MINE','NUCLEAR_REACTOR','WAREHOUSE','RAIL_DEPOT','BARRACKS','ROCKET_SILO'] as BuildingKind[]){
+ const cost={...BUILDINGS[kind].cost};
+ const upgrades=[];
+ for(let level=1;level<5;level++){const q=buildingUpgrade(kind,level)!;for(const r of RESOURCES)cost[r]+=(q.cost[r]??0);const gain=total(BUILDINGS[kind].production)*(productionMultiplier(kind,level+1)-productionMultiplier(kind,level));upgrades.push({level:level+1,cost:q.cost,gain,materialROI:gain?total(q.cost)/gain:null});}
+ report.economy.push({kind,name:BUILDINGS[kind].name,cost:BUILDINGS[kind].cost,totalTo5:cost,production:BUILDINGS[kind].production,multiplier:productionMultiplier(kind,5),storage5:storageBonus(kind,5),upgrades});
+}
+for(const level of [3,5] as const){try{const rows=simulateDevelopment(level);report.development.push({level,rows});}catch(e){report.development.push({level,error:String(e)});}}
+console.log('Development measured');
+for(const [a,al,t,tl] of [['INFANTRY',1,'MILITIA',1],['MAUSOLEUM_TANK',5,'MILITIA',1],['RIFLEMAN',3,'MAUSOLEUM_TANK',5],['BAZOOKA',3,'MAUSOLEUM_TANK',5],['FLAK_CANNON',3,'GLOCKE_APOCALYPSE',5],['RIFLEMAN',3,'GLOCKE_APOCALYPSE',5],['FLAK_CANNON',3,'NUCLEAR_DREADNOUGHT',5],['BAZOOKA',3,'NUCLEAR_DREADNOUGHT',5],['NUCLEAR_DREADNOUGHT',5,'MAUSOLEUM_TANK',5],['BLACK_SUBMARINE',3,'SONAR_DESTROYER',3],['ABYSSAL_SUBMARINE',5,'NUCLEAR_DREADNOUGHT',5]] as [UnitKind,number,UnitKind,number][]){const attacker=u(a,al),target=u(t,tl),d=estimateDamage(attacker,target,{q:0,r:0,terrain:'PLAIN'});report.combat.push({a,al,t,tl,damage:d,hp:target.hp,shots:Math.ceil(target.hp/d.min),ap:Math.ceil(target.hp/d.min)*attackCost(attacker)});}
+for(const wall of WALL_KINDS){const target=b(wall);target.hp/=2;const repair=repairPlan(target);for(const kind of ['FIELD_GUN','NEUTRON_MORTAR','GLOCKE_APOCALYPSE'] as UnitKind[]){const attacker=u(kind,5),damage=estimateDamage(attacker,target,{q:1,r:0,terrain:'PLAIN'});report.siege.push({wall,hp:BUILDINGS[wall].hp,kind,damage,damagePerAP:damage.min/attackCost(attacker),repair});}}
+report.skirmishes=[];
+for(const [kind,count,target] of [['BAZOOKA',6,'MAUSOLEUM_TANK'],['RIFLEMAN',6,'MAUSOLEUM_TANK'],['FLAK_CANNON',7,'GLOCKE_APOCALYPSE']] as [UnitKind,number,UnitKind][]){const runs=Array.from({length:20},(_,seed)=>simulateSkirmish(kind,count,3,target,5,seed));report.skirmishes.push({kind,count,target,wins:runs.filter(x=>x.winner==='a').length,runs});}
+for(const level of [1,2,3,4,5]){const s=createState('adventures-test',now);addPlayer(s,'audit','Audit','MASK',now);const well=addBuilding(s,s.realms.audit,{q:s.realms.audit.capital.q+1,r:s.realms.audit.capital.r},'WELL',now,level);const offers=expeditionOffers(s,'audit',now);report.expeditions.push({wellLevel:level,offers:offers.map(o=>({level:o.level,mode:o.expedition?.mode,distance:o.expedition?.targetDistance,reward:o.reward,abandon:o.abandonmentCost}))});}
+console.log('Combat and expeditions measured');
+report.catalog=Object.keys(UNITS).map(k=>{const kind=k as UnitKind;const x=u(kind,5);const maximum=unitStats({...x,rareBonus:30,victories:25,provisions:8,supportBonus:{hp:15,attack:15,defense:15,move:1,vision:1,terrain:5}});return {kind,name:UNITS[kind].name,tier:UNIT_TIERS[kind],base:UNITS[kind],trained:unitStats(x),maximum,upkeep:unitUpkeep(kind),population:unitPopulation(kind),profile:UNIT_PROFILES[kind]};});
+report.recruitment=Object.keys(BUILDINGS).flatMap(id=>{const kind=id as BuildingKind;const units=(Object.keys(UNITS) as UnitKind[]).filter(k=>UNIT_PROFILES[k].recruitAt.includes(kind));return units.length?[{kind,levels:[1,2,3,4,5].map(level=>({level,unlocks:units.filter(k=>recruitmentLevel(k,kind)===level)}))}]:[];});
+report.trainingPersistence=(()=>{const troop=u('INFANTRY');const before=unitStats(troop);refreshArmyTraining([troop],[{...b('BARRACKS',5),ownerId:'a'}],now);const trained=unitStats(troop);refreshArmyTraining([troop],[],now+1);return {before,trained,afterDemolition:unitStats(troop)};})();
+report.starvation=(()=>{const s=createState('starvation',now);s.realms.a=createRealm('a','Audit','MASK',{q:0,r:0},now);const unit=u('MAUSOLEUM_TANK',5);s.units[unit.id]=unit;s.realms.a.wallet={GOLD:0,WOOD:0,STONE:0,IRON:0,FOOD:0};s.realms.a.lastSeen=now+3600000;const rates=income(s,'a');accrueEconomy(s,s.realms.a,now+3600000);return {rates,wallet:s.realms.a.wallet,hp:s.units[unit.id].hp,stats:unitStats(s.units[unit.id])};})();
+for(const seed of ['bot-a','bot-b','bot-c']){const result=simulateBot(seed,'TURTLE',12);report.bots.push({seed,counts:result.counts,failures:result.failures,history:result.history,buildings:Object.values(result.state.buildings).map(x=>({kind:x.kind,level:x.level})),wallet:result.state.realms.bot.wallet});console.log('Bot measured',seed);}
+writeFileSync('output/balance-audit-2026-09-19/results.json',JSON.stringify(report,null,2));
+console.log(JSON.stringify({counts:report.counts,development:report.development.map((d:any)=>({level:d.level,error:d.error,milestones:d.rows?.filter((r:any)=>r.action.includes('Arsenal')||r.action==='Marché')})),expeditions:report.expeditions,skirmishes:report.skirmishes.map(({runs,...x}:any)=>x),bots:report.bots.map((x:any)=>({seed:x.seed,counts:x.counts,failures:x.failures.length,last:x.history.at(-1)}))},null,2));

@@ -1,8 +1,12 @@
+import { submarineVisible } from '@voidmarch/game-rules';
+import { botDevelopment, botRecruitmentSite, type BotIntent } from './bot-development';
+import { allRealmUnits, attackCost, income, recruitmentRequirement } from '@voidmarch/game-rules';
+import { ACTION_COST, UNIT_TIERS, RESOURCES } from '@voidmarch/config';
+import { repairPlan } from '@voidmarch/game-rules';
+import { unitMovementBudget } from '@voidmarch/game-rules';
 import { unitStats } from '@voidmarch/game-rules';
 import { randomInt, randomUUID } from 'node:crypto';
 import {
-  BUILDINGS,
-  BUILDING_REQUIREMENTS,
   unitPopulation,
   UNIT_PROFILES,
   RULES,
@@ -19,6 +23,7 @@ import {
   canAfford,
   createRealm,
   distance,
+  disk,
   hash,
   hostileReason,
   key,
@@ -63,7 +68,7 @@ const homes: Hex[] = [
   { q: 16, r: 9 },
   { q: 0, r: -22 },
 ];
-type Intent = { command: Omit<Action, 'actionId' | 'clientTimestamp'>; score: number };
+type Intent = BotIntent;
 export class BotDirector {
   constructor(private options: EngineOptions = defaultOptions) {}
   reconcile(s: GameState, now: number, humans: number) {
@@ -132,9 +137,10 @@ export class BotDirector {
       if (bot.nextBotAt > now) continue;
       refreshAP(bot, now, this.options.apInterval);
       const count = randomInt(3, 11);
+      const rejected = new Set<string>();
       for (let i = 0; i < count; i++) {
         bot = s.realms[id];
-        const choice = this.intent(s, bot, now);
+        const choice = this.intent(s, bot, now, rejected);
         if (!choice) break;
         const result = execute(
           s,
@@ -144,11 +150,12 @@ export class BotDirector {
           this.options,
         );
         if (result.result.accepted) Object.assign(s, result.state);
+        else rejected.add(JSON.stringify(choice.command));
       }
       s.realms[id].nextBotAt = now + this.options.botInterval * (0.85 + hash(`${id}:${now}`) * 0.3);
     }
   }
-  intent(s: GameState, r: Realm, now: number): Intent | undefined {
+  intent(s: GameState, r: Realm, now: number, rejected = new Set<string>()): Intent | undefined {
     const intents: Intent[] = [],
       seen = vision(s, r),
       units = realmUnits(s, r.id),
@@ -158,6 +165,9 @@ export class BotDirector {
         command,
         score: score + hash(`${r.id}:${JSON.stringify(command)}:${Math.floor(now / 600000)}`) * 8,
       });
+    const territorySize = Object.values(s.tiles).filter((t) => t.ownerId === r.id).length;
+    const development = botDevelopment(s, r, seen);
+    for (const intent of development.intents) add(intent.command, intent.score);
     for (const p of Object.values(s.proposals).filter(
       (p) => p.to === r.id && p.status === 'PENDING' && p.expiresAt > now,
     )) {
@@ -184,6 +194,10 @@ export class BotDirector {
     for (const u of units) {
       const tile = tileAt(s, u);
       if (
+        !UNIT_PROFILES[u.kind].builder &&
+        buildings.some((b) => distance(b, u) <= RULES.constructionRadius) &&
+        Object.values(s.tiles).filter((t) => t.ownerId === r.id).length <
+          buildings.length * 4 + 8 &&
         UNITS[u.kind].capture &&
         !wallBlocks(s.buildings[tile.buildingId ?? ''], r.id) &&
         tile.ownerId !== r.id &&
@@ -193,26 +207,28 @@ export class BotDirector {
       )
         add(
           { type: 'CAPTURE', actorId: u.id, payload: {} },
-          80 + (r.personality === 'EXPANSIONIST' ? 25 : 0),
+          25 + (r.personality === 'EXPANSIONIST' ? 10 : 0),
         );
       if (
         u.hp < unitStats(u).hp * 0.5 &&
-        canAfford(
-          r.wallet,
-          UNIT_PROFILES[u.kind].mechanical ? { GOLD: 10, IRON: 10 } : { GOLD: 10, FOOD: 10 },
-        )
+        !repairPlan(u, now).reason &&
+        canAfford(r.wallet, repairPlan(u, now).cost)
       )
         add({ type: 'REPAIR', actorId: u.id, payload: {} }, 85);
       for (const enemy of [...Object.values(s.units), ...Object.values(s.buildings)]) {
         if (
+          unitStats(u).attack <= 0 ||
+          UNIT_PROFILES[u.kind].builder ||
+          r.ap < attackCost(u) ||
           enemy.ownerId === r.id ||
           !s.realms[enemy.ownerId] ||
           !seen.has(key(enemy)) ||
+          (!('population' in enemy) && !submarineVisible(s, r.id, enemy, now)) ||
           distance(u, enemy) > UNITS[u.kind].range ||
           hostileReason(s, r, s.realms[enemy.ownerId], now, this.options.offlineProtection)
         )
           continue;
-        const resolved = resolveAttack(u, enemy, Object.values(s.buildings));
+        const resolved = resolveAttack(u, enemy, Object.values(s.buildings), (p) => tileAt(s, p));
         if (
           resolved.reason ||
           !s.realms[resolved.target.ownerId] ||
@@ -233,86 +249,99 @@ export class BotDirector {
       for (const e of Object.values(s.events))
         if (!e.claimedBy && e.endsAt > now && seen.has(key(e)) && distance(u, e) <= 1)
           add({ type: 'INTERACT', actorId: u.id, payload: { eventId: e.id } }, 100);
+      if (UNIT_PROFILES[u.kind].builder) continue;
       for (const p of neighbors(u)) {
         const t = tileAt(s, p);
         if (
+          (distance(p, r.capital) > 18 && distance(p, r.capital) >= distance(u, r.capital)) ||
           !seen.has(key(p)) ||
           wallBlocks(s.buildings[t.buildingId ?? ''], r.id, u.kind) ||
-          movementCost(t, u.kind) > UNITS[u.kind].move ||
+          movementCost(t, u.kind) > unitMovementBudget(u, tileAt(s, u).biome, r.faction) ||
           Object.values(s.units).some((x) => distance(x, p) === 0)
         )
           continue;
+        const reveals = disk(p, unitStats(u).vision).some((h) => !r.explored[key(h)]);
+        const claimable =
+          !!UNITS[u.kind].capture &&
+          !t.ownerId &&
+          buildings.some((b) => distance(b, p) <= RULES.constructionRadius);
+        const approaching = Object.values(s.units).some(
+          (enemy) =>
+            enemy.ownerId !== r.id &&
+            seen.has(key(enemy)) &&
+            distance(p, enemy) < distance(u, enemy) &&
+            distance(enemy, r.capital) <= 18,
+        );
+        const returning =
+          distance(u, r.capital) > 18 && distance(p, r.capital) < distance(u, r.capital);
+        if (!reveals && !claimable && !approaching && !returning) continue;
         add(
           { type: 'MOVE', actorId: u.id, payload: { path: [p] } },
-          t.ownerId === r.id
-            ? 10
-            : 30 + (UNITS[u.kind].capture ? 10 : 0) + Math.min(10, distance(p, r.capital)),
+          t.ownerId === r.id ? 10 : 20 + (UNITS[u.kind].capture ? 5 : 0),
         );
       }
     }
+    const army = allRealmUnits(s, r.id).filter(
+      (u) => !UNIT_PROFILES[u.kind].builder && u.kind !== 'HERO',
+    );
+    const sparePopulation =
+      buildings.reduce((n, b) => n + b.population, 0) - armyPopulation(allRealmUnits(s, r.id));
     if (
-      units.length < Math.min(10, buildings.reduce((n, b) => n + b.population, 0) / 5) &&
-      canAfford(r.wallet, UNITS.INFANTRY.cost)
+      army.length < Math.min(30, Math.max(6, Math.floor(buildings.length * 0.75))) &&
+      sparePopulation > 15
     ) {
-      const choices: UnitKind[] = [
-        'TANK',
-        'BAZOOKA',
-        'MOTORCYCLE',
-        'RIFLEMAN',
-        r.personality === 'SCAVENGER' ? 'SCOUT' : 'INFANTRY',
-      ];
-      const kind = choices.find(
+      const rates = income(s, r.id);
+      const unlocked = (Object.keys(UNITS) as UnitKind[]).filter(
         (kind) =>
-          canAfford(r.wallet, UNITS[kind].cost) &&
-          armyPopulation(units) + unitPopulation(kind) <=
-            Math.max(
-              15,
-              buildings.reduce((n, b) => n + b.population, 0),
-            ) &&
-          UNIT_PROFILES[kind].requires.every((req) => buildings.some((b) => b.kind === req)) &&
-          buildings.some((b) => UNIT_PROFILES[kind].recruitAt.includes(b.kind)) &&
-          (!units.some((u) => u.kind === kind) || kind === choices[choices.length - 1]),
+          !UNIT_PROFILES[kind].builder &&
+          !UNIT_PROFILES[kind].hero &&
+          !UNIT_PROFILES[kind].transport &&
+          buildings.some((b) => !recruitmentRequirement(kind, b, buildings)),
       );
-      const b = kind && buildings.find((b) => UNIT_PROFILES[kind].recruitAt.includes(b.kind));
-      if (b)
-        add(
-          {
-            type: 'RECRUIT',
-            actorId: b.id,
-            payload: { kind: kind! },
-          },
-          units.length < 3 ? 100 : 25,
-        );
-    }
-    for (const t of Object.values(s.tiles).filter((t) => t.ownerId === r.id && !t.buildingId))
-      for (const kind of [
-        'FARM',
-        'LUMBER',
-        'MINE',
-        'QUARRY',
-        'MARKET',
-        'TOWER',
-        'BARRACKS',
-        'WORKSHOP',
-        'FORGE',
-        'ARSENAL',
-        'GARAGE',
-        'REFINERY',
-        'MUNITIONS',
-        'TANK_FACTORY',
-        'BUNKER',
-      ] as const)
-        if (
-          BUILDINGS[kind].terrains.includes(t.terrain) &&
-          canAfford(r.wallet, BUILDINGS[kind].cost) &&
-          !buildings.some((b) => b.kind === kind) &&
-          (BUILDING_REQUIREMENTS[kind] ?? []).every((req) => buildings.some((b) => b.kind === req))
+      const latestTier = Math.max(1, ...unlocked.map((kind) => UNIT_TIERS[kind]));
+      const choices = unlocked
+        .filter(
+          (kind) =>
+            !UNIT_PROFILES[kind].builder &&
+            !UNIT_PROFILES[kind].hero &&
+            !UNIT_PROFILES[kind].transport &&
+            UNITS[kind].attack > 0 &&
+            UNIT_TIERS[kind] >= Math.max(1, latestTier - 1) &&
+            (army.length < 3 || rates.FOOD > 0) &&
+            (army.length < 3 ||
+              RESOURCES.every(
+                (resource) =>
+                  r.wallet[resource] - UNITS[kind].cost[resource] >=
+                  (development.reserve[resource] ?? 0) * 0.5,
+              )),
         )
+        .sort(
+          (a, b) =>
+            UNIT_TIERS[b] * 10 -
+              army.filter((u) => u.kind === b).length * 15 -
+              (UNIT_TIERS[a] * 10 - army.filter((u) => u.kind === a).length * 15) ||
+            a.localeCompare(b),
+        );
+      for (const kind of choices) {
+        if (sparePopulation - unitPopulation(kind) < 12) continue;
+        const source = botRecruitmentSite(s, r, kind, seen);
+        if (source) {
           add(
-            { type: 'BUILD', actorId: r.id, payload: { q: t.q, r: t.r, kind } },
-            r.personality === 'TURTLE' ? 70 : 45,
+            { type: 'RECRUIT', actorId: source.id, payload: { kind } },
+            army.length < 3 ? 125 : 116,
           );
+          break;
+        }
+      }
+    }
     intents.sort((a, b) => b.score - a.score);
-    return intents[0];
+    return intents.find(
+      (intent) =>
+        !rejected.has(JSON.stringify(intent.command)) &&
+        r.ap >=
+          (intent.command.type === 'ATTACK'
+            ? attackCost(s.units[intent.command.actorId])
+            : ACTION_COST[intent.command.type]),
+    );
   }
 }

@@ -1,3 +1,29 @@
+import {
+  developmentReason,
+  constructionDevelopmentStage,
+  upgradeDevelopmentStage,
+} from '@voidmarch/config';
+import { expeditionDistance } from '@voidmarch/game-rules';
+import { isSea } from '@voidmarch/config';
+import { expeditionInteraction } from './expeditions';
+import {
+  navalConstructionReason,
+  recruitmentTileAllowed,
+  fishingYield,
+  submarineVisible,
+} from '@voidmarch/game-rules';
+import {
+  foodBalance,
+  canCarrySupplies,
+  supplyCharges,
+  supplyCost,
+  supplySource,
+  consumeSupplies,
+  repairPlan,
+  CAMPAIGN_SUPPLIES,
+} from '@voidmarch/game-rules';
+import { unitMovementBudget } from '@voidmarch/game-rules';
+import { armyTraining, refreshArmyTraining, refreshWorldTraining } from '@voidmarch/game-rules';
 import { allRealmUnits } from '@voidmarch/game-rules';
 import { transportAction, destroyUnit, syncCargo } from './transports';
 import { operationAction, tickAllianceOperations } from './alliance-operations';
@@ -30,7 +56,6 @@ import {
   buildingConstructionCost,
   roadConstructionCost,
   buildingUpgrade,
-  trainingBonusAt,
   unitPopulation,
   RESOURCE_NAMES,
   RECON_UNITS,
@@ -151,7 +176,9 @@ export function log(
 export function spawnPosition(s: GameState, id: string): Hex {
   if (
     !Object.values(s.realms).some((r) => !r.defeatedAt) &&
-    disk({ q: 0, r: 0 }, 4).every((p) => tileAt(s, p).terrain !== 'SCORCHED')
+    disk({ q: 0, r: 0 }, 8).every(
+      (p) => !isSea(tileAt(s, p).terrain) && tileAt(s, p).terrain !== 'SCORCHED',
+    )
   )
     return { q: 0, r: 0 };
   const candidates: { p: Hex; score: number }[] = [];
@@ -165,7 +192,7 @@ export function spawnPosition(s: GameState, id: string): Hex {
     if (
       near ||
       disk(p, 3).some((t) => tileAt(s, t).ownerId) ||
-      disk(p, 4).some((t) => tileAt(s, t).terrain === 'SCORCHED')
+      disk(p, 8).some((t) => isSea(tileAt(s, t).terrain) || tileAt(s, t).terrain === 'SCORCHED')
     )
       continue;
     const terrain = disk(p, 4),
@@ -428,7 +455,8 @@ export function refreshEnclosures(s: GameState, now: number) {
     for (const p of cells.values()) {
       const t = tileAt(s, p),
         b = s.buildings[t.buildingId ?? ''];
-      if ((t.ownerId && t.ownerId !== owner) || (b && b.ownerId !== owner)) continue;
+      if (isSea(t.terrain) || (t.ownerId && t.ownerId !== owner) || (b && b.ownerId !== owner))
+        continue;
       if (!t.ownerId) change(owner).captured++;
       if (t.ownerId !== owner || t.enclosureOwnerId !== owner)
         writeTile(s, p, { ownerId: owner, enclosureOwnerId: owner, capture: undefined });
@@ -462,6 +490,7 @@ export function applyAction(
 ): ActionResult {
   const r = s.realms[id];
   requireRule(r, 'Royaume introuvable.');
+  refreshWorldTraining(s, now);
   refreshAP(r, now, options.apInterval);
   accrueEconomy(s, r, now, options.grace);
   requireRule(
@@ -545,7 +574,7 @@ export function applyAction(
     }
     case 'MOVE': {
       const u = ownedUnit(s, r, a.actorId),
-        max = UNITS[u.kind].move + (r.faction === 'IRON' && UNIT_PROFILES[u.kind].mounted ? 1 : 0);
+        max = unitMovementBudget(u, tileAt(s, u).biome, r.faction);
       let cursor: Hex = u,
         cost = 0;
       const seen = vision(s, r);
@@ -585,14 +614,18 @@ export function applyAction(
     case 'GATHER': {
       const u = ownedUnit(s, r, a.actorId),
         resource = a.payload.resource;
-      requireRule(u.kind === 'PEASANT', 'Seuls les paysans peuvent récolter.');
-      const accessible = canGather(tileAt(s, u), id, resource);
+      const fish = resource === 'FOOD' ? fishingYield(u, tileAt(s, u)) : 0;
+      requireRule(
+        u.kind === 'PEASANT' || fish > 0,
+        'Sélectionnez un paysan ou un bateau de pêche en mer.',
+      );
+      const accessible = fish > 0 || canGather(tileAt(s, u), id, resource);
       requireRule(
         accessible,
         'Placez le paysan sur un terrain adapté à cette ressource, neutre ou à vous.',
       );
       const received = Math.min(
-        GATHER_YIELD[resource],
+        fish || GATHER_YIELD[resource],
         Math.max(0, storage(s, id) - r.wallet[resource]),
       );
       requireRule(received > 0, 'Votre stockage est plein pour cette ressource.');
@@ -607,9 +640,16 @@ export function applyAction(
         intended = targetAt(s, a.payload.targetId);
       const stats = attackStats(u);
       requireRule(stats.attack > 0, 'Cette unité ou ce bâtiment ne peut pas attaquer.');
-      requireRule(intended && vision(s, r).has(key(intended)), 'Cible indisponible.');
+      requireRule(
+        intended &&
+          vision(s, r).has(key(intended)) &&
+          ('population' in intended || submarineVisible(s, id, intended, now)),
+        'Cible indisponible.',
+      );
       requireRule(distance(u, intended) <= stats.range, 'La cible est hors de portée.');
-      const resolution = resolveAttack(u, intended, Object.values(s.buildings));
+      const resolution = resolveAttack(u, intended, Object.values(s.buildings), (p) =>
+        tileAt(s, p),
+      );
       requireRule(!resolution.reason, resolution.reason);
       const target = resolution.target;
       const npc = 'npc' in target && target.npc ? (target as Unit) : undefined;
@@ -619,6 +659,7 @@ export function applyAction(
       if (target.ownerId !== intended.ownerId) hostile(s, r, target.ownerId, now, options);
       const mission = missionForOwner(s, target.ownerId);
       spendAction(attackCost(u));
+      if (!('population' in u) && UNIT_PROFILES[u.kind].submarine) u.revealedUntil = now + 60000;
       const bounds = estimateDamage(
           u,
           target,
@@ -630,7 +671,9 @@ export function applyAction(
       if (npc)
         npc.npc!.contributions[id] =
           (npc.npc!.contributions[id] ?? 0) + Math.min(target.hp, damage);
+      if (!('population' in u)) consumeSupplies(u, now);
       target.hp = Math.round((target.hp - damage) * 100) / 100;
+      target.lastDamagedAt = now;
       target.updatedAt = now;
       message = `${resolution.intercepted ? 'Rempart sur la trajectoire : ' : ''}${stats.name} inflige ${formatNumber(damage)} dégâts${resolution.intercepted ? ' au rempart' : ''}.`;
       log(
@@ -699,6 +742,7 @@ export function applyAction(
           retaliation.min +
           Math.floor(hash(`${a.actionId}:riposte`) * (retaliation.max - retaliation.min + 1));
         recipient.hp = Math.round((recipient.hp - dealt) * 100) / 100;
+        recipient.lastDamagedAt = now;
         recipient.updatedAt = now;
         message += ` Riposte : ${formatNumber(dealt)} dégâts${reply.intercepted ? ' au rempart qui intercepte le tir' : ''}${recipient.hp <= 0 ? ', cible détruite' : ''}.`;
         log(
@@ -741,6 +785,7 @@ export function applyAction(
     case 'CAPTURE': {
       const u = ownedUnit(s, r, a.actorId),
         t = tileAt(s, u);
+      requireRule(!isSea(t.terrain), 'La mer ne peut pas être revendiquée.');
       requireRule(UNITS[u.kind].capture > 0, 'Cette unité ne peut pas revendiquer de territoire.');
       requireRule(
         !t.ownerId || !missionForOwner(s, t.ownerId),
@@ -789,9 +834,17 @@ export function applyAction(
       const p = a.payload,
         t = tileAt(s, p);
       requireRule(
+        !Object.values(s.missions ?? {}).some(
+          (b) => b.active?.expedition && expeditionDistance(b.active, p) === 0,
+        ),
+        'Ce lieu est réservé à une expédition en cours.',
+      );
+      requireRule(
         isBuildable(p.kind),
         'Construisez une palissade, puis améliorez-la : pierre, acier, béton blindé et enceinte atomique.',
       );
+      const coastReason = navalConstructionReason(p.kind, p, (x) => tileAt(s, x));
+      requireRule(!coastReason, coastReason);
       const builder = s.units[a.actorId];
       const nearbyBuilder =
         builder?.ownerId === id && UNIT_PROFILES[builder.kind].builder && distance(builder, p) <= 1;
@@ -811,6 +864,11 @@ export function applyAction(
         (kind) => !realmBuildings(s, id).some((b) => b.kind === kind),
       );
       requireRule(!missing, missing ? `${BUILDINGS[missing].name} nécessaire.` : '');
+      const developmentError = developmentReason(
+        realmBuildings(s, id),
+        constructionDevelopmentStage(p.kind),
+      );
+      requireRule(!developmentError, developmentError);
       requireRule(!t.buildingId, 'Un bâtiment occupe déjà cet hexagone.');
       requireRule(
         !Object.values(s.strategy?.sites ?? {}).some((site) => key(site) === key(p)),
@@ -836,6 +894,12 @@ export function applyAction(
       break;
     }
     case 'TERRAFORM': {
+      requireRule(
+        !Object.values(s.missions ?? {}).some(
+          (b) => b.active?.expedition && expeditionDistance(b.active, a.payload) === 0,
+        ),
+        'Ce lieu est réservé à une expédition en cours.',
+      );
       const u = ownedUnit(s, r, a.actorId);
       requireRule(vision(s, r).has(key(a.payload)), 'Le terrain doit être visible.');
       const t = tileAt(s, a.payload);
@@ -850,6 +914,12 @@ export function applyAction(
       break;
     }
     case 'ROAD': {
+      requireRule(
+        !Object.values(s.missions ?? {}).some(
+          (b) => b.active?.expedition && expeditionDistance(b.active, a.payload) === 0,
+        ),
+        'Ce lieu est réservé à une expédition en cours.',
+      );
       const t = tileAt(s, a.payload);
       const reason = roadSiteReason(t, id, Object.values(s.units));
       requireRule(!reason, reason);
@@ -874,7 +944,6 @@ export function applyAction(
     }
     case 'RECRUIT': {
       const b = ownedBuilding(s, r, a.actorId);
-      const profile = UNIT_PROFILES[a.payload.kind];
       const recruitmentError = recruitmentRequirement(a.payload.kind, b, realmBuildings(s, id));
       requireRule(!recruitmentError, recruitmentError);
       const freePeasant =
@@ -888,7 +957,7 @@ export function applyAction(
       );
       const p = [b, ...neighbors(b)].find(
         (p) =>
-          tileAt(s, p).ownerId === id &&
+          recruitmentTileAllowed(a.payload.kind, tileAt(s, p), id) &&
           !wallBlocks(s.buildings[tileAt(s, p).buildingId ?? ''], id) &&
           movementCost(tileAt(s, p), a.payload.kind) <= UNITS[a.payload.kind].move &&
           !Object.values(s.units).some((u) => distance(u, p) === 0),
@@ -898,27 +967,58 @@ export function applyAction(
       if (!freePeasant) pay(r, UNITS[a.payload.kind].cost);
       const uid = randomUUID();
       const rareBonus = (options.recruitBonus ?? rollRareBonus)();
-      const trainingBonus = profile.builder
-        ? 0
-        : Math.max(
-            0,
-            ...realmBuildings(s, id)
-              .filter((x) => profile.recruitAt.includes(x.kind))
-              .map((x) => trainingBonusAt(x.kind, x.level)),
-          );
+      const { trainingBonus, supportBonus } = armyTraining(a.payload.kind, realmBuildings(s, id));
       s.units[uid] = {
         ...(rareBonus ? { rareBonus } : {}),
         ...(trainingBonus ? { trainingBonus } : {}),
+        ...(Object.values(supportBonus).some(Boolean) ? { supportBonus } : {}),
         q: p.q,
         r: p.r,
         id: uid,
         ownerId: id,
         kind: a.payload.kind,
-        hp: unitStats({ kind: a.payload.kind, rareBonus, trainingBonus }).hp,
+        hp: unitStats({ kind: a.payload.kind, rareBonus, trainingBonus, supportBonus }).hp,
         createdAt: now,
         updatedAt: now,
       };
       message = `${UNITS[a.payload.kind].name}${rareBonus ? ` rare (+${rareBonus} %)` : ''} a rejoint votre armée.`;
+      break;
+    }
+    case 'RESUPPLY': {
+      requireRule(a.actorId === id, 'Cet ordre doit appartenir à votre royaume.');
+      const ids = a.payload.unitIds;
+      requireRule(
+        new Set(ids).size === ids.length,
+        'Une troupe ne peut être ravitaillée deux fois dans le même ordre.',
+      );
+      const units = ids.map((uid) => ownedUnit(s, r, uid));
+      const allies =
+        Object.values(s.strategy?.alliances ?? {}).find((alliance) => alliance.members.includes(id))
+          ?.members ?? [];
+      let food = 0;
+      for (const u of units) {
+        requireRule(
+          canCarrySupplies(u),
+          'Seules les troupes de combat peuvent emporter des provisions.',
+        );
+        requireRule(
+          supplyCharges(u) < CAMPAIGN_SUPPLIES.capacity,
+          'Cette troupe possède déjà toutes ses provisions.',
+        );
+        requireRule(
+          supplySource(u, Object.values(s.buildings), Object.values(s.units), allies),
+          'Rapprochez la troupe à 2 cases d’une ville ou d’un dépôt, ou à 1 case d’un transport ami.',
+        );
+        food += supplyCost(u).FOOD ?? 0;
+      }
+      spendAction(units.length);
+      pay(r, { FOOD: food });
+      for (const u of units) {
+        u.provisions = CAMPAIGN_SUPPLIES.capacity;
+        u.updatedAt = now;
+      }
+      message = `${units.length} troupe(s) ravitaillée(s) : 8 provisions, +10 % d’attaque et soins renforcés · ${food} vivres dépensés.`;
+      log(s, message, 'ECONOMY', now, [id], units[0]);
       break;
     }
     case 'REPAIR': {
@@ -927,20 +1027,16 @@ export function applyAction(
         target?.ownerId === id,
         'Sélectionnez une unité ou un bâtiment de votre royaume.',
       );
-      const max =
-        'population' in target ? BUILDINGS[target.kind].hp * target.level : unitStats(target).hp;
-      requireRule(target.hp < max, 'La santé est déjà au maximum.');
+      const plan = repairPlan(target, now);
+      requireRule(!plan.reason, plan.reason);
+      requireRule(plan.restored > 0, 'La santé est déjà au maximum.');
       spendAction();
-      pay(r, {
-        STONE: 0,
-        GOLD: 10,
-        WOOD: 'population' in target ? 15 : 0,
-        FOOD: 'population' in target || UNIT_PROFILES[target.kind].mechanical ? 0 : 10,
-        IRON: !('population' in target) && UNIT_PROFILES[target.kind].mechanical ? 10 : 0,
-      });
-      target.hp = Math.round(Math.min(max, target.hp + Math.ceil(max * 0.5)) * 100) / 100;
+      pay(r, plan.cost);
+      target.hp = Math.round((target.hp + plan.restored) * 100) / 100;
+      target.lastRepairedAt = now;
+      if (!('population' in target) && plan.supplied) consumeSupplies(target, now);
       target.updatedAt = now;
-      message = 'Réparations et soins terminés.';
+      message = `${'population' in target || UNIT_PROFILES[target.kind].mechanical ? 'Réparation' : 'Soins'} : +${formatNumber(plan.restored)} PV${plan.supplied ? ' · 1 provision utilisée' : ''}.`;
       break;
     }
     case 'DEMOLISH': {
@@ -1005,6 +1101,15 @@ export function applyAction(
       const b = ownedBuilding(s, r, a.actorId);
       const upgrade = buildingUpgrade(b.kind, b.level);
       requireRule(upgrade, 'Ce bâtiment ne peut plus évoluer.');
+      const developmentError = developmentReason(
+        realmBuildings(s, id),
+        upgradeDevelopmentStage(b.kind, upgrade.level),
+      );
+      requireRule(!developmentError, developmentError);
+      requireRule(
+        !b.lastDamagedAt || now - b.lastDamagedAt >= 90000,
+        'Attendez 90 secondes sans dégâts avant d’améliorer ce bâtiment.',
+      );
       b.constructionCost ??= buildingConstructionCost(b.kind, r.faction);
       requireRule(
         b.population >= upgrade.population,
@@ -1045,23 +1150,9 @@ export function applyAction(
       b.name =
         b.kind === 'VILLAGE' ? `${CITY_LEVELS[b.level]} de ${r.name}` : BUILDINGS[b.kind].name;
       b.updatedAt = now;
-      const training = trainingBonusAt(b.kind, b.level);
-      let trained = 0;
-      for (const u of allRealmUnits(s, id)) {
-        if (
-          UNIT_PROFILES[u.kind].builder ||
-          !UNIT_PROFILES[u.kind].recruitAt.includes(b.kind) ||
-          (u.trainingBonus ?? 0) >= training
-        )
-          continue;
-        const healthRatio = u.hp / unitStats(u).hp;
-        u.trainingBonus = training;
-        u.hp = Math.round(unitStats(u).hp * healthRatio * 100) / 100;
-        u.updatedAt = now;
-        trained++;
-      }
+      const trained = refreshArmyTraining(allRealmUnits(s, id), realmBuildings(s, id), now);
       r.progression.development++;
-      message = `${upgrade.name} : amélioration terminée.${trained ? ` ${trained} unités améliorées (+${training} % d’entraînement).` : ''}`;
+      message = `${upgrade.name} : amélioration terminée.${trained ? ` ${trained} unités bénéficient de l’entraînement et du soutien actualisés.` : ''}`;
       break;
     }
     case 'ABILITY': {
@@ -1128,6 +1219,10 @@ export function applyAction(
     }
     case 'INTERACT': {
       const u = ownedUnit(s, r, a.actorId);
+      if (a.payload.expeditionId) {
+        message = expeditionInteraction(s, id, u, a.payload.expeditionId, now);
+        break;
+      }
       if (a.payload.caravanId) {
         requireRule(UNITS[u.kind].attack > 0, 'Cette unité ne peut pas intercepter de caravane.');
         const c = s.caravans[a.payload.caravanId];
@@ -1169,6 +1264,10 @@ export function applyAction(
           'Ce lieu est inaccessible ou déjà exploré.',
         );
         spendAction();
+        requireRule(
+          !isSea(tileAt(s, e).terrain) || !!UNIT_PROFILES[u.kind].naval,
+          'Un navire est nécessaire pour explorer cette découverte maritime.',
+        );
         e.claimedBy = id;
         transfer(r.wallet, e.reward);
         if (e.relic) r.relics.push(e.relic);
@@ -1412,6 +1511,7 @@ export function applyAction(
     if (territory?.released)
       message += ` Enceinte ouverte : ${territory.released} case(s) sans bâtiment redeviennent neutres.`;
   }
+  refreshWorldTraining(s, now);
   tickAllianceOperations(s, now);
   observe(s, r, now);
   s.revision++;
@@ -1482,6 +1582,7 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
   const realms = Object.values(s.realms).map((x) => ({
     id: x.id,
     name: x.name,
+    realmName: x.settings.realmName || undefined,
     faction: x.faction,
     bot: x.bot,
     online: !x.offlineAt && x.lastSeen + RULES.grace > now,
@@ -1489,6 +1590,10 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     emblem: x.settings.emblem,
     color: x.settings.bannerColor,
     bannerShape: x.settings.bannerShape,
+    bannerSecondary: x.settings.bannerSecondary,
+    bannerPattern: x.settings.bannerPattern,
+    bannerAccent: x.settings.bannerAccent,
+    miniFlagShape: x.settings.miniFlagShape,
     defeated: !!x.defeatedAt,
     trophyCount: s.missions?.[x.id]?.trophies?.length ?? 0,
     onMission: !!s.missions?.[x.id]?.active,
@@ -1504,6 +1609,7 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     },
   }));
   const onlineHumans = realms.filter((x) => !x.bot && x.online).length;
+  const rates = income(s, id);
   return {
     missions: missionsView(s, id, now),
     strategy: strategyView(s, id, now, visible),
@@ -1524,18 +1630,26 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
       ...player,
       ap: apCopy.ap,
       nextAPAt: apCopy.apAt + RULES.apInterval,
-      income: income(s, id),
+      income: rates,
+      foodBalance: foodBalance(s, id, rates.FOOD),
       capacity: storage(s, id),
       population: Math.floor(realmBuildings(s, id).reduce((a, b) => a + b.population, 0)),
       realmValue: realmValue(s, id),
     },
     overview: Object.values(r.explored).map((p) => {
       const t = publicTile(s, p, visible, r.explored);
-      return { q: t.q, r: t.r, terrain: t.terrain, biome: t.biome, ownerId: t.ownerId, visibility: t.visibility };
+      return {
+        q: t.q,
+        r: t.r,
+        terrain: t.terrain,
+        biome: t.biome,
+        ownerId: t.ownerId,
+        visibility: t.visibility,
+      };
     }),
     tiles: [...positions.values()].map((p) => publicTile(s, p, visible, r.explored)),
     units: Object.values(s.units)
-      .filter((u) => u.ownerId === id || visible.has(key(u)))
+      .filter((u) => u.ownerId === id || (visible.has(key(u)) && submarineVisible(s, id, u, now)))
       .map((u) => {
         if (u.ownerId === id || !u.cargo) return u;
         const { cargo, ...publicUnit } = u;

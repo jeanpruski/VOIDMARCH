@@ -2,15 +2,15 @@
 
 Quatre ambiances : tempéré (illustrations existantes), enneigé, désertique et automnal. Régions déterministes d’environ 100 × 100 hexagones, soit environ 10 000 cases, avec centres décalés et frontières courbes. La taille exacte varie naturellement.
 
-Le biome habille les terrains : les noms, ressources, déplacements et règles de construction restent identiques. Le désert possède des bosquets d’acacias et de palmiers pour les forêts ; la neige conserve des rivières fonctionnelles. Les terres brûlées restent reconnaissables. Le biome est indiqué séparément dans les informations du terrain ; les cases inconnues ne le révèlent pas.
+Le biome habille les terrains : les noms, ressources, coûts des terrains et règles de construction restent identiques. Certaines unités possèdent une adaptation innée : +1 déplacement si l’ordre commence dans leur biome de prédilection (voir `biome-adaptations.md`). Le désert possède des bosquets d’acacias et de palmiers pour les forêts ; la neige conserve des rivières fonctionnelles. Les terres brûlées restent reconnaissables. Le biome est indiqué séparément dans les informations du terrain ; les cases inconnues ne le révèlent pas.
 
 Compatibilité : les anciennes cases et mémoires explorées reçoivent leur biome à la lecture, sans modification de leurs bâtiments, routes, propriétaires ou ressources. Aucun effacement du monde ni migration SQL. La vue stratégique conserve son rendu simple.
 
 ## Transitions entre régions
 
-Sur une bande irrégulière d’environ 2 à 5 hexagones au total, le sol et l’eau mélangent progressivement les couleurs des biomes voisins. Les arbres et reliefs alternent entre leurs illustrations, sans superposition transparente des silhouettes. Le cœur des régions conserve son ambiance. La minicarte reprend les couleurs mélangées ; les couleurs des royaumes et le brouillard restent prioritaires.
+Sur une bande irrégulière d’environ 3 à 7 hexagones au total, le sol et l’eau mélangent progressivement les couleurs des biomes voisins. Les arbres et reliefs alternent entre leurs illustrations, sans superposition transparente des silhouettes. Le cœur des régions conserve son ambiance. La minicarte reprend les couleurs mélangées ; les couleurs des royaumes et le brouillard restent prioritaires.
 
-Ce rendu dépend uniquement de la graine du monde et des coordonnées : même résultat après rechargement, déplacement de caméra ou nouvelle visite. Les frontières existantes, noms, ressources et propriétés ne changent pas. Aucun nouvel atlas ni aucune réinitialisation nécessaires. Le calcul visuel utilise un cache borné partagé entre carte et minicarte.
+Ce rendu dépend uniquement de la graine du monde et des coordonnées : même résultat après rechargement, déplacement de caméra ou nouvelle visite. Les frontières existantes, noms, ressources et propriétés ne changent pas. Les adaptations de déplacement utilisent le biome de référence de la case, jamais le mélange visuel. Aucun nouvel atlas ni aucune réinitialisation nécessaires. Le calcul visuel utilise un cache borné partagé entre carte et minicarte.
 
 Validation : tests de continuité des couleurs, déterminisme après éviction du cache, préservation des régions et des terrains spéciaux ; test navigateur sur une frontière naturelle, rechargement et aperçu `test-results/biome-transitions.png`.
 

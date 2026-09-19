@@ -1,3 +1,4 @@
+import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -183,6 +184,7 @@ describe('aviation et défense antiaérienne', () => {
     addBuilding(s, a, { q: 2, r: 0 }, 'MUNITIONS', now);
     const housing = addBuilding(s, a, { q: 3, r: 0 }, 'VILLAGE', now);
     housing.population = 100;
+    prepareDevelopment(s, a.id, 2, now);
     s.units.pilot.hp = 9;
     const upgraded = execute(s, 'a', order('UPGRADE', airfield.id), now);
     expect(upgraded.result.accepted).toBe(true);

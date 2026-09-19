@@ -1,6 +1,9 @@
+import { prepareDevelopment } from './fixtures/development';
+import { constructionDevelopmentStage, unitDevelopmentStage } from '@voidmarch/config';
 import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import {
+  isNavalBuilding,
   BUILDINGS,
   BUILDING_REQUIREMENTS,
   UNITS,
@@ -128,8 +131,13 @@ describe('catalogue étendu', () => {
       r.wallet = { ...UNITS[kind].cost };
       const b = addBuilding(s, r, { q: 8, r: 0 }, profile.recruitAt[0], now);
       b.level = profile.minRecruitLevel ?? 1;
-      for (const p of neighbors(b)) writeTile(s, p, { terrain: 'PLAIN', ownerId: r.id });
+      for (const p of neighbors(b))
+        writeTile(s, p, {
+          terrain: profile.naval ? 'COAST' : 'PLAIN',
+          ownerId: profile.naval ? undefined : r.id,
+        });
       profile.requires.forEach((k, i) => addBuilding(s, r, { q: 12 + i, r: 0 }, k, now));
+      prepareDevelopment(s, r.id, unitDevelopmentStage(kind), now);
       const before = realmUnits(s, r.id).length;
       const result = execute(s, r.id, action('RECRUIT', b.id, { kind }), now);
       expect(result.result.accepted, result.result.reason).toBe(true);
@@ -145,10 +153,12 @@ describe('catalogue étendu', () => {
       r = s.realms.founder,
       p = { q: 8, r: 0 };
     r.wallet = { ...BUILDINGS[kind].cost };
+    if (isNavalBuilding(kind)) writeTile(s, neighbors(p)[0], { terrain: 'COAST' });
     writeTile(s, p, { terrain: BUILDINGS[kind].terrains[0] as Terrain, ownerId: r.id });
     (BUILDING_REQUIREMENTS[kind] ?? []).forEach((k, i) =>
       addBuilding(s, r, { q: 12 + i, r: 0 }, k, now),
     );
+    prepareDevelopment(s, r.id, constructionDevelopmentStage(kind), now);
     const result = execute(s, r.id, action('BUILD', r.id, { ...p, kind }), now);
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(

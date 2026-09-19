@@ -38,7 +38,7 @@ export function TurretControls({ building: b }: { building: Building }) {
           title={`Tir manuel, portée ${current.range} cases. Sélectionnez ensuite une cible ennemie.`}
         >
           <Crosshair size={15} />
-          Tirer avec la tourelle · 1 PA
+          {b.kind === 'COASTAL_BATTERY' ? 'Tir côtier' : 'Tirer avec la tourelle'} · 1 PA
         </ActionButton>
       )}
       {upgrade && (

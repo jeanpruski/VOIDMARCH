@@ -1,3 +1,4 @@
+import { isNavalBuilding } from './naval';
 import type { BuildingKind } from './index';
 import { BUILDING_ECONOMIC_TIERS } from './economy';
 
@@ -19,6 +20,7 @@ export function buildingEra(kind: BuildingKind, level: number): string {
     'ATOMIC_WALL',
   ].indexOf(kind);
   if (wallTier >= 0) return BUILDING_AGES[wallTier];
+  if (isNavalBuilding(kind)) return BUILDING_AGES[Math.min(4, Math.max(0, level - 1))];
   const tier = BUILDING_ECONOMIC_TIERS[kind];
   const first = tier >= 5 ? 4 : tier >= 3 || kind === 'RAIL_DEPOT' ? 2 : 0;
   return BUILDING_AGES[Math.min(4, first + Math.max(0, level - 1))];

@@ -1,3 +1,6 @@
+import { tickMaritimeEvents } from './maritime-events';
+import { isSea } from '@voidmarch/config';
+import { refreshWorldTraining } from '@voidmarch/game-rules';
 import { reconcileMissions } from './missions';
 import { tickStrategy } from './strategy';
 import { wallBlocks, alliedRealmIds } from '@voidmarch/game-rules';
@@ -99,6 +102,7 @@ export function tickWorld(
   connected: Set<string>,
   options: EngineOptions = defaultOptions,
 ) {
+  refreshWorldTraining(s, now);
   const humans = connected.size;
   for (const r of Object.values(s.realms)) {
     const present = r.bot ? humans > 0 : connected.has(r.id);
@@ -117,6 +121,7 @@ export function tickWorld(
   reconcileMissions(s, now);
   new BotDirector(options).tick(s, now, humans);
   tickNpcs(s, now, connected);
+  tickMaritimeEvents(s, now, connected);
   for (const p of Object.values(s.proposals))
     if (p.status === 'PENDING' && p.expiresAt <= now) p.status = 'EXPIRED';
   for (const c of Object.values(s.caravans)) {
@@ -133,15 +138,25 @@ export function tickWorld(
       ];
       const interrupted = c.path.slice(Math.max(0, currentStep), nextStep + 1).some((p) => {
         const t = tileAt(s, p);
-        return (
-          !t.road || wallBlocks(s.buildings[t.buildingId ?? ''], c.ownerId, undefined, allowed)
-        );
+        return c.maritime
+          ? !isSea(t.terrain) &&
+              !(
+                s.buildings[t.buildingId ?? '']?.kind === 'PORT' &&
+                allowed.includes(s.buildings[t.buildingId ?? ''].ownerId)
+              )
+          : !t.road || wallBlocks(s.buildings[t.buildingId ?? ''], c.ownerId, undefined, allowed);
       });
-      if (interrupted) {
+      const lostPort =
+        c.maritime &&
+        [c.from, c.to].some((p) => {
+          const b = s.buildings[tileAt(s, p).buildingId ?? ''];
+          return !b || b.kind !== 'PORT' || !allowed.includes(b.ownerId);
+        });
+      if (interrupted || lostPort) {
         if (s.realms[c.ownerId]) transfer(s.realms[c.ownerId].wallet, c.cargo);
         log(
           s,
-          'Route interrompue : la caravane retourne sa cargaison à son expéditeur.',
+          'Liaison interrompue : le convoi retourne sa cargaison à son expéditeur.',
           'ECONOMY',
           now,
           [c.ownerId, c.partnerId],
@@ -233,6 +248,7 @@ export function tickWorld(
             (p) =>
               distance(p, r.capital) > 6 &&
               !tileAt(s, p).buildingId &&
+              !isSea(tileAt(s, p).terrain) &&
               tileAt(s, p).terrain !== 'SCORCHED',
           ),
           p = places[Math.floor(hash(`${now}:p`) * places.length)],
@@ -249,7 +265,11 @@ export function tickWorld(
           };
           if (event.kind === 'COLOSSUS')
             for (const near of disk(p, 1))
-              if (!tileAt(s, near).buildingId && tileAt(s, near).terrain !== 'SCORCHED')
+              if (
+                !tileAt(s, near).buildingId &&
+                !isSea(tileAt(s, near).terrain) &&
+                tileAt(s, near).terrain !== 'SCORCHED'
+              )
                 writeTile(s, near, { terrain: 'CORRUPTION' });
           log(s, event.title, 'WORLD', now, undefined, event.kind === 'PORTAL' ? p : undefined);
         }
@@ -257,6 +277,7 @@ export function tickWorld(
       s.nextEventAt = now + 900_000 + hash(String(now)) * 600_000;
     }
   }
+  refreshWorldTraining(s, now);
   for (const r of Object.values(s.realms))
     if (connected.has(r.id) || (r.bot && humans > 0)) observe(s, r, now);
   s.revision++;

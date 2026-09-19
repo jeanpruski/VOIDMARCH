@@ -1,3 +1,4 @@
+import { EMBLEM_IDS, EMBLEM_NAMES } from '@voidmarch/config';
 import { hash, missionWallCount } from '@voidmarch/game-rules';
 import type { ActiveMission, MissionMedal, MissionTrophy } from '@voidmarch/shared';
 
@@ -11,19 +12,11 @@ export function createMissionTrophy(
   const pick = <T>(values: readonly T[], salt: string): T =>
     values[Math.floor(hash(`${mission.id}:medal:${salt}`) * values.length)];
   const shape = pick(['round', 'shield', 'star', 'diamond'] as const, 'shape');
-  const emblem = pick(['tower', 'swords', 'eye', 'moon', 'flame', 'star'] as const, 'emblem');
+  const emblem = pick(EMBLEM_IDS, 'emblem');
   const ribbon = pick(
     ['crimson', 'pine', 'midnight', 'violet', 'ochre', 'slate'] as const,
     'ribbon',
   );
-  const names = {
-    tower: 'Tour',
-    swords: 'Lames',
-    eye: 'Œil',
-    moon: 'Lune',
-    flame: 'Flamme',
-    star: 'Étoile',
-  };
   const epithet = pick(
     ['de la Cendre', 'du Dernier Serment', 'du Voile', 'de Minuit', 'des Marches', 'du Corbeau'],
     'name',
@@ -35,7 +28,7 @@ export function createMissionTrophy(
       : 'bronze';
   return {
     id: mission.id,
-    medal: { name: `${names[emblem]} ${epithet}`, shape, emblem, ribbon, metal },
+    medal: { name: `${EMBLEM_NAMES[emblem]} ${epithet}`, shape, emblem, ribbon, metal },
     mission: structuredClone({
       title: mission.title,
       difficulty: mission.difficulty,
@@ -49,6 +42,7 @@ export function createMissionTrophy(
       buildings: mission.buildings,
       wall: mission.wall,
       wallRadius: mission.wallRadius,
+      expedition: mission.expedition,
     }),
     losses: { units: mission.losses?.units ?? 0, buildings: mission.losses?.buildings ?? 0 },
     completedAt,

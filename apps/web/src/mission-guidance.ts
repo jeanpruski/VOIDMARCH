@@ -1,4 +1,5 @@
-import { UNIT_PROFILES, UNITS } from '@voidmarch/config';
+import { movementBiome, unitMovementBudget } from '@voidmarch/game-rules';
+import { UNIT_BIOME_ADAPTATIONS, MAX_MOVE_STEPS } from '@voidmarch/config';
 import {
   distance,
   findPath,
@@ -42,13 +43,18 @@ export function missionDifficulty(offer: Pick<MissionOffer, 'difficulty' | 'wall
 /** Planning estimate only: known terrain/occupants may change before the army arrives. */
 export function missionTravel(world: WorldView, target: Hex, unit: Unit) {
   const cases = distance(unit, target);
-  const budget =
-    UNITS[unit.kind].move +
-    (world.player.faction === 'IRON' && UNIT_PROFILES[unit.kind].mounted ? 1 : 0);
+  const budget = unitMovementBudget(
+    unit,
+    movementBiome(
+      world.seed,
+      world.tiles.find((t) => key(t) === key(unit)),
+    ),
+    world.player.faction,
+  );
   if (cases <= 1) return { cases, pa: 0, basis: 'near' as const };
   const rough = {
     cases,
-    pa: budget > 0 ? Math.ceil((cases - 1) / Math.min(12, budget)) : null,
+    pa: budget > 0 ? Math.ceil((cases - 1) / Math.min(MAX_MOVE_STEPS, budget)) : null,
     basis: 'unknown' as const,
   };
   if (budget <= 0) return rough;
@@ -64,6 +70,11 @@ export function missionTravel(world: WorldView, target: Hex, unit: Unit) {
   const roads = roadPaths(unit, tiles, blocked, unit.kind, unit.ownerId);
   if (goals.some((p) => roadPathTo(p, roads, blocked)?.length))
     return { cases, pa: 1, basis: 'road' as const };
+  const maxBudget = unitMovementBudget(
+    unit,
+    UNIT_BIOME_ADAPTATIONS[unit.kind],
+    world.player.faction,
+  );
   let best = Infinity;
   for (const goal of goals) {
     const path = findPath(
@@ -73,7 +84,7 @@ export function missionTravel(world: WorldView, target: Hex, unit: Unit) {
         const t = tiles.get(key(p));
         if (
           !t?.terrain ||
-          movementCost({ ...p, terrain: t.terrain, road: t.road }, unit.kind) > budget
+          movementCost({ ...p, terrain: t.terrain, road: t.road }, unit.kind) > maxBudget
         )
           return undefined;
         return { ...p, terrain: t.terrain, road: t.road };
@@ -88,6 +99,11 @@ export function missionTravel(world: WorldView, target: Hex, unit: Unit) {
     costs[0] = 0;
     // Count valid MOVE commands and unlimited network runs along the proposed path.
     for (let i = 0; i < points.length - 1; i++) {
+      const stepBudget = unitMovementBudget(
+        unit,
+        movementBiome(world.seed, tiles.get(key(points[i]))),
+        world.player.faction,
+      );
       let spent = 0;
       let network = travelNetworkTile(tiles.get(key(points[i])), unit.ownerId, unit.kind);
       for (let j = i + 1; j < points.length; j++) {
@@ -95,9 +111,9 @@ export function missionTravel(world: WorldView, target: Hex, unit: Unit) {
         spent += movementCost({ ...points[j], terrain: t.terrain!, road: t.road }, unit.kind);
         network = network && travelNetworkTile(t, unit.ownerId, unit.kind);
         const canStop = !blocked.has(key(points[j]));
-        if (canStop && (network || (spent <= budget && j - i <= 12)))
+        if (canStop && (network || (spent <= stepBudget && j - i <= MAX_MOVE_STEPS)))
           costs[j] = Math.min(costs[j], costs[i] + 1);
-        if (!network && (spent > budget || j - i >= 12)) break;
+        if (!network && (spent > stepBudget || j - i >= MAX_MOVE_STEPS)) break;
       }
     }
     best = Math.min(best, costs.at(-1)!);

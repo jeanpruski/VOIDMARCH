@@ -371,7 +371,10 @@ test('l’accueil cosmique reste épuré et lisible sans créer de compte', asyn
   await page.goto('/');
   await expect(page.getByLabel('Nom de votre souverain')).toBeVisible();
   await expect(page.getByText(/MONDE PERSISTANT/i)).toHaveCount(0);
-  await expect(page.locator('.login-art')).toHaveCSS('background-image', /abyssal-threshold-war-v2/);
+  await expect(page.locator('.login-art')).toHaveCSS(
+    'background-image',
+    /abyssal-threshold-war-v2/,
+  );
   await page.evaluate(async () => {
     const image = new Image();
     image.src = '/assets/abyssal-threshold-war-v2.png';
@@ -379,7 +382,7 @@ test('l’accueil cosmique reste épuré et lisible sans créer de compte', asyn
   });
   await page.screenshot({ path: 'test-results/cosmic-login.png', animations: 'disabled' });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole('button', { name: 'Élever ma bannière' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continuer', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/cosmic-login-mobile.png', animations: 'disabled' });
 });

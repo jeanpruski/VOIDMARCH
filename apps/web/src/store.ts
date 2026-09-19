@@ -394,6 +394,7 @@ export async function send(command: Command) {
           attacker,
           intendedTarget,
           state.world.tiles.flatMap((t) => (t.building ? [t.building] : [])),
+          (p) => state.world!.tiles.find((t) => t.q === p.q && t.r === p.r),
         )
       : undefined;
   const attackTarget = resolved && !resolved.reason ? resolved.target : undefined;

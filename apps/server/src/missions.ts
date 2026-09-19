@@ -1,3 +1,14 @@
+import { findPath, unitMovementBudget } from '@voidmarch/game-rules';
+import { developmentStage } from '@voidmarch/config';
+import { missionAbandonPlan } from '@voidmarch/game-rules';
+import { navalMissionSite, navalMissionFleet } from './naval-missions';
+import {
+  expeditionOffers,
+  acceptExpedition,
+  reconcileExpeditions,
+  expeditionCarrier,
+} from './expeditions';
+import { consumeSupplies } from '@voidmarch/game-rules';
 import { destroyUnit } from './transports';
 import { missionRoster, missionPlacementOrder } from './mission-rosters';
 import { createMissionTrophy } from './mission-trophies';
@@ -86,10 +97,10 @@ function offerWindow(s: GameState, realmId: string, now: number) {
 }
 /** Three stable offers within each ten-minute window; no assets until acceptance. */
 export function missionOffers(s: GameState, realmId: string, now: number): MissionOffer[] {
-  if (s.missions?.[realmId]?.active) return [];
+  if (s.missions?.[realmId]?.active || (s.missions?.[realmId]?.availableAt ?? 0) > now) return [];
   const generation = s.missions?.[realmId]?.generation ?? 0;
   const level = Math.min(
-    5,
+    developmentStage(realmBuildings(s, realmId)),
     Math.max(
       1,
       ...realmBuildings(s, realmId)
@@ -102,7 +113,7 @@ export function missionOffers(s: GameState, realmId: string, now: number): Missi
   const seed = `${baseSeed}:${slot}`;
   // At least the title changes for each card, even if random roster rolls repeat.
   const offset = (Math.floor(hash(baseSeed) * titles.length) + slot) % titles.length;
-  return [0, 1, 2].map((i) => {
+  const offers: MissionOffer[] = [0, 1, 2].map((i) => {
     const campaign =
       i === 2 &&
       level >= 3 &&
@@ -149,6 +160,37 @@ export function missionOffers(s: GameState, realmId: string, now: number): Missi
       reward: missionReward({ difficulty, abandonmentCost }),
     };
   });
+  const fleet = Object.values(s.units).filter(
+    (u) => u.ownerId === realmId && UNIT_PROFILES[u.kind].naval && UNITS[u.kind].attack > 0,
+  );
+  if (s.oceanVersion && fleet.length) {
+    const navalLevel = Math.min(
+      developmentStage(realmBuildings(s, realmId)),
+      Math.max(1, ...fleet.map((u) => UNIT_PROFILES[u.kind].minRecruitLevel ?? 1)),
+    );
+    const units = navalMissionFleet(navalLevel);
+    const cost = {
+      GOLD: Math.ceil(units.reduce((n, k) => n + UNITS[k].cost.GOLD, 0) * 0.08 + 200 * navalLevel),
+      FOOD: 500 * navalLevel,
+    };
+    offers[2] = {
+      ...offers[2],
+      id: offers[2].id + ':naval',
+      maritime: true,
+      title: ['La rade des Naufragés', 'Le fort du soleil noyé', 'Les quais de l’Abîme'][
+        (slot + generation) % 3
+      ],
+      level: navalLevel,
+      objective: 'BUILDING',
+      buildings: ['PORT', 'COASTAL_BATTERY'],
+      units,
+      wall: undefined,
+      wallRadius: 4,
+      abandonmentCost: cost,
+      reward: missionReward({ difficulty: 'Siège', abandonmentCost: cost }),
+    };
+  }
+  return offers;
 }
 
 function missionSite(
@@ -156,7 +198,15 @@ function missionSite(
   realmId: string,
   salt: string,
   offer: MissionOffer,
-): { center: Hex; spots: Hex[] } {
+): { center: Hex; spots: Hex[]; buildingSpots?: Hex[] } {
+  if (offer.maritime) {
+    const site = navalMissionSite(s, realmId, offer);
+    requireRule(
+      site,
+      'Aucune rade libre et hors de votre vision trouvée sur cette mer. Explorez avec votre flotte avant de reprendre cette mission.',
+    );
+    return site;
+  }
   const radius = offer.wallRadius ?? 2;
   const capital = s.realms[realmId].capital;
   const visible = vision(s, s.realms[realmId]);
@@ -312,11 +362,9 @@ export function missionAction(
   if (action.type === 'MISSION_ABANDON') {
     const m = board.active;
     requireRule(m && m.id === action.payload.missionId, 'Cette mission n’est plus active.');
-    requireRule(
-      canAfford(r.wallet, m.abandonmentCost),
-      'Or ou vivres insuffisants pour abandonner cette mission.',
-    );
-    transfer(r.wallet, m.abandonmentCost, -1);
+    const plan = missionAbandonPlan(r.wallet, m.abandonmentCost);
+    transfer(r.wallet, plan.paid, -1);
+    board.availableAt = now + plan.delay;
     clearMission(s, realmId);
     board.lastResult = {
       title: m.title,
@@ -326,14 +374,30 @@ export function missionAction(
       walls: 0,
       at: now,
     };
-    const message = `Mission abandonnée : ${m.abandonmentCost.GOLD} or et ${m.abandonmentCost.FOOD} vivres payés. La garnison disparaît ; vos troupes restent sur place.`;
+    const message = `Mission abandonnée : ${formatNumber(plan.paid.GOLD ?? 0)} or et ${formatNumber(plan.paid.FOOD ?? 0)} vivres payés.${plan.delay ? ` Fonds insuffisants : nouvelles missions dans ${Math.ceil(plan.delay / 60000)} minutes, sans dette.` : ''} ${m.expedition ? 'Le lieu et l’objet de quête disparaissent' : 'La garnison disparaît'} ; vos troupes restent sur place.`;
     log(s, message, 'REALM', now, [realmId], m);
     return message;
   }
   requireRule(!board.active, 'Terminez ou abandonnez votre mission avant d’en accepter une autre.');
-  const offer = missionOffers(s, realmId, now).find((o) => o.id === action.payload.offerId);
+  requireRule(
+    (board.availableAt ?? 0) <= now,
+    'Votre expédition se réorganise après l’abandon. Consultez le compte à rebours.',
+  );
+  const offer = [...missionOffers(s, realmId, now), ...expeditionOffers(s, realmId, now)].find(
+    (o) => o.id === action.payload.offerId,
+  );
   requireRule(offer, 'Cette offre a changé. Consultez les nouvelles missions.');
-  const { center: p, spots } = missionSite(s, realmId, `${s.seed}:${realmId}:${offer.id}`, offer);
+  if (offer.expedition) {
+    const m = acceptExpedition(s, realmId, offer, now);
+    const message = `Expédition acceptée : ${m.title}, à ${m.distance} cases. Approchez le lieu avec ${m.expedition!.route === 'SEA' ? 'un navire' : 'une unité terrestre'}.`;
+    log(s, message, 'REALM', now, [realmId, ...alliedRealmIds(s, realmId)], m);
+    return message;
+  }
+  const {
+    center: p,
+    spots,
+    buildingSpots,
+  } = missionSite(s, realmId, `${s.seed}:${realmId}:${offer.id}`, offer);
   const id = randomUUID();
   const m: ActiveMission = {
     ...offer,
@@ -347,7 +411,7 @@ export function missionAction(
     distance: distance(p, r.capital),
   };
   board.active = m;
-  const positions = [p, neighbors(p)[0], neighbors(p)[3]];
+  const positions = buildingSpots ?? [p, neighbors(p)[0], neighbors(p)[3]];
   function building(kind: Building['kind'], h: Hex, level: number) {
     const b: Building = {
       ...h,
@@ -367,7 +431,8 @@ export function missionAction(
     return b;
   }
   const radius = offer.wallRadius ?? 2;
-  for (const h of disk(p, radius)) writeTile(s, h, { ownerId: m.ownerId });
+  for (const h of disk(p, radius))
+    if (!['SEA', 'COAST'].includes(tileAt(s, h).terrain)) writeTile(s, h, { ownerId: m.ownerId });
   offer.buildings.forEach((kind, i) => {
     const b = building(kind, positions[i], offer.level);
     if (i === 0 && offer.objective === 'BUILDING') {
@@ -431,6 +496,7 @@ function clearMissionMemory(s: GameState, ownerId: string) {
       }
 }
 export function reconcileMissions(s: GameState, now: number) {
+  reconcileExpeditions(s, now);
   const completed: string[] = [];
   for (const m of activeMissions(s)) {
     const r = s.realms[m.realmId];
@@ -438,6 +504,7 @@ export function reconcileMissions(s: GameState, now: number) {
       clearMission(s, m.realmId);
       continue;
     }
+    if (m.expedition) continue;
     if (s.units[m.objectiveId] || s.buildings[m.objectiveId]) continue;
     const units = Object.values(s.units).filter((u) => u.ownerId === m.ownerId);
     const buildings = Object.values(s.buildings).filter((b) => b.ownerId === m.ownerId);
@@ -521,7 +588,7 @@ export function retaliateMission(
     )
     .sort((a, b) => unitStats(b).attack - unitStats(a).attack || a.id.localeCompare(b.id));
   for (const guard of candidates) {
-    const reply = resolveAttack(guard, attacker, Object.values(s.buildings));
+    const reply = resolveAttack(guard, attacker, Object.values(s.buildings), (p) => tileAt(s, p));
     if (reply.reason || reply.target.ownerId === m.ownerId) continue;
     if (missionAttackReason(s, m.realmId, reply.target.ownerId)) continue;
     // An unrelated wall may intercept the shot, but a private encounter must not damage outsiders.
@@ -537,7 +604,10 @@ export function retaliateMission(
     );
     const damage =
       bounds.min + Math.floor(hash(`${actionId}:garrison`) * (bounds.max - bounds.min + 1));
+    consumeSupplies(guard, now);
+    if (UNIT_PROFILES[guard.kind].submarine) guard.revealedUntil = now + 60000;
     target.hp = Math.round((target.hp - damage) * 100) / 100;
+    target.lastDamagedAt = now;
     target.updatedAt = now;
     const message = `${unitStats(guard).name} défend la garnison : ${damage} dégâts${reply.intercepted ? ' au rempart' : ''}.`;
     log(
@@ -572,15 +642,60 @@ export function retaliateMission(
     }
     return message;
   }
+  // One defensive reaction per attack: approach if no defender could fire.
+  // Keep the garrison near its site; never raid a kingdom or walk through a hostile wall.
+  const guards = Object.values(s.units).filter(
+    (g) => g.ownerId === m.ownerId && g.hp > 0 && distance(g, m) <= (m.wallRadius ?? 2) + 6,
+  );
+  const occupied = new Set(Object.values(s.units).map(key));
+  for (const guard of guards.sort((a, b) => distance(a, attacker) - distance(b, attacker))) {
+    const goals = neighbors(attacker).filter(
+      (p) => distance(p, m) <= (m.wallRadius ?? 2) + 6 && !occupied.has(key(p)),
+    );
+    for (const goal of goals) {
+      const path = findPath(
+        guard,
+        goal,
+        (p) => {
+          if (distance(p, m) > (m.wallRadius ?? 2) + 6) return undefined;
+          const t = tileAt(s, p);
+          return wallBlocks(s.buildings[t.buildingId ?? ''], m.ownerId, guard.kind) ? undefined : t;
+        },
+        18,
+        occupied,
+        guard.kind,
+      );
+      if (!path?.length) continue;
+      let budget = Math.min(2, unitMovementBudget(guard, tileAt(s, guard).biome));
+      let destination: Hex | undefined;
+      for (const p of path) {
+        budget -= movementCost(tileAt(s, p), guard.kind);
+        if (budget < 0) break;
+        if (!occupied.has(key(p))) destination = p;
+      }
+      if (!destination || distance(destination, attacker) >= distance(guard, attacker)) continue;
+      guard.q = destination.q;
+      guard.r = destination.r;
+      guard.updatedAt = now;
+      return `${unitStats(guard).name} se rapproche pour défendre la garnison.`;
+    }
+  }
   return '';
 }
 export function missionsView(s: GameState, realmId: string, now: number): MissionsView {
   const board = s.missions?.[realmId];
   const m = board?.active;
-  const objective = m ? (s.units[m.objectiveId] ?? s.buildings[m.objectiveId]) : undefined;
+  const objective =
+    m?.expedition?.phase === 'RETURN'
+      ? expeditionCarrier(s, m)
+      : m
+        ? (s.units[m.objectiveId] ?? s.buildings[m.objectiveId])
+        : undefined;
   return {
+    availableAt: board?.availableAt,
     trophies: board?.trophies ?? [],
     offers: missionOffers(s, realmId, now),
+    expeditionOffers: expeditionOffers(s, realmId, now),
     ...(!m ? { offersRefreshAt: offerWindow(s, realmId, now).refreshAt } : {}),
     active: m
       ? {
@@ -591,7 +706,7 @@ export function missionsView(s: GameState, realmId: string, now: number): Missio
             (b) => b.ownerId === m.ownerId && !isWall(b.kind),
           ).length,
           objectiveHp: objective?.hp ?? 0,
-          objectivePosition: objective ? { q: objective.q, r: objective.r } : m,
+          objectivePosition: objective ? { q: objective.q, r: objective.r } : { q: m.q, r: m.r },
         }
       : undefined,
     allied: activeMissions(s)

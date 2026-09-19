@@ -23,7 +23,7 @@ test('héros : personnalisation, couleurs et apparence envoyée à l’inscripti
   const creator = page.getByRole('region', { name: 'Personnaliser votre héros' });
   await expect(creator.getByRole('tab')).toHaveCount(3);
   await expect(creator.getByRole('tab', { name: 'Arme et accessoire' })).toHaveCount(0);
-  await expect(creator.locator('img')).toHaveAttribute('src', /^data:image/);
+  await expect(page.locator('.identity-hero img')).toHaveAttribute('src', /^data:image/);
   await page.getByRole('tab', { name: 'Tenue et armure', exact: true }).click();
   await page.getByRole('combobox', { name: 'Tenue et armure', exact: true }).selectOption('14');
   await page.getByLabel('Couleur Tenue et armure', { exact: true }).fill('#754744');
@@ -34,6 +34,8 @@ test('héros : personnalisation, couleurs et apparence envoyée à l’inscripti
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'test-results/hero-creator-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
   await page.getByRole('button', { name: 'Élever ma bannière' }).click();
   await expect.poll(() => sent?.heroAppearance?.head).toBe(4);
   expect(sent.heroAppearance.armor).toBe(14);
@@ -170,7 +172,9 @@ test('héros : ancien compte, accès direct, pouvoirs et protection des versions
   const recovering = view();
   await page.evaluate((w) => (window as any).fixturePushSnapshot(w), recovering);
   await page.getByRole('button', { name: 'Aller à mon héros', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('Convalescence');
+  // The kingdom panel intentionally no longer contains hero controls.
+  await expect(page.getByRole('dialog', { name: 'Votre royaume', exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').locator('.hero-controls')).toHaveCount(0);
   const incompatible = structuredClone(view());
   // @ts-expect-error Future unit kind from a newer server.
   incompatible.units[0].kind = 'FUTURE_UNIT';

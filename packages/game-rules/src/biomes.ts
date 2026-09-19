@@ -82,7 +82,7 @@ export function biomeBlend(seed: string, p: Hex, savedBiome?: Biome): BiomeBlend
     primary = savedBiome ?? nearest.center.biome;
   const phase = climateHash(`${seed}:climate-transition-width`) * Math.PI * 2;
   const wave = (2 + Math.sin(p.q / 19 + phase) + Math.sin(p.r / 23 - phase)) / 4;
-  const width = 2 + 3 * wave * wave;
+  const width = 3 + 4 * wave * wave;
   // Respect explicit theme overrides in old/custom tiles and map fixtures.
   if (primary !== nearest.center.biome)
     return { primary, scenery: primary, width, weights: [{ biome: primary, weight: 1 }] };

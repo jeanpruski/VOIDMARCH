@@ -39,7 +39,9 @@ function fixture(terrain: Terrain = 'MOUNTAIN') {
   return { s, r, command };
 }
 describe('terrassement', () => {
-  it.each((Object.keys(TERRAINS) as Terrain[]).filter((t) => t !== 'PLAIN'))(
+  it.each(
+    (Object.keys(TERRAINS) as Terrain[]).filter((t) => !['PLAIN', 'SEA', 'COAST'].includes(t)),
+  )(
     'convertit %s en plaine pour le prix exact, sans capture ni suppression de route',
     (terrain) => {
       const { s, r, command } = fixture(terrain);

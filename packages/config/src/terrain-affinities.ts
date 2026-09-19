@@ -43,6 +43,11 @@ export function createTerrainAffinities(
     Object.entries(profiles).map(([id, p]) => {
       const kind = id as UnitKind;
       if (p.flying || p.hero || p.builder || units[kind].attack <= 0) return [kind, []];
+      if (p.naval)
+        return [
+          kind,
+          [affinity(p.submarine ? 'SEA' : 'COAST', p.submarine ? 20 : 10, p.submarine ? 10 : 15)],
+        ];
       const family = unitUniverse(kind)?.family;
       const attack = p.siege || p.mounted ? 30 : p.armored ? 20 : 25;
       const defense = p.siege ? 10 : p.armored ? 30 : p.mounted ? 15 : 20;

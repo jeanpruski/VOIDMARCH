@@ -1,8 +1,8 @@
-import { randomHeroAppearance } from '@voidmarch/config';
+import { randomRealmIdentity } from '@voidmarch/config';
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { authSchema, guestSchema } from '@voidmarch/protocol';
+import { authSchema } from '@voidmarch/protocol';
 import { prisma } from './repository.js';
 import type { User } from '@prisma/client';
 const scrypt = promisify(scryptCallback),
@@ -52,17 +52,14 @@ export async function registerAuth(app: FastifyInstance, onLogout: (userId: stri
   app.post(
     '/api/auth/guest',
     { config: { rateLimit: { max: 12, timeWindow: '1 minute' } } },
-    async (request, reply) => {
-      const data = guestSchema.parse(request.body);
-      const user = await prisma.user.create({
-        data: {
-          username: data.username,
-          usernameNormalized: normalize(data.username),
-          faction: data.faction,
-          settings: JSON.parse(JSON.stringify({ heroAppearance: randomHeroAppearance() })),
-        },
-      });
-      return sendSession(user, reply);
+    async (_request, reply) => {
+      // Guest creation is temporarily closed; existing guests may still register.
+      return reply
+        .code(403)
+        .send({
+          error:
+            'Créez un compte pour entrer dans les Marches. L’accès invité est temporairement désactivé.',
+        });
     },
   );
   app.post(
@@ -86,13 +83,18 @@ export async function registerAuth(app: FastifyInstance, onLogout: (userId: stri
         passwordHash: hash,
         faction: data.faction,
       };
+      const generated = randomRealmIdentity(data.username);
       const user = current
         ? await prisma.user.update({ where: { id: current }, data: fields })
         : await prisma.user.create({
             data: {
               ...fields,
               settings: JSON.parse(
-                JSON.stringify({ heroAppearance: data.heroAppearance ?? randomHeroAppearance() }),
+                JSON.stringify({
+                  ...generated,
+                  ...data.realmIdentity,
+                  heroAppearance: data.heroAppearance ?? generated.heroAppearance,
+                }),
               ),
             },
           });

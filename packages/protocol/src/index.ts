@@ -1,4 +1,5 @@
 import {
+  EMBLEM_IDS,
   UNITS,
   BUILDINGS,
   RESOURCES,
@@ -28,6 +29,11 @@ const building = z.enum(
 );
 const id = z.string().min(1).max(80);
 export const commandSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('RESUPPLY'),
+    actorId: id,
+    payload: z.object({ unitIds: z.array(id).min(1).max(MAX_GROUP_UNITS) }).strict(),
+  }),
   z.object({
     type: z.literal('ARMY_SAVE'),
     actorId: id,
@@ -193,7 +199,11 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('INTERACT'),
     actorId: id,
-    payload: z.object({ eventId: id.optional(), caravanId: id.optional() }),
+    payload: z.object({
+      eventId: id.optional(),
+      caravanId: id.optional(),
+      expeditionId: id.optional(),
+    }),
   }),
   z.object({
     type: z.literal('ABILITY'),
@@ -256,13 +266,6 @@ export const heroAppearanceSchema = z
       .strict(),
   })
   .strict();
-export const authSchema = z.object({
-  heroAppearance: heroAppearanceSchema.optional(),
-  username: usernameSchema,
-  password: z.string().min(10).max(128),
-  email: z.string().email().max(254).optional(),
-  faction: z.enum(['ASH', 'MASK', 'IRON']).default('ASH'),
-});
 export const guestSchema = z.object({
   username: usernameSchema,
   faction: z.enum(['ASH', 'MASK', 'IRON']),
@@ -287,15 +290,45 @@ export const settingsSchema = z
     input: z.enum(['mouse', 'touch']),
     uiScale: z.number().min(0.8).max(1.3),
     tutorialCompleted: z.boolean(),
-    emblem: z.enum(['crown', 'sword', 'eye', 'tower', 'bird', 'star', 'key', 'bell']),
+    realmName: z.union([
+      z.literal(''),
+      z
+        .string()
+        .trim()
+        .min(3)
+        .max(40)
+        .regex(/^[\p{L}\p{N} _’'-]+$/u),
+    ]),
+    emblem: z.enum(EMBLEM_IDS),
     bannerColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     bannerSecondary: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-    bannerShape: z.enum(['swallow', 'shield', 'square']),
+    bannerShape: z.enum(['swallow', 'shield', 'square', 'pennant']),
+    bannerPattern: z.enum(['plain', 'diagonal', 'vertical', 'horizontal']),
+    bannerAccent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    miniFlagShape: z.enum(['same', 'swallow', 'shield', 'square', 'pennant']),
     lastCameraQ: z.number().finite().min(-1e5).max(1e5),
     lastCameraR: z.number().finite().min(-1e5).max(1e5),
   })
   .partial()
   .strict();
+export const realmIdentitySchema = settingsSchema.pick({
+  realmName: true,
+  emblem: true,
+  bannerColor: true,
+  bannerSecondary: true,
+  bannerAccent: true,
+  bannerPattern: true,
+  bannerShape: true,
+  miniFlagShape: true,
+});
+export const authSchema = z.object({
+  realmIdentity: realmIdentitySchema.optional(),
+  heroAppearance: heroAppearanceSchema.optional(),
+  username: usernameSchema,
+  password: z.string().min(10).max(128),
+  email: z.string().email().max(254).optional(),
+  faction: z.enum(['ASH', 'MASK', 'IRON']).default('ASH'),
+});
 export const chunksSchema = z
   .object({
     chunks: z

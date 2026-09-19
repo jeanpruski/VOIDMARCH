@@ -1,4 +1,5 @@
 import { ArmyEditor } from './SavedArmies';
+import { Supplies } from './Supplies';
 import { ArrowUpRight, Users, X } from 'lucide-react';
 import { key, unitStats } from '@voidmarch/game-rules';
 import { ActionButton } from './ActionButton';
@@ -39,6 +40,7 @@ export function GroupMovement() {
         </span>
       </div>
       <ArmyEditor />
+      <Supplies units={units} />
       <div className="selection-actions">
         <button
           disabled={pending}
@@ -100,7 +102,7 @@ export function GroupMovement() {
         </div>
       )}
       {pending ? (
-        <p role="status">Déplacement du groupe en cours…</p>
+        <p role="status">Ordre du groupe en cours…</p>
       ) : plan ? (
         <>
           <p role="status">

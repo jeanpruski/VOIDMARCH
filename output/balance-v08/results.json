@@ -1,0 +1,3116 @@
+{
+  "development": [
+    {
+      "producerLevel": 3,
+      "milestones": [
+        {
+          "action": "Scierie",
+          "minutes": 0,
+          "cap": 800,
+          "rates": {
+            "STONE": 0,
+            "GOLD": 1.77,
+            "WOOD": 8,
+            "IRON": 0,
+            "FOOD": 3.675
+          }
+        },
+        {
+          "action": "Carrière de pierre",
+          "minutes": 0,
+          "cap": 800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.73,
+            "WOOD": 8,
+            "IRON": 0,
+            "FOOD": 3.675
+          }
+        },
+        {
+          "action": "Mine de fer",
+          "minutes": 0,
+          "cap": 800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.6900000000000002,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 3.675
+          }
+        },
+        {
+          "action": "Ferme",
+          "minutes": 2.5,
+          "cap": 800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.6500000000000001,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 11.673780645784618
+          }
+        },
+        {
+          "action": "Chaumière",
+          "minutes": 5,
+          "cap": 800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.61,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 11.492511730745814
+          }
+        },
+        {
+          "action": "Entrepôt",
+          "minutes": 14.5,
+          "cap": 1800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.57,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 11.417713373125874
+          }
+        },
+        {
+          "action": "Marché",
+          "minutes": 22,
+          "cap": 1800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 9.53,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 11.343989344142267
+          }
+        },
+        {
+          "action": "Scierie niveau 2",
+          "minutes": 24.5,
+          "cap": 2050,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 9.53,
+            "WOOD": 14.4,
+            "IRON": 5,
+            "FOOD": 11.329316015308322
+          }
+        },
+        {
+          "action": "Scierie niveau 3",
+          "minutes": 27,
+          "cap": 2550,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 9.53,
+            "WOOD": 24,
+            "IRON": 5,
+            "FOOD": 11.314316015308323
+          }
+        },
+        {
+          "action": "Carrière de pierre niveau 2",
+          "minutes": 28,
+          "cap": 2800,
+          "rates": {
+            "STONE": 10.8,
+            "GOLD": 9.53,
+            "WOOD": 24,
+            "IRON": 5,
+            "FOOD": 11.308316015308323
+          }
+        },
+        {
+          "action": "Carrière de pierre niveau 3",
+          "minutes": 30,
+          "cap": 3300,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 9.53,
+            "WOOD": 24,
+            "IRON": 5,
+            "FOOD": 11.296316015308323
+          }
+        },
+        {
+          "action": "Mine de fer niveau 2",
+          "minutes": 31,
+          "cap": 3550,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 9.53,
+            "WOOD": 24,
+            "IRON": 9,
+            "FOOD": 11.290316015308322
+          }
+        },
+        {
+          "action": "Mine de fer niveau 3",
+          "minutes": 35,
+          "cap": 4050,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 9.53,
+            "WOOD": 24,
+            "IRON": 15,
+            "FOOD": 11.266316015308323
+          }
+        },
+        {
+          "action": "Marché niveau 2",
+          "minutes": 42.5,
+          "cap": 4050,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 15.93,
+            "WOOD": 24,
+            "IRON": 15,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Marché niveau 3",
+          "minutes": 50.5,
+          "cap": 4050,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 25.53,
+            "WOOD": 24,
+            "IRON": 15,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Atelier",
+          "minutes": 58,
+          "cap": 4050,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 27.490000000000002,
+            "WOOD": 24,
+            "IRON": 15,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine d’or",
+          "minutes": 72.5,
+          "cap": 4050,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 51.45,
+            "WOOD": 24,
+            "IRON": 15,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Forge",
+          "minutes": 77.5,
+          "cap": 4050,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 51.410000000000004,
+            "WOOD": 24,
+            "IRON": 15,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Scierie à vapeur",
+          "minutes": 86.5,
+          "cap": 4050,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 51.370000000000005,
+            "WOOD": 72,
+            "IRON": 15,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière mécanisée",
+          "minutes": 97.5,
+          "cap": 4050,
+          "rates": {
+            "STONE": 54,
+            "GOLD": 51.33,
+            "WOOD": 72,
+            "IRON": 15,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine industrielle",
+          "minutes": 110,
+          "cap": 4050,
+          "rates": {
+            "STONE": 54,
+            "GOLD": 51.29,
+            "WOOD": 72,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Caserne",
+          "minutes": 110.5,
+          "cap": 4050,
+          "rates": {
+            "STONE": 54,
+            "GOLD": 51.25,
+            "WOOD": 72,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Arsenal",
+          "minutes": 118.5,
+          "cap": 4050,
+          "rates": {
+            "STONE": 54,
+            "GOLD": 51.21,
+            "WOOD": 72,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine d’or niveau 2",
+          "minutes": 124.5,
+          "cap": 4300,
+          "rates": {
+            "STONE": 54,
+            "GOLD": 70.41,
+            "WOOD": 72,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine d’or niveau 3",
+          "minutes": 132.5,
+          "cap": 4800,
+          "rates": {
+            "STONE": 54,
+            "GOLD": 99.21,
+            "WOOD": 72,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Scierie à vapeur niveau 2",
+          "minutes": 136.5,
+          "cap": 5550,
+          "rates": {
+            "STONE": 54,
+            "GOLD": 99.21,
+            "WOOD": 110.4,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Scierie à vapeur niveau 3",
+          "minutes": 143.5,
+          "cap": 7050,
+          "rates": {
+            "STONE": 54,
+            "GOLD": 99.21,
+            "WOOD": 168,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière mécanisée niveau 2",
+          "minutes": 148,
+          "cap": 7800,
+          "rates": {
+            "STONE": 82.8,
+            "GOLD": 99.21,
+            "WOOD": 168,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière mécanisée niveau 3",
+          "minutes": 156,
+          "cap": 9300,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 99.21,
+            "WOOD": 168,
+            "IRON": 45,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine industrielle niveau 2",
+          "minutes": 161,
+          "cap": 10050,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 99.21,
+            "WOOD": 168,
+            "IRON": 69,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine industrielle niveau 3",
+          "minutes": 170,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 99.21,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Arsenal niveau 2",
+          "minutes": 178,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 99.21,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Arsenal niveau 3",
+          "minutes": 194,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 99.21,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Monastère",
+          "minutes": 195.5,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 102.16999999999999,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Bibliothèque des astres",
+          "minutes": 198.5,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 106.13,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Atelier niveau 2",
+          "minutes": 202,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 107.72999999999999,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Atelier niveau 3",
+          "minutes": 209,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 110.13,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Forge niveau 2",
+          "minutes": 213,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 110.13,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Forge niveau 3",
+          "minutes": 222,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 110.13,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des cendres",
+          "minutes": 238,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 110.08999999999999,
+            "WOOD": 168,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Scierie des ombres",
+          "minutes": 265,
+          "cap": 11550,
+          "rates": {
+            "STONE": 126,
+            "GOLD": 110.05,
+            "WOOD": 328,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Carrière runique",
+          "minutes": 294,
+          "cap": 11550,
+          "rates": {
+            "STONE": 246,
+            "GOLD": 109.92599999999999,
+            "WOOD": 328,
+            "IRON": 105,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Mine des abysses",
+          "minutes": 326,
+          "cap": 11550,
+          "rates": {
+            "STONE": 246,
+            "GOLD": 109.88199999999999,
+            "WOOD": 328,
+            "IRON": 205,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Raffinerie",
+          "minutes": 331,
+          "cap": 11550,
+          "rates": {
+            "STONE": 246,
+            "GOLD": 115.838,
+            "WOOD": 328,
+            "IRON": 205,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie alchimique",
+          "minutes": 344.5,
+          "cap": 11550,
+          "rates": {
+            "STONE": 246,
+            "GOLD": 145.79399999999998,
+            "WOOD": 328,
+            "IRON": 205,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Scierie des ombres niveau 2",
+          "minutes": 361,
+          "cap": 12300,
+          "rates": {
+            "STONE": 246,
+            "GOLD": 145.79399999999998,
+            "WOOD": 456,
+            "IRON": 205,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Scierie des ombres niveau 3",
+          "minutes": 389,
+          "cap": 13800,
+          "rates": {
+            "STONE": 246,
+            "GOLD": 145.79399999999998,
+            "WOOD": 648,
+            "IRON": 205,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Carrière runique niveau 2",
+          "minutes": 406.5,
+          "cap": 14550,
+          "rates": {
+            "STONE": 342,
+            "GOLD": 145.79399999999998,
+            "WOOD": 648,
+            "IRON": 205,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Carrière runique niveau 3",
+          "minutes": 437.5,
+          "cap": 16050,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 145.79399999999998,
+            "WOOD": 648,
+            "IRON": 205,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Mine des abysses niveau 2",
+          "minutes": 457,
+          "cap": 16800,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 145.79399999999998,
+            "WOOD": 648,
+            "IRON": 285,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Mine des abysses niveau 3",
+          "minutes": 490.5,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 145.79399999999998,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie alchimique niveau 2",
+          "minutes": 499,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 169.79399999999998,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie alchimique niveau 3",
+          "minutes": 512,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 205.79399999999998,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Arsenal niveau 4",
+          "minutes": 527.5,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 205.79399999999998,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Manufacture de munitions",
+          "minutes": 530,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 205.75,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des cendres niveau 2",
+          "minutes": 547.5,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 205.75,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des cendres niveau 3",
+          "minutes": 582,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 205.75,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Raffinerie niveau 2",
+          "minutes": 584,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 210.55,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Raffinerie niveau 3",
+          "minutes": 588,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 217.75,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des isotopes",
+          "minutes": 608,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 217.706,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Réacteur noir",
+          "minutes": 652.5,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 337.66200000000003,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Réacteur noir niveau 2",
+          "minutes": 675,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 433.66200000000003,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Réacteur noir niveau 3",
+          "minutes": 706,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 577.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Arsenal niveau 5",
+          "minutes": 723.5,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 577.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Raffinerie niveau 4",
+          "minutes": 726,
+          "cap": 18300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 589.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 2",
+          "minutes": 726,
+          "cap": 21300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 589.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 3",
+          "minutes": 726.5,
+          "cap": 33300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 589.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Réacteur noir niveau 4",
+          "minutes": 765.5,
+          "cap": 33300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des isotopes niveau 2",
+          "minutes": 776,
+          "cap": 33300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des isotopes niveau 3",
+          "minutes": 797.5,
+          "cap": 33300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 4",
+          "minutes": 798,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des isotopes niveau 4",
+          "minutes": 846,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.662,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Garage militaire",
+          "minutes": 846.5,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.618,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Usine de blindés",
+          "minutes": 850,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.5740000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie atomique",
+          "minutes": 875.5,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.53,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Relais radio",
+          "minutes": 876.5,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.486,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Observatoire noir",
+          "minutes": 878.5,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.442,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches",
+          "minutes": 923,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.398,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches niveau 2",
+          "minutes": 1011.5,
+          "cap": 67300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.398,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 5",
+          "minutes": 1012.5,
+          "cap": 167300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.398,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches niveau 3",
+          "minutes": 1190.5,
+          "cap": 167300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.398,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt",
+          "minutes": 1190.5,
+          "cap": 168300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.354,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 2",
+          "minutes": 1190.5,
+          "cap": 171300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.354,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 3",
+          "minutes": 1191,
+          "cap": 183300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.354,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 4",
+          "minutes": 1191,
+          "cap": 217300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.354,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 5",
+          "minutes": 1192,
+          "cap": 317300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.354,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches niveau 4",
+          "minutes": 1547.5,
+          "cap": 317300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.354,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt",
+          "minutes": 1547.5,
+          "cap": 318300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.3100000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 2",
+          "minutes": 1548,
+          "cap": 321300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.3100000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 3",
+          "minutes": 1548,
+          "cap": 333300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.3100000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 4",
+          "minutes": 1548.5,
+          "cap": 367300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.3100000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 5",
+          "minutes": 1549.5,
+          "cap": 467300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.3100000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt",
+          "minutes": 1549.5,
+          "cap": 468300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.2660000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 2",
+          "minutes": 1549.5,
+          "cap": 471300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.2660000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 3",
+          "minutes": 1550,
+          "cap": 483300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.2660000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 4",
+          "minutes": 1550.5,
+          "cap": 517300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.2660000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 5",
+          "minutes": 1551,
+          "cap": 617300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.2660000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches niveau 5",
+          "minutes": 2262.5,
+          "cap": 617300,
+          "rates": {
+            "STONE": 486,
+            "GOLD": 829.2660000000001,
+            "WOOD": 648,
+            "IRON": 405,
+            "FOOD": 14.24
+          }
+        }
+      ]
+    },
+    {
+      "producerLevel": 5,
+      "milestones": [
+        {
+          "action": "Scierie",
+          "minutes": 0,
+          "cap": 800,
+          "rates": {
+            "STONE": 0,
+            "GOLD": 1.77,
+            "WOOD": 8,
+            "IRON": 0,
+            "FOOD": 3.675
+          }
+        },
+        {
+          "action": "Carrière de pierre",
+          "minutes": 0,
+          "cap": 800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.73,
+            "WOOD": 8,
+            "IRON": 0,
+            "FOOD": 3.675
+          }
+        },
+        {
+          "action": "Mine de fer",
+          "minutes": 0,
+          "cap": 800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.6900000000000002,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 3.675
+          }
+        },
+        {
+          "action": "Ferme",
+          "minutes": 2.5,
+          "cap": 800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.6500000000000001,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 11.673780645784618
+          }
+        },
+        {
+          "action": "Chaumière",
+          "minutes": 5,
+          "cap": 800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.61,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 11.492511730745814
+          }
+        },
+        {
+          "action": "Entrepôt",
+          "minutes": 14.5,
+          "cap": 1800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 1.57,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 11.417713373125874
+          }
+        },
+        {
+          "action": "Marché",
+          "minutes": 22,
+          "cap": 1800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 9.53,
+            "WOOD": 8,
+            "IRON": 5,
+            "FOOD": 11.343989344142267
+          }
+        },
+        {
+          "action": "Scierie niveau 2",
+          "minutes": 24.5,
+          "cap": 2050,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 9.53,
+            "WOOD": 14.4,
+            "IRON": 5,
+            "FOOD": 11.329316015308322
+          }
+        },
+        {
+          "action": "Scierie niveau 3",
+          "minutes": 27,
+          "cap": 2550,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 9.53,
+            "WOOD": 24,
+            "IRON": 5,
+            "FOOD": 11.314316015308323
+          }
+        },
+        {
+          "action": "Scierie niveau 4",
+          "minutes": 36,
+          "cap": 4300,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 9.53,
+            "WOOD": 36,
+            "IRON": 5,
+            "FOOD": 11.260316015308323
+          }
+        },
+        {
+          "action": "Scierie niveau 5",
+          "minutes": 67.5,
+          "cap": 9800,
+          "rates": {
+            "STONE": 6,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 5,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière de pierre niveau 2",
+          "minutes": 69,
+          "cap": 10050,
+          "rates": {
+            "STONE": 10.8,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 5,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière de pierre niveau 3",
+          "minutes": 72,
+          "cap": 10550,
+          "rates": {
+            "STONE": 18,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 5,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière de pierre niveau 4",
+          "minutes": 88.5,
+          "cap": 12300,
+          "rates": {
+            "STONE": 27,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 5,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière de pierre niveau 5",
+          "minutes": 130.5,
+          "cap": 17800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 5,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine de fer niveau 2",
+          "minutes": 133,
+          "cap": 18050,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 9,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine de fer niveau 3",
+          "minutes": 137.5,
+          "cap": 18550,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 15,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine de fer niveau 4",
+          "minutes": 163,
+          "cap": 20300,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 22.5,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine de fer niveau 5",
+          "minutes": 226,
+          "cap": 25800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 9.53,
+            "WOOD": 48,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Marché niveau 2",
+          "minutes": 233.5,
+          "cap": 25800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 15.93,
+            "WOOD": 48,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Marché niveau 3",
+          "minutes": 241.5,
+          "cap": 25800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 25.53,
+            "WOOD": 48,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Marché niveau 4",
+          "minutes": 269.5,
+          "cap": 25800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 37.53,
+            "WOOD": 48,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Marché niveau 5",
+          "minutes": 317.5,
+          "cap": 33800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 49.53,
+            "WOOD": 48,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Atelier",
+          "minutes": 321.5,
+          "cap": 33800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 51.49,
+            "WOOD": 48,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine d’or",
+          "minutes": 329.5,
+          "cap": 33800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 75.44999999999999,
+            "WOOD": 48,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Forge",
+          "minutes": 332.5,
+          "cap": 33800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 75.41,
+            "WOOD": 48,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Scierie à vapeur",
+          "minutes": 339,
+          "cap": 33800,
+          "rates": {
+            "STONE": 36,
+            "GOLD": 75.36999999999999,
+            "WOOD": 96,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière mécanisée",
+          "minutes": 346.5,
+          "cap": 33800,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 75.33,
+            "WOOD": 96,
+            "IRON": 30,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine industrielle",
+          "minutes": 355,
+          "cap": 33800,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 75.28999999999999,
+            "WOOD": 96,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Caserne",
+          "minutes": 355.5,
+          "cap": 33800,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 75.25,
+            "WOOD": 96,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Arsenal",
+          "minutes": 360.5,
+          "cap": 33800,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 75.21,
+            "WOOD": 96,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine d’or niveau 2",
+          "minutes": 365,
+          "cap": 34050,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 94.41,
+            "WOOD": 96,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine d’or niveau 3",
+          "minutes": 371,
+          "cap": 34550,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 123.21,
+            "WOOD": 96,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine d’or niveau 4",
+          "minutes": 379,
+          "cap": 36300,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 171.21,
+            "WOOD": 96,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine d’or niveau 5",
+          "minutes": 388.5,
+          "cap": 41800,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 243.21,
+            "WOOD": 96,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Scierie à vapeur niveau 2",
+          "minutes": 390,
+          "cap": 42550,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 243.21,
+            "WOOD": 134.4,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Scierie à vapeur niveau 3",
+          "minutes": 393,
+          "cap": 44050,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 243.21,
+            "WOOD": 192,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Scierie à vapeur niveau 4",
+          "minutes": 397.5,
+          "cap": 49300,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 243.21,
+            "WOOD": 288,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Scierie à vapeur niveau 5",
+          "minutes": 405.5,
+          "cap": 65800,
+          "rates": {
+            "STONE": 72,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière mécanisée niveau 2",
+          "minutes": 407,
+          "cap": 66550,
+          "rates": {
+            "STONE": 100.8,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière mécanisée niveau 3",
+          "minutes": 410.5,
+          "cap": 68050,
+          "rates": {
+            "STONE": 144,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière mécanisée niveau 4",
+          "minutes": 416,
+          "cap": 73300,
+          "rates": {
+            "STONE": 216,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Carrière mécanisée niveau 5",
+          "minutes": 425,
+          "cap": 89800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 60,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine industrielle niveau 2",
+          "minutes": 427.5,
+          "cap": 90550,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 84,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine industrielle niveau 3",
+          "minutes": 431,
+          "cap": 92050,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 120,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine industrielle niveau 4",
+          "minutes": 437.5,
+          "cap": 97300,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 180,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Mine industrielle niveau 5",
+          "minutes": 448,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Arsenal niveau 2",
+          "minutes": 451,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Arsenal niveau 3",
+          "minutes": 457.5,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 243.21,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 11.24
+          }
+        },
+        {
+          "action": "Monastère",
+          "minutes": 458,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 246.17,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Bibliothèque des astres",
+          "minutes": 459.5,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 250.13,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Atelier niveau 2",
+          "minutes": 461,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 251.73,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Atelier niveau 3",
+          "minutes": 464,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 254.13,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Forge niveau 2",
+          "minutes": 466,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 254.13,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Forge niveau 3",
+          "minutes": 469.5,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 254.13,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des cendres",
+          "minutes": 476.5,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 254.09,
+            "WOOD": 432,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Scierie des ombres",
+          "minutes": 488,
+          "cap": 113800,
+          "rates": {
+            "STONE": 324,
+            "GOLD": 254.04999999999998,
+            "WOOD": 592,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Carrière runique",
+          "minutes": 501,
+          "cap": 113800,
+          "rates": {
+            "STONE": 444,
+            "GOLD": 253.926,
+            "WOOD": 592,
+            "IRON": 270,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Mine des abysses",
+          "minutes": 514.5,
+          "cap": 113800,
+          "rates": {
+            "STONE": 444,
+            "GOLD": 253.882,
+            "WOOD": 592,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Raffinerie",
+          "minutes": 517,
+          "cap": 113800,
+          "rates": {
+            "STONE": 444,
+            "GOLD": 259.838,
+            "WOOD": 592,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie alchimique",
+          "minutes": 523,
+          "cap": 113800,
+          "rates": {
+            "STONE": 444,
+            "GOLD": 289.79400000000004,
+            "WOOD": 592,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Scierie des ombres niveau 2",
+          "minutes": 531,
+          "cap": 114550,
+          "rates": {
+            "STONE": 444,
+            "GOLD": 289.79400000000004,
+            "WOOD": 720,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Scierie des ombres niveau 3",
+          "minutes": 545,
+          "cap": 116050,
+          "rates": {
+            "STONE": 444,
+            "GOLD": 289.79400000000004,
+            "WOOD": 912,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Scierie des ombres niveau 4",
+          "minutes": 569.5,
+          "cap": 121300,
+          "rates": {
+            "STONE": 444,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1232,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Scierie des ombres niveau 5",
+          "minutes": 610,
+          "cap": 137800,
+          "rates": {
+            "STONE": 444,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Carrière runique niveau 2",
+          "minutes": 619,
+          "cap": 138550,
+          "rates": {
+            "STONE": 540,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Carrière runique niveau 3",
+          "minutes": 634.5,
+          "cap": 140050,
+          "rates": {
+            "STONE": 684,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Carrière runique niveau 4",
+          "minutes": 661.5,
+          "cap": 145300,
+          "rates": {
+            "STONE": 924,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Carrière runique niveau 5",
+          "minutes": 705.5,
+          "cap": 161800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 370,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Mine des abysses niveau 2",
+          "minutes": 715.5,
+          "cap": 162550,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 450,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Mine des abysses niveau 3",
+          "minutes": 732.5,
+          "cap": 164050,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 570,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Mine des abysses niveau 4",
+          "minutes": 761.5,
+          "cap": 169300,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 770,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Mine des abysses niveau 5",
+          "minutes": 809.5,
+          "cap": 185800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 289.79400000000004,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie alchimique niveau 2",
+          "minutes": 814,
+          "cap": 185800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 313.79400000000004,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie alchimique niveau 3",
+          "minutes": 821,
+          "cap": 185800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 349.79400000000004,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie alchimique niveau 4",
+          "minutes": 832,
+          "cap": 185800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 409.79400000000004,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie alchimique niveau 5",
+          "minutes": 847.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 499.79400000000004,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Arsenal niveau 4",
+          "minutes": 853.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 499.79400000000004,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Manufacture de munitions",
+          "minutes": 854.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 499.75,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des cendres niveau 2",
+          "minutes": 862,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 499.75,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des cendres niveau 3",
+          "minutes": 876,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 499.75,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Raffinerie niveau 2",
+          "minutes": 877,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 504.55,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Raffinerie niveau 3",
+          "minutes": 878.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 511.75,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des isotopes",
+          "minutes": 887,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 511.706,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Réacteur noir",
+          "minutes": 906,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 631.662,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Réacteur noir niveau 2",
+          "minutes": 918,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 727.662,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Réacteur noir niveau 3",
+          "minutes": 936.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 871.662,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Arsenal niveau 5",
+          "minutes": 948,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 871.662,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Raffinerie niveau 4",
+          "minutes": 949.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 883.662,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Réacteur noir niveau 4",
+          "minutes": 976,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.6619999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des isotopes niveau 2",
+          "minutes": 983.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.6619999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des isotopes niveau 3",
+          "minutes": 999.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.6619999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Laboratoire des isotopes niveau 4",
+          "minutes": 1030.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.6619999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Garage militaire",
+          "minutes": 1031,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.618,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Usine de blindés",
+          "minutes": 1032.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.5739999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Fonderie atomique",
+          "minutes": 1046,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.53,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Relais radio",
+          "minutes": 1046,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.4859999999999,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Observatoire noir",
+          "minutes": 1047.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.442,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches",
+          "minutes": 1077,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.398,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches niveau 2",
+          "minutes": 1136,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.398,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches niveau 3",
+          "minutes": 1253.5,
+          "cap": 193800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.398,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 2",
+          "minutes": 1253.5,
+          "cap": 196800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.398,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 3",
+          "minutes": 1253.5,
+          "cap": 208800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.398,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 4",
+          "minutes": 1254,
+          "cap": 242800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.398,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 5",
+          "minutes": 1255,
+          "cap": 342800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.398,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches niveau 4",
+          "minutes": 1490,
+          "cap": 342800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.398,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt",
+          "minutes": 1490,
+          "cap": 343800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.3539999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 2",
+          "minutes": 1490,
+          "cap": 346800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.3539999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 3",
+          "minutes": 1490.5,
+          "cap": 358800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.3539999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 4",
+          "minutes": 1490.5,
+          "cap": 392800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.3539999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 5",
+          "minutes": 1491.5,
+          "cap": 492800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.3539999999998,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt",
+          "minutes": 1491.5,
+          "cap": 493800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.31,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 2",
+          "minutes": 1492,
+          "cap": 496800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.31,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 3",
+          "minutes": 1492,
+          "cap": 508800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.31,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Entrepôt niveau 4",
+          "minutes": 1492.5,
+          "cap": 542800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.31,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        },
+        {
+          "action": "Complexe des cloches niveau 5",
+          "minutes": 1962.5,
+          "cap": 542800,
+          "rates": {
+            "STONE": 1284,
+            "GOLD": 1123.31,
+            "WOOD": 1712,
+            "IRON": 1070,
+            "FOOD": 14.24
+          }
+        }
+      ]
+    }
+  ],
+  "producers": [
+    {
+      "kind": "LUMBER",
+      "investment": 1248,
+      "rate": 48
+    },
+    {
+      "kind": "QUARRY",
+      "investment": 1560,
+      "rate": 36
+    },
+    {
+      "kind": "MINE",
+      "investment": 2340,
+      "rate": 30
+    },
+    {
+      "kind": "STEAM_SAWMILL",
+      "investment": 10560,
+      "rate": 384
+    },
+    {
+      "kind": "MECHANIZED_QUARRY",
+      "investment": 12480,
+      "rate": 288
+    },
+    {
+      "kind": "INDUSTRIAL_MINE",
+      "investment": 14208,
+      "rate": 240
+    },
+    {
+      "kind": "OCCULT_SAWMILL",
+      "investment": 57792,
+      "rate": 1280
+    },
+    {
+      "kind": "RUNIC_QUARRY",
+      "investment": 64512,
+      "rate": 960
+    },
+    {
+      "kind": "ABYSSAL_MINE",
+      "investment": 71232,
+      "rate": 800
+    }
+  ],
+  "expeditions": [
+    {
+      "level": 1,
+      "offers": [
+        {
+          "mode": "RECON",
+          "distance": 185,
+          "reward": {
+            "GOLD": 565,
+            "WOOD": 452,
+            "STONE": 367,
+            "IRON": 283,
+            "FOOD": 509
+          }
+        },
+        {
+          "mode": "RECOVER",
+          "distance": 97,
+          "reward": {
+            "GOLD": 545,
+            "WOOD": 436,
+            "STONE": 354,
+            "IRON": 272,
+            "FOOD": 490
+          }
+        },
+        {
+          "mode": "EXTRACT",
+          "distance": 185,
+          "reward": {
+            "GOLD": 1243,
+            "WOOD": 994,
+            "STONE": 808,
+            "IRON": 622,
+            "FOOD": 1119
+          }
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "offers": [
+        {
+          "mode": "RECON",
+          "distance": 60,
+          "reward": {
+            "GOLD": 945,
+            "WOOD": 756,
+            "STONE": 614,
+            "IRON": 473,
+            "FOOD": 851
+          }
+        },
+        {
+          "mode": "RECOVER",
+          "distance": 60,
+          "reward": {
+            "GOLD": 1323,
+            "WOOD": 1058,
+            "STONE": 860,
+            "IRON": 662,
+            "FOOD": 1191
+          }
+        },
+        {
+          "mode": "EXTRACT",
+          "distance": 60,
+          "reward": {
+            "GOLD": 2079,
+            "WOOD": 1663,
+            "STONE": 1351,
+            "IRON": 1040,
+            "FOOD": 1871
+          }
+        }
+      ]
+    },
+    {
+      "level": 3,
+      "offers": [
+        {
+          "mode": "RECON",
+          "distance": 97,
+          "reward": {
+            "GOLD": 3890,
+            "WOOD": 3112,
+            "STONE": 2529,
+            "IRON": 1945,
+            "FOOD": 3501
+          }
+        },
+        {
+          "mode": "RECOVER",
+          "distance": 178,
+          "reward": {
+            "GOLD": 7714,
+            "WOOD": 6171,
+            "STONE": 5014,
+            "IRON": 3857,
+            "FOOD": 6943
+          }
+        },
+        {
+          "mode": "EXTRACT",
+          "distance": 178,
+          "reward": {
+            "GOLD": 12122,
+            "WOOD": 9698,
+            "STONE": 7879,
+            "IRON": 6061,
+            "FOOD": 10910
+          }
+        }
+      ]
+    },
+    {
+      "level": 4,
+      "offers": [
+        {
+          "mode": "RECON",
+          "distance": 67,
+          "reward": {
+            "GOLD": 9870,
+            "WOOD": 7896,
+            "STONE": 6416,
+            "IRON": 4935,
+            "FOOD": 8883
+          }
+        },
+        {
+          "mode": "RECOVER",
+          "distance": 67,
+          "reward": {
+            "GOLD": 13818,
+            "WOOD": 11054,
+            "STONE": 8982,
+            "IRON": 6909,
+            "FOOD": 12436
+          }
+        },
+        {
+          "mode": "EXTRACT",
+          "distance": 67,
+          "reward": {
+            "GOLD": 21714,
+            "WOOD": 17371,
+            "STONE": 14114,
+            "IRON": 10857,
+            "FOOD": 19543
+          }
+        }
+      ]
+    },
+    {
+      "level": 5,
+      "offers": [
+        {
+          "mode": "RECON",
+          "distance": 97,
+          "reward": {
+            "GOLD": 31120,
+            "WOOD": 24896,
+            "STONE": 20228,
+            "IRON": 15560,
+            "FOOD": 28008
+          }
+        },
+        {
+          "mode": "RECOVER",
+          "distance": 97,
+          "reward": {
+            "GOLD": 43568,
+            "WOOD": 34854,
+            "STONE": 28319,
+            "IRON": 21784,
+            "FOOD": 39211
+          }
+        },
+        {
+          "mode": "EXTRACT",
+          "distance": 97,
+          "reward": {
+            "GOLD": 68464,
+            "WOOD": 54771,
+            "STONE": 44502,
+            "IRON": 34232,
+            "FOOD": 61618
+          }
+        }
+      ]
+    }
+  ],
+  "counters": [
+    {
+      "kind": "BAZOOKA",
+      "count": 6,
+      "opponent": "MAUSOLEUM_TANK",
+      "wins": 20,
+      "runs": 20
+    },
+    {
+      "kind": "RIFLEMAN",
+      "count": 6,
+      "opponent": "MAUSOLEUM_TANK",
+      "wins": 0,
+      "runs": 20
+    },
+    {
+      "kind": "FLAK_CANNON",
+      "count": 7,
+      "opponent": "GLOCKE_APOCALYPSE",
+      "wins": 20,
+      "runs": 20
+    },
+    {
+      "kind": "BLACK_SUBMARINE",
+      "count": 7,
+      "opponent": "NUCLEAR_DREADNOUGHT",
+      "wins": 20,
+      "runs": 20
+    },
+    {
+      "kind": "HUNTER_SUBMARINE",
+      "count": 2,
+      "opponent": "NUCLEAR_DREADNOUGHT",
+      "wins": 20,
+      "runs": 20
+    }
+  ],
+  "naval": [
+    {
+      "kind": "SONAR_DESTROYER",
+      "population": 12,
+      "upkeep": {
+        "GOLD": 1.21,
+        "WOOD": 0,
+        "STONE": 0,
+        "IRON": 0.78,
+        "FOOD": 2
+      },
+      "stats": {
+        "name": "Destroyer Vigie",
+        "hp": 580,
+        "attack": 88,
+        "buildingAttack": 176,
+        "defense": 32,
+        "move": 11,
+        "vision": 5,
+        "range": 4,
+        "capture": 0,
+        "cost": {
+          "GOLD": 7000,
+          "WOOD": 1050,
+          "STONE": 0,
+          "IRON": 4900,
+          "FOOD": 1400
+        }
+      }
+    },
+    {
+      "kind": "MISSILE_ESCORT",
+      "population": 18,
+      "upkeep": {
+        "GOLD": 2.94,
+        "WOOD": 0,
+        "STONE": 0,
+        "IRON": 1.62,
+        "FOOD": 3.9
+      },
+      "stats": {
+        "name": "Frégate lance-missiles",
+        "hp": 780,
+        "attack": 128,
+        "buildingAttack": 256,
+        "defense": 44,
+        "move": 13,
+        "vision": 6,
+        "range": 5,
+        "capture": 0,
+        "cost": {
+          "GOLD": 25000,
+          "WOOD": 3750,
+          "STONE": 0,
+          "IRON": 17500,
+          "FOOD": 5000
+        }
+      }
+    },
+    {
+      "kind": "NUCLEAR_DREADNOUGHT",
+      "population": 22,
+      "upkeep": {
+        "GOLD": 4.76,
+        "WOOD": 0,
+        "STONE": 0,
+        "IRON": 2.08,
+        "FOOD": 5.4
+      },
+      "stats": {
+        "name": "Cuirassé du soleil noyé",
+        "hp": 1200,
+        "attack": 200,
+        "buildingAttack": 400,
+        "defense": 64,
+        "move": 12,
+        "vision": 6,
+        "range": 6,
+        "capture": 0,
+        "cost": {
+          "GOLD": 100000,
+          "WOOD": 15000,
+          "STONE": 0,
+          "IRON": 70000,
+          "FOOD": 20000
+        }
+      }
+    },
+    {
+      "kind": "ABYSSAL_SUBMARINE",
+      "population": 17,
+      "upkeep": {
+        "GOLD": 4.36,
+        "WOOD": 0,
+        "STONE": 0,
+        "IRON": 1.88,
+        "FOOD": 4.9
+      },
+      "stats": {
+        "name": "Léviathan submersible",
+        "hp": 640,
+        "attack": 260,
+        "buildingAttack": 0,
+        "defense": 36,
+        "move": 13,
+        "vision": 5,
+        "range": 5,
+        "capture": 0,
+        "cost": {
+          "GOLD": 120000,
+          "WOOD": 18000,
+          "STONE": 0,
+          "IRON": 84000,
+          "FOOD": 24000
+        }
+      }
+    }
+  ],
+  "coast": [
+    {
+      "attacker": "FLAK_CANNON",
+      "target": "NUCLEAR_DREADNOUGHT",
+      "blocked": "",
+      "damage": {
+        "min": 1,
+        "max": 2
+      }
+    },
+    {
+      "attacker": "NEUTRON_MORTAR",
+      "target": "NUCLEAR_DREADNOUGHT",
+      "blocked": "",
+      "damage": {
+        "min": 1,
+        "max": 2
+      }
+    },
+    {
+      "attacker": "GLOCKE_APOCALYPSE",
+      "target": "NUCLEAR_DREADNOUGHT",
+      "blocked": "",
+      "damage": {
+        "min": 63,
+        "max": 65
+      }
+    },
+    {
+      "attacker": "ABYSSAL_SUBMARINE",
+      "target": "NUCLEAR_DREADNOUGHT",
+      "blocked": "",
+      "damage": {
+        "min": 195,
+        "max": 197
+      }
+    }
+  ],
+  "siege": [
+    {
+      "cadence": 0,
+      "rounds": [
+        {
+          "afterHit": 1169,
+          "repaired": true,
+          "remaining": 1329
+        },
+        {
+          "afterHit": 896,
+          "repaired": false,
+          "remaining": 896
+        },
+        {
+          "afterHit": 465,
+          "repaired": false,
+          "remaining": 465
+        },
+        {
+          "afterHit": 32,
+          "repaired": false,
+          "remaining": 32
+        },
+        {
+          "repaired": false,
+          "remaining": 0
+        }
+      ],
+      "destroyed": true
+    },
+    {
+      "cadence": 30000,
+      "rounds": [
+        {
+          "afterHit": 1169,
+          "repaired": true,
+          "remaining": 1329
+        },
+        {
+          "afterHit": 896,
+          "repaired": true,
+          "remaining": 1056
+        },
+        {
+          "afterHit": 625,
+          "repaired": true,
+          "remaining": 785
+        },
+        {
+          "afterHit": 354,
+          "repaired": true,
+          "remaining": 514
+        },
+        {
+          "afterHit": 81,
+          "repaired": true,
+          "remaining": 241
+        },
+        {
+          "repaired": false,
+          "remaining": 0
+        }
+      ],
+      "destroyed": true
+    },
+    {
+      "cadence": 60000,
+      "rounds": [
+        {
+          "afterHit": 1168,
+          "repaired": true,
+          "remaining": 1328
+        },
+        {
+          "afterHit": 895,
+          "repaired": true,
+          "remaining": 1055
+        },
+        {
+          "afterHit": 623,
+          "repaired": true,
+          "remaining": 783
+        },
+        {
+          "afterHit": 350,
+          "repaired": true,
+          "remaining": 510
+        },
+        {
+          "afterHit": 79,
+          "repaired": true,
+          "remaining": 239
+        },
+        {
+          "repaired": false,
+          "remaining": 0
+        }
+      ],
+      "destroyed": true
+    }
+  ]
+}

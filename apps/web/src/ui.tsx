@@ -1,4 +1,12 @@
-import { TRANSPORT_FRAMES, TRANSPORT_SHEETS } from '@voidmarch/config';
+import { emblemIcon } from './emblems';
+export { symbols } from './emblems';
+import {
+  NAVAL_FRAMES,
+  NAVAL_BUILDING_FRAMES,
+  NAVAL_SHEETS,
+  TRANSPORT_FRAMES,
+  TRANSPORT_SHEETS,
+} from '@voidmarch/config';
 import { SPECIALIST_FRAMES } from '@voidmarch/config';
 import { CAMPAIGN_FRAMES, CAMPAIGN_SHEETS } from '@voidmarch/config';
 import { ELITE_FRAMES, ELITE_SHEETS } from '@voidmarch/config';
@@ -7,23 +15,7 @@ import { HeroPortrait } from './Hero';
 import { buildingAtlasUrl, buildingEvolutionFrame } from './building-art';
 import { hasBuildingEvolutionArt, type BuildingKind, type UnitKind } from '@voidmarch/config';
 import type { HeroAppearance } from '@voidmarch/config';
-import {
-  Coins,
-  Trees,
-  Pickaxe,
-  Mountain,
-  Wheat,
-  Crown,
-  Sword,
-  Eye,
-  Castle,
-  Bird,
-  Star,
-  KeyRound,
-  Bell,
-  X,
-  type LucideIcon,
-} from 'lucide-react';
+import { Coins, Trees, Pickaxe, Mountain, Wheat, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { miniatureAtlasUrl } from './sprite-atlas';
 import { wallImageUrl, loadWallMaterials } from './wall-art';
@@ -37,16 +29,6 @@ export const resourceIcons: Record<Resource, LucideIcon> = {
   WOOD: Trees,
   IRON: Pickaxe,
   FOOD: Wheat,
-};
-export const symbols: Record<string, LucideIcon> = {
-  crown: Crown,
-  sword: Sword,
-  eye: Eye,
-  tower: Castle,
-  bird: Bird,
-  star: Star,
-  key: KeyRound,
-  bell: Bell,
 };
 export const format = formatNumber;
 export function Duration({ until }: { until: number }) {
@@ -71,7 +53,7 @@ export function Sigil({
   color?: string;
   size?: number;
 }) {
-  const Icon = symbols[symbol] ?? Crown;
+  const Icon = emblemIcon(symbol);
   return (
     <span className="sigil" style={{ color, width: size + 22, height: size + 32 }}>
       <Icon size={size} strokeWidth={1.15} />
@@ -224,6 +206,7 @@ export function Modal({
   );
 }
 export const UNIT_FRAMES: Record<UnitKind, number> = {
+  ...NAVAL_FRAMES,
   ...TRANSPORT_FRAMES,
   ...SPECIALIST_FRAMES,
   ...ELITE_FRAMES,
@@ -345,6 +328,7 @@ export const UNIT_FRAMES: Record<UnitKind, number> = {
   SIEGE: 5,
 };
 export const BUILDING_FRAMES: Record<string, number> = {
+  ...NAVAL_BUILDING_FRAMES,
   STEAM_SAWMILL: 528,
   MECHANIZED_QUARRY: 529,
   INDUSTRIAL_MINE: 530,
@@ -414,66 +398,70 @@ const npcTextures = ['npc-deserter', 'npc-marauder', 'npc-cultist', 'npc-mutant'
 export const unitFrame = (unit: Unit) =>
   unit.npc ? 312 + npcTextures.indexOf(`npc-${unit.npc.kind}`) * 24 : UNIT_FRAMES[unit.kind];
 export const miniatureTexture = (frame: number) =>
-  frame >= 3000
-    ? TRANSPORT_SHEETS[Math.floor((frame - 3000) / 24)]
-    : frame >= 1080
-      ? CAMPAIGN_SHEETS[Math.floor((frame - 1080) / 24)]
-      : frame >= 888
-        ? ELITE_SHEETS[Math.floor((frame - 888) / 24)]
-        : frame >= 768
-          ? [
-              'reinforcements-medieval',
-              'reinforcements-empire',
-              'reinforcements-industrial',
-              'reinforcements-modern',
-              'reinforcements-atomic',
-            ][Math.floor((frame - 768) / 24)]
-          : frame >= 624
-            ? [
-                'epoch-musketeer',
-                'epoch-grenadier',
-                'epoch-cuirassier',
-                'epoch-commando',
-                'epoch-drones',
-                'epoch-neutron',
-              ][Math.floor((frame - 624) / 24)]
-            : frame >= 552
-              ? ['mine-iron', 'mine-stone', 'mine-gold'][Math.floor((frame - 552) / 24)]
-              : frame >= 528
-                ? 'resource-buildings'
-                : frame >= 432
-                  ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
-                      Math.floor((frame - 432) / 24)
-                    ]
-                  : frame >= 312
-                    ? npcTextures[Math.floor((frame - 312) / 24)]
-                    : frame >= 144
-                      ? [
-                          'rad-infantry',
-                          'rad-cavalry',
-                          'rad-motorcycles',
-                          'rad-vehicles',
-                          'rad-planes',
-                          'rad-helicopters',
-                          'rad-buildings',
-                        ][Math.floor((frame - 144) / 24)]
-                      : frame >= 120
-                        ? 'terraformer'
-                        : frame >= 96
-                          ? 'aviation'
-                          : frame < 6
-                            ? 'units-medieval'
-                            : frame >= 24 && frame < 36
-                              ? 'units-civil'
-                              : frame >= 48 && frame < 60
-                                ? 'units-industrial'
-                                : frame >= 72
-                                  ? 'occult'
-                                  : frame >= 48
-                                    ? 'industrial'
-                                    : frame >= 24
-                                      ? 'expansion'
-                                      : 'miniatures';
+  frame >= 4320
+    ? 'naval-events'
+    : frame >= 4032
+      ? NAVAL_SHEETS[Math.floor((frame - 4032) / 24)]
+      : frame >= 3000
+        ? TRANSPORT_SHEETS[Math.floor((frame - 3000) / 24)]
+        : frame >= 1080
+          ? CAMPAIGN_SHEETS[Math.floor((frame - 1080) / 24)]
+          : frame >= 888
+            ? ELITE_SHEETS[Math.floor((frame - 888) / 24)]
+            : frame >= 768
+              ? [
+                  'reinforcements-medieval',
+                  'reinforcements-empire',
+                  'reinforcements-industrial',
+                  'reinforcements-modern',
+                  'reinforcements-atomic',
+                ][Math.floor((frame - 768) / 24)]
+              : frame >= 624
+                ? [
+                    'epoch-musketeer',
+                    'epoch-grenadier',
+                    'epoch-cuirassier',
+                    'epoch-commando',
+                    'epoch-drones',
+                    'epoch-neutron',
+                  ][Math.floor((frame - 624) / 24)]
+                : frame >= 552
+                  ? ['mine-iron', 'mine-stone', 'mine-gold'][Math.floor((frame - 552) / 24)]
+                  : frame >= 528
+                    ? 'resource-buildings'
+                    : frame >= 432
+                      ? ['glocke-vril', 'glocke-nacht', 'glocke-apocalypse', 'glocke-complex'][
+                          Math.floor((frame - 432) / 24)
+                        ]
+                      : frame >= 312
+                        ? npcTextures[Math.floor((frame - 312) / 24)]
+                        : frame >= 144
+                          ? [
+                              'rad-infantry',
+                              'rad-cavalry',
+                              'rad-motorcycles',
+                              'rad-vehicles',
+                              'rad-planes',
+                              'rad-helicopters',
+                              'rad-buildings',
+                            ][Math.floor((frame - 144) / 24)]
+                          : frame >= 120
+                            ? 'terraformer'
+                            : frame >= 96
+                              ? 'aviation'
+                              : frame < 6
+                                ? 'units-medieval'
+                                : frame >= 24 && frame < 36
+                                  ? 'units-civil'
+                                  : frame >= 48 && frame < 60
+                                    ? 'units-industrial'
+                                    : frame >= 72
+                                      ? 'occult'
+                                      : frame >= 48
+                                        ? 'industrial'
+                                        : frame >= 24
+                                          ? 'expansion'
+                                          : 'miniatures';
 export const miniatureFrame = (frame: number) => frame % 24;
 export function Miniature({
   building,

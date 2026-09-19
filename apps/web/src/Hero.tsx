@@ -52,19 +52,26 @@ export function HeroCreator({
   value,
   onChange,
   name,
+  compact = false,
 }: {
   value: HeroAppearance;
   onChange: (a: HeroAppearance) => void;
   name: string;
+  compact?: boolean;
 }) {
   const [part, setPart] = useState<HeroVisualPart>('head');
   return (
-    <section className="hero-creator" aria-label="Personnaliser votre héros">
-      <div className="hero-preview">
-        <HeroPortrait appearance={value} />
-        <strong>{name || 'Votre pseudo'}</strong>
-        <small>Apparence définitive après inscription</small>
-      </div>
+    <section
+      className={`hero-creator ${compact ? 'compact' : ''}`}
+      aria-label="Personnaliser votre héros"
+    >
+      {!compact && (
+        <div className="hero-preview">
+          <HeroPortrait appearance={value} />
+          <strong>{name || 'Votre pseudo'}</strong>
+          <small>Apparence définitive après inscription</small>
+        </div>
+      )}
       <div className="hero-customization">
         <h3>Votre héros, votre identité</h3>
         <p>

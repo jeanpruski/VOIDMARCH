@@ -43,13 +43,13 @@ test('projectiles : trajet, impact à l’arrivée, confirmation sans doublon et
     state = r.state;
     return { result: r.result, world: view() };
   });
-  await page.route('**/src/Map.tsx', async (route) => {
+  await page.route(/\/src\/Map\.tsx(?:\?.*)?$/, async (route) => {
     const response = await route.fetch();
     const body = await response.text();
     const instrumented = body
       .replace(
         /\bcreate\(\)\s*\{/,
-        'create() { window.__projectileScene = this; window.__impacts = 0;',
+        'create() { window.__projectileScene = this; window.__projectileSend = send; window.__impacts = 0;',
       )
       .replace(
         /\bplayImpact\(effect, projectile\)\s*\{/,
@@ -72,14 +72,13 @@ test('projectiles : trajet, impact à l’arrivée, confirmation sans doublon et
   await page.goto('/');
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
   await page.waitForFunction(() => (window as any).__projectileScene?.view);
+  await expect(page.locator('.map-loading')).toHaveCount(0, { timeout: 60000 });
   await page.evaluate(() => {
     (window as any).__projectileScene.tweens.timeScale = 0.15;
   });
   const begin = () =>
     page.evaluate(async () => {
-      // @ts-expect-error Vite serves the source module.
-      const { send } = await import('/src/store.ts');
-      (window as any).__request = send({
+      (window as any).__request = (window as any).__projectileSend({
         type: 'ATTACK',
         actorId: 'gunner',
         payload: { targetId: 'target' },

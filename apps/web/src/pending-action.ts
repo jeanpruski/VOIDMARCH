@@ -37,6 +37,7 @@ const labels: Record<Action['type'], string> = {
   INSTALL_TURRET: 'Installation de la tourelle',
   UPGRADE_TURRET: 'Amélioration de la tourelle',
   REPAIR: 'Réparation en cours',
+  RESUPPLY: 'Préparation des provisions',
   DEMOLISH: 'Démolition en cours',
   MOVE: 'Déplacement en cours',
   MOVE_ROAD: 'Déplacement en cours',

@@ -1,3 +1,4 @@
+import { movementBiome, unitMovementBudget } from '@voidmarch/game-rules';
 import {
   ACTION_COST,
   UNITS,
@@ -41,9 +42,11 @@ function movementSearch(world: WorldView, units: Unit[], selectedIds = new Set<s
       )
         blocked.add(key(tile));
     const routes = roadPaths(unit, tiles, blocked, unit.kind, unit.ownerId);
-    const budget =
-      UNITS[unit.kind].move +
-      (UNIT_PROFILES[unit.kind].mounted && world.player.faction === 'IRON' ? 1 : 0);
+    const budget = unitMovementBudget(
+      unit,
+      movementBiome(world.seed, tiles.get(key(unit))),
+      world.player.faction,
+    );
     const frontier: { p: Hex; path: Hex[]; cost: number }[] = [{ p: unit, path: [], cost: 0 }];
     const costs = new Map<string, number>();
     const reachable = new Map<string, Hex[]>();

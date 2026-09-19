@@ -1,3 +1,5 @@
+import { seaTradeRoute } from '@voidmarch/game-rules';
+import { isSea } from '@voidmarch/config';
 import { destroyUnit } from './transports';
 import { tickAllianceOperations } from './alliance-operations';
 import { missionAttackReason } from './missions';
@@ -479,27 +481,34 @@ export function launchTrade(
   const start = realmBuildings(s, from).find((b) => b.kind === 'MARKET'),
     end = realmBuildings(s, to).find((b) => b.kind === 'MARKET');
   requireRule(start && end, 'Les deux royaumes doivent posséder un marché.');
-  requireRule(
-    tileAt(s, start).road && tileAt(s, end).road,
-    'Une route doit passer sous chaque marché.',
-  );
+
   const allowed = new Set([from, to, ...alliedRealmIds(s, from), ...alliedRealmIds(s, to)]);
-  const path = findPath(
-    start,
-    end,
-    (p) => {
-      const t = tileAt(s, p);
-      const b = s.buildings[t.buildingId ?? ''];
-      return t.road &&
-        (!t.ownerId || allowed.has(t.ownerId)) &&
-        (!b || !b.kind.endsWith('_WALL') || allowed.has(b.ownerId))
-        ? t
-        : undefined;
-    },
-    2048,
+  const path =
+    tileAt(s, start).road && tileAt(s, end).road
+      ? findPath(
+          start,
+          end,
+          (p) => {
+            const t = tileAt(s, p);
+            const b = s.buildings[t.buildingId ?? ''];
+            return t.road &&
+              (!t.ownerId || allowed.has(t.ownerId)) &&
+              (!b || !b.kind.endsWith('_WALL') || allowed.has(b.ownerId))
+              ? t
+              : undefined;
+          },
+          2048,
+        )
+      : null;
+  const maritimeRoute = path?.length ? undefined : seaTradeRoute(s, from, to);
+  requireRule(
+    path?.length || maritimeRoute?.length,
+    'Reliez les deux marchés par une route continue, ou construisez deux ports donnant sur la même mer.',
   );
-  requireRule(path?.length, 'Reliez les deux marchés par une route continue avant d’accepter.');
-  const full = [{ q: start.q, r: start.r }, ...path.map((p) => ({ q: p.q, r: p.r }))];
+  const full = maritimeRoute ?? [
+    { q: start.q, r: start.r },
+    ...path!.map((p) => ({ q: p.q, r: p.r })),
+  ];
   for (const [ownerId, partnerId, cargo, route] of [
     [from, to, offer, full],
     [to, from, request, [...full].reverse()],
@@ -511,6 +520,7 @@ export function launchTrade(
       ownerId,
       partnerId,
       delivery: true,
+      maritime: !!maritimeRoute,
       ...route[0],
       from: route[0],
       to: route[route.length - 1],
@@ -683,7 +693,7 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
         continue;
       if (strike.scorchesTerrain) burned.add(key(p));
       writeTile(s, p, {
-        ...(strike.scorchesTerrain
+        ...(strike.scorchesTerrain && !isSea(t.terrain)
           ? { terrain: 'SCORCHED' as const, poi: undefined, exhausted: true }
           : {}),
         road: undefined,
@@ -737,6 +747,7 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
       const places = disk(realm.capital, 24).filter(
         (p) =>
           distance(p, realm.capital) >= 16 &&
+          !isSea(tileAt(s, p).terrain) &&
           tileAt(s, p).terrain !== 'SCORCHED' &&
           !tileAt(s, p).ownerId &&
           !tileAt(s, p).buildingId &&
@@ -767,6 +778,7 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
       const places = disk(realm.capital, 22).filter(
         (p) =>
           distance(p, realm.capital) >= 12 &&
+          !isSea(tileAt(s, p).terrain) &&
           tileAt(s, p).terrain !== 'SCORCHED' &&
           !tileAt(s, p).ownerId &&
           !tileAt(s, p).buildingId &&

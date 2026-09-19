@@ -13,6 +13,7 @@ export type ProjectileKind =
   | 'bolt'
   | 'bullet'
   | 'shell'
+  | 'torpedo'
   | 'rocket'
   | 'bomb'
   | 'stone'
@@ -21,6 +22,16 @@ export type ProjectileKind =
   | 'flame';
 /** Deliberate weapon assignments: new ranged troops must choose their ammunition. */
 export const PROJECTILE_WEAPONS = {
+  WAR_GALLEY: 'bolt',
+  SCOUT_LONGSHIP: 'arrow',
+  CANNON_FRIGATE: 'shell',
+  ESCORT_CORVETTE: 'shell',
+  SONAR_DESTROYER: 'shell',
+  BLACK_SUBMARINE: 'torpedo',
+  MISSILE_ESCORT: 'rocket',
+  HUNTER_SUBMARINE: 'torpedo',
+  NUCLEAR_DREADNOUGHT: 'orb',
+  ABYSSAL_SUBMARINE: 'torpedo',
   ...SPECIALIST_WEAPONS,
   ...Object.fromEntries(
     CAMPAIGN_KINDS.filter((k) => CAMPAIGN_ROSTER[k].weapon !== 'none').map((k) => [
@@ -144,43 +155,49 @@ export function projectileProfile(unit: UnitKind, targetAirborne = false) {
   const radioactive = !!UNIT_PROFILES[unit].radioactive;
   const family = eliteUnit(unit)?.family;
   const campaign = campaignUnit(unit);
-  const color = campaign
-    ? CAMPAIGN_COLORS[campaign.family]
-    : family === 'solar'
-      ? 0xffc75b
-      : family === 'neon'
-        ? 0x7aebff
-        : unit === 'GLOCKE_APOCALYPSE' || unit === 'GLOCKE_VRIL'
-          ? 0xbaff55
-          : radioactive
-            ? 0xbaff55
-            : kind === 'orb'
-              ? 0xc08cff
-              : kind === 'lightning'
-                ? 0x98eaff
-                : kind === 'flame'
-                  ? 0x87e76a
-                  : 0xffd69a;
-  const arc = targetAirborne
+  const color =
+    kind === 'torpedo'
+      ? 0x98d4d6
+      : campaign
+        ? CAMPAIGN_COLORS[campaign.family]
+        : family === 'solar'
+          ? 0xffc75b
+          : family === 'neon'
+            ? 0x7aebff
+            : unit === 'GLOCKE_APOCALYPSE' || unit === 'GLOCKE_VRIL'
+              ? 0xbaff55
+              : radioactive
+                ? 0xbaff55
+                : kind === 'orb'
+                  ? 0xc08cff
+                  : kind === 'lightning'
+                    ? 0x98eaff
+                    : kind === 'flame'
+                      ? 0x87e76a
+                      : 0xffd69a;
+  const arc = UNIT_PROFILES[unit].submarine
     ? 0
-    : INDIRECT_FIRE_UNITS.includes(unit)
-      ? 100
-      : kind === 'shell'
-        ? 0
-        : kind === 'bomb'
-          ? 65
-          : kind === 'arrow' || kind === 'bolt'
-            ? 24
-            : kind === 'rocket'
-              ? 14
-              : 0;
+    : targetAirborne
+      ? 0
+      : INDIRECT_FIRE_UNITS.includes(unit) ||
+          (UNIT_PROFILES[unit].naval && UNIT_PROFILES[unit].siege)
+        ? 100
+        : kind === 'shell'
+          ? 0
+          : kind === 'bomb'
+            ? 65
+            : kind === 'arrow' || kind === 'bolt'
+              ? 24
+              : kind === 'rocket'
+                ? 14
+                : 0;
   return {
     kind,
     color,
     radioactive,
     arc,
     burst: kind === 'bullet' && automatic.has(unit) ? 3 : 1,
-    explosive: ['shell', 'rocket', 'bomb', 'stone'].includes(kind),
+    explosive: ['shell', 'rocket', 'torpedo', 'bomb', 'stone'].includes(kind),
   };
 }
 export type ProjectileProfile = NonNullable<ReturnType<typeof projectileProfile>>;

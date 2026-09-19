@@ -8,6 +8,7 @@ import {
   estimateDamage,
   tileAt,
   unitStats,
+  refreshWorldTraining,
 } from '@voidmarch/game-rules';
 import { addPlayer, addBuilding, execute, worldView } from '../apps/server/src/engine';
 import { actionSchema } from '@voidmarch/protocol';
@@ -48,6 +49,7 @@ test('affinités : recherche par terrain, fiches, estimation puis dégâts réel
   };
   writeTile(state, state.units.shooter, { terrain: 'FOREST' });
   writeTile(state, state.units.target, { terrain: 'HILL' });
+  refreshWorldTraining(state, now);
   const view = () =>
     worldView(state, 'a', now, [
       { q: 0, r: 0 },

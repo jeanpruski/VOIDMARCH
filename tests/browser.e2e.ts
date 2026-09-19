@@ -14,33 +14,35 @@ async function moveWorkerToResource(page: Page, terrain: 'FOREST' | 'RUINS') {
   }, terrain);
 }
 const suffix = Date.now().toString(36);
-test('un invité devient un compte et renouvelle sa session', async ({ request }) => {
+test('les invités sont désactivés et un compte inscrit renouvelle sa session', async ({
+  request,
+}) => {
   const username = `Test Auth ${suffix}`;
-  const response = await request.post('/api/auth/guest', { data: { username, faction: 'ASH' } });
-  expect(response.ok()).toBe(true);
-  const guest = await response.json();
-  const converted = await request.post('/api/auth/register', {
-    headers: { Authorization: `Bearer ${guest.token}` },
+  const denied = await request.post('/api/auth/guest', { data: { username, faction: 'ASH' } });
+  expect(denied.status()).toBe(403);
+  const registered = await request.post('/api/auth/register', {
     data: { username, password: 'CendresDesMarches2026', faction: 'ASH' },
   });
-  expect(converted.ok()).toBe(true);
-  const account = await converted.json();
-  expect(account.user.id).toBe(guest.user.id);
+  expect(registered.ok()).toBe(true);
+  const account = await registered.json();
   expect(account.user.guest).toBe(false);
   const refreshed = await request.post('/api/auth/refresh', { data: {} });
   expect(refreshed.ok()).toBe(true);
-  expect((await refreshed.json()).user.id).toBe(guest.user.id);
+  expect((await refreshed.json()).user.id).toBe(account.user.id);
   const login = await request.post('/api/auth/login', {
     data: { username: username.toLowerCase(), password: 'CendresDesMarches2026' },
   });
   expect(login.ok()).toBe(true);
-  expect((await login.json()).user.id).toBe(guest.user.id);
+  expect((await login.json()).user.id).toBe(account.user.id);
 });
 test('un souverain joue, construit, négocie et retrouve son royaume', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await page.getByLabel('Nom de votre souverain').fill(`Test Cendre ${suffix}`);
+  await page.getByLabel('Mot de passe', { exact: true }).fill('CendresDesMarches2026');
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
+  await page.getByRole('button', { name: 'Continuer', exact: true }).click();
   await page.getByRole('button', { name: 'Élever ma bannière' }).click();
   await page.getByRole('button', { name: 'Entrer dans les Marches' }).click();
   await expect(page.getByRole('application')).toBeVisible();
@@ -120,6 +122,9 @@ test('deux navigateurs acceptent une trêve et voient le même accord', async ({
     await page.bringToFront();
     await page.goto('/');
     await page.getByLabel('Nom de votre souverain').fill(name);
+    await page.getByLabel('Mot de passe', { exact: true }).fill('CendresDesMarches2026');
+    await page.getByRole('button', { name: 'Continuer', exact: true }).click();
+    await page.getByRole('button', { name: 'Continuer', exact: true }).click();
     await page.getByRole('button', { name: 'Élever ma bannière' }).click();
     await expect(page.getByRole('application')).toBeVisible();
     await page.keyboard.press('Escape');

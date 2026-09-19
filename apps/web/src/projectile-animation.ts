@@ -88,6 +88,14 @@ export function animateProjectile(
       body.lineStyle(1, 0xd2cbb7, 1);
       body.lineBetween(-9, 0, -14, -3);
       body.lineBetween(-9, 0, -14, 3);
+    } else if (profile.kind === 'torpedo') {
+      body.fillStyle(0x83aab0, 0.9);
+      body.fillEllipse(0, 0, 17, 5);
+      body.lineStyle(1, 0xd8eeec, 0.8);
+      body.lineBetween(-17, -4, -7, -1);
+      body.lineBetween(-17, 4, -7, 1);
+      body.fillStyle(0xdbe9d7, 1);
+      body.fillEllipse(6, 0, 5, 3);
     } else if (profile.kind === 'rocket') {
       body.fillStyle(color, 0.3);
       body.fillCircle(-10, 0, 7);

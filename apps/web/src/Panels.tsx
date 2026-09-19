@@ -1,3 +1,14 @@
+import { Development } from './Development';
+import { developmentReason, constructionDevelopmentStage } from '@voidmarch/config';
+import { IdentityEditor, RealmPreview } from './RealmIdentity';
+import type { RealmIdentity } from '@voidmarch/config';
+import { navalConstructionReason } from '@voidmarch/game-rules';
+import { eventAvailable } from './world-events';
+import { Banner } from './Banner';
+import { BiomeAdaptation } from './BiomeAdaptation';
+import { BIOMES, BIOME_ADAPTATION_NAMES, UNIT_BIOME_ADAPTATIONS } from '@voidmarch/config';
+import { ArmySupport } from './ArmySupport';
+import { armyTraining } from '@voidmarch/game-rules';
 import { allUnits } from '@voidmarch/game-rules';
 import { SavedArmies } from './SavedArmies';
 import { TrophyRoom } from './TrophyRoom';
@@ -56,7 +67,6 @@ import {
   unitUpkeep,
   productionOnTerrain,
   productionMultiplier,
-  trainingBonusAt,
   BUILDING_REQUIREMENTS,
   BUILDING_ROLES,
   CITY_LEVELS,
@@ -95,7 +105,6 @@ import {
   Miniature,
   Modal,
   resourceIcons,
-  Sigil,
   symbols,
   UNIT_FRAMES,
 } from './ui';
@@ -211,13 +220,14 @@ function RealmPanel() {
   return (
     <>
       <div className="realm-heading">
-        <Sigil symbol={p.settings.emblem} color={p.settings.bannerColor} size={45} />
+        <Banner settings={p.settings} size={85} />
         <div>
           <div className="eyebrow">{FACTIONS[p.faction].name}</div>
-          <h3>{p.name}</h3>
+          <h3>{p.settings.realmName || p.name}</h3>
           <p>{FACTIONS[p.faction].description}</p>
         </div>
       </div>
+      <Development />
       <div className="stat-grid realm-stat-grid">
         {[
           [Crown, 'Territoire', `${me.stats.territory} hexagones`],
@@ -443,6 +453,39 @@ function Economy() {
         automatiquement ses ressources. La production est calculée pendant votre présence et le
         délai de grâce de trois minutes.
       </p>
+      {p.foodBalance && (
+        <section className="inset food-balance" aria-label="Bilan des vivres">
+          <h4>Où vont vos vivres ?</h4>
+          {(p.foodShortageMinutes ?? 0) > 0 && (
+            <p className="negative">
+              Pénurie accumulée : {format(p.foodShortageMinutes ?? 0)} min de présence.
+            </p>
+          )}
+          <p>
+            Par minute de présence : production <strong>+{format(p.foodBalance.production)}</strong>{' '}
+            · habitants <strong>−{format(p.foodBalance.civilians)}</strong> · troupes et équipages{' '}
+            <strong>−{format(p.foodBalance.army)}</strong>.
+          </p>
+          <p>
+            Les vivres servent aussi au recrutement, aux soins et aux provisions de campagne :
+            sélectionnez une troupe puis ouvrez « Provisions ». Les passagers d’un transport gardent
+            leur propre entretien ; il n’est compté qu’une fois.
+          </p>
+          {p.foodBalance.net < 0 && (
+            <p className="negative">
+              {p.wallet.FOOD > 0
+                ? `Réserve estimée : ${format(p.wallet.FOOD / -p.foodBalance.net)} min de présence au rythme actuel, hors achats.`
+                : 'Réserve épuisée : recrutez moins ou développez votre production.'}
+            </p>
+          )}
+          <p className="muted">
+            À court de vivres, vos troupes restent en vie et peuvent agir. Après 10 minutes de
+            pénurie pendant votre présence : −10 % d’attaque ; après 30 minutes : −20 %. Avec des
+            vivres, chaque minute de présence efface 2 minutes de pénurie. Après la déconnexion,
+            production et entretien s’arrêtent selon les mêmes règles de présence.
+          </p>
+        </section>
+      )}
       <div className="economy-cards">
         {RESOURCES.map((r) => {
           const Icon = resourceIcons[r];
@@ -497,7 +540,10 @@ function Economy() {
         </thead>
         <tbody>
           {w.tiles
-            .filter((t) => t.building?.ownerId === p.id && !isWall(t.building.kind))
+            .filter(
+              (t) =>
+                t.building?.ownerId === p.id && amount(BUILDINGS[t.building.kind].production) > 0,
+            )
             .map((t) => {
               const b = t.building!;
               const production = t.terrain
@@ -517,11 +563,7 @@ function Economy() {
                   <td>
                     <Cost cost={production} />
                     {!amount(production) && (
-                      <span className="muted">
-                        {amount(BUILDINGS[b.kind].production)
-                          ? 'Terrain incompatible — production arrêtée'
-                          : 'Infrastructure'}
-                      </span>
+                      <span className="muted">Terrain incompatible — production arrêtée</span>
                     )}
                   </td>
                   <td>
@@ -635,7 +677,7 @@ function Diplomacy() {
       <p className="panel-intro">
         {kind === 'TRIBUTE'
           ? 'Négociez le prix de la paix. Le paiement et la protection réciproque commencent uniquement à l’acceptation.'
-          : 'Reliez vos marchés par une route avant d’accepter. Les ressources sont débitées ensemble, puis livrées par deux caravanes (15 secondes par case). Une cargaison interceptée est perdue ; une route coupée renvoie la cargaison à son expéditeur.'}
+          : 'Reliez vos marchés par une route, ou construisez deux ports sur la même mer avant d’accepter. Les ressources sont débitées ensemble, puis livrées par deux convois terrestres ou maritimes (15 secondes par case). Une cargaison interceptée est perdue ; une route coupée renvoie la cargaison à son expéditeur.'}
       </p>
       <form onSubmit={propose} className="treaty-form">
         <div className="two-col">
@@ -650,7 +692,7 @@ function Diplomacy() {
             >
               {others.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.name}
+                  {r.realmName || r.name}
                   {r.bot ? ' · souverain autonome' : ''}
                 </option>
               ))}
@@ -809,6 +851,7 @@ function Diplomacy() {
   );
 }
 function Events() {
+  const now = useGame((s) => s.now);
   const w = useGame((s) => s.world)!,
     selection = useGame((s) => s.selection),
     unit = w.units.find((u) => u.id === selection?.id && u.ownerId === w.player.id);
@@ -845,24 +888,27 @@ function Events() {
             </div>
           </article>
         ))}
-      {!w.events.some((e) => !e.claimedBy && e.endsAt > w.serverTimestamp) && (
+      {!w.events.some((e) => eventAvailable(e, Math.max(now, w.serverTimestamp))) && (
         <p className="empty-line">Aucune découverte disponible pour le moment.</p>
       )}
       {w.events
-        .filter((e) => !e.claimedBy && e.endsAt > w.serverTimestamp)
+        .filter((e) => eventAvailable(e, Math.max(now, w.serverTimestamp)))
         .map((e) => (
           <article className={`event-card ${e.claimedBy ? 'claimed' : ''}`} key={e.id}>
             <Miniature
               frame={
-                e.kind === 'MONOLITH'
-                  ? 19
-                  : e.kind === 'METEOR'
-                    ? 20
-                    : e.kind === 'COLOSSUS'
-                      ? 21
-                      : e.kind === 'ROYAL_CARAVAN'
-                        ? 22
-                        : 23
+                ['SHIPWRECK', 'SEA_OBELISK', 'DRIFTING_CARGO', 'SUB_WRECK'].includes(e.kind)
+                  ? 4320 +
+                    ['SHIPWRECK', 'SEA_OBELISK', 'DRIFTING_CARGO', 'SUB_WRECK'].indexOf(e.kind)
+                  : e.kind === 'MONOLITH'
+                    ? 19
+                    : e.kind === 'METEOR'
+                      ? 20
+                      : e.kind === 'COLOSSUS'
+                        ? 21
+                        : e.kind === 'ROYAL_CARAVAN'
+                          ? 22
+                          : 23
               }
               size={94}
             />
@@ -912,7 +958,9 @@ function Events() {
 }
 function Rank() {
   const w = useGame((s) => s.world)!,
-    [metric, setMetric] = useState<keyof (typeof w.realms)[number]['stats']>('territory');
+    [metric, setMetric] = useState<keyof (typeof w.realms)[number]['stats'] | 'trophies'>(
+      'territory',
+    );
   const labels = {
     territory: 'Territoire',
     military: 'Puissance militaire',
@@ -922,7 +970,10 @@ function Rank() {
     exploration: 'Exploration',
     commerce: 'Commerce',
     relics: 'Reliques',
+    trophies: 'Trophées',
   };
+  const score = (realm: (typeof w.realms)[number]) =>
+    metric === 'trophies' ? (realm.trophyCount ?? 0) : realm.stats[metric];
   return (
     <>
       <p className="panel-intro">
@@ -945,23 +996,22 @@ function Rank() {
             <th>Rang</th>
             <th>Royaume</th>
             <th>Bannière</th>
-            <th title="Trophées remportés en mission">Trophées</th>
             <th>{labels[metric]}</th>
           </tr>
         </thead>
         <tbody>
           {[...w.realms]
-            .sort((a, b) => b.stats[metric] - a.stats[metric])
+            .sort((a, b) => score(b) - score(a))
             .map((r, i) => (
               <tr key={r.id} className={r.id === w.player.id ? 'you' : ''}>
                 <td>{String(i + 1).padStart(2, '0')}</td>
                 <td>
-                  {r.name}
+                  {r.realmName || r.name}
                   {r.id === w.player.id && <span className="badge">VOUS</span>}
+                  {r.bot && <span className="badge">BOT</span>}
                 </td>
                 <td>{FACTIONS[r.faction].short}</td>
-                <td>{format(r.trophyCount ?? 0)}</td>
-                <td>{format(r.stats[metric])}</td>
+                <td>{format(score(r))}</td>
               </tr>
             ))}
         </tbody>
@@ -995,6 +1045,10 @@ function Build() {
   const buildable = (
     Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][]
   ).filter(([kind]) => isBuildable(kind));
+  const terrainCompatible = (kind: BuildingKind) =>
+    !!tile?.terrain &&
+    BUILDINGS[kind].terrains.includes(tile.terrain) &&
+    !navalConstructionReason(kind, tile, (p) => w.tiles.find((t) => key(t) === key(p)));
   const quotes = new Map(
     buildable.map(([kind, b]) => {
       const cost = Object.fromEntries(
@@ -1007,7 +1061,14 @@ function Build() {
         (k) => !w.tiles.some((t) => t.building?.ownerId === w.player.id && t.building.kind === k),
       );
       const reason =
+        developmentReason(
+          w.tiles.flatMap((t) => (t.building?.ownerId === w.player.id ? [t.building] : [])),
+          constructionDevelopmentStage(kind),
+        ) ||
         siteReason ||
+        (tile
+          ? navalConstructionReason(kind, tile, (p) => w.tiles.find((t) => key(t) === key(p)))
+          : '') ||
         (!tile?.terrain || !b.terrains.includes(tile.terrain)
           ? 'Terrain incompatible'
           : missing
@@ -1044,12 +1105,11 @@ function Build() {
         ),
       ),
     )
-    .filter(([, b]) => !terrainOnly || (!!tile?.terrain && b.terrains.includes(tile.terrain)))
+    .filter(([kind]) => !terrainOnly || terrainCompatible(kind))
     .sort(
       ([a], [b]) =>
         Number(b === 'WOOD_WALL') - Number(a === 'WOOD_WALL') ||
-        Number(!!tile?.terrain && BUILDINGS[b].terrains.includes(tile.terrain)) -
-          Number(!!tile?.terrain && BUILDINGS[a].terrains.includes(tile.terrain)) ||
+        Number(terrainCompatible(b)) - Number(terrainCompatible(a)) ||
         (sort === 'cost'
           ? Object.values(quotes.get(a)!.cost).reduce((x, y) => x + y, 0) -
             Object.values(quotes.get(b)!.cost).reduce((x, y) => x + y, 0)
@@ -1188,7 +1248,7 @@ function Build() {
       <div className="catalog catalog-compact">
         {pagination.items.map(([kind, b]) => {
           const { cost, reason } = quotes.get(kind)!;
-          const compatible = !!tile?.terrain && b.terrains.includes(tile.terrain);
+          const compatible = terrainCompatible(kind);
           const production = productionOnTerrain(
             kind,
             compatible ? tile!.terrain! : (b.terrains[0] as Terrain),
@@ -1364,12 +1424,6 @@ function Recruit() {
     t.building?.ownerId === w.player.id && t.building.hp > 0 ? [t.building] : [],
   );
   const ownedInfrastructure = new Set(ownedBuildings.map((b) => b.kind));
-  const bestTraining = new Map<BuildingKind, number>();
-  for (const b of ownedBuildings)
-    bestTraining.set(
-      b.kind,
-      Math.max(bestTraining.get(b.kind) ?? 0, trainingBonusAt(b.kind, b.level)),
-    );
   const capacity = Math.max(15, w.player.population);
   const mobilized = armyPopulation(ownUnits);
   const recruitReason = (kind: UnitKind) => {
@@ -1384,12 +1438,7 @@ function Recruit() {
   };
   const reasons = new Map(recruits.map(([kind]) => [kind, recruitReason(kind)]));
   const trainingByKind = new Map(
-    recruits.map(([kind]) => [
-      kind,
-      UNIT_PROFILES[kind].builder
-        ? 0
-        : Math.max(0, ...UNIT_PROFILES[kind].recruitAt.map((k) => bestTraining.get(k) ?? 0)),
-    ]),
+    recruits.map(([kind]) => [kind, armyTraining(kind, ownedBuildings)]),
   );
   const reset = () => {
     setQuery('');
@@ -1410,8 +1459,8 @@ function Recruit() {
           ? Object.values(a[1].cost).reduce((x, y) => x + y, 0) -
             Object.values(b[1].cost).reduce((x, y) => x + y, 0)
           : sort === 'attack'
-            ? unitStats({ kind: b[0], trainingBonus: trainingByKind.get(b[0]) }).attack -
-              unitStats({ kind: a[0], trainingBonus: trainingByKind.get(a[0]) }).attack
+            ? unitStats({ kind: b[0], ...trainingByKind.get(b[0]) }).attack -
+              unitStats({ kind: a[0], ...trainingByKind.get(a[0]) }).attack
             : (building
                 ? recruitmentLevel(a[0], building.kind) - recruitmentLevel(b[0], building.kind)
                 : 0) || compareRecruits(a, b)),
@@ -1432,6 +1481,8 @@ function Recruit() {
         UNIT_PROFILES[kind].role,
         unitUniverse(kind) ? UNIT_FAMILIES[unitUniverse(kind)!.family] : '',
         UNIT_CATEGORY[kind],
+        UNIT_BIOME_ADAPTATIONS[kind] ? BIOMES[UNIT_BIOME_ADAPTATIONS[kind]!].name : '',
+        UNIT_BIOME_ADAPTATIONS[kind] ? BIOME_ADAPTATION_NAMES[UNIT_BIOME_ADAPTATIONS[kind]!] : '',
         ...UNIT_TERRAIN_AFFINITIES[kind].map((a) => TERRAINS[a.terrain].name),
       ),
     );
@@ -1573,7 +1624,7 @@ function Recruit() {
           const cost = free ? { STONE: 0, GOLD: 0, WOOD: 0, IRON: 0, FOOD: 0 } : u.cost;
           const reason = reasons.get(kind)!;
           const training = trainingByKind.get(kind)!;
-          const trainedStats = unitStats({ kind, trainingBonus: training });
+          const trainedStats = unitStats({ kind, ...training });
           return (
             <article key={kind} className={reason ? 'catalog-locked' : 'catalog-ready'}>
               <span className={`catalog-status${reason ? ' recruitment-missing' : ''}`}>
@@ -1610,12 +1661,13 @@ function Recruit() {
                 {format(trainedStats.hp)} PV · ATQ {format(trainedStats.attack)} · DÉF{' '}
                 {format(trainedStats.defense)}
                 <br />
-                MOUV {u.move} · VISION {u.vision} · PORTÉE {u.range}
+                MOUV {trainedStats.move} · VISION {trainedStats.vision} · PORTÉE {u.range}
                 <br />
                 {unitPopulation(kind)} places
                 {trainedStats.attack > 0 && ` · Attaque : ${profile.siege ? 2 : 1} PA`}
               </p>
-              <TerrainAffinities kind={kind} />
+              <TerrainAffinities kind={kind} supportBonus={training.supportBonus} />
+              <BiomeAdaptation kind={kind} />
               <Cost cost={cost} wallet={w.player.wallet} />
               <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
               {reason && <p className="catalog-unavailable recruitment-missing">{reason}</p>}
@@ -1636,10 +1688,11 @@ function Recruit() {
                 )}
                 {building && !profile.builder && (
                   <p>
-                    Entraînement de votre royaume : +{format(training)} % aux PV, attaque et
-                    défense.
+                    Entraînement de votre royaume : +{format(training.trainingBonus)} % aux PV,
+                    attaque et défense.
                   </p>
                 )}
+                <ArmySupport bonus={training.supportBonus} />
                 <p>
                   {unitPopulation(kind)} places · Entretien / min :{' '}
                   {RESOURCES.filter((resource) => unitUpkeep(kind)[resource] > 0)
@@ -1760,7 +1813,9 @@ function Combat() {
       </Modal>
     );
   const walls = w.tiles.flatMap((t) => (t.building ? [t.building] : []));
-  const resolution = resolveAttack(attacker, intended, walls);
+  const resolution = resolveAttack(attacker, intended, walls, (p) =>
+    w.tiles.find((t) => key(t) === key(p)),
+  );
   const target = resolution.target;
   const tile = w.tiles.find((t) => key(t) === key(target)) ?? intendedTile;
   const terrain = tile.terrain ?? 'PLAIN';
@@ -2061,11 +2116,27 @@ function Profile() {
     [password, setPassword] = useState(''),
     [email, setEmail] = useState(''),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [emblem, setEmblem] = useState(w.player.settings.emblem),
-    [color, setColor] = useState(w.player.settings.bannerColor),
-    [secondary, setSecondary] = useState(w.player.settings.bannerSecondary),
-    [shape, setShape] = useState(w.player.settings.bannerShape);
+    [error, setError] = useState('');
+  const [banner, setBanner] = useState<RealmIdentity>(() => ({
+    realmName: w.player.settings.realmName || '',
+    emblem: w.player.settings.emblem,
+    bannerColor: w.player.settings.bannerColor,
+    bannerSecondary: w.player.settings.bannerSecondary,
+    bannerAccent: w.player.settings.bannerAccent ?? '#d6c9a5',
+    bannerPattern: w.player.settings.bannerPattern ?? 'plain',
+    bannerShape: w.player.settings.bannerShape,
+    miniFlagShape: w.player.settings.miniFlagShape ?? 'same',
+  }));
+  const [savingIdentity, setSavingIdentity] = useState(false);
+  async function saveIdentity(e: FormEvent) {
+    e.preventDefault();
+    setSavingIdentity(true);
+    try {
+      await saveSettings(banner);
+    } finally {
+      setSavingIdentity(false);
+    }
+  }
   async function register(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -2089,57 +2160,24 @@ function Profile() {
   return (
     <>
       <div className="realm-heading">
-        <Sigil symbol={emblem} color={color} size={43} />
+        <Banner settings={banner} size={85} />
         <div>
           <div className="eyebrow">{user.guest ? 'SOUVERAIN INVITÉ' : 'COMPTE ENREGISTRÉ'}</div>
           <h3>{user.username}</h3>
           <p>{FACTIONS[w.player.faction].name}</p>
         </div>
       </div>
-      <h4>Votre emblème</h4>
-      <div className="emblem-picker">
-        {Object.entries(symbols).map(([k, Icon]) => (
-          <button
-            key={k}
-            className={emblem === k ? 'active' : ''}
-            aria-label={`Emblème ${k}`}
-            onClick={() => setEmblem(k)}
-          >
-            <Icon size={23} />
-          </button>
-        ))}
-      </div>
-      <div className="two-col">
-        <label>
-          Couleur de bannière
-          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
-        </label>
-        <label>
-          Couleur secondaire
-          <input type="color" value={secondary} onChange={(e) => setSecondary(e.target.value)} />
-        </label>
-      </div>
-      <label>
-        Forme de bannière
-        <select value={shape} onChange={(e) => setShape(e.target.value)}>
-          <option value="swallow">Queue d’hirondelle</option>
-          <option value="shield">Écu</option>
-          <option value="square">Étendard carré</option>
-        </select>
-      </label>
-      <button
-        className="secondary"
-        onClick={() =>
-          void saveSettings({
-            emblem,
-            bannerColor: color,
-            bannerSecondary: secondary,
-            bannerShape: shape,
-          })
-        }
-      >
-        Enregistrer la bannière
-      </button>
+      <RealmPreview
+        value={banner}
+        appearance={w.player.hero?.appearance}
+        username={user.username}
+      />
+      <form onSubmit={saveIdentity}>
+        <IdentityEditor value={banner} onChange={setBanner} />
+        <button className="secondary" disabled={savingIdentity}>
+          Enregistrer la bannière
+        </button>
+      </form>
       {user.guest && (
         <form className="register-form" onSubmit={register}>
           <h4>Inscrire votre nom dans la pierre</h4>

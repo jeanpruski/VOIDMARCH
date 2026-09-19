@@ -1647,7 +1647,7 @@ input[type='color'] {
 .online-player-list { list-style: none; margin: 0; padding: 0; }
 .online-player-list > li {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
+  grid-template-columns: 56px minmax(0, 1fr);
   gap: 8px 12px;
   align-items: center;
   padding: 16px 0;
@@ -1656,14 +1656,9 @@ input[type='color'] {
 .online-player-list > li:last-child { border-bottom: 0; }
 .online-player-list .sigil { grid-row: 1 / span 2; align-self: start; }
 .online-player-name { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; overflow-wrap: anywhere; }
-.online-player-duration, .online-player-mission { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9ba68c; }
+.online-player-mission { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9ba68c; }
 .online-player-mission { grid-column: 2 / -1; }
 .online-player-mission.active { color: #d2b978; }
-@media (max-width: 600px) {
-  .online-player-list > li { grid-template-columns: 56px minmax(0, 1fr); }
-  .online-player-list .sigil { grid-row: 1 / span 3; }
-  .online-player-duration { grid-column: 2; }
-}
 .connection-notice {
   position: fixed;
   left: 50%;
@@ -4921,3 +4916,94 @@ button.radar-target {
   .transport-controls > summary { font-size: 12px; }
 }
 .biome-label { display: block; color: #c7b783; font-size: 11px; margin: 4px 0; }
+
+.army-support { color: #b9cba6; font-size: .8rem; line-height: 1.5; }
+.training-upgrade { margin: 1rem 0; padding: .85rem; border: 1px solid #74806455; border-radius: 8px; background: #202b2244; }
+.training-upgrade-group { padding: .5rem 0; border-bottom: 1px solid #74806433; }
+.training-upgrade summary { cursor: pointer; color: #d5d7b5; }
+
+.training-details-trigger { cursor: pointer; font: inherit; font-size: .75rem; text-align: left; }
+.training-details-trigger span { text-decoration: underline; text-underline-offset: 3px; }
+.training-details-trigger:focus-visible { outline: 2px solid #d7c38a; outline-offset: 3px; }
+.training-origin { padding: .65rem 0; border-bottom: 1px solid #74806444; }
+.training-origin h3 { margin: .3rem 0; }
+.training-source-list { padding-left: 1.4rem; }
+.training-source-list li { padding: .5rem 0; }
+.training-source-list strong, .training-source-list small { display: block; }
+.training-source-list small { color: #b9cba6; margin-top: .25rem; }
+.training-source-list p { margin: .3rem 0; }
+
+.biome-adaptation { color: #b6c8bf; font-size: .76rem; padding: .35rem 0; line-height: 1.5; }
+.biome-adaptation > summary { cursor: pointer; }
+.biome-adaptation-active > summary { color: #d3e6a4; }
+.biome-adaptation > p { margin: .4rem 0; }
+.catalog .biome-adaptation { border-top: 1px solid #74806444; margin-top: .4rem; }
+
+.player-banner { display: inline-block; flex-shrink: 0; object-fit: contain; vertical-align: middle; filter: drop-shadow(0 3px 3px #0006); }
+.online-player-list .player-banner { grid-row: 1 / span 2; align-self: center; }
+.banner-preview { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: center; padding: 18px 10px; margin: 16px 0; border: 1px solid var(--line); border-radius: 8px; background: #101814; }
+.banner-preview > div { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.banner-preview > div > span { color: #a9b48c; font-size: 12px; }
+.mini-banner-preview { display: flex; align-items: center; gap: 4px; min-height: 70px; }
+.mini-banner-preview > span { border: 1px solid; border-radius: 4px; color: #fff; padding: 2px 6px; }
+.banner-contrast-hint { color: #e3c38e; font-size: 12px; line-height: 1.5; }
+
+.supply-details { margin: .5rem 0; max-width: 54rem; font-size: .85rem; }
+.supply-details summary { cursor: pointer; color: #c9bd90; }
+.supply-details summary svg { vertical-align: middle; margin-right: .3rem; }
+.supply-details p, .food-balance p { line-height: 1.5; }
+.food-balance { margin-bottom: 1rem; }
+
+.mission-category-tabs { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 18px; }
+.mission-category-tabs button[aria-selected="true"] { color:var(--gold, #d7b56e); border-color:#b89a58; background:#333727; }
+.expedition-description { display:grid; gap:8px; margin:12px 0; }
+.expedition-description img { width:100%; height:210px; object-fit:contain; background:radial-gradient(ellipse at center,#47544766,transparent 70%); }
+.expedition-description a { color:#cbb982; font-size:12px; }
+.expedition-description small { opacity:.6; font-size:11px; }
+.expedition-interaction { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; align-items:center; }
+.expedition-interaction select { max-width:100%; padding:8px; background:#18231e; color:#e3d7b6; border:1px solid #657057; }
+.expedition-album { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-top:18px; }
+.expedition-album article { border:1px solid #586047; padding:12px; border-radius:8px; background:#17211b; }
+.expedition-album img { width:100%; height:130px; object-fit:contain; }
+.expedition-album .undiscovered img { filter:saturate(.25); opacity:.55; }
+.expedition-album h4 { margin:8px 0; }
+.expedition-album .discovered { border-color:#b69a5c; }
+.expeditions-panel .mission-active { margin-top:16px; }
+
+/* Kingdom creation: one live identity across hero, territory and flags. */
+.login-content.realm-registration { width: min(1120px, calc(100% - 40px)); max-width:1120px; }
+.creation-steps { display:flex; gap:10px; margin:22px 0; }
+.creation-steps button { flex:1; display:flex; align-items:center; gap:10px; padding:12px; border:1px solid #485148; background:#17221ce8; color:#c8cbb9; }
+.creation-steps button[aria-current="step"] { border-color:#d0b37b; color:#ecd3a3; background:#343b2b; }
+.creation-steps button span { border:1px solid currentColor; border-radius:50%; width:25px; height:25px; display:grid; place-items:center; flex-shrink:0; }
+.creation-layout { display:grid; grid-template-columns:minmax(0, 1.3fr) minmax(280px, 1fr); gap:28px; align-items:start; }
+.hero-creator.compact { display:block; padding:16px; }
+.identity-preview { background:linear-gradient(160deg,#2c3628,#111d19); border:1px solid #56614b; padding:22px 16px; text-align:center; overflow:hidden; }
+.creation-layout > .identity-preview { position:sticky; top:24px; }
+.identity-preview h3 { margin:12px 0; overflow-wrap:anywhere; }
+.identity-preview p { color:#e1cf9f; }
+.identity-preview small { color:#b9c0ad; line-height:1.6; display:block; }
+.identity-diorama { display:block; width:360px; height:auto; max-width:100%; margin:auto; }
+.identity-diorama-layer { position:relative; width:360px; height:280px; }
+.identity-village { position:absolute; top:30px; left:42%; }
+.identity-flag { position:absolute; top:85px; left:74%; border-left:3px solid #bdb89b; height:90px; }
+.identity-hero { position:absolute; left:15.5%; bottom:30px; }
+.identity-hero strong { display:block; position:absolute; top:-22px; left:50%; transform:translateX(-50%); padding:3px 7px; color:#ead6a2; background:#142019e8; max-width:175px; overflow-wrap:anywhere; font-size:12px; }
+.identity-palettes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:18px 0; }
+.identity-palettes button { padding:8px; background:#18231c; border:1px solid #475344; color:#c9cdb9; }
+.identity-palettes button[aria-pressed="true"], .flag-choices button[aria-pressed="true"] { border-color:#e0bd77; background:#303b2b; }
+.identity-palettes button > span { display:inline-block; width:27%; height:18px; }
+.identity-palettes small { display:block; font-size:10px; }
+.flag-choices { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0; }
+.flag-choices button { display:flex; flex-direction:column; align-items:center; justify-content:center; width:105px; padding:12px 6px; gap:8px; background:#18231c; color:#c9cdb9; border:1px solid #475344; }
+.creation-tools { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; }
+.creation-tools small { flex-basis:100%; color:#b3bba9; line-height:1.6; }
+.creation-navigation { display:flex; align-items:stretch; gap:12px; margin-top:18px; }
+.creation-navigation .enter-button { margin:0; flex:1; }
+@media(max-width:760px) {
+  .creation-layout { grid-template-columns:1fr; }
+  .creation-layout > .identity-preview { position:static; }
+  .creation-steps { gap:5px; }
+  .creation-steps button { flex-direction:column; padding:8px 4px; font-size:12px; }
+  .login-content.realm-registration { width:calc(100% - 24px); }
+}

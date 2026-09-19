@@ -4,7 +4,6 @@ import { actionSchema } from '@voidmarch/protocol';
 import { PlayerPresence } from '../apps/server/src/presence';
 import { addPlayer, execute, worldView } from '../apps/server/src/engine';
 import { missionOffers } from '../apps/server/src/missions';
-import { connectionDuration } from '../apps/web/src/OnlinePlayers';
 const now = 1_900_000_000_000;
 function fixture() {
   const state = createState('presence', now);
@@ -72,12 +71,5 @@ describe('joueurs connectés', () => {
     expect(other).not.toHaveProperty('mission');
     expect(other).not.toHaveProperty('objectiveId');
     expect(other).not.toHaveProperty('q');
-  });
-  it('affiche des durées lisibles, sans valeurs négatives', () => {
-    expect(connectionDuration(now, now + 9000)).toBe('9 s');
-    expect(connectionDuration(now, now + 75000)).toBe('1 min 15 s');
-    expect(connectionDuration(now, now + 3720000)).toBe('1 h 2 min');
-    expect(connectionDuration(now + 1000, now)).toBe('0 s');
-    expect(connectionDuration(undefined, now)).toBe('Durée indisponible');
   });
 });

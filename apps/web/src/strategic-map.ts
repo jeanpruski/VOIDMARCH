@@ -1,3 +1,4 @@
+import { isSea } from '@voidmarch/config';
 import { key, neighbors } from '@voidmarch/game-rules';
 import type { OverviewTile, WorldView } from '@voidmarch/shared';
 import { MAP_ZOOM } from './map-geometry';
@@ -21,6 +22,7 @@ export function strategicTiles(world: Pick<WorldView, 'tiles' | 'overview'>): St
   return [...tiles.values()].map((t) => ({
     q: t.q,
     r: t.r,
+    ...(isSea(t.terrain) ? { terrain: t.terrain } : {}),
     ownerId: t.ownerId,
     visibility: t.visibility,
     borders: t.ownerId

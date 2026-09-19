@@ -1,3 +1,8 @@
+import { EMBLEM_IDS } from '@voidmarch/config';
+import { settingsSchema } from '@voidmarch/protocol';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createElement } from 'react';
+import { MissionMedal } from '../apps/web/src/MissionMedal';
 import { describe, expect, it } from 'vitest';
 import { createMissionTrophy } from '../apps/server/src/mission-trophies';
 import type { ActiveMission } from '@voidmarch/shared';
@@ -23,6 +28,23 @@ const mission: ActiveMission = {
 const captured = { units: 3, buildings: 2, walls: 9 };
 const reward = { GOLD: 4050, FOOD: 2430 };
 describe('médailles de campagne', () => {
+  it('partage les 28 emblèmes entre les bannières sauvegardées et les nouvelles médailles', () => {
+    expect(EMBLEM_IDS).toHaveLength(28);
+    expect(new Set(EMBLEM_IDS).size).toBe(28);
+    const medals = Array.from(
+      { length: 1000 },
+      (_, i) => createMissionTrophy({ ...mission, id: `emblem-${i}` }, now, captured, reward).medal,
+    );
+    expect(new Set(medals.map((medal) => medal.emblem))).toEqual(new Set(EMBLEM_IDS));
+    for (const emblem of EMBLEM_IDS) {
+      expect(settingsSchema.parse({ emblem })).toEqual({ emblem });
+      const medal = medals.find((medal) => medal.emblem === emblem)!;
+      expect(medal.name).not.toContain('undefined');
+      expect(renderToStaticMarkup(createElement(MissionMedal, { medal }))).toContain('<svg');
+    }
+    expect(settingsSchema.safeParse({ emblem: 'unknown-symbol' }).success).toBe(false);
+  });
+
   it('crée une décoration stable et un bilan complet, indépendant des objets du monde', () => {
     const m = structuredClone(mission),
       survivors = { ...captured },

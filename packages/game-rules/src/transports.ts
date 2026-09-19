@@ -1,13 +1,20 @@
-import { TRANSPORTS, UNIT_CATEGORY, UNIT_PROFILES, UNITS } from '@voidmarch/config';
+import { TRANSPORTS, UNIT_CATEGORY, UNIT_PROFILES, type UnitKind } from '@voidmarch/config';
 import type { Unit, ViewTile } from '@voidmarch/shared';
-import { distance, movementCost, wallBlocks } from './index';
+import { distance, movementCost, wallBlocks, unitStats } from './index';
 
 /** Only surface units occupy cells, see, fight or act. Cargo remains owned and maintained. */
 export const allUnits = (units: readonly Unit[]): Unit[] =>
   units.flatMap((u) => [u, ...(u.cargo ?? [])]);
-export function passengerSize(unit: Unit): number | null {
+export function passengerSize(unit: Unit, carrierKind?: UnitKind): number | null {
   const profile = UNIT_PROFILES[unit.kind];
-  if (unit.npc || profile.flying || profile.siege || unit.cargo?.length) return null;
+  if (profile.naval || unit.npc || profile.flying || unit.cargo?.length) return null;
+  if (
+    carrierKind &&
+    TRANSPORTS[carrierKind]?.heavy &&
+    (profile.siege || (profile.armored && profile.mechanical))
+  )
+    return 8;
+  if (profile.siege) return null;
   if (
     UNIT_CATEGORY[unit.kind] === 'Motos' ||
     unit.kind === 'ARMORED_CAR' ||
@@ -18,7 +25,7 @@ export function passengerSize(unit: Unit): number | null {
   return profile.mounted ? 2 : 1;
 }
 export const cargoUsed = (carrier: Unit) =>
-  (carrier.cargo ?? []).reduce((n, u) => n + (passengerSize(u) ?? 0), 0);
+  (carrier.cargo ?? []).reduce((n, u) => n + (passengerSize(u, carrier.kind) ?? 0), 0);
 export function boardingReason(carrier: Unit, passenger: Unit): string {
   const spec = TRANSPORTS[carrier.kind];
   if (!spec || carrier.hp <= 0 || carrier.carrierId) return 'Transport indisponible.';
@@ -30,7 +37,7 @@ export function boardingReason(carrier: Unit, passenger: Unit): string {
   )
     return 'Sélectionnez une de vos troupes disponibles.';
   if (distance(carrier, passenger) !== 1) return 'La troupe doit être sur une case voisine.';
-  const size = passengerSize(passenger);
+  const size = passengerSize(passenger, carrier.kind);
   if (size === null || (!spec.vehicles && size !== 1))
     return 'Ce transport ne peut pas embarquer cette unité. Les transports chargés, blindés lourds, avions et engins de siège sont exclus.';
   if (cargoUsed(carrier) + size > spec.capacity)
@@ -68,7 +75,7 @@ export function unloadingReason(
     return 'Débarquez sur une berge ou une route, pas directement dans la rivière.';
   if (distance(carrier, tile) !== 1) return 'Choisissez une case voisine du transport.';
   if (surface.some((u) => distance(u, tile) === 0)) return 'Cette case est occupée.';
-  if (movementCost({ ...tile, terrain: tile.terrain }, passenger.kind) > UNITS[passenger.kind].move)
+  if (movementCost({ ...tile, terrain: tile.terrain }, passenger.kind) > unitStats(passenger).move)
     return 'Terrain impraticable pour ce passager.';
   if (wallBlocks(tile.building, carrier.ownerId, passenger.kind, allies))
     return 'Un rempart ennemi bloque la sortie.';

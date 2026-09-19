@@ -1,3 +1,5 @@
+import { prepareDevelopment } from './fixtures/development';
+import { unitDevelopmentStage } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -69,6 +71,7 @@ describe('renforts des cinq époques', () => {
     b.level = profile.minRecruitLevel!;
     writeTile(s, b, { terrain: 'PLAIN' });
     profile.requires.forEach((k, i) => addBuilding(s, r, { q: 3 + i, r: 0 }, k, now));
+    prepareDevelopment(s, r.id, unitDevelopmentStage(kind), now);
     const bad = execute(s, r.id, order(home.id, kind), now);
     expect(bad.result.accepted).toBe(false);
     expect(bad.state).toEqual(s);

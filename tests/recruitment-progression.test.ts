@@ -1,3 +1,5 @@
+import { prepareDevelopment } from './fixtures/development';
+import { unitDevelopmentStage } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -61,11 +63,11 @@ describe('progression locale du recrutement', () => {
           UNIT_PROFILES[k].recruitAt.includes(b),
       ),
     );
-    expect(combatRecruiters).toHaveLength(22);
+    expect(combatRecruiters).toHaveLength(24);
     for (const b of combatRecruiters) {
       expect(RECRUITMENT_TRACKS[b], b).toBeDefined();
       const recruits = kinds.filter((k) => UNIT_PROFILES[k].recruitAt.includes(b));
-      for (const level of [1, 2, 3, 4, 5]) {
+      for (const level of b === 'SUBMARINE_BASE' ? [3, 4, 5] : [1, 2, 3, 4, 5]) {
         expect(
           recruits.filter((k) => recruitmentLevel(k, b) === level).length,
           `${b} niveau ${level}`,
@@ -146,6 +148,7 @@ describe('progression locale du recrutement', () => {
         actionId: randomUUID(),
         clientTimestamp: now,
       });
+      prepareDevelopment(s, r.id, unitDevelopmentStage(kind), now);
       const level = recruitmentLevel(kind, b);
       if (level > 1) {
         recruiter.level = level - 1;

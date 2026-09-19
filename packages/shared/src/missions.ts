@@ -1,7 +1,22 @@
-import type { BuildingKind, UnitKind, Wallet } from '@voidmarch/config';
+import type { BuildingKind, UnitKind, Wallet, EmblemId } from '@voidmarch/config';
 import type { Hex } from './index';
 
+export interface ExpeditionDetails {
+  siteId: string;
+  mode: 'RECON' | 'RECOVER' | 'EXTRACT';
+  route: 'LAND' | 'SEA';
+  targetDistance: number;
+  /** Orientation of the three contiguous site hexagons; immutable after acceptance. */
+  orientation?: number;
+  phase?: 'VISIT' | 'RETURN';
+  carrierId?: string;
+  participants?: string[];
+  bonus?: Partial<Wallet>;
+}
+
 export interface MissionOffer {
+  expedition?: ExpeditionDetails;
+  maritime?: boolean;
   id: string;
   title: string;
   difficulty: 'Escarmouche' | 'Assaut' | 'Siège' | 'Grande campagne';
@@ -26,6 +41,8 @@ export interface ActiveMission extends MissionOffer, Hex {
   distance: number;
 }
 export interface MissionBoard {
+  /** Recovery after an abandonment that could not be fully paid. */
+  availableAt?: number;
   trophies?: MissionTrophy[];
   generation: number;
   active?: ActiveMission;
@@ -41,10 +58,12 @@ export interface MissionBoard {
   };
 }
 export interface MissionsView {
+  availableAt?: number;
   trophies?: MissionTrophy[];
   /** Server deadline for unaccepted offers; absent during an active mission. */
   offersRefreshAt?: number;
   offers: MissionOffer[];
+  expeditionOffers?: MissionOffer[];
   active?: ActiveMission & {
     remainingUnits: number;
     remainingBuildings: number;
@@ -58,7 +77,7 @@ export interface MissionsView {
 export interface MissionMedal {
   name: string;
   shape: 'round' | 'shield' | 'star' | 'diamond';
-  emblem: 'tower' | 'swords' | 'eye' | 'moon' | 'flame' | 'star';
+  emblem: EmblemId;
   ribbon: 'crimson' | 'pine' | 'midnight' | 'violet' | 'ochre' | 'slate';
   metal: 'bronze' | 'silver' | 'gold';
 }
@@ -80,6 +99,7 @@ export interface MissionTrophy {
     | 'buildings'
     | 'wall'
     | 'wallRadius'
+    | 'expedition'
   >;
   losses?: { units: number; buildings: number };
   completedAt: number;
@@ -89,6 +109,7 @@ export interface MissionTrophy {
 }
 
 export interface MissionVictory extends Hex {
+  expedition?: Pick<ExpeditionDetails, 'siteId' | 'mode'>;
   id: string;
   title: string;
   ownerId: string;

@@ -1,3 +1,4 @@
+import { NAVAL_TIERS } from './naval';
 import { TRANSPORT_TIERS } from './transports';
 import { SPECIALIST_TIERS } from './specialist-units';
 import { CAMPAIGN_TIERS } from './campaign-units';
@@ -6,6 +7,7 @@ import { ERA_REINFORCEMENT_TIERS } from './era-reinforcements';
 import type { UnitKind } from './index';
 export const BALANCE_VERSION = 4;
 export const UNIT_TIERS = {
+  ...NAVAL_TIERS,
   ...TRANSPORT_TIERS,
   ...SPECIALIST_TIERS,
   ...ELITE_TIERS,

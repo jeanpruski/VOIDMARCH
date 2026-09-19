@@ -1,0 +1,182 @@
+{
+  "wellProbe": {
+    "cost": {
+      "STONE": 96,
+      "GOLD": 48,
+      "WOOD": 192,
+      "IRON": 0,
+      "FOOD": 0
+    },
+    "orders": [
+      {
+        "actionId": "86f10a9c-1b54-4f79-8909-3f12ca42bdfd",
+        "accepted": true,
+        "message": "Construction terminée : Puits.",
+        "serverTimestamp": 1900000000000,
+        "newActionPoints": 39,
+        "revision": 1
+      },
+      {
+        "actionId": "97604c8d-3c64-448a-9982-6059f369817b",
+        "accepted": true,
+        "message": "Puits · niveau 2 : amélioration terminée.",
+        "serverTimestamp": 1900000000000,
+        "newActionPoints": 37,
+        "revision": 2
+      },
+      {
+        "actionId": "699a6f07-d67f-43a7-a2e1-5fad5c165851",
+        "accepted": true,
+        "message": "Puits · niveau 3 : amélioration terminée.",
+        "serverTimestamp": 1900000000000,
+        "newActionPoints": 35,
+        "revision": 3
+      },
+      {
+        "actionId": "f2d2c5ef-3472-40ca-bea2-d8aa0e24c392",
+        "accepted": true,
+        "message": "Puits · niveau 4 : amélioration terminée.",
+        "serverTimestamp": 1900000000000,
+        "newActionPoints": 33,
+        "revision": 4
+      },
+      {
+        "actionId": "f8f9bbe6-3381-4dc7-9688-72a443f154dc",
+        "accepted": true,
+        "message": "Puits · niveau 5 : amélioration terminée.",
+        "serverTimestamp": 1900000000000,
+        "newActionPoints": 31,
+        "revision": 5
+      }
+    ],
+    "remaining": {
+      "STONE": 0,
+      "GOLD": 0,
+      "WOOD": 0,
+      "IRON": 0,
+      "FOOD": 0
+    },
+    "ap": 31,
+    "offers": [
+      {
+        "level": 5,
+        "mode": "RECON",
+        "reward": {
+          "GOLD": 333360,
+          "WOOD": 259280,
+          "STONE": 203720,
+          "IRON": 166680,
+          "FOOD": 296320
+        },
+        "distance": 134
+      },
+      {
+        "level": 5,
+        "mode": "RECOVER",
+        "reward": {
+          "GOLD": 355320,
+          "WOOD": 276360,
+          "STONE": 217140,
+          "IRON": 177660,
+          "FOOD": 315840
+        },
+        "distance": 67
+      },
+      {
+        "level": 5,
+        "mode": "EXTRACT",
+        "reward": {
+          "GOLD": 568512,
+          "WOOD": 442176,
+          "STONE": 347424,
+          "IRON": 284256,
+          "FOOD": 505344
+        },
+        "distance": 67
+      }
+    ]
+  },
+  "siege": {
+    "rounds": [
+      {
+        "attack": true,
+        "afterHit": 1167,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1169,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1167,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1169,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1169,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1167,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1168,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1168,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1168,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1168,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1169,
+        "repair": true,
+        "afterRepair": 1600
+      },
+      {
+        "attack": true,
+        "afterHit": 1168,
+        "repair": true,
+        "afterRepair": 1600
+      }
+    ],
+    "defenderWallet": {
+      "GOLD": 9880,
+      "WOOD": 9820,
+      "STONE": 10000,
+      "IRON": 10000,
+      "FOOD": 10000
+    }
+  }
+}

@@ -1,3 +1,5 @@
+import { terrainCombatBonus } from '@voidmarch/game-rules';
+import type { ArmySupportBonus } from '@voidmarch/shared';
 import {
   TERRAINS,
   UNIT_TERRAIN_AFFINITIES,
@@ -10,12 +12,17 @@ export function TerrainAffinities({
   kind,
   terrain,
   collapsible = false,
+  supportBonus,
 }: {
   kind: UnitKind;
   terrain?: Terrain;
   collapsible?: boolean;
+  supportBonus?: ArmySupportBonus;
 }) {
-  const entries = UNIT_TERRAIN_AFFINITIES[kind];
+  const entries = UNIT_TERRAIN_AFFINITIES[kind].map((a) => ({
+    ...a,
+    ...terrainCombatBonus({ kind, supportBonus }, a.terrain),
+  }));
   if (!entries.length) return null;
   const active = entries.find((a) => a.terrain === terrain);
   const bonus = (a: { attack: number; defense: number }) =>
@@ -49,6 +56,9 @@ export function TerrainAffinities({
       <p>
         Sur la case occupée. Les bonus disparaissent en quittant le terrain. La protection naturelle
         du terrain s’ajoute en combat.
+        {supportBonus?.terrain
+          ? ` Le soutien militaire ajoute ${formatNumber(supportBonus.terrain)} points aux affinités favorables (déjà inclus).`
+          : ''}
       </p>
     </details>
   ) : (

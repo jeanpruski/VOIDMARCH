@@ -2,7 +2,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import Fastify from 'fastify';
 import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
-import { randomHeroAppearance } from '@voidmarch/config';
+import { randomHeroAppearance, randomRealmIdentity } from '@voidmarch/config';
 const db = vi.hoisted(() => ({
   user: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
   session: { create: vi.fn(), findUnique: vi.fn() },
@@ -30,26 +30,42 @@ describe('identité cosmétique du compte', () => {
       const response = await a.inject({
         method: 'POST',
         url: '/api/auth/register',
-        payload: { ...registration, heroAppearance: appearance },
+        payload: {
+          ...registration,
+          heroAppearance: appearance,
+          realmIdentity: {
+            realmName: 'Empire des glaces',
+            bannerColor: '#abcdef',
+            bannerPattern: 'diagonal',
+            miniFlagShape: 'shield',
+          },
+        },
       });
       expect(response.statusCode, response.body).toBe(200);
       expect(db.user.create.mock.calls[0][0].data.settings.heroAppearance).toEqual(appearance);
+      expect(db.user.create.mock.calls[0][0].data.settings).toMatchObject({
+        realmName: 'Empire des glaces',
+        bannerColor: '#abcdef',
+        bannerPattern: 'diagonal',
+        miniFlagShape: 'shield',
+      });
     } finally {
       await a.close();
     }
   });
-  it('génère le héros invité côté serveur même si le client fournit une apparence', async () => {
+  it('refuse temporairement les nouveaux invités sans créer de compte ni de session', async () => {
     const a = await app();
     try {
       const response = await a.inject({
         method: 'POST',
         url: '/api/auth/guest',
-        payload: { username: 'VisiteurTest', faction: 'ASH', heroAppearance: { invalid: true } },
+        payload: { username: 'VisiteurTest', faction: 'ASH' },
       });
-      expect(response.statusCode, response.body).toBe(200);
-      expect(
-        db.user.create.mock.calls[0][0].data.settings.heroAppearance.head,
-      ).toBeGreaterThanOrEqual(0);
+      expect(response.statusCode).toBe(403);
+      expect(response.json().error).toContain('Créez un compte');
+      expect(db.user.create).not.toHaveBeenCalled();
+      expect(db.session.create).not.toHaveBeenCalled();
+      expect(response.headers['set-cookie']).toBeUndefined();
     } finally {
       await a.close();
     }
@@ -60,7 +76,11 @@ describe('identité cosmétique du compte', () => {
       id: 'guest',
       username: 'Invite',
       passwordHash: null,
-      settings: { heroAppearance: original },
+      settings: {
+        ...randomRealmIdentity('Invite'),
+        heroAppearance: original,
+        realmName: 'Ancien royaume',
+      },
     };
     db.user.findUnique.mockResolvedValue(user);
     db.user.update.mockImplementation(async ({ data }) => {
@@ -78,10 +98,15 @@ describe('identité cosmétique du compte', () => {
         method: 'POST',
         url: '/api/auth/register',
         headers: { authorization: `Bearer ${a.jwt.sign({ sub: 'guest', sid: 'session' })}` },
-        payload: { ...registration, heroAppearance: randomHeroAppearance(() => 0.9) },
+        payload: {
+          ...registration,
+          heroAppearance: randomHeroAppearance(() => 0.9),
+          realmIdentity: { realmName: 'Nouveau royaume' },
+        },
       });
       expect(response.statusCode, response.body).toBe(200);
       expect(user.settings.heroAppearance).toEqual(original);
+      expect(user.settings.realmName).toBe('Ancien royaume');
       expect(db.user.create).not.toHaveBeenCalled();
     } finally {
       await a.close();

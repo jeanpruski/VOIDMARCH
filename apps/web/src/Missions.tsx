@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Expeditions } from './Expeditions';
 import { Flag, MapPin, Shield, Swords, Clock3 } from 'lucide-react';
 import { BUILDINGS, UNITS, UNIT_PROFILES, UNIT_CATEGORY, formatNumber } from '@voidmarch/config';
 import { canAfford, missionReward, missionWallCount, distance } from '@voidmarch/game-rules';
@@ -12,6 +13,14 @@ function OfferDetails({ offer }: { offer: MissionOffer }) {
   const roster = [...new Set(offer.units)];
   return (
     <>
+      {offer.maritime && (
+        <p className="catalog-brief">
+          Expédition maritime : une rade ou une forteresse insulaire accessible depuis votre flotte.
+          Détruisez le port maître ; les navires et la batterie survivants vous rejoignent. Prévoyez
+          un sonar dès l’ère industrielle. La traversée peut dépasser 40 cases si la côte proche est
+          déjà visible.
+        </p>
+      )}
       <p className="mission-objective">
         <Flag size={17} />{' '}
         {offer.objective === 'COMMANDER'
@@ -100,14 +109,59 @@ export function Missions() {
   const w = useGame((s) => s.world)!,
     pending = useGame((s) => s.pending),
     now = useGame((s) => s.now);
+  const [category, setCategory] = useState<'conquest' | 'expeditions'>('conquest');
+  useEffect(() => {
+    if (w.missions?.active?.expedition) setCategory('expeditions');
+  }, [w.missions?.active?.id]);
   const [confirmAbandon, setConfirmAbandon] = useState<string | null>(null);
   const missions = w.missions,
     active = missions?.active;
   const offersExpired = !!missions?.offersRefreshAt && now >= missions.offersRefreshAt;
   if (!missions)
     return <p>Les missions seront disponibles après la prochaine synchronisation du serveur.</p>;
+  const tabs = (
+    <div className="mission-category-tabs" role="tablist" aria-label="Type de mission">
+      <button
+        role="tab"
+        aria-selected={category === 'conquest'}
+        onClick={() => setCategory('conquest')}
+      >
+        Conquêtes
+      </button>
+      <button
+        role="tab"
+        aria-selected={category === 'expeditions'}
+        onClick={() => setCategory('expeditions')}
+      >
+        Expéditions & aventures
+      </button>
+    </div>
+  );
+  if (category === 'expeditions')
+    return (
+      <div className="missions-panel">
+        {tabs}
+        <Expeditions />
+      </div>
+    );
+  if (active?.expedition)
+    return (
+      <div className="missions-panel">
+        {tabs}
+        <p>
+          Une expédition est en cours. Termine-la ou abandonne-la avant d’accepter une conquête.
+        </p>
+      </div>
+    );
   return (
     <div className="missions-panel">
+      {(w.missions?.availableAt ?? 0) > now && (
+        <p role="status">
+          Réorganisation après abandon : nouvelles missions dans{' '}
+          <Duration until={w.missions!.availableAt!} />.
+        </p>
+      )}
+      {tabs}
       <div className="mission-intro">
         <Swords size={25} />
         <div>
@@ -152,6 +206,10 @@ export function Missions() {
           </p>
           <div className="mission-abandon">
             <strong>Coût de l’abandon</strong>
+            <p>
+              Si vos stocks sont insuffisants : paiement partiel et repos de 5 à 30 minutes, sans
+              dette.
+            </p>
             <Cost cost={active.abandonmentCost} wallet={w.player.wallet} />
             {confirmAbandon === active.id ? (
               <>
@@ -160,12 +218,15 @@ export function Missions() {
                   resteront sur place. Les ressources seront déduites.
                 </p>
                 {!canAfford(w.player.wallet, active.abandonmentCost) && (
-                  <p className="mission-error">Or ou vivres insuffisants pour abandonner.</p>
+                  <p className="mission-error">
+                    Paiement limité à vos stocks disponibles ; en échange, les nouvelles missions
+                    seront suspendues entre 5 et 30 minutes, sans dette.
+                  </p>
                 )}
                 <div className="mission-buttons">
                   <button onClick={() => setConfirmAbandon(null)}>Continuer la mission</button>
                   <button
-                    disabled={pending || !canAfford(w.player.wallet, active.abandonmentCost)}
+                    disabled={pending}
                     onClick={() =>
                       send({
                         type: 'MISSION_ABANDON',
@@ -213,7 +274,7 @@ export function Missions() {
               )}
             </div>
           )}
-          {missions.offersRefreshAt && (
+          {missions.offersRefreshAt && (missions.availableAt ?? 0) <= now && (
             <div className="mission-refresh" role="timer" aria-label="Renouvellement des missions">
               <Clock3 size={18} aria-hidden="true" />
               {offersExpired ? (
@@ -273,23 +334,25 @@ export function Missions() {
           </p>
         </>
       )}
-      {missions.allied.length > 0 && (
+      {missions.allied.some((m) => !m.expedition) && (
         <section className="mission-allied">
           <h3>
             <Shield size={18} /> Campagnes de tes alliés
           </h3>
-          {missions.allied.map((m) => (
-            <article key={m.id}>
-              <h4>
-                {m.title} · {w.realms.find((r) => r.id === m.realmId)?.name ?? 'Allié'}
-              </h4>
-              <MissionDifficulty offer={m} />
-              <MissionJourney world={w} target={m} />
-              <button onClick={() => focusMap(m)}>
-                <MapPin size={16} /> Localiser la mission alliée
-              </button>
-            </article>
-          ))}
+          {missions.allied
+            .filter((m) => !m.expedition)
+            .map((m) => (
+              <article key={m.id}>
+                <h4>
+                  {m.title} · {w.realms.find((r) => r.id === m.realmId)?.name ?? 'Allié'}
+                </h4>
+                <MissionDifficulty offer={m} />
+                <MissionJourney world={w} target={m} />
+                <button onClick={() => focusMap(m)}>
+                  <MapPin size={16} /> Localiser la mission alliée
+                </button>
+              </article>
+            ))}
           <p className="muted">
             Le butin et les survivants reviennent au royaume qui a accepté la mission, même si un
             allié porte le coup décisif.

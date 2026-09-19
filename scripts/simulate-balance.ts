@@ -1,3 +1,9 @@
+import {
+  developmentMissing,
+  constructionDevelopmentStage,
+  upgradeDevelopmentStage,
+  BUILDING_REQUIREMENTS,
+} from '@voidmarch/config';
 import { randomUUID, createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import {
@@ -125,7 +131,21 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
       cap: storage(state, 'sim'),
       rates: income(state, 'sim'),
     });
+  const ensureStage = (stage: number) => {
+    for (const req of developmentMissing(Object.values(state.buildings), stage)) {
+      let site = Object.values(state.buildings).find((b) => req.kinds.includes(b.kind));
+      if (!site) {
+        build(req.kinds[0]);
+        site = Object.values(state.buildings).find((b) => b.kind === req.kinds[0])!;
+      }
+      upgrade(site.kind, req.level, site.id);
+    }
+  };
   const build = (kind: BuildingKind) => {
+    if (kind !== 'WAREHOUSE' && Object.values(state.buildings).some((b) => b.kind === kind)) return;
+    for (const parent of BUILDING_REQUIREMENTS[kind] ?? [])
+      if (!Object.values(state.buildings).some((b) => b.kind === parent)) build(parent);
+    ensureStage(constructionDevelopmentStage(kind));
     const p = { q: initial.capital.q + ++sequence, r: initial.capital.r };
     // Pre-surveyed sites isolate economy from map luck; territory still pays its upkeep.
     writeTile(state, p, { terrain: BUILDINGS[kind].terrains[0] as Terrain, ownerId: 'sim' });
@@ -140,6 +160,7 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
     while (state.buildings[building.id].level < target) {
       const b = state.buildings[building.id],
         quote = buildingUpgrade(kind, b.level)!;
+      ensureStage(upgradeDevelopmentStage(kind, quote.level));
       buy('UPGRADE', b.id, {}, quote.cost);
       record(`${BUILDINGS[kind].name} niveau ${quote.level}`);
     }
@@ -178,6 +199,9 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
   for (const k of ['MUNITIONS', 'ISOTOPE_LAB', 'NUCLEAR_REACTOR'] as const) build(k);
   upgrade('NUCLEAR_REACTOR', 3);
   upgrade('ARSENAL', 5);
+  ensureStage(5);
+  build('GLOCKE_COMPLEX');
+  upgrade('GLOCKE_COMPLEX', 5);
   return rows;
 }
 const specimen = (kind: UnitKind, trainingBonus: number): Unit => ({
@@ -225,7 +249,8 @@ export function simulateSkirmish(
     state.realms[id].protectedUntil = 0;
     state.realms[id].ap = 0;
   }
-  for (const p of disk({ q: 0, r: 0 }, 6)) writeTile(state, p, { terrain: 'PLAIN' });
+  const terrain = UNIT_PROFILES[kind].naval && UNIT_PROFILES[opponent].naval ? 'SEA' : 'PLAIN';
+  for (const p of disk({ q: 0, r: 0 }, 6)) writeTile(state, p, { terrain });
   const positions = [
     { q: 0, r: 0 },
     { q: 0, r: 1 },
@@ -249,6 +274,9 @@ export function simulateSkirmish(
     q: 2,
     r: 0,
   };
+  // Coast/fleet scenarios retain legal terrain for each stationary participant.
+  for (const u of Object.values(state.units))
+    if (UNIT_PROFILES[u.kind].naval) writeTile(state, u, { terrain: 'SEA' });
   const spent = { a: 0, b: 0 };
   for (let step = 0; step < 250; step++) {
     for (const id of (seed % 2 ? ['b', 'a'] : ['a', 'b']) as ('a' | 'b')[]) {

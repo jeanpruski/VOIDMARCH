@@ -1,3 +1,15 @@
+import {
+  NAVAL_UNITS,
+  NAVAL_PROFILES,
+  NAVAL_CATEGORIES,
+  NAVAL_BUILDINGS,
+  NAVAL_BUILDING_CATEGORIES,
+} from './naval';
+export * from './naval';
+export * from './emblems';
+export * from './identity';
+import { createBiomeAdaptations } from './biome-adaptations';
+export { BIOME_ADAPTATION_NAMES } from './biome-adaptations';
 export * from './biomes';
 import { TRANSPORT_UNITS, TRANSPORT_PROFILES, TRANSPORT_CATEGORIES } from './transports';
 export * from './transports';
@@ -54,6 +66,7 @@ export { RADIOACTIVE_UNITS } from './radioactive';
 export { NPCS, NPC_RULES, type NpcKind } from './npcs';
 export { BALANCE_VERSION, UNIT_TIERS, TIER_NAMES } from './progression';
 export * from './ages';
+export * from './development';
 export { formatNumber } from './format';
 export { UNIT_ERAS } from './epoch-units';
 export const GAME_NAME = 'VOIDMARCH';
@@ -118,6 +131,7 @@ export const ACTION_COST = {
   TERRAFORM: 2,
   RECRUIT: 1,
   REPAIR: 1,
+  RESUPPLY: 1,
   DEMOLISH: 1,
   UPGRADE: 2,
   INTERACT: 1,
@@ -164,6 +178,9 @@ export const FACTIONS = {
 } as const;
 export type Faction = keyof typeof FACTIONS;
 export const TERRAINS = {
+  SEA: { name: 'Haute mer', color: 0x182e3b, cost: 99, defense: 0, yield: null },
+  COAST: { name: 'Eaux côtières', color: 0x2e555b, cost: 99, defense: 0, yield: null },
+  BEACH: { name: 'Plage', color: 0x9a9377, cost: 1, defense: 0, yield: null },
   SCORCHED: { name: 'Terres brûlées', color: 0x292624, cost: 1, defense: 0, yield: null },
   PLAIN: { name: 'Plaine', color: 0x465140, cost: 1, defense: 0, yield: 'FOOD' },
   FOREST: { name: 'Forêt ancienne', color: 0x293e34, cost: 2, defense: 1, yield: 'WOOD' },
@@ -186,6 +203,7 @@ export const roadConstructionCost = (terrain?: Terrain): Partial<Wallet> =>
   terrain === 'RIVER' ? { WOOD: 30, IRON: 10 } : { WOOD: 10 };
 export const TERRAFORM_COST: Partial<Wallet> = { WOOD: 20, IRON: 10 };
 const UNIT_BASE_CATALOG = {
+  ...NAVAL_UNITS,
   ...TRANSPORT_UNITS,
   ...SPECIALIST_UNITS,
   ...ELITE_UNITS,
@@ -732,6 +750,7 @@ export const INDIRECT_FIRE_UNITS: readonly UnitKind[] = [
   'ATOMIC_SAPPER',
 ];
 const BUILDING_BASE_CATALOG = {
+  ...NAVAL_BUILDINGS,
   ...RESOURCE_BUILDINGS,
   GLOCKE_COMPLEX: {
     name: 'Complexe des cloches',
@@ -1297,6 +1316,10 @@ export function productionOnTerrain(kind: BuildingKind, terrain: Terrain): Parti
 }
 
 export interface UnitProfile {
+  naval?: boolean;
+  submarine?: boolean;
+  sonar?: number;
+  fishing?: number;
   hero?: boolean;
   transport?: boolean;
   /** Primary recruiter only. Use recruitmentLevel() for a selected building. */
@@ -1319,6 +1342,7 @@ export interface UnitProfile {
   healer?: boolean;
 }
 const BASE_UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
+  ...NAVAL_PROFILES,
   ...TRANSPORT_PROFILES,
   ...SPECIALIST_PROFILES,
   ...ELITE_PROFILES,
@@ -1612,6 +1636,7 @@ export const UNIT_PROFILES = balanceProfiles(
   UNIT_TIERS,
 );
 export const UNIT_TERRAIN_AFFINITIES = createTerrainAffinities(UNIT_PROFILES, UNIT_BASE_CATALOG);
+export const UNIT_BIOME_ADAPTATIONS = createBiomeAdaptations(UNIT_PROFILES);
 export function recruitmentLevel(kind: UnitKind, building: BuildingKind): number {
   const profile = UNIT_PROFILES[kind];
   return profile.recruitLevels?.[building] ?? profile.minRecruitLevel ?? 1;
@@ -1621,6 +1646,9 @@ export const UNITS = balanceUnits(UNIT_BASE_CATALOG, UNIT_TIERS, UNIT_PROFILES, 
 );
 
 export const BUILDING_REQUIREMENTS: Partial<Record<BuildingKind, BuildingKind[]>> = {
+  SHIPYARD: ['PORT'],
+  SUBMARINE_BASE: ['SHIPYARD', 'MUNITIONS'],
+  COASTAL_BATTERY: ['PORT', 'FORGE'],
   GOLD_MINE: ['MINE', 'WORKSHOP'],
   STEAM_SAWMILL: ['LUMBER', 'WORKSHOP'],
   MECHANIZED_QUARRY: ['QUARRY', 'WORKSHOP'],
@@ -1667,6 +1695,15 @@ export const BUILDING_POPULATION: Partial<Record<BuildingKind, number>> = {
   OUTPOST: 10,
 };
 export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
+  PORT: 'Sur la côte : forme les transports maritimes et ravitaille les flottes à deux cases. Un nouveau transport se place sur une eau voisine libre.',
+  SHIPYARD:
+    'Sur la côte : construit éclaireurs, frégates, destroyers et cuirassés selon son niveau. Entraîne les équipages.',
+  NAVAL_FISHERY:
+    'Sur la côte : produit des vivres et forme les bateaux de pêche. La pêche active en mer coûte 1 PA.',
+  SUBMARINE_BASE:
+    'Sur la côte : sous-marins aux niveaux 3 à 5. Sonar à partir du niveau 3, portée niveau moins un.',
+  COASTAL_BATTERY:
+    'Sur la côte : artillerie défensive commandée, 1 PA par tir. Puissance et portée augmentent à chaque niveau. Sonar à partir du niveau 3.',
   STEAM_SAWMILL:
     'Exploitation industrielle du bois : 48 bois/min, uniquement en forêt. Exige une scierie et un atelier. Débloque la scierie des ombres. Production +80 % au niveau 2, +200 % au niveau 3, +400 % au niveau 4 et +700 % au niveau 5 ; stockage local dès le niveau 2.',
   MECHANIZED_QUARRY:
@@ -1815,9 +1852,13 @@ export const DEFAULT_SETTINGS = {
   uiScale: 1,
   tutorialCompleted: false,
   emblem: 'crown',
+  realmName: '',
   bannerColor: '#bc9860',
   bannerSecondary: '#272b26',
   bannerShape: 'swallow',
+  bannerPattern: 'plain',
+  bannerAccent: '#d6c9a5',
+  miniFlagShape: 'same',
   lastCameraQ: 0,
   lastCameraR: 0,
 };
@@ -1825,6 +1866,9 @@ export type Settings = typeof DEFAULT_SETTINGS;
 
 /** Manual harvesting is separate from building production and always uses the occupied tile. */
 export const TERRAIN_RESOURCES: Record<Terrain, readonly Resource[]> = {
+  SEA: [],
+  COAST: [],
+  BEACH: [],
   SCORCHED: [],
   PLAIN: ['FOOD'],
   FOREST: ['WOOD'],
@@ -1847,6 +1891,7 @@ export const UNIT_TABS = [
   'Motos',
   'Véhicules',
   'Blindés',
+  'Marine',
   'Aviation',
   'Hélicoptères',
   'Cloches occultes',
@@ -1855,6 +1900,7 @@ export const UNIT_TABS = [
 ] as const;
 export type UnitTab = (typeof UNIT_TABS)[number];
 export const UNIT_CATEGORY: Record<UnitKind, UnitTab> = {
+  ...NAVAL_CATEGORIES,
   ...TRANSPORT_CATEGORIES,
   ...SPECIALIST_CATEGORIES,
   ...ELITE_CATEGORIES,
@@ -1928,6 +1974,7 @@ export const BUILDING_TABS = [
 ] as const;
 export type BuildingTab = (typeof BUILDING_TABS)[number];
 export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
+  ...NAVAL_BUILDING_CATEGORIES,
   STEAM_SAWMILL: 'Ressources',
   MECHANIZED_QUARRY: 'Ressources',
   INDUSTRIAL_MINE: 'Ressources',
@@ -2001,6 +2048,21 @@ export const unitPopulation = (kind: UnitKind) =>
         : UNIT_PROFILES[kind].siege
           ? 6
           : 5);
+/** Food for the unit's actual crew; passenger rations are billed on passengers separately. */
+export function unitFoodUpkeep(kind: UnitKind): number {
+  if (kind === 'HERO') return 0;
+  const profile = UNIT_PROFILES[kind];
+  if (profile.builder || profile.healer) return 0.25;
+  const tier = UNIT_TIERS[kind];
+  const base =
+    unitPopulation(kind) * (profile.mechanical ? 0.09 : 0.12) +
+    [0, 0.2, 0.5, 0.9, 1.5, 2.3, 3.4, 4.5][tier];
+  return (
+    Math.round(
+      base * (profile.mounted ? 1.6 : profile.flying && !profile.mechanical ? 2 : 1) * 10,
+    ) / 10
+  );
+}
 export function unitUpkeep(kind: UnitKind): Wallet {
   if (kind === 'HERO') return { GOLD: 0, WOOD: 0, STONE: 0, IRON: 0, FOOD: 0 };
   const tier = UNIT_TIERS[kind],
@@ -2014,10 +2076,7 @@ export function unitUpkeep(kind: UnitKind): Wallet {
       IRON: profile.mechanical
         ? Math.round((places * 0.04 + Math.max(0, tier - 2) * 0.3) * 100) / 100
         : 0,
-      FOOD:
-        kind === 'OCCULT_DRAGON'
-          ? 2
-          : Math.round((places * 0.06 + (profile.mounted ? 0.3 : 0)) * 100) / 100,
+      FOOD: unitFoodUpkeep(kind),
     };
   }
   // Recruitment inflation is an investment, not a retroactive ×15 upkeep bill.
@@ -2027,7 +2086,7 @@ export function unitUpkeep(kind: UnitKind): Wallet {
     WOOD: 0,
     STONE: 0,
     IRON: UNIT_PROFILES[kind].mechanical ? 0.2 + UNITS[kind].attack / 40 : 0,
-    FOOD: kind === 'OCCULT_DRAGON' ? 2 : UNIT_PROFILES[kind].mounted ? 0.65 : 0.25,
+    FOOD: unitFoodUpkeep(kind),
   };
 }
 
@@ -2038,7 +2097,11 @@ export function ordinaryUpgradeCost(kind: BuildingKind, level: number): Partial<
     !Object.values(UNIT_PROFILES).some((p) => p.recruitAt.includes(kind));
   const cost = scaleCost(
     BUILDINGS[kind].cost,
-    (producer ? PRODUCER_UPGRADE_MULTIPLIERS : UPGRADE_MULTIPLIERS)[level - 1],
+    (producer && BUILDING_ECONOMIC_TIERS[kind] <= 1
+      ? [0.8, 1.4, 8, 20]
+      : producer
+        ? PRODUCER_UPGRADE_MULTIPLIERS
+        : UPGRADE_MULTIPLIERS)[level - 1],
   );
   if (Object.values(UNIT_PROFILES).some((p) => !p.builder && p.recruitAt.includes(kind))) {
     const floor = [80, 500, 2500, 10000][level - 1];
@@ -2117,7 +2180,11 @@ export function buildingUpgrade(kind: BuildingKind, level: number) {
 }
 
 export const productionMultiplier = (kind: BuildingKind, level: number) =>
-  kind === 'VILLAGE' ? level : PRODUCTION_MULTIPLIERS[Math.max(0, Math.min(4, level - 1))];
+  kind === 'VILLAGE'
+    ? level
+    : (BUILDING_ECONOMIC_TIERS[kind] <= 1 && Object.keys(BUILDINGS[kind].production).length
+        ? [1, 1.8, 3, 4.5, 6]
+        : PRODUCTION_MULTIPLIERS)[Math.max(0, Math.min(4, level - 1))];
 export const trainingBonusAt = (kind: BuildingKind, level: number) =>
   Object.values(UNIT_PROFILES).some((p) => p.recruitAt.includes(kind) && !p.builder)
     ? TRAINING_BONUSES[Math.max(0, Math.min(4, level - 1))]
@@ -2139,3 +2206,5 @@ export const storageBonus = (kind: BuildingKind, level: number) => {
 export const populationCapacity = (kind: BuildingKind, level: number) =>
   (BUILDING_POPULATION[kind] ?? 0) *
   (kind === 'VILLAGE' ? level + 1 : 2 * productionMultiplier(kind, level));
+
+export * from './expeditions';

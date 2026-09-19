@@ -1,3 +1,4 @@
+import { prepareDevelopment } from './fixtures/development';
 import { strategy } from '../apps/server/src/strategy';
 import { test, expect } from '@playwright/test';
 import { resolve } from 'node:path';
@@ -46,6 +47,7 @@ test('missions : trois offres, acceptation unique, navigation, abandon payant, v
       now,
       5,
     );
+    prepareDevelopment(state, 'a', 5, now);
     state.realms.ally = createRealm('ally', 'Renforts', 'ASH', { q: -100, r: 0 }, now);
     strategy(state, now).alliances.team = {
       id: 'team',

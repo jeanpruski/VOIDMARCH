@@ -1,4 +1,24 @@
-import { allUnits } from '@voidmarch/game-rules';
+import {
+  developmentReason,
+  constructionDevelopmentStage,
+  upgradeDevelopmentStage,
+} from '@voidmarch/config';
+import {
+  navalConstructionReason,
+  recruitmentTileAllowed,
+  fishingYield,
+} from '@voidmarch/game-rules';
+import {
+  canCarrySupplies,
+  supplyCharges,
+  supplyCost,
+  supplySource,
+  repairPlan,
+  consumeSupplies,
+  CAMPAIGN_SUPPLIES,
+} from '@voidmarch/game-rules';
+import { movementBiome, unitMovementBudget } from '@voidmarch/game-rules';
+import { allUnits, armyTraining, refreshArmyTraining } from '@voidmarch/game-rules';
 import {
   ACTION_COST,
   BUILDINGS,
@@ -14,7 +34,6 @@ import {
   buildingConstructionCost,
   buildingUpgrade,
   isBuildable,
-  trainingBonusAt,
   unitPopulation,
   roadConstructionCost,
   type Wallet,
@@ -78,7 +97,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
   const unit = world.units.find((u) => u.id === action.actorId && u.ownerId === id);
   const buildings = world.tiles.flatMap((t) => (t.building?.ownerId === id ? [t.building] : []));
   const building = buildings.find((b) => b.id === action.actorId);
-  const pay = (cost: Partial<Wallet> = {}, ap = ACTION_COST[action.type]) => {
+  const pay = (cost: Partial<Wallet> = {}, ap: number = ACTION_COST[action.type]) => {
     if ((!player.unlimitedAP && player.ap < ap) || !canAfford(player.wallet, cost)) return false;
     if (!player.unlimitedAP) player.ap -= ap;
     for (const [resource, value] of Object.entries(cost))
@@ -118,8 +137,11 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
         blocked.has(key(cursor)) ||
         (action.type === 'MOVE' &&
           cost >
-            UNITS[unit.kind].move +
-              (UNIT_PROFILES[unit.kind].mounted && player.faction === 'IRON' ? 1 : 0)) ||
+            unitMovementBudget(
+              unit,
+              movementBiome(world.seed, tiles.get(key(unit))),
+              player.faction,
+            )) ||
         !pay()
       )
         return;
@@ -133,6 +155,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       if (!t?.terrain || t.visibility !== 'VISIBLE' || t.building || !isBuildable(p.kind)) return;
       const nearby = unit && UNIT_PROFILES[unit.kind].builder && distance(unit, p) <= 1;
       if (
+        !!developmentReason(buildings, constructionDevelopmentStage(p.kind)) ||
         (t.enclosureOwnerId && !nearby) ||
         (t.ownerId !== id &&
           !(
@@ -144,6 +167,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
           (kind) => !buildings.some((b) => b.kind === kind),
         ) ||
         !BUILDINGS[p.kind].terrains.includes(t.terrain) ||
+        !!navalConstructionReason(p.kind, p, (x) => tiles.get(key(x))) ||
         world.units.some((u) => u.ownerId !== id && key(u) === key(t))
       )
         return;
@@ -165,8 +189,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       break;
     }
     case 'RECRUIT': {
-      const kind = action.payload.kind,
-        profile = UNIT_PROFILES[kind];
+      const kind = action.payload.kind;
       if (!building || recruitmentRequirement(kind, building, buildings)) return;
       const free =
         kind === 'PEASANT' &&
@@ -181,30 +204,24 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       const p = [building, ...neighbors(building)].find((p) => {
         const t = tiles.get(key(p));
         return (
-          t?.ownerId === id &&
-          t.terrain &&
+          recruitmentTileAllowed(kind, t, id) &&
+          t?.terrain &&
           !wallBlocks(t.building, id) &&
           movementCost({ ...p, terrain: t.terrain, road: t.road }, kind) <= UNITS[kind].move &&
           !world.units.some((u) => key(u) === key(p))
         );
       });
       if (!p || !pay(free ? {} : UNITS[kind].cost)) return;
-      const trainingBonus = profile.builder
-        ? 0
-        : Math.max(
-            0,
-            ...buildings
-              .filter((b) => profile.recruitAt.includes(b.kind))
-              .map((b) => trainingBonusAt(b.kind, b.level)),
-          );
+      const { trainingBonus, supportBonus } = armyTraining(kind, buildings);
       world.units.push({
         q: p.q,
         r: p.r,
         id: `preview:${action.actionId}`,
         ownerId: id,
         kind,
-        hp: unitStats({ kind, trainingBonus }).hp,
+        hp: unitStats({ kind, trainingBonus, supportBonus }).hp,
         ...(trainingBonus ? { trainingBonus } : {}),
+        ...(Object.values(supportBonus).some(Boolean) ? { supportBonus } : {}),
         createdAt: now,
         updatedAt: now,
       });
@@ -243,36 +260,62 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
     case 'GATHER': {
       const t = unit && tiles.get(key(unit)),
         resource = action.payload.resource;
+      const fish = unit && resource === 'FOOD' ? fishingYield(unit, t) : 0;
       if (
-        unit?.kind !== 'PEASANT' ||
+        (unit?.kind !== 'PEASANT' && !fish) ||
         !t?.terrain ||
-        !canGather({ terrain: t.terrain, ownerId: t.ownerId }, id, resource)
+        (!fish && !canGather({ terrain: t.terrain, ownerId: t.ownerId }, id, resource))
       )
         return;
       const received = Math.min(
-        GATHER_YIELD[resource],
+        fish || GATHER_YIELD[resource],
         Math.max(0, player.capacity - player.wallet[resource]),
       );
       if (!received || !pay()) return;
       player.wallet[resource] += received;
       break;
     }
+    case 'RESUPPLY': {
+      if (
+        action.actorId !== id ||
+        new Set(action.payload.unitIds).size !== action.payload.unitIds.length
+      )
+        return;
+      const targets = action.payload.unitIds.map((uid) =>
+        world.units.find((u) => u.id === uid && u.ownerId === id),
+      );
+      const sites = world.tiles.flatMap((t) => (t.building ? [t.building] : []));
+      if (
+        targets.some(
+          (u) =>
+            !u ||
+            !canCarrySupplies(u) ||
+            supplyCharges(u) >= CAMPAIGN_SUPPLIES.capacity ||
+            !supplySource(u, sites, world.units, world.strategy?.alliance?.members),
+        )
+      )
+        return;
+      if (
+        !pay(
+          { FOOD: targets.reduce((sum, u) => sum + (supplyCost(u!).FOOD ?? 0), 0) },
+          targets.length,
+        )
+      )
+        return;
+      for (const u of targets) {
+        u!.provisions = CAMPAIGN_SUPPLIES.capacity;
+        u!.updatedAt = now;
+      }
+      break;
+    }
     case 'REPAIR': {
       const target = building ?? unit;
       if (!target) return;
-      const max = building ? BUILDINGS[building.kind].hp * building.level : unitStats(unit!).hp;
-      const mechanical = unit && UNIT_PROFILES[unit.kind].mechanical;
-      if (
-        target.hp >= max ||
-        !pay({
-          GOLD: 10,
-          WOOD: building ? 15 : 0,
-          FOOD: building || mechanical ? 0 : 10,
-          IRON: mechanical ? 10 : 0,
-        })
-      )
-        return;
-      target.hp = Math.round(Math.min(max, target.hp + Math.ceil(max * 0.5)) * 100) / 100;
+      const plan = repairPlan(target, now);
+      if (plan.reason || plan.restored <= 0 || !pay(plan.cost)) return;
+      target.hp = Math.round((target.hp + plan.restored) * 100) / 100;
+      target.lastRepairedAt = now;
+      if (!building && plan.supplied) consumeSupplies(unit!, now);
       target.updatedAt = now;
       break;
     }
@@ -306,7 +349,14 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
     case 'UPGRADE': {
       if (!building) return;
       const upgrade = buildingUpgrade(building.kind, building.level);
-      if (!upgrade || building.population < upgrade.population || !pay(upgrade.cost)) return;
+      if (
+        !upgrade ||
+        (building.lastDamagedAt !== undefined && now - building.lastDamagedAt < 90000) ||
+        developmentReason(buildings, upgradeDevelopmentStage(building.kind, upgrade.level)) ||
+        building.population < upgrade.population ||
+        !pay(upgrade.cost)
+      )
+        return;
       const oldKind = building.kind;
       building.constructionCost ??= buildingConstructionCost(building.kind, player.faction);
       building.kind = upgrade.kind;
@@ -319,20 +369,11 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       building.updatedAt = now;
       if (oldKind === 'CAMP') building.population = Math.max(10, building.population);
       if (oldKind === 'OUTPOST') building.population = Math.max(15, building.population);
-      const training = trainingBonusAt(building.kind, building.level);
-      for (const u of world.units) {
-        const profile = UNIT_PROFILES[u.kind];
-        if (
-          u.ownerId !== id ||
-          profile.builder ||
-          !profile.recruitAt.includes(building.kind) ||
-          (u.trainingBonus ?? 0) >= training
-        )
-          continue;
-        const ratio = u.hp / unitStats(u).hp;
-        u.trainingBonus = training;
-        u.hp = Math.round(unitStats(u).hp * ratio * 100) / 100;
-      }
+      refreshArmyTraining(
+        allUnits(world.units).filter((u) => u.ownerId === id),
+        buildings,
+        now,
+      );
       break;
     }
     case 'CAPTURE': {
@@ -418,6 +459,11 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
     default:
       return;
   }
+  refreshArmyTraining(
+    allUnits(world.units).filter((u) => u.ownerId === id),
+    world.tiles.flatMap((t) => (t.building?.ownerId === id ? [t.building] : [])),
+    now,
+  );
   // Never reveal unknown land; keep the minimap consistent for already known cells.
   world.overview = world.overview.map((t) => {
     const tile = tiles.get(key(t));

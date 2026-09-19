@@ -38,47 +38,57 @@ export function VictoryReport() {
       <div className="victory-heading" role="status">
         <MissionMedal medal={victory.medal} />
         <div>
-          <span className="eyebrow">Forteresse conquise</span>
+          <span className="eyebrow">
+            {victory.expedition ? 'Expédition accomplie' : 'Forteresse conquise'}
+          </span>
           <h2>{victory.title}</h2>
-          <p>
-            Les survivants rallient{' '}
-            {victory.ownerId === world.player.id
-              ? 'votre bannière'
-              : (owner?.name ?? 'votre allié')}
-            .
-          </p>
+          {victory.expedition ? (
+            <p>Le lieu rejoint le carnet des découvertes du commanditaire.</p>
+          ) : (
+            <p>
+              Les survivants rallient{' '}
+              {victory.ownerId === world.player.id
+                ? 'votre bannière'
+                : (owner?.name ?? 'votre allié')}
+              .
+            </p>
+          )}
         </div>
       </div>
-      <div className="victory-counts">
-        <span>
-          <b>{victory.captured.units}</b> troupes récupérées
-        </span>
-        <span>
-          <b>{victory.captured.buildings}</b> bâtiments
-        </span>
-        <span>
-          <b>{victory.captured.walls}</b> remparts
-        </span>
-      </div>
+      {!victory.expedition && (
+        <div className="victory-counts">
+          <span>
+            <b>{victory.captured.units}</b> troupes récupérées
+          </span>
+          <span>
+            <b>{victory.captured.buildings}</b> bâtiments
+          </span>
+          <span>
+            <b>{victory.captured.walls}</b> remparts
+          </span>
+        </div>
+      )}
       <p>
         Butin versé à{' '}
         {victory.ownerId === world.player.id ? 'votre royaume' : (owner?.name ?? 'votre allié')} :
       </p>
       <Cost cost={victory.reward} />
-      <details>
-        <summary>Bilan des combats</summary>
-        <p>
-          Garnison détruite : {victory.destroyed.units} troupes, {victory.destroyed.buildings}{' '}
-          bâtiments, {victory.destroyed.walls} remparts.
-        </p>
-        <p>
-          Pertes enregistrées face à la garnison (vous et vos alliés) : {victory.losses.units}{' '}
-          troupes, {victory.losses.buildings} bâtiments ou remparts.
-        </p>
-        <p className="muted">
-          Les survivants conservent leurs dégâts et leur niveau. Le héros reste immortel.
-        </p>
-      </details>
+      {!victory.expedition && (
+        <details>
+          <summary>Bilan des combats</summary>
+          <p>
+            Garnison détruite : {victory.destroyed.units} troupes, {victory.destroyed.buildings}{' '}
+            bâtiments, {victory.destroyed.walls} remparts.
+          </p>
+          <p>
+            Pertes enregistrées face à la garnison (vous et vos alliés) : {victory.losses.units}{' '}
+            troupes, {victory.losses.buildings} bâtiments ou remparts.
+          </p>
+          <p className="muted">
+            Les survivants conservent leurs dégâts et leur niveau. Le héros reste immortel.
+          </p>
+        </details>
+      )}
       <div className="selection-actions">
         <button
           onClick={() => {
@@ -87,7 +97,7 @@ export function VictoryReport() {
           }}
         >
           <Flag size={15} />
-          Voir la forteresse
+          {victory.expedition ? 'Revoir le lieu' : 'Voir la forteresse'}
         </button>
         {victory.ownerId === world.player.id && (
           <button

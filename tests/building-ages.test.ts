@@ -1,3 +1,4 @@
+import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -42,13 +43,15 @@ describe('cinq niveaux et époques', () => {
     expect(buildingUpgrade(kind, 5)).toBeNull();
   });
   it('le haut niveau renforce les producteurs et ajoute un stockage local à chaque étape', () => {
-    expect([1, 2, 3, 4, 5].map((l) => productionMultiplier('MINE', l))).toEqual([1, 1.8, 3, 5, 8]);
+    expect([1, 2, 3, 4, 5].map((l) => productionMultiplier('MINE', l))).toEqual([
+      1, 1.8, 3, 4.5, 6,
+    ]);
     const s = createState('ages', now),
       r = addPlayer(s, 'p', 'Âges', 'MASK', now);
     const mine = addBuilding(s, r, { q: 1, r: 0 }, 'MINE', now);
     writeTile(s, mine, { terrain: 'HILL' });
     mine.level = 5;
-    expect(income(s, r.id).IRON).toBe(40);
+    expect(income(s, r.id).IRON).toBe(30);
     expect(storageBonus('MINE', 5)).toBe(8000);
     const saved = structuredClone(s);
     expect(migrateProgression(s, now)).toBe(false);
@@ -72,6 +75,7 @@ describe('cinq niveaux et époques', () => {
       updatedAt: now,
     };
     s.units.soldier.hp = unitStats(s.units.soldier).hp / 2;
+    prepareDevelopment(s, r.id, 4, now);
     for (const level of [4, 5]) {
       const result = execute(s, r.id, order('UPGRADE', b.id), now);
       expect(result.result.accepted, result.result.reason).toBe(true);

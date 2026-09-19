@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
-import { createState } from '@voidmarch/game-rules';
+import { createState, migrateOceans } from '@voidmarch/game-rules';
 import { RULES } from '@voidmarch/config';
 import { BotDirector } from './bots';
 import { initialEvents } from './simulation';
@@ -7,6 +7,7 @@ import { ensureHeroes } from './heroes';
 
 export function freshWorld(seed: string, now = Date.now()) {
   const state = createState(seed, now);
+  migrateOceans(state);
   initialEvents(state, now);
   new BotDirector().reconcile(state, now, 0);
   ensureHeroes(state, now);

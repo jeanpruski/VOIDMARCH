@@ -59,7 +59,21 @@ export interface ViewTile extends Hex {
   exhausted?: boolean;
   capture?: Tile['capture'];
 }
+export interface ArmySupportBonus {
+  attack: number;
+  defense: number;
+  hp: number;
+  move: number;
+  vision: number;
+  terrain: number;
+}
 export interface Unit extends Hex {
+  lastDamagedAt?: number;
+  lastRepairedAt?: number;
+  foodPenalty?: number;
+  revealedUntil?: number;
+  /** Remaining supplied attacks or improved repairs, never consumed by elapsed time. */
+  provisions?: number;
   /** Passengers exist only inside their carrier, never in the board unit dictionary. */
   cargo?: Unit[];
   carrierId?: string;
@@ -80,6 +94,8 @@ export interface Unit extends Hex {
   /** Permanent server-generated percentage bonus, absent for ordinary units. */
   rareBonus?: number;
   trainingBonus?: number;
+  /** Live, capped support from additional owned training infrastructure. */
+  supportBonus?: ArmySupportBonus;
   id: string;
   ownerId: string;
   kind: UnitKind;
@@ -88,6 +104,8 @@ export interface Unit extends Hex {
   updatedAt: number;
 }
 export interface Building extends Hex {
+  lastDamagedAt?: number;
+  lastRepairedAt?: number;
   /** A fixed weapon attachment; its survival and ownership follow the wall. */
   turretLevel?: TurretLevel;
   turretConstructionCost?: Partial<Wallet>;
@@ -112,6 +130,8 @@ export interface SavedArmy {
   updatedAt: number;
 }
 export interface Realm {
+  /** Accumulated active minutes without enough food; no offline accrual. */
+  foodShortageMinutes?: number;
   armies?: SavedArmy[];
   hero?: {
     appearance: HeroAppearance;
@@ -172,6 +192,7 @@ export interface Treaty {
   physicalTrade?: boolean;
 }
 export interface Caravan extends Hex {
+  maritime?: boolean;
   delivery?: boolean;
   id: string;
   ownerId: string;
@@ -187,6 +208,10 @@ export interface Caravan extends Hex {
 export interface WorldEvent extends Hex {
   id: string;
   kind:
+    | 'SHIPWRECK'
+    | 'SEA_OBELISK'
+    | 'DRIFTING_CARGO'
+    | 'SUB_WRECK'
     | 'MONOLITH'
     | 'METEOR'
     | 'FORTRESS'
@@ -239,6 +264,9 @@ export interface RealmArchive {
   tiles: Tile[];
 }
 export interface GameState {
+  oceanVersion?: 1;
+  /** Legacy explored regions protected from ocean generation, in 16-hex cells. */
+  protectedLand?: Record<string, true>;
   missions?: Record<string, MissionBoard>;
   strategy?: StrategyState;
   version: 1;
@@ -257,6 +285,7 @@ export interface GameState {
   archives: Record<string, RealmArchive>;
   nextEventAt: number;
   npcZoneChecks?: Record<string, number>;
+  navalEventChecks?: Record<string, number>;
   botSerial: number;
   revision: number;
 }
@@ -265,6 +294,7 @@ export interface PublicRealm {
   onMission?: boolean;
   /** Public total; the mission history remains private. Optional for older snapshots. */
   trophyCount?: number;
+  realmName?: string;
   id: string;
   name: string;
   faction: Faction;
@@ -274,6 +304,10 @@ export interface PublicRealm {
   emblem: string;
   color: string;
   bannerShape: string;
+  bannerSecondary?: string;
+  bannerPattern?: string;
+  bannerAccent?: string;
+  miniFlagShape?: string;
   stats: {
     territory: number;
     military: number;
@@ -292,11 +326,15 @@ export interface PlayerState extends Omit<
 > {
   nextAPAt: number;
   income: Wallet;
+  foodBalance?: { production: number; army: number; civilians: number; net: number };
   capacity: number;
   population: number;
   realmValue: number;
 }
-export type OverviewTile = Pick<ViewTile, 'q' | 'r' | 'terrain' | 'biome' | 'ownerId' | 'visibility'>;
+export type OverviewTile = Pick<
+  ViewTile,
+  'q' | 'r' | 'terrain' | 'biome' | 'ownerId' | 'visibility'
+>;
 export interface WorldView {
   missions?: MissionsView;
   strategy?: StrategyView;

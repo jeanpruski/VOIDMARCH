@@ -1,3 +1,5 @@
+import { ExpeditionDescription } from './Expeditions';
+import { EXPEDITION_MODES } from '@voidmarch/config';
 import { missionWallCount } from '@voidmarch/game-rules';
 import { useMemo, useState } from 'react';
 import { Award, ArrowLeft, MapPin } from 'lucide-react';
@@ -52,10 +54,13 @@ function TrophyDetails({ trophy, back }: { trophy: MissionTrophy; back: () => vo
       <section>
         <h3>La mission qui t’a valu cette médaille</h3>
         <h4>{m.title}</h4>
+        {m.expedition && <ExpeditionDescription offer={m} />}
         <p>
-          {m.objective === 'COMMANDER'
-            ? 'Commandant de garnison éliminé'
-            : 'Bâtiment maître détruit'}{' '}
+          {m.expedition
+            ? EXPEDITION_MODES[m.expedition.mode] + ' accomplie'
+            : m.objective === 'COMMANDER'
+              ? 'Commandant de garnison éliminé'
+              : 'Bâtiment maître détruit'}{' '}
           · Mission de niveau {m.level}
         </p>
         <p className="muted">
@@ -70,37 +75,39 @@ function TrophyDetails({ trophy, back }: { trophy: MissionTrophy; back: () => vo
           troupes, {trophy.losses.buildings} bâtiments ou remparts.
         </p>
       )}
-      <table className="trophy-battle-table">
-        <caption>Bilan de la forteresse</caption>
-        <thead>
-          <tr>
-            <th>Forces ennemies</th>
-            <th>Au départ</th>
-            <th>Détruites</th>
-            <th>Ralliées</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th>Unités</th>
-            <td>{m.units.length}</td>
-            <td>{trophy.destroyed.units}</td>
-            <td>{trophy.captured.units}</td>
-          </tr>
-          <tr>
-            <th>Bâtiments</th>
-            <td>{m.buildings.length}</td>
-            <td>{trophy.destroyed.buildings}</td>
-            <td>{trophy.captured.buildings}</td>
-          </tr>
-          <tr>
-            <th>Remparts</th>
-            <td>{missionWallCount(m)}</td>
-            <td>{trophy.destroyed.walls}</td>
-            <td>{trophy.captured.walls}</td>
-          </tr>
-        </tbody>
-      </table>
+      {!m.expedition && (
+        <table className="trophy-battle-table">
+          <caption>Bilan de la forteresse</caption>
+          <thead>
+            <tr>
+              <th>Forces ennemies</th>
+              <th>Au départ</th>
+              <th>Détruites</th>
+              <th>Ralliées</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Unités</th>
+              <td>{m.units.length}</td>
+              <td>{trophy.destroyed.units}</td>
+              <td>{trophy.captured.units}</td>
+            </tr>
+            <tr>
+              <th>Bâtiments</th>
+              <td>{m.buildings.length}</td>
+              <td>{trophy.destroyed.buildings}</td>
+              <td>{trophy.captured.buildings}</td>
+            </tr>
+            <tr>
+              <th>Remparts</th>
+              <td>{missionWallCount(m)}</td>
+              <td>{trophy.destroyed.walls}</td>
+              <td>{trophy.captured.walls}</td>
+            </tr>
+          </tbody>
+        </table>
+      )}
       <details className="trophy-roster">
         <summary>Voir la composition de la forteresse</summary>
         <p>{roster(m.units, (k) => UNITS[k].name)}</p>

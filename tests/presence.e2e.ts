@@ -3,7 +3,7 @@ import { createState } from '@voidmarch/game-rules';
 import { addPlayer, worldView } from '../apps/server/src/engine';
 import { PlayerPresence } from '../apps/server/src/presence';
 
-test('compteur cliquable, durées en direct, missions et liste mobile', async ({ page }) => {
+test('compteur cliquable, missions et liste mobile sans durée de connexion', async ({ page }) => {
   const now = Date.now(),
     state = createState('presence-browser', now),
     presence = new PlayerPresence();
@@ -53,11 +53,9 @@ test('compteur cliquable, durées en direct, missions et liste mobile', async ({
   await expect(dialog.locator('li').first()).toContainText('Alice');
   await expect(dialog.locator('li').first()).toContainText('Aucune mission en cours');
   const basile = dialog.locator('li').filter({ hasText: 'Basile' });
-  await expect(basile).toContainText('Depuis 1 h 2 min');
   await expect(basile).toContainText('En mission');
-  const timer = dialog.locator('.online-player-duration').first();
-  const initial = await timer.textContent();
-  await expect(timer).not.toHaveText(initial!);
+  await expect(dialog).not.toContainText('Depuis');
+  await expect(dialog).not.toContainText('Durée');
   await expect(dialog).not.toContainText('Absent');
   await expect(dialog).not.toContainText('Automate');
   await page.screenshot({ path: 'test-results/online-players.png' });

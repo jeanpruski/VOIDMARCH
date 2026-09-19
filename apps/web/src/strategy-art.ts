@@ -7,7 +7,7 @@ import {
   nuclearStrikeRadius,
   hexArea,
 } from '@voidmarch/config';
-import { disk, key } from '@voidmarch/game-rules';
+import { disk, key, expeditionCenter } from '@voidmarch/game-rules';
 import type { Hex, WorldView, Unit } from '@voidmarch/shared';
 import { hexToPixel, SIZE, Y_SCALE, cameraViewport } from './map-geometry';
 
@@ -49,12 +49,12 @@ export function drawStrategicOperations(
     g.lineStyle(1.4, ink, 0.8);
     g.strokePoints(points, true);
   };
-  const label = (p: Hex, text: string, color: string) => {
+  const label = (p: Hex, text: string, color: string, offset = 22) => {
     if (!visible(p)) return;
     const h = hexToPixel(p);
     objects.push(
       scene.add
-        .text(h.x, h.y - 22, text, {
+        .text(h.x, h.y - offset, text, {
           fontSize: simple ? '15px' : '11px',
           color,
           backgroundColor: '#17201fee',
@@ -67,19 +67,20 @@ export function drawStrategicOperations(
   };
   for (const mission of [world.missions?.active, ...(world.missions?.allied ?? [])]) {
     if (!mission) continue;
-    const objective = 'objectivePosition' in mission ? (mission.objectivePosition as Hex) : mission;
-    if (visible(objective)) hex(objective, 0xe2b767, 0.2);
+    const visitingSite = mission.expedition && mission.expedition.phase !== 'RETURN';
+    const objective = visitingSite
+      ? expeditionCenter(mission)
+      : 'objectivePosition' in mission
+        ? (mission.objectivePosition as Hex)
+        : mission;
+    if (visible(objective) && (!visitingSite || simple)) hex(objective, 0xe2b767, 0.2);
     label(
       objective,
       `⚑ ${mission.realmId === world.player.id ? 'OBJECTIF' : 'MISSION ALLIÉE'} · ${mission.title}`,
       '#f2cc85',
+      visitingSite && !simple ? 143 : 22,
     );
   }
-  if (!simple)
-    for (const f of d.fallout)
-      // A visible but light veil (8–14%) keeps the owner's banner color readable.
-      if (f.intensity > 0 && visible(f))
-        hex(f, 0x89b643, 0.08 + Math.min(100, f.intensity) * 0.0006);
   for (const strike of d.strikes.filter((s) => !s.resolvedAt)) {
     let count = 0;
     for (const p of disk(strike, nuclearStrikeRadius(strike)))
@@ -202,7 +203,19 @@ export function drawAmbient(
           g.strokeEllipse(p.x + 19, p.y - 24, reduced ? 3 : 4 + Math.sin(time / 30) * 2, 15);
         }
       }
-      if (isMoving) {
+      if (profile.naval) {
+        for (let i = 0; i < 2; i++) {
+          const phase = reduced ? 0.3 + i * 0.25 : cyclePhase(time / 1800 + i * 0.5);
+          g.lineStyle(1, 0xadd6d0, (1 - phase) * 0.32);
+          g.strokeEllipse(p.x, p.y + 7, 34 + phase * 25, 10 + phase * 8);
+        }
+        if (isMoving) {
+          g.lineStyle(1.5, 0xb7d9d1, 0.55);
+          g.lineBetween(p.x - 24, p.y + 6, p.x - 42, p.y + 11);
+          g.lineBetween(p.x - 24, p.y + 9, p.x - 43, p.y + 17);
+        }
+      }
+      if (isMoving && !profile.naval) {
         for (let i = 0; i < 3; i++) {
           const phase = cyclePhase(time / 550 + i / 3);
           g.fillStyle(0xa89c78, (1 - phase) * 0.25);

@@ -1,3 +1,4 @@
+import { NAVAL_TRANSPORTS } from './naval';
 import type { UnitKind, UnitProfile, UnitTab } from './index';
 
 export const TRANSPORT_UNITS = {
@@ -71,10 +72,12 @@ export const TRANSPORT_UNITS = {
 export type TransportKind = keyof typeof TRANSPORT_UNITS;
 export interface TransportSpec {
   capacity: number;
+  heavy?: boolean;
   vehicles: boolean;
-  landing: 'LAND' | 'AIRSTRIP' | 'HOVER';
+  landing: 'LAND' | 'AIRSTRIP' | 'HOVER' | 'SEA';
 }
 export const TRANSPORTS: Partial<Record<UnitKind, TransportSpec>> = {
+  ...NAVAL_TRANSPORTS,
   TRANSPORT_SIDECAR: { capacity: 2, vehicles: false, landing: 'LAND' },
   TROOP_CARRIER: { capacity: 4, vehicles: false, landing: 'LAND' },
   CARGO_TRUCK: { capacity: 8, vehicles: true, landing: 'LAND' },

@@ -1,3 +1,15 @@
+import { refreshFoodPenalties } from './army-support';
+import { developmentReason, unitDevelopmentStage } from '@voidmarch/config';
+import { oceanTerrain } from './oceans';
+export * from './oceans';
+export * from './expeditions';
+export * from './naval';
+export * from './sea-trade';
+import { isSea } from '@voidmarch/config';
+import { supplyAttackBonus } from './supplies';
+export * from './supplies';
+export * from './unit-movement';
+export * from './army-support';
 import { biomeAt } from './biomes';
 export * from './biomes';
 import { allUnits } from './transports';
@@ -61,7 +73,12 @@ export function recruitmentRequirement(
   const missing = profile.requires.find(
     (k) => !owned.some((b) => b.ownerId === building.ownerId && b.kind === k && b.hp > 0),
   );
-  return missing ? `${BUILDINGS[missing].name} nécessaire pour cette unité.` : '';
+  return missing
+    ? `${BUILDINGS[missing].name} nécessaire pour cette unité.`
+    : developmentReason(
+        owned.filter((b) => b.ownerId === building.ownerId),
+        unitDevelopmentStage(kind),
+      );
 }
 export const unkey = (s: string): Hex => {
   const [q, r] = s.split(',').map(Number);
@@ -232,7 +249,15 @@ export function generateTile(seed: string, p: Hex): Tile {
 }
 export const tileAt = (s: GameState, p: Hex): Tile => {
   const saved = s.tiles[key(p)];
-  return saved ? saved.biome ? saved : { ...saved, biome: biomeAt(s.seed, p) } : generateTile(s.seed, p);
+  return saved
+    ? saved.biome
+      ? saved
+      : { ...saved, biome: biomeAt(s.seed, p) }
+    : (() => {
+        const t = generateTile(s.seed, p),
+          terrain = oceanTerrain(s, p);
+        return terrain ? { ...t, terrain, poi: undefined } : t;
+      })();
 };
 export function writeTile(s: GameState, p: Hex, patch: Partial<Tile>): Tile {
   const t = { ...tileAt(s, p), ...patch };
@@ -263,6 +288,21 @@ export function missionReward(
   );
 }
 export const amount = (w: Partial<Wallet>) => Object.values(w).reduce((a, b) => a + b, 0);
+export function missionAbandonPlan(wallet: Wallet, cost: Partial<Wallet>) {
+  const paid = Object.fromEntries(
+    Object.entries(cost).map(([k, value]) => [k, Math.min(wallet[k as keyof Wallet], value)]),
+  ) as Partial<Wallet>;
+  const due = amount(cost),
+    shortfall = Math.max(0, due - amount(paid));
+  return {
+    paid,
+    delay:
+      shortfall > 0
+        ? Math.max(5 * 60000, Math.ceil((30 * 60000 * shortfall) / Math.max(1, due)))
+        : 0,
+  };
+}
+
 export const alliedRealmIds = (s: GameState, id: string): string[] =>
   Object.values(s.strategy?.alliances ?? {})
     .find((a) => a.members.includes(id))
@@ -301,7 +341,11 @@ export const demolitionRefund = (building: Building, faction: Faction): Partial<
   return result;
 };
 export const turretStats = (building: Building) =>
-  isWall(building.kind) && building.turretLevel ? TURRETS[building.turretLevel] : undefined;
+  building.kind === 'COASTAL_BATTERY'
+    ? TURRETS[Math.max(1, Math.min(5, building.level)) as TurretLevel]
+    : isWall(building.kind) && building.turretLevel
+      ? TURRETS[building.turretLevel]
+      : undefined;
 export const nextTurretLevel = (building: Building): TurretLevel | undefined =>
   isWall(building.kind) && (building.turretLevel ?? 0) < 5
     ? (((building.turretLevel ?? 0) + 1) as TurretLevel)
@@ -342,6 +386,7 @@ export function roadSiteReason(
   units: Pick<Unit, 'q' | 'r' | 'ownerId' | 'kind'>[],
   remove = false,
 ) {
+  if (isSea(tile.terrain)) return 'Une route ne peut pas traverser la mer.';
   if (!remove && tile.terrain === 'SCORCHED')
     return 'Restaurez ces terres brûlées avec un terrassier avant de construire une route.';
   if (tile.ownerId === ownerId) return '';
@@ -408,6 +453,11 @@ export function income(s: GameState, id: string): Wallet {
   out.FOOD -= buildings.reduce((a, b) => a + b.population, 0) * 0.015;
   return out;
 }
+export function foodBalance(s: GameState, id: string, net = income(s, id).FOOD) {
+  const army = allRealmUnits(s, id).reduce((sum, u) => sum + (unitUpkeep(u.kind).FOOD ?? 0), 0);
+  const civilians = realmBuildings(s, id).reduce((sum, b) => sum + b.population, 0) * 0.015;
+  return { production: Math.max(0, net + army + civilians), army, civilians, net };
+}
 export const storage = (s: GameState, id: string) =>
   800 + realmBuildings(s, id).reduce((sum, b) => sum + storageBonus(b.kind, b.level), 0);
 export function accrueEconomy(s: GameState, r: Realm, now: number, grace = RULES.grace) {
@@ -416,6 +466,15 @@ export function accrueEconomy(s: GameState, r: Realm, now: number, grace = RULES
   if (minutes > 0 && !r.defeatedAt) {
     const rates = income(s, r.id),
       cap = storage(s, r.id);
+    // Count only the part of this online interval after the food reserve is exhausted.
+    const fedMinutes =
+      rates.FOOD < 0 ? Math.min(minutes, Math.max(0, r.wallet.FOOD) / -rates.FOOD) : minutes;
+    const hungryMinutes = minutes - fedMinutes;
+    r.foodShortageMinutes = Math.min(
+      45,
+      Math.max(0, (r.foodShortageMinutes ?? 0) - fedMinutes * 2) + hungryMinutes,
+    );
+    refreshFoodPenalties(s, now, r.id);
     for (const k of Object.keys(rates) as (keyof Wallet)[])
       r.wallet[k] = Math.max(
         0,
@@ -463,7 +522,7 @@ export function vision(s: GameState, r: Realm): Set<string> {
   const visible = new Set<string>();
   for (const u of realmUnits(s, r.id)) {
     const range =
-      UNITS[u.kind].vision +
+      unitStats(u).vision +
       (r.faction === 'MASK' && u.kind === 'SCOUT' ? 2 : 0) +
       (Object.values(s.strategy?.sites ?? {}).some(
         (x) => x.ownerId === r.id && x.kind === 'RADIO' && tileAt(s, x).ownerId === r.id,
@@ -516,7 +575,9 @@ export function observe(s: GameState, r: Realm, now: number) {
   r.progression.exploration = Object.keys(r.explored).length;
 }
 export function movementCost(t: Tile, kind?: UnitKind) {
+  if (kind && UNIT_PROFILES[kind].naval) return isSea(t.terrain) ? 1 : 99;
   if (kind && UNIT_PROFILES[kind].flying) return 1;
+  if (isSea(t.terrain)) return 99;
   if (t.road) return 1;
   if (
     kind &&
@@ -576,6 +637,8 @@ type TravelTile = Hex & Partial<Pick<Tile, 'road' | 'ownerId' | 'terrain'>>;
 export function travelNetworkTile(tile: TravelTile | undefined, ownerId?: string, kind?: UnitKind) {
   return (
     !!tile &&
+    !isSea(tile.terrain) &&
+    !(kind && UNIT_PROFILES[kind].naval) &&
     (!!tile.road ||
       (!!ownerId &&
         tile.ownerId === ownerId &&
@@ -622,7 +685,18 @@ export function roadPathTo(
   return result.reverse();
 }
 export function unitStats(
-  unit: Pick<Unit, 'kind' | 'rareBonus' | 'trainingBonus' | 'npc' | 'victories' | 'expedition'>,
+  unit: Pick<
+    Unit,
+    | 'kind'
+    | 'rareBonus'
+    | 'trainingBonus'
+    | 'supportBonus'
+    | 'npc'
+    | 'victories'
+    | 'expedition'
+    | 'provisions'
+    | 'foodPenalty'
+  >,
 ) {
   const base = UNITS[unit.kind];
   if (unit.npc) {
@@ -639,25 +713,41 @@ export function unitStats(
     };
   }
   const multiplier = 1 + ((unit.rareBonus ?? 0) + (unit.trainingBonus ?? 0)) / 100;
-  const boosted = (value: number) => Math.round(value * multiplier * 100) / 100;
+  const boosted = (value: number, extra = 0) =>
+    Math.round(value * multiplier * (1 + Math.min(15, Math.max(0, extra)) / 100) * 100) / 100;
+  const support = unit.supportBonus;
+  const provisions =
+    (1 + supplyAttackBonus(unit) / 100) *
+    (1 - Math.min(20, Math.max(0, unit.foodPenalty ?? 0)) / 100);
   return {
     ...base,
-    hp: boosted(base.hp),
-    attack: boosted(base.attack * (1 + veteranRank(unit.victories) * 0.05)),
-    defense: boosted(base.defense * (1 + veteranRank(unit.victories) * 0.05)),
-    buildingAttack: boosted(base.buildingAttack * (1 + veteranRank(unit.victories) * 0.05)),
+    hp: boosted(base.hp, support?.hp),
+    attack: boosted(
+      base.attack * (1 + veteranRank(unit.victories) * 0.05) * provisions,
+      support?.attack,
+    ),
+    defense: boosted(base.defense * (1 + veteranRank(unit.victories) * 0.05), support?.defense),
+    buildingAttack: boosted(
+      base.buildingAttack * (1 + veteranRank(unit.victories) * 0.05) * provisions,
+      support?.attack,
+    ),
+    move: base.move + Math.min(1, Math.max(0, support?.move ?? 0)),
+    vision: base.vision + Math.min(1, Math.max(0, support?.vision ?? 0)),
   };
 }
 
 /** Affinities are positional, never persisted into a unit's permanent stats. */
-export function terrainCombatBonus(unit: Pick<Unit, 'kind' | 'npc'>, terrain?: Terrain) {
+export function terrainCombatBonus(
+  unit: Pick<Unit, 'kind' | 'npc' | 'supportBonus'>,
+  terrain?: Terrain,
+) {
   if (unit.npc || !terrain) return { attack: 0, defense: 0 };
-  return (
-    UNIT_TERRAIN_AFFINITIES[unit.kind].find((a) => a.terrain === terrain) ?? {
-      attack: 0,
-      defense: 0,
-    }
-  );
+  const affinity = UNIT_TERRAIN_AFFINITIES[unit.kind].find((a) => a.terrain === terrain);
+  const extra = Math.min(5, Math.max(0, unit.supportBonus?.terrain ?? 0));
+  return {
+    attack: affinity?.attack ? affinity.attack + extra : 0,
+    defense: affinity?.defense ? affinity.defense + extra : 0,
+  };
 }
 export function unitCombatStats(unit: Parameters<typeof unitStats>[0], terrain?: Terrain) {
   const stats = unitStats(unit);
@@ -687,6 +777,12 @@ export const attackCost = (attacker: Unit | Building) =>
   'population' in attacker ? 1 : UNIT_PROFILES[attacker.kind].siege ? 2 : 1;
 export function attackBlockReason(attacker: Unit | Building, target: Unit | Building) {
   const building = 'population' in attacker;
+  if (
+    !building &&
+    UNIT_PROFILES[attacker.kind].submarine &&
+    ('population' in target || !UNIT_PROFILES[target.kind].naval)
+  )
+    return 'Les torpilles ne peuvent toucher que des navires.';
   if (building && !turretStats(attacker)) return 'Ce bâtiment ne possède pas de tourelle.';
   if (building && attacker.hp <= 0) return 'Ce rempart est détruit.';
   if (building && distance(attacker, target) === 0)
@@ -704,7 +800,11 @@ export function attackBlockReason(attacker: Unit | Building, target: Unit | Buil
 export function attackTrajectory(attacker: Unit | Building) {
   if ('population' in attacker) return 'elevated';
   if (UNIT_PROFILES[attacker.kind].flying) return 'air';
-  if (INDIRECT_FIRE_UNITS.includes(attacker.kind)) return 'indirect';
+  if (
+    INDIRECT_FIRE_UNITS.includes(attacker.kind) ||
+    (UNIT_PROFILES[attacker.kind].naval && UNIT_PROFILES[attacker.kind].siege)
+  )
+    return 'indirect';
   return attackStats(attacker).range <= 1 ? 'melee' : 'direct';
 }
 
@@ -739,8 +839,19 @@ export function resolveAttack(
   attacker: Unit | Building,
   intended: Unit | Building,
   buildings: Iterable<Building>,
+  getTile?: (p: Hex) => { terrain?: Terrain } | undefined,
 ) {
-  const reason = attackBlockReason(attacker, intended);
+  let reason = attackBlockReason(attacker, intended);
+  if (
+    !reason &&
+    getTile &&
+    !('population' in attacker) &&
+    UNIT_PROFILES[attacker.kind].submarine &&
+    disk(attacker, distance(attacker, intended)).some(
+      (p) => wallEntry(attacker, intended, p) !== undefined && !isSea(getTile(p)?.terrain),
+    )
+  )
+    reason = 'Le trajet des torpilles doit rester entièrement en mer, sans terre ni case inconnue.';
   const trajectory = attackTrajectory(attacker);
   if (
     reason ||
@@ -797,7 +908,8 @@ export function estimateDamage(
   const counterMultiplier =
     'population' in attacker
       ? 1
-      : 1 + ((attacker.trainingBonus ?? 0) + (attacker.rareBonus ?? 0)) / 100;
+      : (1 + ((attacker.trainingBonus ?? 0) + (attacker.rareBonus ?? 0)) / 100) *
+        (1 - Math.min(20, Math.max(0, attacker.foodPenalty ?? 0)) / 100);
   const antiArmor =
     !('population' in attacker) &&
     (UNIT_PROFILES[attacker.kind].antiArmor ?? 0) > 0 &&
@@ -916,7 +1028,9 @@ export function publicTile(
 ): ViewTile {
   const k = key(p);
   if (!visible.has(k))
-    return memory[k] ? { ...memory[k], biome: memory[k].biome ?? biomeAt(s.seed, p), visibility: 'EXPLORED' } : { ...p, visibility: 'UNKNOWN' };
+    return memory[k]
+      ? { ...memory[k], biome: memory[k].biome ?? biomeAt(s.seed, p), visibility: 'EXPLORED' }
+      : { ...p, visibility: 'UNKNOWN' };
   const t = tileAt(s, p);
   return {
     q: p.q,
@@ -943,6 +1057,7 @@ export function terraformSiteReason(
   units: readonly Unit[],
   capital?: Hex,
 ) {
+  if (isSea(tile.terrain)) return 'La mer ne peut pas être terrassée.';
   if (unit.ownerId !== ownerId || unit.kind !== 'TERRAFORMER')
     return 'Sélectionnez votre terrassier arcanique.';
   if (distance(unit, tile) > 1) return 'Le terrassier doit être à une case maximum du chantier.';

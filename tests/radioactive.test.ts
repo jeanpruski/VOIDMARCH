@@ -1,3 +1,4 @@
+import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -14,6 +15,7 @@ import {
   type UnitKind,
 } from '@voidmarch/config';
 import {
+  armyTraining,
   createState,
   disk,
   estimateDamage,
@@ -47,6 +49,7 @@ function fixture() {
   // Recruitment tests need traversable spawn terrain, independently of catalog order.
   for (const b of buildings) writeTile(s, b, { terrain: 'PLAIN' });
   buildings.find((b) => b.kind === 'VILLAGE')!.population = 1000;
+  prepareDevelopment(s, r.id, 5, now);
   return { s, r, buildings };
 }
 const unit = (kind: UnitKind): Unit => ({
@@ -116,7 +119,10 @@ describe('division atomique', () => {
       const upgraded = execute(recruited.state, r.id, order('UPGRADE', recruiter.id), now);
       expect(upgraded.result.accepted).toBe(true);
       const veteran = upgraded.state.units[fresh.id];
-      expect(veteran.trainingBonus).toBe(25);
+      expect(veteran.trainingBonus).toBe(
+        armyTraining(kind, Object.values(upgraded.state.buildings)).trainingBonus,
+      );
+      expect(veteran.trainingBonus).toBeGreaterThanOrEqual(25);
       expect(Math.abs(veteran.hp - unitStats(veteran).hp / 2)).toBeLessThan(0.006);
       const camp = buildings.find((b) => b.kind === 'CAMP')!;
       expect(execute(s, r.id, order('RECRUIT', camp.id, { kind }), now).result.accepted).toBe(

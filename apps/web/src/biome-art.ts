@@ -36,6 +36,15 @@ const colors: Record<Exclude<Biome, 'TEMPERATE'>, Partial<Record<Terrain, number
 
 /** Stable functional terrain colors; climate affects presentation only. */
 export function biomeTerrainColor(terrain: Terrain, biome: Biome = 'TEMPERATE'): number {
+  if (terrain === 'SEA' || terrain === 'COAST') return TERRAINS[terrain].color;
+  if (terrain === 'BEACH')
+    return biome === 'SNOW'
+      ? 0xb4b7aa
+      : biome === 'DESERT'
+        ? 0xb19d76
+        : biome === 'AUTUMN'
+          ? 0xaaa083
+          : 0x9a9377;
   if (biome === 'TEMPERATE' || terrain === 'SCORCHED' || terrain === 'ALIEN')
     return TERRAINS[terrain].color;
   return colors[biome][terrain] ?? BIOMES[biome].ground;
