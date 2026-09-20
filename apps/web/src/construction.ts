@@ -1,9 +1,9 @@
-import { RULES, UNIT_PROFILES, isSea } from '@voidmarch/config';
-import { distance, key, expeditionDistance } from '@voidmarch/game-rules';
+import { RULES, UNIT_PROFILES, isSea, type BuildingKind } from '@voidmarch/config';
+import { distance, key, expeditionDistance, canFoundOutpost } from '@voidmarch/game-rules';
 import type { Unit, ViewTile, WorldView } from '@voidmarch/shared';
 
 /** Site eligibility shared by the map overlay, terrain actions and building catalogue. */
-export function constructionSiteReason(world: WorldView, tile?: ViewTile) {
+export function constructionSiteReason(world: WorldView, tile?: ViewTile, kind?: BuildingKind) {
   if (!tile?.terrain || tile.visibility === 'UNKNOWN')
     return 'Explorez ce terrain avant de construire.';
   if (
@@ -25,12 +25,13 @@ export function constructionSiteReason(world: WorldView, tile?: ViewTile) {
     return 'Une unité adverse occupe ce terrain.';
   if (
     !own &&
+    !world.units.some((u) => canFoundOutpost(kind ?? 'OUTPOST', world.player.id, tile, u)) &&
     !world.tiles.some(
       (t) =>
         t.building?.ownerId === world.player.id && distance(t, tile) <= RULES.constructionRadius,
     )
   )
-    return 'Le chantier doit être à 3 cases maximum de l’un de vos bâtiments.';
+    return 'À plus de 3 cases de vos bâtiments, seul un avant-poste peut être fondé, avec un paysan sur sa case neutre.';
   if (
     (!own || tile.enclosureOwnerId) &&
     !world.units.some(

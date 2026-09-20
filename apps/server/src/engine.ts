@@ -1,3 +1,4 @@
+import { canFoundOutpost } from '@voidmarch/game-rules';
 import { migrateTrophyDevelopment } from '@voidmarch/game-rules';
 import { developmentProgress } from '@voidmarch/game-rules';
 import { ensureSeaAccess } from '@voidmarch/game-rules';
@@ -975,8 +976,8 @@ export function applyAction(
         !t.ownerId &&
         realmBuildings(s, id).some((b) => distance(b, p) <= RULES.constructionRadius);
       requireRule(
-        t.ownerId === id || frontier,
-        'Construisez sur vos terres ou avec un bâtisseur près du chantier, à 3 cases maximum de vos bâtiments.',
+        t.ownerId === id || frontier || canFoundOutpost(p.kind, id, t, builder),
+        'Construisez sur vos terres ou à 3 cases maximum de vos bâtiments. Pour fonder une base éloignée, placez un paysan sur une terre neutre et construisez un avant-poste.',
       );
       const missing = (BUILDING_REQUIREMENTS[p.kind] ?? []).find(
         (kind) => !realmBuildings(s, id).some((b) => b.kind === kind),
@@ -1008,7 +1009,10 @@ export function applyAction(
       pay(r, cost);
       addBuilding(s, r, p, p.kind, now, 1, cost);
       r.progression.development++;
-      message = `Construction terminée : ${BUILDINGS[p.kind].name}.`;
+      message =
+        p.kind === 'OUTPOST'
+          ? 'Nouvelle base fondée : avant-poste. Vous pouvez construire à 3 cases autour et recruter des paysans.'
+          : `Construction terminée : ${BUILDINGS[p.kind].name}.`;
       log(s, message, 'ECONOMY', now, [id], p);
       break;
     }

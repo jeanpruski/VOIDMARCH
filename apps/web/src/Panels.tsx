@@ -1059,10 +1059,14 @@ function Build() {
   }
   const builder =
     tile &&
-    w.units.find(
-      (u) => u.ownerId === w.player.id && UNIT_PROFILES[u.kind].builder && distance(u, tile) <= 1,
-    );
+    (w.units.find(
+      (u) => u.ownerId === w.player.id && u.kind === 'PEASANT' && key(u) === key(tile),
+    ) ??
+      w.units.find(
+        (u) => u.ownerId === w.player.id && UNIT_PROFILES[u.kind].builder && distance(u, tile) <= 1,
+      ));
   const siteReason = constructionSiteReason(w, tile);
+  const ordinarySiteReason = constructionSiteReason(w, tile, 'CAMP');
   const buildable = (
     Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][]
   ).filter(([kind]) => isBuildable(kind));
@@ -1087,7 +1091,7 @@ function Build() {
           constructionDevelopmentStage(kind),
           developmentProgress(w),
         ) ||
-        siteReason ||
+        (kind === 'OUTPOST' ? siteReason : ordinarySiteReason) ||
         (tile
           ? navalConstructionReason(kind, tile, (p) => w.tiles.find((t) => key(t) === key(p)))
           : '') ||
@@ -1246,7 +1250,8 @@ function Build() {
           constructions avancées. Chaque étape correspond à la profondeur des prérequis. À étape
           égale, les moins coûteux viennent d’abord. Il faut une case libre de votre royaume, ou un
           bâtisseur à une case maximum du chantier neutre, situé à trois cases maximum de l’un de
-          vos bâtiments.
+          vos bâtiments. Pour fonder une base éloignée, placez un paysan sur une terre neutre
+          compatible et construisez un avant-poste : aucune limite de distance à votre capitale.
         </p>
         <p>
           Une enceinte fermée avec vos remparts en bois, pierre ou acier prend les cases neutres à
@@ -1380,7 +1385,7 @@ function Build() {
               </CatalogDetails>
               <button
                 className="secondary small"
-                title={reason || 'Construire'}
+                title={reason || (kind === 'OUTPOST' ? 'Fonder une base' : 'Construire')}
                 disabled={!!reason || pending}
                 onClick={() =>
                   tile &&
@@ -1391,7 +1396,7 @@ function Build() {
                   })
                 }
               >
-                Construire · 1 PA
+                {kind === 'OUTPOST' ? 'Fonder une base' : 'Construire'} · 1 PA
               </button>
             </article>
           );

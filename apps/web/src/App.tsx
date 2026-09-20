@@ -1,3 +1,4 @@
+import { FoundBase } from './FoundBase';
 import { VigieControls } from './VigieControls';
 import { MobilityControls, MobilityCounters, movementHint } from './MobilityControls';
 import { anomalyAPReward } from '@voidmarch/game-rules';
@@ -967,6 +968,7 @@ function SelectionPanel() {
                     Gratuit sur routes / enceintes · sinon {movementHint(u.kind, w.player)}
                   </small>
                 </ActionButton>
+                {u.kind === 'PEASANT' && <FoundBase key={u.id} unit={u} />}
                 <button
                   disabled={pending}
                   aria-pressed={multiSelect}

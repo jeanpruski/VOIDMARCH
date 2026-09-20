@@ -1,3 +1,5 @@
+import { constructionSiteReason } from './construction';
+import { canFoundOutpost } from '@voidmarch/game-rules';
 import { developmentProgress } from '@voidmarch/game-rules';
 import { movementPayment } from '@voidmarch/config';
 import { movementAPCost, anomalyAPReward } from '@voidmarch/game-rules';
@@ -162,7 +164,14 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
     case 'BUILD': {
       const p = action.payload,
         t = tiles.get(key(p));
-      if (!t?.terrain || t.visibility !== 'VISIBLE' || t.building || !isBuildable(p.kind)) return;
+      if (
+        !t?.terrain ||
+        t.visibility !== 'VISIBLE' ||
+        t.building ||
+        !isBuildable(p.kind) ||
+        constructionSiteReason(world, t, p.kind)
+      )
+        return;
       const nearby = unit && UNIT_PROFILES[unit.kind].builder && distance(unit, p) <= 1;
       if (
         !!developmentReason(
@@ -172,6 +181,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
         ) ||
         (t.enclosureOwnerId && !nearby) ||
         (t.ownerId !== id &&
+          !canFoundOutpost(p.kind, id, t, unit) &&
           !(
             nearby &&
             !t.ownerId &&

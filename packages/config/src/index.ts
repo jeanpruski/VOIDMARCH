@@ -1777,7 +1777,8 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   BARRACKS: 'Forme les premières troupes et les éclaireurs ; base de la filière militaire.',
   FORT: 'Fortification qui forme les troupes de caserne et sécurise un point de passage. Avec un réacteur noir : sentinelles de cobalt.',
   TOWER: 'Poste de surveillance : vision de 7 cases autour de la tour.',
-  OUTPOST: 'Forme les paysans, accueille des habitants et évolue en village.',
+  OUTPOST:
+    'Fonde une nouvelle base sans limite de distance sur une terre neutre, avec un paysan sur la case. Ouvre les chantiers à 3 cases autour, forme des paysans et évolue en village. Votre capitale reste inchangée.',
   VILLAGE: 'Centre civil : forme les paysans, produit des ressources et accueille la population.',
 
   QUARRY: 'Extrait 6 pierres par minute sur colline ou montagne.',
