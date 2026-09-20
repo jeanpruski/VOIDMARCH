@@ -1,5 +1,5 @@
 import { distance } from '@voidmarch/game-rules';
-import type { Hex } from '@voidmarch/shared';
+import type { Hex, MissionsView } from '@voidmarch/shared';
 import { hexToPixel, pixelToHex, type CameraViewport } from './map-geometry';
 
 export function capitalBearing(view: CameraViewport, capital: Hex) {
@@ -16,4 +16,25 @@ export function capitalBearing(view: CameraViewport, capital: Hex) {
     distance: distance(pixelToHex(center.x, center.y), capital),
     offset: horizontal ? dy / Math.max(1, Math.abs(dx)) : dx / Math.max(1, Math.abs(dy)),
   } as const;
+}
+
+/** Expeditions point to their site, including while the artefact carrier is returning. */
+export function missionBearing(view: CameraViewport, mission: MissionsView['active']) {
+  if (!mission) return null;
+  const position = mission.expedition ? { q: mission.q, r: mission.r } : mission.objectivePosition;
+  const pixel = hexToPixel(position);
+  if (
+    pixel.x >= view.x &&
+    pixel.x <= view.x + view.width &&
+    pixel.y >= view.y &&
+    pixel.y <= view.y + view.height
+  )
+    return null;
+  return {
+    ...capitalBearing(view, position),
+    position,
+    id: mission.id,
+    title: mission.title,
+    label: mission.expedition ? 'Expédition' : 'Mission',
+  };
 }

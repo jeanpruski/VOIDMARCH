@@ -1,11 +1,12 @@
 import { ArrowRight } from 'lucide-react';
 import { focusMap, useGame } from './store';
-import { capitalBearing } from './capital-radar';
+import { capitalBearing, missionBearing } from './capital-radar';
 
 export function CapitalRadar() {
   const world = useGame((s) => s.world);
   const viewport = useGame((s) => s.cameraViewport);
   if (!world || !viewport) return null;
+  const mission = missionBearing(viewport, world.missions?.active);
   const allies = world.strategy?.allies ?? [];
   const targets = [
     ...allies,
@@ -26,14 +27,34 @@ export function CapitalRadar() {
       : [];
   });
   return (
-    <div className="capital-radar" aria-label="Repérage des capitales alliées et radar">
+    <div className="capital-radar" aria-label="Repérage des missions, expéditions et capitales">
       {(['left', 'right', 'top', 'bottom'] as const).map((edge) => {
         const group = targets
           .filter((t) => t.edge === edge)
           .sort((a, b) => a.offset - b.offset || a.realm.id.localeCompare(b.realm.id));
         return (
-          group.length > 0 && (
+          (group.length > 0 || mission?.edge === edge) && (
             <div key={edge} className={`radar-edge radar-${edge}`}>
+              {mission?.edge === edge && (
+                <button
+                  className="radar-target radar-mission"
+                  data-mission-id={mission.id}
+                  onClick={() => focusMap(mission.position)}
+                  title={`${mission.title} : ${mission.distance} cases du centre de la vue. Distance directe en hexagones, pas la longueur du trajet. Cliquez pour centrer la carte sur le lieu.`}
+                  aria-label={`${mission.label} : ${mission.title}, à ${mission.distance} cases du centre de la vue. Localiser le lieu`}
+                >
+                  <ArrowRight
+                    size={20}
+                    style={{ transform: `rotate(${mission.angle}deg)` }}
+                    aria-hidden="true"
+                  />
+                  <span>
+                    <strong>{mission.distance} cases</strong>
+                    <small className="radar-mission-kind">{mission.label}</small>
+                    <small>{mission.title}</small>
+                  </span>
+                </button>
+              )}
               {group.map(({ realm, angle, distance, position, ally }) => (
                 <button
                   onClick={() => {

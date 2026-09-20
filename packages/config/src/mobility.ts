@@ -100,6 +100,7 @@ export function mobilityCost(
   level: number,
   resource: MobilityResource,
   amount: number,
+  strategicDiscount = 0,
 ): Partial<Wallet> {
   const advanced = kind === 'REFINERY' || kind === 'FIELD_HOSPITAL';
   // Prices are based on the realm's best producer, not the selected building's level.
@@ -114,6 +115,14 @@ export function mobilityCost(
         ? { GOLD: 20, FOOD: 60 }
         : { GOLD: 25, FOOD: 75 };
   return Object.fromEntries(
-    Object.entries(base).map(([r, value]) => [r, Math.ceil((value * percent) / 100) * amount]),
+    Object.entries(base).map(([r, value]) => [
+      r,
+      Math.ceil(
+        (value *
+          percent *
+          (100 - (resource === 'fuel' ? Math.max(0, Math.min(20, strategicDiscount)) : 0))) /
+          10000,
+      ) * amount,
+    ]),
   );
 }

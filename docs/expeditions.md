@@ -63,3 +63,7 @@ Les nouveaux lieux utilisent les mêmes trois objectifs, les mêmes paliers, le 
 Hoer Verde est une légende non localisée avec certitude. « Hoerengracht » désigne ici un quartier fictif inspiré des canaux d’Amsterdam, pas un quartier historique maudit attesté. L’Ourang Medan est présenté comme une légende dont le navire n’est pas confirmé. Les phénomènes occultes des autres sites appartiennent au récit du jeu. L’île-cimetière reste un objectif terrestre conformément au classement demandé : son décor est adapté au littoral, avec une approche à pied vérifiée.
 
 Le Baychimo exige une mer enneigée ; Skeleton Coast et Dahab une mer désertique voisine d’une plage. Les sites tropicaux refusent la neige. Houska et Édimbourg exigent un relief, Hoer Verde une forêt, Port Arthur et le cimetière un littoral, le quartier de canaux de l’eau à proximité. Aucun de ces tirages ne transforme le terrain pour forcer l’apparition d’un lieu.
+
+### Sol sous les illustrations
+
+Les lieux d’expédition masquent les décors des cases recouvertes par leur illustration, y compris lorsqu’elle déborde de ses trois cases fonctionnelles : arbres, rochers, montagnes, dunes et autres ornements. Le fond du biome, les couleurs de territoire, la grille et les routes restent visibles. Le terrain, ses ressources et ses règles de déplacement ne changent pas. Ce dégagement visuel concerne aussi les sites alliés connus et disparaît avec le lieu ; les unités restent dessinées au-dessus.

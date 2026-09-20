@@ -1,3 +1,6 @@
+import { WAR_HOLD_TIME, WAR_CAMPAIGN_COST, WAR_CAMPAIGN_REWARD } from '@voidmarch/config';
+import { tickAllianceProjects } from './alliance-projects';
+import { siteOperational, strategicBonuses } from '@voidmarch/game-rules';
 import { seaTradeRoute } from '@voidmarch/game-rules';
 import { isSea } from '@voidmarch/config';
 import { destroyUnit } from './transports';
@@ -191,6 +194,7 @@ export function strategyAction(
       a.markers = a.markers.filter((x) => x.authorId !== id);
       for (const operation of a.operations ?? [])
         operation.participants = operation.participants.filter((p) => p.realmId !== id);
+      tickAllianceProjects(s, now);
       if (!a.members.length) delete d.alliances[a.id];
       log(
         s,
@@ -246,7 +250,7 @@ export function strategyAction(
       const p = action.payload,
         target = s.realms[p.to];
       requireRule(
-        target && target.id !== id && !target.defeatedAt,
+        target && target.id !== id && !target.defeatedAt && !target.id.startsWith('mission:'),
         'Choisissez un royaume adverse actif.',
       );
       requireRule(
@@ -265,6 +269,20 @@ export function strategyAction(
         ).length < 5,
         'Cinq objectifs de guerre sont déjà actifs.',
       );
+      requireRule(
+        !Object.values(d.wars).some(
+          (w) =>
+            ((w.from === id && w.to === target.id) || (w.to === id && w.from === target.id)) &&
+            w.status !== 'ACTIVE' &&
+            (w.completedAt ?? w.endsAt) + 86400000 > now,
+        ),
+        'Ces royaumes doivent attendre 24 heures après leur dernière campagne.',
+      );
+      if (p.objective !== 'TRIBUTE')
+        requireRule(
+          distance(p, target.capital) > 0,
+          'Une capitale ne peut pas être un objectif de campagne limitée.',
+        );
       if (p.objective === 'TRIBUTE')
         requireRule(p.tributeGold > 0, 'Indiquez un tribut supérieur à zéro.');
       else {
@@ -274,11 +292,13 @@ export function strategyAction(
         );
         const b = s.buildings[tileAt(s, p).buildingId ?? ''];
         requireRule(
-          p.objective === 'MINE'
-            ? site?.kind === 'MINE' ||
+          p.objective === 'SITE'
+            ? !!site
+            : p.objective === 'MINE'
+              ? site?.kind === 'MINE' ||
                 (b?.ownerId === target.id &&
                   ['MINE', 'GOLD_MINE', 'INDUSTRIAL_MINE', 'ABYSSAL_MINE'].includes(b.kind))
-            : b?.ownerId === target.id && ['FORT', 'TOWER'].includes(b.kind),
+              : b?.ownerId === target.id && ['FORT', 'TOWER'].includes(b.kind),
           'Choisissez un fort ou une mine adverse correspondant à l’objectif.',
         );
       }
@@ -288,7 +308,10 @@ export function strategyAction(
             ? `Obtenir ${formatNumber(p.tributeGold)} or`
             : p.objective === 'MINE'
               ? 'Contrôler la mine'
-              : 'Prendre le fort';
+              : p.objective === 'SITE'
+                ? 'Tenir le site stratégique'
+                : 'Prendre le fort';
+      if (p.objective !== 'TRIBUTE') charge(r, 0, WAR_CAMPAIGN_COST);
       d.wars[wid] = {
         ...p,
         id: wid,
@@ -297,6 +320,15 @@ export function strategyAction(
         startsAt: now,
         endsAt: now + STRATEGY.warDuration,
         status: 'ACTIVE',
+        ...(p.objective === 'TRIBUTE'
+          ? {}
+          : {
+              holdDuration: WAR_HOLD_TIME,
+              heldMs: 0,
+              holding: false,
+              checkedAt: now,
+              reward: { ...WAR_CAMPAIGN_REWARD },
+            }),
       };
       r.protectedUntil = 0;
       log(
@@ -323,6 +355,7 @@ export function strategyAction(
       charge(r, 0, { GOLD: war.tributeGold });
       transfer(s.realms[war.from].wallet, { GOLD: war.tributeGold });
       war.status = 'SETTLED';
+      war.completedAt = now;
       peace(s, war.from, id, now);
       log(
         s,
@@ -542,6 +575,7 @@ export function strategyView(
   const d = s.strategy,
     a = allianceOf(s, id);
   return {
+    bonuses: strategicBonuses(s, id),
     alliance: a ? { ...a, markers: a.markers.filter((m) => m.expiresAt > now) } : undefined,
     invitations: Object.values(d?.invitations ?? {})
       .filter(
@@ -560,7 +594,10 @@ export function strategyView(
     strikes: Object.values(d?.strikes ?? {}).filter(
       (x) => !x.resolvedAt || now - x.resolvedAt < 15000,
     ),
-    sites: Object.values(d?.sites ?? {}),
+    sites: Object.values(d?.sites ?? {}).map((site) => ({
+      ...site,
+      operational: siteOperational(s, site),
+    })),
     fallout: Object.values(d?.fallout ?? {}).filter((x) => visible.has(key(x))),
     expeditions: Object.values(s.units)
       .filter((u) => u.expedition && u.npc && u.npc.expiresAt > now)
@@ -577,6 +614,7 @@ export function strategyView(
 
 export function tickStrategy(s: GameState, now: number, connected: Set<string>) {
   const d = strategy(s, now);
+  tickAllianceProjects(s, now);
   for (const invite of Object.values(d.invitations))
     if (invite.expiresAt <= now || !d.alliances[invite.allianceId] || !s.realms[invite.to])
       delete d.invitations[invite.id];
@@ -594,12 +632,49 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
       if (w.endsAt < now - 7 * 86_400_000) delete d.wars[w.id];
       continue;
     }
-    if (w.endsAt <= now || !s.realms[w.from] || !s.realms[w.to]) w.status = 'EXPIRED';
-    else if (w.objective !== 'TRIBUTE' && tileAt(s, w).ownerId === w.from) {
+    if (
+      w.endsAt <= now ||
+      !s.realms[w.from] ||
+      !s.realms[w.to] ||
+      s.realms[w.from].defeatedAt ||
+      s.realms[w.to].defeatedAt
+    ) {
+      w.status = 'EXPIRED';
+      w.completedAt = now;
+      w.holding = false;
+      continue;
+    }
+    if (w.objective === 'TRIBUTE') continue;
+    const side = [w.from, ...alliedRealmIds(s, w.from)];
+    const controlled = side.includes(tileAt(s, w).ownerId ?? '');
+    const units = Object.values(s.units).filter(
+      (u) => u.hp > 0 && UNITS[u.kind].attack > 0 && distance(u, w) <= 1,
+    );
+    const holding =
+      controlled &&
+      units.some(
+        (u) =>
+          side.includes(u.ownerId) && !UNIT_PROFILES[u.kind].flying && !UNIT_PROFILES[u.kind].naval,
+      ) &&
+      !units.some((u) => !side.includes(u.ownerId));
+    if (w.holdDuration) {
+      if (!holding) w.heldMs = 0;
+      else if (w.holding) w.heldMs = (w.heldMs ?? 0) + Math.max(0, now - (w.checkedAt ?? now));
+      w.holding = holding;
+      w.checkedAt = now;
+    }
+    if (controlled && (!w.holdDuration || (w.heldMs ?? 0) >= w.holdDuration)) {
       w.status = 'WON';
+      w.completedAt = now;
+      w.holding = false;
+      if (w.reward) {
+        transfer(s.realms[w.from].wallet, w.reward);
+        s.realms[w.from].warPrestige = (s.realms[w.from].warPrestige ?? 0) + 1;
+        peace(s, w.from, w.to, now);
+      }
       log(
         s,
-        `${s.realms[w.from].name} a accompli son objectif : ${w.title}.`,
+        `${s.realms[w.from].name} a accompli son objectif : ${w.title}.${w.reward ? ' Butin versé, +1 prestige de guerre et trêve de 24 heures.' : ''}`,
         'DIPLOMACY',
         now,
         [w.from, w.to],
@@ -607,6 +682,7 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
       );
     }
   }
+
   for (const site of Object.values(d.sites))
     if (
       site.ownerId &&
@@ -759,7 +835,9 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
       if (places.length) {
         const p = places[Math.floor(hash('place' + now) * places.length)],
           sid = randomUUID(),
-          kind = (['RADIO', 'MINE', 'SANCTUARY'] as const)[Math.floor(hash('kind' + now) * 3)];
+          kind = (['RADIO', 'MINE', 'SANCTUARY', 'REFINERY'] as const)[
+            Math.floor(hash('kind' + now) * 4)
+          ];
         writeTile(s, p, { terrain: 'PLAIN', poi: undefined });
         d.sites[sid] = { ...p, id: sid, kind };
         log(

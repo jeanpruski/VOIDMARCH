@@ -24,14 +24,16 @@ export const veteranRank = (victories = 0) =>
   victories >= 25 ? 3 : victories >= 10 ? 2 : victories >= 3 ? 1 : 0;
 export const VETERAN_NAMES = ['Recrue', 'Aguerrie', 'Vétéran', 'Élite'] as const;
 export const SITE_NAMES = {
+  REFINERY: 'Raffinerie abandonnée',
   RADIO: 'Relais de veille',
   MINE: 'Gisement exceptionnel',
   SANCTUARY: 'Sanctuaire occulte',
 } as const;
 export const SITE_BENEFITS = {
-  RADIO: '+1 vision pour vos unités (non cumulable)',
+  REFINERY: '−10 % sur le prix du carburant (non cumulable)',
+  RADIO: 'Vision locale de 8 cases autour du relais',
   MINE: '+8 fer / minute pendant votre présence',
-  SANCTUARY: '+5 or / minute pendant votre présence',
+  SANCTUARY: '+5 or/min pendant votre présence et −5 % sur les conversions de PA',
 } as const;
 
 /** Freeze each launched missile's footprint; pre-update missiles keep their announced radius. */

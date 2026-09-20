@@ -32,7 +32,6 @@ Les cartes affichent **Facile** pour une escarmouche, **Moyenne** pour un assaut
 
 Avant acceptation, chaque carte indique la préférence 20–40 cases et la recherche plus loin et le repli possible sur une zone visible libre. La distance exacte dépend des terrains et de la vision au moment de l’acceptation. Pendant une mission personnelle ou alliée, la distance directe est recalculée depuis la capitale du spectateur, et le bouton de localisation indique aussi la distance de la mission personnelle. Les missions déjà acceptées conservent leur emplacement ; le déplacement d’un éclaireur ne déplace jamais une forteresse existante.
 
-
 Si aucun trajet complet n’est calculable (brouillard, carte partiellement chargée ou obstacles), le panneau fournit uniquement un **repère en terrain ouvert, sans routes ni obstacles**, clairement signalé. Le coût des combats et des brèches est toujours exclu. Ces estimations ne réservent aucun chemin et ne garantissent pas qu’il restera libre jusqu’à l’arrivée.
 
 ## Renouvellement automatique des offres
@@ -50,3 +49,9 @@ La **Salle des trophées**, accessible dans la navigation à gauche et depuis le
 Les trophées sont enregistrés dans `missions[realmId].trophies`, avec l’identifiant de mission pour empêcher les doublons. Ils survivent au renouvellement des offres, aux abandons ultérieurs, aux déconnexions et aux défaites/redémarrages du royaume ; la suppression du compte efface sa collection. Les alliés peuvent aider à gagner la médaille, attribuée au commanditaire comme les autres récompenses. Aucun trophée n’est créé pour un abandon. Les anciennes victoires dont le détail n’a pas été conservé ne sont pas reconstituées ; une mission déjà active reçoit sa médaille si elle est gagnée après cette mise à jour.
 
 Navigation : **Royaume → Les royaumes → Armées** ; la salle des trophées se trouve juste après Missions.
+
+## Repère de direction sur la carte
+
+Une mission ou expédition personnelle active affiche automatiquement une flèche dorée sur le bord correspondant de la carte lorsque son objectif est hors champ. Le repère indique le nom du lieu et la distance directe en hexagones depuis le centre de la vue, actualisée avec les déplacements et le zoom de la caméra. Cliquer dessus centre la carte sur le lieu, sans déplacer de troupe ni dépenser de PA.
+
+Le repère disparaît lorsque le lieu entre dans la vue ou lorsque la mission est terminée ou abandonnée. En combat, il suit la position actuelle du bâtiment ou du commandant visé ; en expédition, il indique le site, même pendant le retour de l’objet. Il partage les bordures avec les repères alliés, sans exiger le code radar.

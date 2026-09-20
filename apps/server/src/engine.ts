@@ -1,3 +1,6 @@
+import { ensureSeaAccess } from '@voidmarch/game-rules';
+import { projectAction, tickAllianceProjects } from './alliance-projects';
+import { strategicBonuses } from '@voidmarch/game-rules';
 import {
   mobilityLevel,
   mobilityLimits,
@@ -189,8 +192,13 @@ export function log(
   if (s.journal.length > 1000) s.journal.splice(0, s.journal.length - 1000);
   return entry;
 }
-export function spawnPosition(s: GameState, id: string): Hex {
+export function spawnPosition(
+  s: GameState,
+  id: string,
+  allowed: (p: Hex) => boolean = () => true,
+): Hex {
   if (
+    allowed({ q: 0, r: 0 }) &&
     !Object.values(s.realms).some((r) => !r.defeatedAt) &&
     disk({ q: 0, r: 0 }, 8).every(
       (p) => !isSea(tileAt(s, p).terrain) && tileAt(s, p).terrain !== 'SCORCHED',
@@ -207,6 +215,7 @@ export function spawnPosition(s: GameState, id: string): Hex {
     );
     if (
       near ||
+      !allowed(p) ||
       disk(p, 3).some((t) => tileAt(s, t).ownerId) ||
       disk(p, 8).some((t) => isSea(tileAt(s, t).terrain) || tileAt(s, t).terrain === 'SCORCHED')
     )
@@ -277,6 +286,7 @@ export function settle(s: GameState, r: Realm, now: number) {
     };
   });
   for (const p of [at(-2, 1), at(0, 2), at(2, -1)]) writeTile(s, p, { road: true });
+  ensureSeaAccess(s, r, now);
   observe(s, r, now);
   log(s, `${r.name} a hissé sa bannière dans les Marches.`, 'REALM', now, [r.id], r.capital);
 }
@@ -296,6 +306,7 @@ export function settleFounding(s: GameState, r: Realm, now: number) {
       writeTile(s, p, { terrain: resources[i] });
   });
   addBuilding(s, r, r.capital, 'CAMP', now, 1, {});
+  ensureSeaAccess(s, r, now);
   observe(s, r, now);
   log(
     s,
@@ -537,7 +548,7 @@ export function applyAction(
         amount <= quota.remaining,
         `Quota de ${MOBILITY_NAMES[resource].toLowerCase()} : ${quota.remaining} points disponibles sur ${quota.limit} par heure.`,
       );
-      pay(r, mobilityCost(b.kind, level, resource, amount));
+      pay(r, mobilityCost(b.kind, level, resource, amount, strategicBonuses(s, id).fuel));
       r[resource] = (r[resource] ?? 0) + amount;
       r.mobilityReceipts = {
         ...r.mobilityReceipts,
@@ -566,7 +577,15 @@ export function applyAction(
         a.payload.amount <= quota.remaining,
         `Quota logistique : ${quota.remaining} PA disponibles sur ${quota.limit} par heure.`,
       );
-      pay(r, logisticsCost(a.payload.recipe, a.payload.amount, b.level));
+      pay(
+        r,
+        logisticsCost(
+          a.payload.recipe,
+          a.payload.amount,
+          b.level,
+          strategicBonuses(s, id).logistics,
+        ),
+      );
       r.logisticsReceipts = [...quota.recent, { at: now, amount: a.payload.amount }];
       r.ap += a.payload.amount;
       message = `${recipe.name} : +${a.payload.amount} PA. Quota restant : ${quota.remaining - a.payload.amount}/${quota.limit}.`;
@@ -1511,6 +1530,7 @@ export function applyAction(
     default: {
       const result =
         transportAction(s, id, a, now) ??
+        projectAction(s, id, a, now) ??
         operationAction(s, id, a, now) ??
         armyAction(s, id, a, now) ??
         missionAction(s, id, a, now) ??
@@ -1608,6 +1628,7 @@ export function applyAction(
       message += ` Enceinte ouverte : ${territory.released} case(s) sans bâtiment redeviennent neutres.`;
   }
   refreshWorldTraining(s, now);
+  tickAllianceProjects(s, now);
   tickAllianceOperations(s, now);
   observe(s, r, now);
   s.revision++;

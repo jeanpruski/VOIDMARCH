@@ -35,7 +35,7 @@ import {
   vision,
 } from '@voidmarch/game-rules';
 import type { Action } from '@voidmarch/protocol';
-import type { GameState, Hex, Realm } from '@voidmarch/shared';
+import type { GameState, Realm } from '@voidmarch/shared';
 import {
   defaultOptions,
   execute,
@@ -61,13 +61,6 @@ const personalities = [
   'CULTIST',
   'OPPORTUNIST',
 ];
-const homes: Hex[] = [
-  { q: -7, r: -9 },
-  { q: 12, r: -9 },
-  { q: -12, r: 13 },
-  { q: 16, r: 9 },
-  { q: 0, r: -22 },
-];
 type Intent = BotIntent;
 export class BotDirector {
   constructor(private options: EngineOptions = defaultOptions) {}
@@ -89,20 +82,11 @@ export class BotDirector {
           id,
           `${names[i % names.length]}${i >= names.length ? ` ${Math.floor(i / names.length) + 1}` : ''}`,
           (['MASK', 'IRON', 'ASH'] as Faction[])[i % 3],
-          i < 5 &&
-            Object.values(s.realms).every(
-              (other) =>
-                other.defeatedAt ||
-                distance(other.capital, {
-                  q: homes[i].q * RULES.settlementScale,
-                  r: homes[i].r * RULES.settlementScale,
-                }) >= RULES.realmSpacing,
-            )
-            ? { q: homes[i].q * RULES.settlementScale, r: homes[i].r * RULES.settlementScale }
-            : spawnPosition(s, id),
+          spawnPosition(s, id),
           now,
           true,
         );
+      r.landSpawnVersion = 1;
       r.personality = personalities[i % personalities.length];
       r.temporary = bots.length >= 3;
       r.nextBotAt = now + this.options.botInterval * (0.85 + hash(id) * 0.3);

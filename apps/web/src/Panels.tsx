@@ -255,6 +255,24 @@ function RealmPanel() {
           attaquer ; une trêve négociée reste valable hors ligne.
         </p>
       </div>
+      {p.seaAccess?.status === 'READY' && p.seaAccess.position && (
+        <div className="inset">
+          <h4>Accès à la mer</h4>
+          <p>
+            Une côte se trouve à {p.seaAccess.distance} cases de votre capitale, en distance
+            directe. Le terrain reste à explorer et la longueur du trajet dépend du relief.
+          </p>
+          <button className="secondary" onClick={() => focusMap(p.seaAccess!.position!)}>
+            <MapPin size={15} /> Repérer la côte
+          </button>
+        </div>
+      )}
+      {p.seaAccess?.status === 'BLOCKED' && (
+        <p className="muted">
+          Accès maritime en attente : aucune zone assez vaste n’est libre à moins de 100 cases. Vos
+          constructions sont préservées ; une nouvelle recherche sera effectuée automatiquement.
+        </p>
+      )}
       <h4>Reliques conservées</h4>
       {p.relics.length ? (
         <ul className="relic-list">
@@ -2349,7 +2367,8 @@ function Help() {
         </p>
         <p>
           Les raccourcis sont inactifs pendant la saisie, dans les fenêtres et pendant une action en
-          attente. Les flèches déplacent la caméra ; la molette ou le pincement à deux doigts règle le zoom.
+          attente. Les flèches déplacent la caméra ; la molette ou le pincement à deux doigts règle
+          le zoom.
         </p>
       </ContextHelp>
       <button

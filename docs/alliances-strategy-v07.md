@@ -19,8 +19,8 @@ Une unité de combat appartenant à un partenaire ou à son alliance, à une cas
 ## Guerres, sites et expéditions
 
 - Déclaration d’un objectif valable 24 heures : prendre un fort, contrôler une mine, obtenir un tribut en or. Les objectifs territoriaux doivent être visibles au moment de la déclaration. Cinq guerres actives maximum par initiateur. Aucune déclaration ne contourne une alliance, une trêve ou une protection initiale.
-- Une prise de territoire accomplit l’objectif correspondant. Payer un tribut met fin à cet objectif et établit une trêve de 24 heures ; aucun paiement forcé automatique.
-- Sites publics : relais de veille (+1 vision aux unités, non cumulable), gisement exceptionnel (+8 fer/min), sanctuaire occulte (+5 or/min). Les revenus suivent les mêmes règles de présence que les autres producteurs. Capture physique sur le site pour 1 PA ; les sites restent libres de bâtiments.
+- Les nouvelles campagnes territoriales demandent une capture puis un maintien de 30 minutes avec une garnison terrestre personnelle ou alliée, sans ennemi à une case. Une interruption remet ce maintien à zéro. Les campagnes anciennes gardent leur résolution immédiate. Payer un tribut met fin à cet objectif et établit une trêve de 24 heures ; aucun paiement forcé automatique.
+- Sites publics : relais de veille (vision locale de 8 cases), gisement exceptionnel (+8 fer/min), sanctuaire occulte (+5 or/min). Les revenus suivent les mêmes règles de présence que les autres producteurs. Tous les bonus exigent une garnison terrestre personnelle ou alliée à une case maximum et aucun adversaire armé à proximité. Capture physique sur le site pour 1 PA ; les sites restent libres de bâtiments.
 - Un nouveau site peut apparaître toutes les 30 minutes près des joueurs présents, 40 au maximum sur le monde et avec un espacement minimal. Les anciens mondes obtiennent leur première tentative une minute après initialisation.
 - Une expédition majeure peut apparaître chaque heure : convoi du réacteur noir, gardien du monastère contaminé, créature de la brèche, sentinelle de la Cloche. Au maximum trois simultanément ; durée deux heures. Quatre figurines issues des PNJ existants, agrandies et marquées EXPÉDITION.
 - Les adversaires ne commencent pas le combat. De 1 800 à 3 000 PV, attaque 60 à 105, défense 20 à 35. Butin total : 2 400 or, 1 600 fer, 1 200 pierre, 10 PA. Le système existant répartit exactement ce butin selon les dégâts réellement infligés, avec le plafond personnel de 20 PA.
@@ -54,3 +54,17 @@ Fumées industrielles, lueurs de forge et de réacteur, fissures et fumées des 
 Les animations ambiantes utilisent une couche graphique réutilisée, des plafonds de rendu et une cadence limitée. Elles respectent le masquage des unités/bâtiments, le mode mouvement réduit et disparaissent en vue stratégique. Les alertes, signaux et sites restent lisibles à ce niveau de zoom. Aucun son ajouté.
 
 Les nouvelles données sont facultatives dans les anciennes sauvegardes et initialisées à la demande. Aucun compte, stock ou bâtiment n’est réinitialisé. La suppression d’un invité nettoie aussi son appartenance à une alliance, ses messages, signaux et frappes.
+
+## Projets communs et campagnes limitées — septembre 2026
+
+Dans Commerce & diplomatie → Projets communs, le chef ouvre un projet sur un bâtiment hôte allié compatible de niveau 3 minimum. Les membres choisissent une contribution de 25, 50 ou 100 % du reste à financer, limitée à leurs stocks ; le devis précède le débit. Aucun PA. Le financement complet lance un chantier persistant de deux heures. Une annulation ou la perte de l’hôte avant achèvement rembourse les contributeurs, même partis de l’alliance, sans écrêter les stocks. Une fois achevé, pas de remboursement ; perte, capture ou départ du propriétaire de l’hôte désactive le bonus. Un projet de chaque type, sans cumul.
+
+- Intendance commune : centre logistique ou entrepôt ; −10 % supplémentaires sur les conversions de PA.
+- Base navale : port ou chantier naval ; −10 % sur le carburant.
+- Réseau de forteresses : fort ou tour ; +2 vision pour les forts et tours des membres.
+
+Les coûts complets et contributions figurent dans le panneau. Le bâtiment hôte porte un repère Financement, Chantier ou Actif sur la carte. Aucun bâtiment ni troupe n’est transféré au chef ; la coopération se fait sur les contributions et bonus.
+
+La raffinerie abandonnée rejoint les sites capturables : −10 % sur le carburant personnel. Le sanctuaire garde son or et ajoute −5 % sur les conversions de PA. Les remises de sites identiques ne se cumulent pas ; avec les projets, les plafonds sont −20 % pour le carburant et −15 % supplémentaires pour les PA. Arrondi par point avant multiplication du lot, identique dans les devis et sur le serveur. Aucun quota de production supplémentaire.
+
+Une campagne territoriale coûte 750 or et 750 vivres. Les objectifs sont fort, mine ou site stratégique adverse visible, hors capitale. Capture puis maintien de 30 minutes avant la fin des 24 heures ; les alliés peuvent tenir la position. Victoire : 2 000 or, 1 500 vivres, 1 000 fer, un prestige de guerre et trêve réciproque de 24 heures entre les deux royaumes principaux. Récompense versée une fois au déclarant, surplus conservé. Une nouvelle campagne entre les mêmes royaumes exige 24 heures après la précédente. Les trêves, protections et alliances ne sont jamais contournées. L’ancienne demande de tribut reste disponible.

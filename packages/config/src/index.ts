@@ -1,3 +1,4 @@
+export * from './alliance-projects';
 export * from './mobility';
 export * from './logistics';
 import {
@@ -109,6 +110,9 @@ export const ACTION_COST = {
   MOVE_GROUP: 0, // Each nested movement pays its ordinary cost.
   MISSION_ACCEPT: 0,
   MISSION_ABANDON: 0,
+  PROJECT_CREATE: 0,
+  PROJECT_CONTRIBUTE: 0,
+  PROJECT_CANCEL: 0,
   ALLIANCE_CREATE: 0,
   ALLIANCE_INVITE: 0,
   ALLIANCE_RESPOND: 0,

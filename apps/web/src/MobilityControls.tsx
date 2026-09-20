@@ -58,7 +58,13 @@ export function MobilityControls({ building }: { building: Building }) {
   const level = mobilityLevel(sites, resource);
   const { capacity, pricePercent } = mobilityLimits(level);
   const quota = mobilityQuota(level, world.player.mobilityReceipts?.[resource], now);
-  const cost = mobilityCost(building.kind, level, resource, amount);
+  const cost = mobilityCost(
+    building.kind,
+    level,
+    resource,
+    amount,
+    world.strategy?.bonuses?.fuel ?? 0,
+  );
   const error =
     value + amount > capacity
       ? `Réserve limitée à ${capacity} : ${Math.max(0, capacity - value)} places libres. Choisissez un lot plus petit.`
@@ -120,6 +126,12 @@ export function MobilityControls({ building }: { building: Building }) {
                 <p>
                   Votre réserve existante est conservée. Utilisez le surplus ou améliorez vos
                   producteurs avant d’en produire davantage.
+                </p>
+              )}
+              {resource === 'fuel' && !!world.strategy?.bonuses?.fuel && (
+                <p>
+                  Bonus stratégique : −{world.strategy.bonuses.fuel} % sur le prix du carburant,
+                  inclus dans le devis.
                 </p>
               )}
               <details className="mobility-progression">

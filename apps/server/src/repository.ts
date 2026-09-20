@@ -1,7 +1,13 @@
+import { migrateBotLand } from './bot-land-migration';
 import { ensureHeroes } from './heroes';
 import { createHash } from 'node:crypto';
 import { PrismaClient, Prisma } from '@prisma/client';
-import { createState, refreshWorldTraining, migrateOceans } from '@voidmarch/game-rules';
+import {
+  createState,
+  refreshWorldTraining,
+  migrateOceans,
+  ensureWorldSeaAccess,
+} from '@voidmarch/game-rules';
 import type { Action } from '@voidmarch/protocol';
 import type { ActionResult, GameState } from '@voidmarch/shared';
 import { execute, refreshEnclosures, type EngineOptions } from './engine.js';
@@ -37,6 +43,8 @@ export class WorldRepository {
             migrateResourceWallets(state);
             migrateProgression(state);
             migrateOceans(state);
+            migrateBotLand(state, Date.now());
+            ensureWorldSeaAccess(state, Date.now());
             refreshWorldTraining(state, Date.now());
             if (!existing) initialEvents(state, Date.now());
             const previousArchives = Object.fromEntries(

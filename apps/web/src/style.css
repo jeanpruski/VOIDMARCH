@@ -3968,6 +3968,17 @@ button:disabled {
 .radar-target:focus-visible {
   outline: 2px solid #e1c487;
 }
+.radar-mission {
+  border-color: #c6a567;
+  background: #302918f5;
+}
+.radar-mission svg,
+.radar-mission .radar-mission-kind {
+  color: #f0cd86;
+}
+.radar-mission:hover {
+  background: #433920;
+}
 .radar-empty {
   position: absolute;
   top: 8px;
@@ -5091,3 +5102,9 @@ button.radar-target {
 .mobility-progression table { width:100%; margin-top:10px; border-collapse:collapse; font-size:12px; }
 .mobility-progression th, .mobility-progression td { padding:8px 5px; text-align:left; }
 .mobility-progression tr[aria-current="true"] { background:#aa966622; color:#e8ce88; }
+
+.alliance-projects .inset { display: grid; gap: 12px; padding: 18px; }
+.alliance-projects .inset p { margin: 0; }
+.alliance-projects progress { width: 100%; accent-color: #c6a567; }
+.project-resources { display: grid; gap: 6px; }
+.project-resources > div { display: flex; justify-content: space-between; gap: 16px; }

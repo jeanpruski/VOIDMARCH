@@ -30,6 +30,23 @@ const building = z.enum(
 const id = z.string().min(1).max(80);
 export const commandSchema = z.discriminatedUnion('type', [
   z.object({
+    type: z.literal('PROJECT_CREATE'),
+    actorId: id,
+    payload: z.object({ kind: z.enum(['SUPPLY', 'HARBOR', 'WATCH']), hostId: id }).strict(),
+  }),
+  z.object({
+    type: z.literal('PROJECT_CONTRIBUTE'),
+    actorId: id,
+    payload: z
+      .object({ projectId: id, percent: z.union([z.literal(25), z.literal(50), z.literal(100)]) })
+      .strict(),
+  }),
+  z.object({
+    type: z.literal('PROJECT_CANCEL'),
+    actorId: id,
+    payload: z.object({ projectId: id }).strict(),
+  }),
+  z.object({
     type: z.literal('PRODUCE_MOBILITY'),
     actorId: id,
     payload: z
@@ -180,7 +197,7 @@ export const commandSchema = z.discriminatedUnion('type', [
     actorId: id,
     payload: hex.extend({
       to: id,
-      objective: z.enum(['FORT', 'MINE', 'TRIBUTE']),
+      objective: z.enum(['FORT', 'MINE', 'SITE', 'TRIBUTE']),
       tributeGold: z.number().int().min(0).max(100000),
     }),
   }),

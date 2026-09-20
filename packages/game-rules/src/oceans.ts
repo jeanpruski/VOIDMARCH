@@ -1,4 +1,4 @@
-import type { GameState, Hex } from '@voidmarch/shared';
+import type { GameState, Hex, CoastalSea } from '@voidmarch/shared';
 import { generateTile } from './index';
 import type { Terrain } from '@voidmarch/config';
 
@@ -32,6 +32,18 @@ const offsets = Array.from({ length: 7 }, (_, i) => i - 3)
   )
   .sort((a, b) => a.d - b.d);
 const caches = new WeakMap<GameState, Map<string, boolean>>();
+export function clearOceanCache(s: GameState) {
+  caches.delete(s);
+}
+/** Rounded, irregular coastline. Persisted centers and radii never follow the camera. */
+export function coastalSeaWater(seed: string, sea: CoastalSea, p: Hex) {
+  const q = p.q - sea.q,
+    r = p.r - sea.r;
+  const radial = Math.sqrt(q * q + q * r + r * r);
+  if (radial > sea.radius + 4) return false;
+  if (radial <= sea.radius - 4) return true;
+  return radial <= sea.radius + (noise(seed + sea.id, p.q, p.r, 11) - 0.5) * 8;
+}
 /** Coast noise has no dependency on the time, camera, or order of exploration. */
 export function oceanWater(s: GameState, p: Hex): boolean {
   if (!s.oceanVersion) return false;
@@ -40,6 +52,10 @@ export function oceanWater(s: GameState, p: Hex): boolean {
   const k = `${p.q},${p.r}`;
   const cached = cache.get(k);
   if (cached !== undefined) return cached;
+  if ((s.coastalSeas ?? []).some((sea) => coastalSeaWater(s.seed, sea, p))) {
+    cache.set(k, true);
+    return true;
+  }
   // A generous inland start and a buffer around every preserved legacy region.
   let protectedLand = distance(p.q, p.r) < 24 + noise(s.seed + 'start-coast', p.q, p.r, 17) * 6;
   if (!protectedLand && s.protectedLand) {

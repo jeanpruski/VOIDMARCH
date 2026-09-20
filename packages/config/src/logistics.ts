@@ -34,12 +34,18 @@ export function logisticsCost(
   recipe: LogisticsRecipe,
   amount: number,
   level: number,
+  strategicDiscount = 0,
 ): Partial<Wallet> {
   // Round the unit price first: splitting a batch never changes the price.
   return Object.fromEntries(
     Object.entries(LOGISTICS_RECIPES[recipe].cost).map(([r, n]) => [
       r,
-      Math.ceil(n * (1 - logisticsDiscount(level) / 100)) * amount,
+      Math.ceil(
+        (n *
+          (100 - logisticsDiscount(level)) *
+          (100 - Math.max(0, Math.min(15, strategicDiscount)))) /
+          10000,
+      ) * amount,
     ]),
   );
 }

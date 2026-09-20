@@ -155,6 +155,17 @@ export interface Realm {
   capitalRadar?: boolean;
   vigie?: boolean;
   vigieTargetId?: string;
+  seaAccess?: {
+    version: 1;
+    capital: Hex;
+    status: 'READY' | 'BLOCKED';
+    position?: Hex;
+    distance?: number;
+    checkedAt: number;
+    retryAt?: number;
+  };
+  landSpawnVersion?: number;
+  warPrestige?: number;
   fuel?: number;
   pervitin?: number;
   /** Resource conversions in the last rolling hour, persisted across reconnects. */
@@ -273,7 +284,13 @@ export interface RealmArchive {
   buildings: Building[];
   tiles: Tile[];
 }
+export interface CoastalSea extends Hex {
+  id: string;
+  radius: number;
+}
 export interface GameState {
+  /** Stable additional seas created to guarantee nearby coasts for inland capitals. */
+  coastalSeas?: CoastalSea[];
   oceanVersion?: 1;
   /** Legacy explored regions protected from ocean generation, in 16-hex cells. */
   protectedLand?: Record<string, true>;

@@ -32,7 +32,12 @@ export function LogisticsControls({ building }: { building: Building }) {
   );
   const stage = developmentStage(sites);
   const quota = logisticsQuota(stage, world.player.logisticsReceipts, now);
-  const cost = logisticsCost(recipe, amount, building.level);
+  const cost = logisticsCost(
+    recipe,
+    amount,
+    building.level,
+    world.strategy?.bonuses?.logistics ?? 0,
+  );
   const definition = LOGISTICS_RECIPES[recipe];
   const lock =
     building.level < definition.level
@@ -79,6 +84,12 @@ export function LogisticsControls({ building }: { building: Building }) {
                   plusieurs centres ne l’augmente pas.
                 </small>
               </div>
+              {!!world.strategy?.bonuses?.logistics && (
+                <p>
+                  Bonus stratégique : −{world.strategy.bonuses.logistics} % supplémentaires sur les
+                  ressources, inclus dans le devis.
+                </p>
+              )}
               <label>
                 Recette
                 <select

@@ -1,5 +1,5 @@
 import { installMapPinch } from './map-pinch';
-import { drawExpeditionSites } from './expedition-art';
+import { drawExpeditionSites, expeditionSceneryClearings } from './expedition-art';
 import { isSea } from '@voidmarch/config';
 import { drawCoastalTerrain, drawCoastalBlend, coastalField, type CoastalField } from './ocean-art';
 import { eventAvailable } from './world-events';
@@ -1079,6 +1079,7 @@ class WorldScene extends Phaser.Scene {
     if (this.coastCache?.tiles !== coastalTiles)
       this.coastCache = { tiles: coastalTiles, field: coastalField(world.seed, coastalTiles) };
     const coast = this.coastCache.field;
+    const expeditionClearings = expeditionSceneryClearings(world);
     for (const t of visible) {
       const p = hexToPixel(t),
         unknown = t.visibility === 'UNKNOWN',
@@ -1121,6 +1122,8 @@ class WorldScene extends Phaser.Scene {
         }
         continue;
       }
+      // Keep the coloured ground, ownership and grid; omit landscape beneath landmarks.
+      if (expeditionClearings.has(key(t))) continue;
       if (t.terrain === 'SCORCHED') {
         // Irregular ash patches and broken seams, kept inside the hexagon.
         for (let i = 0; i < 4; i++) {
@@ -1384,7 +1387,7 @@ class WorldScene extends Phaser.Scene {
             .setDepth(depth(9000, p.y));
           this.pieces.push(label);
         }
-      } else if (t.terrain === 'ALIEN') {
+      } else if (t.terrain === 'ALIEN' && !expeditionClearings.has(key(t))) {
         const sprite = this.add
           .image(p.x, p.y - 19, 'miniatures', 19)
           .setDisplaySize(94, 94)

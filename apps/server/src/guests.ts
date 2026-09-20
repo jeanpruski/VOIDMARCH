@@ -1,3 +1,4 @@
+import { tickAllianceProjects } from './alliance-projects';
 import { clearMission } from './missions';
 import { refreshEnclosures } from './engine.js';
 import { RULES } from '@voidmarch/config';
@@ -56,6 +57,7 @@ export function removeGuestRealm(s: GameState, id: string) {
       team.members = team.members.filter((x) => x !== id);
       team.messages = team.messages.filter((x) => x.authorId !== id);
       team.markers = team.markers.filter((x) => x.authorId !== id);
+      tickAllianceProjects(s, Date.now());
       if (!team.members.length) delete s.strategy.alliances[team.id];
       else if (team.leaderId === id) team.leaderId = team.members[0];
     }

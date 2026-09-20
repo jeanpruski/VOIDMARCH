@@ -1,3 +1,4 @@
+import { ALLIANCE_PROJECTS } from '@voidmarch/config';
 import type Phaser from 'phaser';
 import {
   BUILDINGS,
@@ -94,9 +95,20 @@ export function drawStrategicOperations(
   for (const site of d.sites)
     label(
       site,
-      `${site.kind === 'RADIO' ? '◉' : site.kind === 'MINE' ? '◇' : '✦'} ${SITE_NAMES[site.kind]}`,
+      `${site.kind === 'RADIO' ? '◉' : site.kind === 'MINE' ? '◇' : site.kind === 'REFINERY' ? '⚙' : '✦'} ${SITE_NAMES[site.kind]}`,
       world.realms.find((r) => r.id === site.ownerId)?.color ?? '#e8d597',
     );
+  for (const project of d.alliance?.projects ?? []) {
+    if (!['FUNDING', 'BUILDING', 'COMPLETE'].includes(project.status)) continue;
+    const host = world.tiles.find((t) => t.building?.id === project.hostId)?.building;
+    if (host)
+      label(
+        host,
+        `⚒ ${ALLIANCE_PROJECTS[project.kind].name} · ${project.status === 'COMPLETE' ? 'ACTIF' : project.status === 'BUILDING' ? 'CHANTIER' : 'FINANCEMENT'}`,
+        '#e8d597',
+        82,
+      );
+  }
   for (const op of d.alliance?.operations ?? []) {
     if (op.status !== 'PLANNING' && op.status !== 'ACTIVE') continue;
     if (visible(op)) hex(op, 0xa5dbc7, 0.16);

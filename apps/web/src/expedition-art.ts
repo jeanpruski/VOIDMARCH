@@ -3,15 +3,44 @@ import { expeditionImage } from '@voidmarch/config';
 import { key, expeditionFootprint, expeditionCenter } from '@voidmarch/game-rules';
 import type { WorldView } from '@voidmarch/shared';
 import { hexToPixel, cameraViewport, SIZE, Y_SCALE } from './map-geometry';
+const SITE_SIZE = 256;
+const SITE_Y_OFFSET = -22;
+
+function disclosedSites(world: WorldView) {
+  const known = new Set(
+    world.tiles.filter((t) => t.terrain && t.visibility !== 'UNKNOWN').map(key),
+  );
+  return [world.missions?.active, ...(world.missions?.allied ?? [])].filter(
+    (m) => m?.expedition && expeditionFootprint(m).some((h) => known.has(key(h))),
+  );
+}
+
+/** Clear scenery on covered cells, including the illustration extending beyond its three gameplay cells. */
+export function expeditionSceneryClearings(world: WorldView) {
+  const cleared = new Set<string>();
+  for (const mission of disclosedSites(world)) {
+    if (!mission) continue;
+    const center = hexToPixel(expeditionCenter(mission));
+    for (const cell of expeditionFootprint(mission)) cleared.add(key(cell));
+    for (const tile of world.tiles) {
+      const p = hexToPixel(tile);
+      if (
+        Math.abs(p.x - center.x) < SITE_SIZE / 2 + (SIZE * Math.sqrt(3)) / 2 &&
+        Math.abs(p.y - center.y - SITE_Y_OFFSET) < SITE_SIZE / 2 + SIZE * Y_SCALE
+      )
+        cleared.add(key(tile));
+    }
+  }
+  return cleared;
+}
+
 const pending = new WeakMap<Phaser.Scene, Set<string>>();
 /** Load only accepted, disclosed landmarks. The illustrations never delay initial map loading. */
 export function drawExpeditionSites(scene: Phaser.Scene, world: WorldView, redraw: () => void) {
   const objects: Phaser.GameObjects.GameObject[] = [];
   const c = scene.cameras.main,
     bounds = cameraViewport(c.scrollX, c.scrollY, c.width, c.height, c.zoom);
-  const sites = [world.missions?.active, ...(world.missions?.allied ?? [])].filter(
-    (m) => m?.expedition,
-  );
+  const sites = disclosedSites(world);
   let loading = pending.get(scene);
   if (!loading) pending.set(scene, (loading = new Set()));
   for (const m of sites) {
@@ -77,8 +106,8 @@ export function drawExpeditionSites(scene: Phaser.Scene, world: WorldView, redra
     objects.push(ground);
     objects.push(
       scene.add
-        .image(p.x, p.y - 22, texture)
-        .setDisplaySize(256, 256)
+        .image(p.x, p.y + SITE_Y_OFFSET, texture)
+        .setDisplaySize(SITE_SIZE, SITE_SIZE)
         // Below every unit and its ownership oval (minimum depth: 6400 − 158).
         .setDepth(6000)
         .setAlpha(alpha)

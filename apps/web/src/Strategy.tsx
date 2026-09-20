@@ -1,3 +1,5 @@
+import { AllianceProjects } from './AllianceProjects';
+import { WAR_CAMPAIGN_COST, WAR_CAMPAIGN_REWARD } from '@voidmarch/config';
 import { AllianceOperations } from './AllianceOperations';
 import { useState, type ReactNode } from 'react';
 import {
@@ -23,6 +25,7 @@ export function DiplomacyHub({ children }: { children: ReactNode }) {
       <div className="tab-row">
         {[
           ['alliance', 'Alliances'],
+          ['projects', 'Projets communs'],
           ['operations', 'Opérations d’alliance'],
           ['trade', 'Commerce & trêves'],
           ['strategy', 'Guerres & expéditions'],
@@ -34,6 +37,8 @@ export function DiplomacyHub({ children }: { children: ReactNode }) {
       </div>
       {tab === 'alliance' ? (
         <AlliancePanel />
+      ) : tab === 'projects' ? (
+        <AllianceProjects />
       ) : tab === 'operations' ? (
         <AllianceOperations />
       ) : tab === 'strategy' ? (
@@ -351,7 +356,7 @@ function StrategyPanel() {
     pending = useGame((s) => s.pending),
     id = w.player.id;
   const [to, setTo] = useState(''),
-    [objective, setObjective] = useState<'FORT' | 'MINE' | 'TRIBUTE'>('TRIBUTE'),
+    [objective, setObjective] = useState<'FORT' | 'MINE' | 'SITE' | 'TRIBUTE'>('TRIBUTE'),
     [gold, setGold] = useState(500),
     [q, setQ] = useState(selected?.q ?? 0),
     [r, setR] = useState(selected?.r ?? 0);
@@ -359,8 +364,14 @@ function StrategyPanel() {
     <section className="strategy-panel">
       <h3>Objectifs de guerre</h3>
       <p>
-        Les guerres durent 24 heures et ne suppriment aucune trêve. Pour prendre un fort ou une
-        mine, capturez le lieu indiqué. Un tribut accepté donne 24 heures de paix.
+        Les guerres durent 24 heures et ne suppriment aucune trêve. Pour prendre un fort ou une mine
+        ou un site, capturez le lieu puis gardez une troupe terrestre armée à une case maximum
+        pendant 30 minutes sans adversaire à proximité. Les alliés peuvent aider. Une victoire donne
+        du butin, un prestige et 24 heures de paix. Les capitales sont exclues.
+      </p>
+      <p>
+        Votre prestige de guerre : {w.player.warPrestige ?? 0}. Une nouvelle campagne entre les
+        mêmes royaumes exige 24 heures de repos.
       </p>
       <form
         className="inset"
@@ -398,6 +409,7 @@ function StrategyPanel() {
             >
               <option value="TRIBUTE">Obtenir un tribut</option>
               <option value="FORT">Prendre un fort</option>
+              <option value="SITE">Tenir un site stratégique</option>
               <option value="MINE">Contrôler une mine</option>
             </select>
           </label>
@@ -416,6 +428,17 @@ function StrategyPanel() {
           </label>
         ) : (
           <Coordinates q={q} r={r} setQ={setQ} setR={setR} />
+        )}
+        {objective !== 'TRIBUTE' && (
+          <div>
+            <p>
+              Préparation : <Cost cost={WAR_CAMPAIGN_COST} wallet={w.player.wallet} />
+            </p>
+            <p>
+              Victoire : <Cost cost={WAR_CAMPAIGN_REWARD} /> +1 prestige. Le surplus de butin est
+              conservé.
+            </p>
+          </div>
         )}
         <button className="secondary danger" disabled={pending}>
           Déclarer
@@ -436,6 +459,19 @@ function StrategyPanel() {
               }[war.status]
             }{' '}
             {war.status === 'ACTIVE' && <Duration until={war.endsAt} />}
+            {!!war.holdDuration && (
+              <>
+                <br />
+                Maintien : {format((war.heldMs ?? 0) / 60000)} / {format(war.holdDuration / 60000)}{' '}
+                min · {war.holding ? 'Position tenue' : 'Garnison requise, sans ennemi proche'}
+              </>
+            )}
+            {war.reward && (
+              <>
+                <br />
+                Butin : <Cost cost={war.reward} />
+              </>
+            )}
           </span>
           {war.objective !== 'TRIBUTE' && <Position p={war} />}{' '}
           {war.to === id && war.status === 'ACTIVE' && war.objective === 'TRIBUTE' && (
@@ -448,7 +484,9 @@ function StrategyPanel() {
       <h3>Sites stratégiques</h3>
       <p>
         Placez une unité capable de capturer sur le site, puis prenez-en le contrôle pour 1 PA. Les
-        coordonnées sont publiques, le terrain reste à explorer.
+        coordonnées sont publiques, le terrain reste à explorer. Pour activer les bonus, maintenez
+        une troupe terrestre armée personnelle ou alliée à une case maximum, sans adversaire à
+        proximité. Les réductions de même type ne se cumulent pas.
       </p>
       {(w.strategy?.sites ?? []).map((site) => (
         <div key={site.id} className="strategy-row">
@@ -456,6 +494,10 @@ function StrategyPanel() {
             <strong>{SITE_NAMES[site.kind]}</strong>
             <br />
             {SITE_BENEFITS[site.kind]}
+            <br />
+            {site.operational
+              ? 'Bonus actif · garnison présente'
+              : 'Bonus inactif · garnison absente ou position contestée'}
             <br />
             {site.ownerId ? w.realms.find((x) => x.id === site.ownerId)?.name : 'Neutre'}
           </span>

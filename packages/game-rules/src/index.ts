@@ -1,3 +1,6 @@
+export * from './sea-access';
+import { siteOperational, strategicBonuses } from './strategic-control';
+export * from './strategic-control';
 import { refreshFoodPenalties } from './army-support';
 import { developmentReason, unitDevelopmentStage } from '@voidmarch/config';
 import { oceanTerrain } from './oceans';
@@ -445,7 +448,7 @@ export function income(s: GameState, id: string): Wallet {
       out.GOLD += b.population * 0.015;
   }
   for (const site of Object.values(s.strategy?.sites ?? {}))
-    if (site.ownerId === id && tileAt(s, site).ownerId === id) {
+    if (site.ownerId === id && siteOperational(s, site)) {
       if (site.kind === 'MINE') out.IRON += 8;
       if (site.kind === 'SANCTUARY') out.GOLD += 5;
     }
@@ -521,15 +524,12 @@ export function realmValue(s: GameState, id: string) {
 }
 export function vision(s: GameState, r: Realm): Set<string> {
   const visible = new Set<string>();
+  const bonuses = strategicBonuses(s, r.id);
+  for (const site of Object.values(s.strategy?.sites ?? {}))
+    if (site.ownerId === r.id && site.kind === 'RADIO' && siteOperational(s, site))
+      for (const p of disk(site, 8)) visible.add(key(p));
   for (const u of realmUnits(s, r.id)) {
-    const range =
-      unitStats(u).vision +
-      (r.faction === 'MASK' && u.kind === 'SCOUT' ? 2 : 0) +
-      (Object.values(s.strategy?.sites ?? {}).some(
-        (x) => x.ownerId === r.id && x.kind === 'RADIO' && tileAt(s, x).ownerId === r.id,
-      )
-        ? 1
-        : 0);
+    const range = unitStats(u).vision + (r.faction === 'MASK' && u.kind === 'SCOUT' ? 2 : 0);
     for (const p of disk(u, range)) visible.add(key(p));
   }
   for (const b of realmBuildings(s, r.id))
@@ -546,6 +546,7 @@ export function vision(s: GameState, r: Realm): Set<string> {
                 ? 4
                 : 3)) +
         (b.level - 1) +
+        (['FORT', 'TOWER'].includes(b.kind) ? bonuses.watch : 0) +
         (realmBuildings(s, r.id).some((x) => x.kind === 'LIBRARY') ? 1 : 0),
     ))
       visible.add(key(p));

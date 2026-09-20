@@ -149,8 +149,20 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                   );
                   const before = mobilityLimits(current),
                     after = mobilityLimits(next);
-                  const oldCost = mobilityCost(b.kind, current, resource, 1),
-                    newCost = mobilityCost(upgrade.kind, next, resource, 1);
+                  const oldCost = mobilityCost(
+                      b.kind,
+                      current,
+                      resource,
+                      1,
+                      world.strategy?.bonuses?.fuel ?? 0,
+                    ),
+                    newCost = mobilityCost(
+                      upgrade.kind,
+                      next,
+                      resource,
+                      1,
+                      world.strategy?.bonuses?.fuel ?? 0,
+                    );
                   return (
                     <li key={resource}>
                       {MOBILITY_NAMES[resource]} : stockage partagé {before.capacity} →{' '}
