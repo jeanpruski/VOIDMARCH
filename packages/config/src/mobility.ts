@@ -48,6 +48,8 @@ export function mobilityQuota(
 }
 export const MOBILITY_NAMES = { fuel: 'Carburant', pervitin: 'Pervitine' } as const;
 export interface MobilityReserve {
+  /** The aqw mode waives all movement payments without changing saved reserves. */
+  unlimitedAP?: boolean;
   fuel?: number;
   pervitin?: number;
 }
@@ -69,6 +71,7 @@ export function movementPayment(
   baseAP: number,
   reserves: MobilityReserve,
 ): MovementPayment {
+  if (reserves.unlimitedAP) return { ap: 0, fuel: 0, pervitin: 0 };
   const payment = { ap: baseAP, fuel: 0, pervitin: 0 };
   const resource = movementResource(kind);
   if (resource && baseAP > 0) {

@@ -1,3 +1,4 @@
+import { createSecretCodeInput, SPARKLE_TOGGLE_EVENT } from './secret-codes';
 import { FoundBase } from './FoundBase';
 import { VigieControls } from './VigieControls';
 import { MobilityControls, MobilityCounters, movementHint } from './MobilityControls';
@@ -176,59 +177,58 @@ export function App() {
       booted = true;
       void bootstrap();
     }
-    let code = '';
-    let lastKeyAt = 0;
-    const t = setInterval(() => useGame.setState((s) => ({ now: s.now + 1000 })), 1000);
-    const keyboard = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.repeat || e.isComposing || e.ctrlKey || e.metaKey || e.altKey)
-        return;
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement ||
-        (e.target instanceof HTMLElement && e.target.isContentEditable)
-      )
-        return;
-      if (document.querySelector('[role="dialog"]')) return;
-      if (Date.now() - lastKeyAt > 5000) code = '';
-      if (['y', 'h', 'v'].includes(e.key.toLowerCase())) code = '';
-      lastKeyAt = Date.now();
-      if (e.key === 'Enter' && code.length === 5 && /^[yhv]/.test(code)) {
-        e.preventDefault();
-        e.stopPropagation();
-        const radar = code.startsWith('h');
-        const vigie = code.startsWith('v');
-        void api<{ enabled: boolean }>(
-          vigie ? '/admin/vigie' : radar ? '/admin/capital-radar' : '/admin/unlimited-ap',
-          {
-            code,
-          },
-        )
+    const editable = (target: EventTarget | null) =>
+      target instanceof HTMLElement &&
+      (target.matches('input, textarea, select, [role="textbox"]') || target.isContentEditable);
+    const blocked = () =>
+      editable(document.activeElement) || !!document.querySelector('[role="dialog"]');
+    const codes = createSecretCodeInput(
+      (kind, code) => {
+        if (kind === 'sparkle') {
+          window.dispatchEvent(new Event(SPARKLE_TOGGLE_EVENT));
+          return;
+        }
+        const route =
+          kind === 'vigie' ? 'vigie' : kind === 'radar' ? 'capital-radar' : 'unlimited-ap';
+        void api<{ enabled: boolean }>(`/admin/${route}`, { code })
           .then(({ enabled }) =>
             notify(
-              vigie
+              kind === 'vigie'
                 ? enabled
                   ? 'Vigie activée : choisissez un royaume à observer.'
                   : 'Vigie désactivée.'
-                : radar
+                : kind === 'radar'
                   ? enabled
                     ? 'Repérage des capitales activé.'
                     : 'Repérage des capitales désactivé.'
                   : enabled
-                    ? 'PA illimités activés.'
-                    : 'PA illimités désactivés.',
+                    ? 'PA, carburant et pervitine illimités activés.'
+                    : 'PA, carburant et pervitine illimités désactivés.',
             ),
           )
           .catch(() => {});
-        code = '';
-      } else if (/^[a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey)
-        code = (code + e.key.toLowerCase()).slice(-6);
-
-      if (
-        (code.startsWith('y') || code.startsWith('h') || code.startsWith('v')) &&
-        /^[a-z]$/i.test(e.key)
-      )
+      },
+      (key) => {
+        const state = useGame.getState();
+        if (!blocked() && state.world && !state.pending) activateSelectionShortcut(key);
+      },
+    );
+    const t = setInterval(() => useGame.setState((s) => ({ now: s.now + 1000 })), 1000);
+    const keyboard = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.repeat) return;
+      if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey) {
+        codes.reset();
         return;
+      }
+      if (e.composedPath().some(editable) || document.querySelector('[role="dialog"]')) {
+        codes.reset();
+        return;
+      }
+      if (codes.key(e.key)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+      }
       if (e.key === 'Escape')
         useGame.setState({
           selectedUnitIds: [],
@@ -244,10 +244,17 @@ export function App() {
       const state = useGame.getState();
       if (state.world && !state.pending && activateSelectionShortcut(e.key)) e.preventDefault();
     };
-    window.addEventListener('keydown', keyboard);
+    window.addEventListener('keydown', keyboard, true);
+    window.addEventListener('pointerdown', codes.reset, true);
+    window.addEventListener('focusin', codes.reset);
+    window.addEventListener('blur', codes.reset);
     return () => {
       clearInterval(t);
-      window.removeEventListener('keydown', keyboard);
+      window.removeEventListener('keydown', keyboard, true);
+      window.removeEventListener('pointerdown', codes.reset, true);
+      window.removeEventListener('focusin', codes.reset);
+      window.removeEventListener('blur', codes.reset);
+      codes.reset();
     };
   }, []);
   useEffect(() => {

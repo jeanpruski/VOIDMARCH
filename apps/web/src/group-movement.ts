@@ -179,6 +179,7 @@ export function planGroupMovement(
             unit.kind,
           ),
       {
+        unlimitedAP: world.player.unlimitedAP,
         fuel: (world.player.fuel ?? 0) - result.fuel,
         pervitin: (world.player.pervitin ?? 0) - result.pervitin,
       },

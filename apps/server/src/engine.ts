@@ -611,7 +611,7 @@ export function applyAction(
         new Set(orders.map((o) => o.actorId)).size === orders.length,
         'Une troupe ne peut se déplacer qu’une fois par ordre.',
       );
-      const reserves = { fuel: r.fuel ?? 0, pervitin: r.pervitin ?? 0 };
+      const reserves = { fuel: r.fuel ?? 0, pervitin: r.pervitin ?? 0, unlimitedAP: r.unlimitedAP };
       const total = { ap: 0, fuel: 0, pervitin: 0 };
       for (const order of orders) {
         const u = ownedUnit(s, r, order.actorId);

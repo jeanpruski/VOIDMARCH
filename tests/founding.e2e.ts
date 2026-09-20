@@ -57,7 +57,7 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   );
   await page.route('**/api/**', async (route) => {
     if (route.request().url().endsWith('/admin/unlimited-ap')) {
-      expect(route.request().postDataJSON().code).toBe('ytrez');
+      expect(route.request().postDataJSON().code).toBe('aqw');
       state.realms[id].unlimitedAP = !state.realms[id].unlimitedAP;
       return route.fulfill({ json: { enabled: state.realms[id].unlimitedAP } });
     }
@@ -217,14 +217,14 @@ test('le campement gratuit mène aux récoltes et constructions, avec le catalog
   expect(realmUnits(state, id)).toHaveLength(1);
   expect(realmBuildings(state, id)).toHaveLength(2);
 
-  await page.keyboard.type('ytrez');
+  await page.keyboard.type('aqw');
   await page.keyboard.press('Enter');
   await expect.poll(() => state.realms[id].unlimitedAP).toBe(true);
   await page.evaluate('window.fixtureSocket.emit("player:ping")');
   await expect(page.locator('.action-points')).toContainText('∞');
   const toastBox = await page.locator('.toast').boundingBox();
   expect(toastBox!.y).toBeLessThan(100);
-  await page.keyboard.type('ytrez');
+  await page.keyboard.type('aqw');
   await page.keyboard.press('Enter');
   await expect.poll(() => state.realms[id].unlimitedAP).toBe(false);
 

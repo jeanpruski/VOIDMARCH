@@ -1,3 +1,4 @@
+import { adminCodeMatches } from './admin-codes';
 import { toggleVigie, setVigieTarget } from './vigie';
 import { beginCodeSession } from './code-session';
 import { PlayerPresence } from './presence';
@@ -308,7 +309,7 @@ app.post(
   async (request, reply) => {
     const who = await identity(request);
     const body = request.body as { code?: unknown } | null;
-    if (body?.code !== (process.env.ADMIN_AP_CODE || 'ytrez'))
+    if (!adminCodeMatches('ap', body?.code))
       return reply.code(403).send({ error: 'Code incorrect.' });
     const enabled = await repository.mutate((s) => {
       const r = s.realms[who.sub];
@@ -327,7 +328,7 @@ app.post(
   async (request, reply) => {
     const who = await identity(request);
     const body = request.body as { code?: unknown } | null;
-    if (body?.code !== (process.env.ADMIN_RADAR_CODE || 'hgfds'))
+    if (!adminCodeMatches('radar', body?.code))
       return reply.code(403).send({ error: 'Code incorrect.' });
     const enabled = await repository.mutate((s) => {
       const r = s.realms[who.sub];
@@ -346,7 +347,7 @@ app.post(
   async (request, reply) => {
     const who = await identity(request);
     const body = request.body as { code?: unknown; enabled?: unknown } | null;
-    if (body?.enabled !== false && body?.code !== (process.env.ADMIN_VIGIE_CODE || 'vigie'))
+    if (body?.enabled !== false && !adminCodeMatches('vigie', body?.code))
       return reply.code(403).send({ error: 'Code incorrect.' });
     const enabled = await repository.mutate((s) =>
       toggleVigie(s, who.sub, body?.enabled === false ? false : undefined),

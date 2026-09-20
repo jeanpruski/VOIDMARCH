@@ -140,7 +140,7 @@ test('production, mouvement avec réserve, vigie et remise à zéro au rechargem
     .getByRole('button', { name: /Fermer/ })
     .click();
   await page.locator('body').click({ position: { x: 10, y: 500 } });
-  await page.keyboard.type('vigie');
+  await page.keyboard.type('edc');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('complementary', { name: 'Observation vigie' })).toBeVisible();
   await page.getByRole('combobox', { name: 'Royaume à observer' }).selectOption('enemy');
@@ -166,7 +166,7 @@ test('production, mouvement avec réserve, vigie et remise à zéro au rechargem
   await page.getByRole('button', { name: 'Fermer vigie' }).click();
   await expect(page.getByRole('complementary', { name: 'Observation vigie' })).toHaveCount(0);
   await page.locator('body').click({ position: { x: 10, y: 500 } });
-  await page.keyboard.type('vigie');
+  await page.keyboard.type('edc');
   await page.keyboard.press('Enter');
   await page.getByRole('combobox', { name: 'Royaume à observer' }).selectOption('enemy');
   await page.setViewportSize({ width: 390, height: 844 });

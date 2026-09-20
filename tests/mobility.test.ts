@@ -9,6 +9,7 @@ import {
 } from '@voidmarch/config';
 import { createState, disk, key, writeTile } from '@voidmarch/game-rules';
 import { addPlayer, addBuilding, execute, worldView } from '../apps/server/src/engine';
+import { beginCodeSession } from '../apps/server/src/code-session';
 import { actionSchema } from '@voidmarch/protocol';
 import { predictAction } from '../apps/web/src/optimistic-actions';
 import { planGroupMovement } from '../apps/web/src/group-movement';
@@ -39,6 +40,67 @@ function fixture() {
   return { s, r, unit };
 }
 describe('réserves de déplacement', () => {
+  it.each(['INFANTRY', 'FIGHTER', 'CARGO_TRUCK'] as const)(
+    'aqw : déplace %s sans débiter ni remplir les réserves',
+    (kind) => {
+      for (const value of [0, 3]) {
+        const { s, r, unit } = fixture();
+        unit('u', kind, 0);
+        r.unlimitedAP = true;
+        r.fuel = r.pervitin = value;
+        const command = action('MOVE', 'u', { path: [{ q: 1, r: 0 }] });
+        const prediction = predictAction(worldView(s, r.id, now), command)!;
+        const actual = execute(s, r.id, command, now);
+        expect(actual.result.accepted, actual.result.reason).toBe(true);
+        for (const realm of [actual.state.realms.p, prediction.world.player])
+          expect(realm).toMatchObject({ ap: 0, fuel: value, pervitin: value, unlimitedAP: true });
+        expect(actual.state.units.u.q).toBe(1);
+        expect(actual.state.realms.p.mobilityReceipts).toEqual(r.mobilityReceipts);
+        const reserve = JSON.parse(JSON.stringify(actual.state.realms.p));
+        beginCodeSession(reserve, randomUUID());
+        expect(reserve).toMatchObject({ ap: 0, fuel: value, pervitin: value, unlimitedAP: false });
+        actual.state.realms.p.unlimitedAP = false;
+        const back = execute(
+          actual.state,
+          r.id,
+          action('MOVE', 'u', { path: [{ q: 0, r: 0 }] }),
+          now,
+        );
+        expect(back.result.accepted).toBe(value > 0);
+        if (value > 0) expect(back.state.realms.p[movementResource(kind)!]).toBe(value - 1);
+      }
+    },
+  );
+  it('aqw : groupe mixte gratuit même avec des réserves vides, sans changer les portées', () => {
+    const { s, r, unit } = fixture();
+    unit('a', 'INFANTRY', 0);
+    unit('b', 'FIGHTER', 0, 2);
+    unit('c', 'INFANTRY', 0, 4);
+    r.unlimitedAP = true;
+    r.fuel = r.pervitin = 0;
+    const view = worldView(s, r.id, now);
+    const plan = planGroupMovement(view, ['a', 'b', 'c'], { q: 3, r: 2 });
+    expect(plan.orders).toHaveLength(3);
+    expect({ ap: plan.cost, fuel: plan.fuel, pervitin: plan.pervitin }).toEqual({
+      ap: 0,
+      fuel: 0,
+      pervitin: 0,
+    });
+    const command = action('MOVE_GROUP', r.id, { orders: plan.orders });
+    const actual = execute(s, r.id, command, now);
+    expect(actual.result.accepted, actual.result.reason).toBe(true);
+    expect(actual.state.realms.p).toMatchObject({ ap: 0, fuel: 0, pervitin: 0 });
+    expect(predictAction(view, command)?.world.player).toMatchObject({
+      ap: 0,
+      fuel: 0,
+      pervitin: 0,
+    });
+    const far = action('MOVE', 'a', {
+      path: Array.from({ length: 10 }, (_, i) => ({ q: i + 1, r: 0 })),
+    });
+    expect(execute(s, r.id, far, now).result.accepted).toBe(false);
+  });
+
   it('classe les troupes, appareils motorisés et navires anciens', () => {
     for (const kind of ['HERO', 'PEASANT', 'INFANTRY', 'SPECTRAL_RIDER'] as UnitKind[])
       expect(movementResource(kind)).toBe('pervitin');

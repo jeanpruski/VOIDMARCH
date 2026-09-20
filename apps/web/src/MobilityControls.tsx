@@ -34,11 +34,26 @@ export function MobilityCounters() {
   const pervitinCap = mobilityLimits(mobilityLevel(sites, 'pervitin')).capacity;
   return (
     <div className="mobility-counters" aria-label="Réserves de déplacement">
-      <span title="Carburant : véhicules et appareils motorisés. Produit à l’atelier ou à la raffinerie. Utilisé avant les PA ; routes et enceintes gratuites.">
-        <Fuel size={15} /> {player.fuel ?? 0}/{fuelCap} <small>Carburant</small>
+      <span
+        title={
+          player.unlimitedAP
+            ? 'Carburant illimité : code aqw actif. Votre réserve normale est conservée.'
+            : 'Carburant : véhicules et appareils motorisés. Produit à l’atelier ou à la raffinerie. Utilisé avant les PA ; routes et enceintes gratuites.'
+        }
+      >
+        <Fuel size={15} /> {player.unlimitedAP ? '∞' : `${player.fuel ?? 0}/${fuelCap}`}{' '}
+        <small>Carburant</small>
       </span>
-      <span title="Pervitine : troupes terrestres, cavaliers et héros. Produite au monastère ou à l’hôpital de campagne. Utilisée avant les PA ; routes et enceintes gratuites.">
-        <FlaskConical size={15} /> {player.pervitin ?? 0}/{pervitinCap} <small>Pervitine</small>
+      <span
+        title={
+          player.unlimitedAP
+            ? 'Pervitine illimitée : code aqw actif. Votre réserve normale est conservée.'
+            : 'Pervitine : troupes terrestres, cavaliers et héros. Produite au monastère ou à l’hôpital de campagne. Utilisée avant les PA ; routes et enceintes gratuites.'
+        }
+      >
+        <FlaskConical size={15} />{' '}
+        {player.unlimitedAP ? '∞' : `${player.pervitin ?? 0}/${pervitinCap}`}{' '}
+        <small>Pervitine</small>
       </span>
     </div>
   );
@@ -51,6 +66,12 @@ export function MobilityControls({ building }: { building: Building }) {
   const now = useGame((s) => s.now);
   const resource: MobilityResource | undefined = mobilitySources(building.kind)[0];
   if (!resource) return null;
+  if (world.player.unlimitedAP)
+    return (
+      <span className="road-status">
+        {MOBILITY_NAMES[resource]} : ∞ · code aqw actif, aucune production nécessaire.
+      </span>
+    );
   const value = world.player[resource] ?? 0;
   const sites = world.tiles.flatMap((t) =>
     t.building?.ownerId === world.player.id ? [t.building] : [],

@@ -46,13 +46,13 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
     const url = route.request().url();
     if (url.endsWith('/admin/capital-radar')) {
       codeCalls++;
-      expect(route.request().postDataJSON().code).toBe('hgfds');
+      expect(route.request().postDataJSON().code).toBe('zsx');
       realm.capitalRadar = !realm.capitalRadar;
       state.revision++;
       return route.fulfill({ json: { enabled: realm.capitalRadar } });
     }
     if (url.endsWith('/admin/unlimited-ap')) {
-      expect(route.request().postDataJSON().code).toBe('ytrez');
+      expect(route.request().postDataJSON().code).toBe('aqw');
       realm.unlimitedAP = !realm.unlimitedAP;
       state.revision++;
       return route.fulfill({ json: { enabled: realm.unlimitedAP } });
@@ -78,13 +78,13 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
     document.body.append(i);
     i.focus();
   });
-  await page.keyboard.type('hgfds');
+  await page.keyboard.type('zsx');
   await page.keyboard.press('Enter');
   expect(codeCalls).toBe(0);
   await page.locator('#typing-test').evaluate((el) => el.remove());
   const toggle = async () => {
     const expectedCalls = codeCalls + 1;
-    await page.keyboard.type('hgfds');
+    await page.keyboard.type('zsx');
     await page.keyboard.press('Enter');
     await expect.poll(() => codeCalls).toBe(expectedCalls);
     await page.evaluate(() => (window as any).pushRadar());
@@ -117,7 +117,7 @@ test('code radar, directions, distance caméra, zoom, mobile et désactivation',
   await page.screenshot({ path: 'test-results/capital-radar-mobile.png' });
   await toggle();
   await expect(page.locator('.radar-target')).toHaveCount(0);
-  await page.keyboard.type('ytrez');
+  await page.keyboard.type('aqw');
   await page.keyboard.press('Enter');
   await expect.poll(() => realm.unlimitedAP).toBe(true);
   await toggle();
