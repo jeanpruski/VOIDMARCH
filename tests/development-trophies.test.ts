@@ -111,9 +111,9 @@ describe('développement par trophées', () => {
     expect(stageOf(s)).toBe(5);
     expect(s.missions!.a.trophies).toHaveLength(0);
   });
-  it('refuse une amélioration militaire sans ses cinq trophées, côté serveur et aperçu, sans débit', () => {
+  it('refuse une amélioration militaire au niveau 4 sans ses vingt trophées, côté serveur et aperçu, sans débit', () => {
     const { s, r, b, trophies } = fixture();
-    s.missions!.a.trophies = trophies.slice(0, 4);
+    s.missions!.a.trophies = trophies.slice(0, 19);
     const cmd = actionSchema.parse({
       type: 'UPGRADE',
       actorId: b.id,
@@ -123,13 +123,13 @@ describe('développement par trophées', () => {
     });
     const rejected = execute(s, 'a', cmd, now);
     expect(rejected.result.accepted).toBe(false);
-    expect(rejected.result.reason).toContain('trophées 4/5');
+    expect(rejected.result.reason).toContain('trophées 19/20');
     expect(rejected.state).toBe(s);
     expect(predictAction(worldView(s, 'a', now), cmd)).toBeUndefined();
-    s.missions!.a.trophies = trophies.slice(0, 5);
+    s.missions!.a.trophies = trophies.slice(0, 20);
     const accepted = execute(s, 'a', cmd, now);
     expect(accepted.result.accepted, accepted.result.reason).toBe(true);
-    expect(accepted.state.missions!.a.trophies).toEqual(trophies.slice(0, 5));
+    expect(accepted.state.missions!.a.trophies).toEqual(trophies.slice(0, 20));
     expect(accepted.state.realms.a.wallet.GOLD).toBeLessThan(r.wallet.GOLD);
   });
   it('applique le seuil aux recrues et conversions de PA avancées', () => {

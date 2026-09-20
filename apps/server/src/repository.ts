@@ -1,3 +1,4 @@
+import { migrateArchipelagos } from '@voidmarch/game-rules';
 import { migrateTrophyDevelopment } from '@voidmarch/game-rules';
 import { migrateBotLand } from './bot-land-migration';
 import { ensureHeroes } from './heroes';
@@ -45,6 +46,7 @@ export class WorldRepository {
             migrateProgression(state);
             migrateTrophyDevelopment(state);
             migrateOceans(state);
+            migrateArchipelagos(state);
             migrateBotLand(state, Date.now());
             ensureWorldSeaAccess(state, Date.now());
             refreshWorldTraining(state, Date.now());

@@ -1,10 +1,11 @@
+import { IslandDiscoveryInfo } from './IslandDiscoveryInfo';
 import { createSecretCodeInput, SPARKLE_TOGGLE_EVENT } from './secret-codes';
 import { FoundBase } from './FoundBase';
 import { VigieControls } from './VigieControls';
 import { MobilityControls, MobilityCounters, movementHint } from './MobilityControls';
-import { anomalyAPReward } from '@voidmarch/game-rules';
+import { anomalyAPReward, eventAPReward } from '@voidmarch/game-rules';
 import { ExpeditionInteraction } from './Expeditions';
-import { fishingYield, coastlineHelp } from '@voidmarch/game-rules';
+import { fishingYield, passiveFishingYield, coastlineHelp } from '@voidmarch/game-rules';
 import { eventAvailable } from './world-events';
 import { Supplies } from './Supplies';
 import { repairPlan } from '@voidmarch/game-rules';
@@ -884,6 +885,24 @@ function SelectionPanel() {
                 : 'Sous-marin immergé · détectable uniquement par un sonar ennemi proche.'}
             </p>
           )}
+          {own && !!UNIT_PROFILES[u.kind].fishing && (
+            <div className="inset" aria-label="Pêche automatique">
+              <strong>
+                Pêche automatique · +{format(passiveFishingYield(u, tile))} vivres/min
+              </strong>
+              <p>
+                {!passiveFishingYield(u, tile)
+                  ? 'Placez ce bateau dans une case de mer ou de côte, neutre ou à vous.'
+                  : w.player.wallet.FOOD >= w.player.capacity
+                    ? 'Stockage plein : les prises reprendront dès que des places se libèrent.'
+                    : 'Active sans PA. La pêche manuelle reste disponible en complément.'}
+              </p>
+              <small>
+                Production brute avant entretien, pendant votre présence et le délai de grâce, dans
+                la limite du stockage.
+              </small>
+            </div>
+          )}
           {own && <Supplies units={[u]} />}
           <ArmySupport bonus={u.supportBonus} />
           {!!u.foodPenalty && (
@@ -917,6 +936,7 @@ function SelectionPanel() {
               </p>
             </ContextHelp>
           )}
+          <IslandDiscoveryInfo tile={tile} />
           {own && u.kind === 'HERO' && <HeroControls inSelection />}
           {own && <StrategyUnitControls key={u.id} unit={u} />}
           {own && <TransportControls key={`transport:${u.id}`} unit={u} />}
@@ -1185,7 +1205,7 @@ function SelectionPanel() {
                       }
                     >
                       <Eye size={14} /> Explorer l’anomalie · 1 PA
-                      <small>Butin : +{anomalyAPReward(w.seed, e.id)} PA et ressources</small>
+                      <small>Butin : +{eventAPReward(w.seed, e)} PA et ressources</small>
                     </ActionButton>
                   ))}
                 {w.caravans
@@ -1353,6 +1373,7 @@ function SelectionPanel() {
                           : 'Aucune ressource récoltable sur ce terrain.';
                       })()}
                 </p>
+                <IslandDiscoveryInfo tile={tile} />
                 {coastlineHelp(tile) && <p>{coastlineHelp(tile)}</p>}
                 <span>
                   Bonus de défense du terrain : +{format(TERRAINS[tile.terrain].defense)}

@@ -1,3 +1,4 @@
+import { prepareTrophies } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { createState, disk, writeTile } from '@voidmarch/game-rules';
@@ -10,6 +11,7 @@ const now = 1_800_000_000_000;
 function fixture() {
   const state = createState('prediction', now),
     realm = addPlayer(state, 'p', 'Test', 'MASK', now);
+  prepareTrophies(state, 'p', 2, now);
   realm.wallet = { GOLD: 200, WOOD: 200, STONE: 200, IRON: 200, FOOD: 200 };
   for (const p of disk({ q: 0, r: 0 }, 4))
     writeTile(state, p, { terrain: 'PLAIN', ownerId: realm.id, road: false });

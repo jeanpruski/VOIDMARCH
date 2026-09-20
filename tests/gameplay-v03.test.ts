@@ -1,3 +1,4 @@
+import { prepareTrophies } from './fixtures/development';
 import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { BUILDINGS, RULES, UNITS, buildingUpgrade, type BuildingKind } from '@voidmarch/config';
@@ -22,6 +23,7 @@ const action = (type: Action['type'], actorId: string, payload = {}) =>
 function fixture() {
   const s = createState('gameplay-v03', now);
   const r = addPlayer(s, 'player', 'Test', 'MASK', now);
+  prepareTrophies(s, 'player', 3, now);
   r.wallet = { GOLD: 5000, WOOD: 5000, STONE: 5000, IRON: 5000, FOOD: 5000 };
   s.units.worker = {
     id: 'worker',

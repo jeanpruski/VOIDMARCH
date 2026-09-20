@@ -36,7 +36,7 @@ Les niveaux appliquent les coûts croissants, les gains de production et l’ent
 
 Les navires apparaissent sur une case d’eau libre du bâtiment ou de ses voisines, neutre ou à leur royaume. Ils naviguent uniquement en mer et eaux côtières, pour 1 PA par déplacement dans la limite de leur mouvement. Les routes et terres possédées ne donnent aucun mouvement illimité en mer. Les aéronefs survolent l’eau ; les unités terrestres doivent embarquer.
 
-La pêche est une action de 1 PA : 40 / 160 / 360 / 640 / 1 000 vivres selon l’époque, limitée au stockage disponible. Les bateaux de pêche ne combattent pas. Les transports gardent une vision de 2, avec 4 / 8 / 12 / 16 / 24 places. Fantassin : 1 ; cavalerie : 2 ; moto ou voiture légère : 4 ; blindé lourd ou siège : 8 dans les transports qui les acceptent. Le bac initial ne prend que les fantassins. Les navires et aéronefs ne s’embarquent pas.
+La pêche manuelle est une action de 1 PA : 40 / 160 / 360 / 640 / 1 000 vivres selon l’époque, limitée au stockage disponible. Les bateaux de pêche ne combattent pas. Les transports gardent une vision de 2, avec 4 / 8 / 12 / 16 / 24 places. Fantassin : 1 ; cavalerie : 2 ; moto ou voiture légère : 4 ; blindé lourd ou siège : 8 dans les transports qui les acceptent. Le bac initial ne prend que les fantassins. Les navires et aéronefs ne s’embarquent pas.
 
 Embarquement et débarquement coûtent chacun 1 PA par troupe. Le transport doit être voisin d’une case terrestre libre, visible et praticable. Le chargement suit le navire, ne donne pas de vision supplémentaire, et conserve son entretien. Un naufrage évacue les passagers à 50 % de leurs PV restants si une case terrestre voisine est disponible ; sinon ils sont perdus. Le héros utilise toujours son système de récupération immortelle.
 
@@ -64,7 +64,6 @@ Prompts : [cinq époques](naval-art-prompts.json), [découvertes](naval-event-ar
 
 Tests : `tests/naval.test.ts` couvre migration, stabilité, géographie, mouvement, recrutement sur l’eau, pêche, transport, naufrage, tirs, furtivité, missions et commerce. `tests/naval.e2e.ts` vérifie les six atlas, les variantes de bâtiments, la carte et les commandes dans Chrome. Les suites existantes contrôlent également recrutement, projectiles, économie, missions et transports.
 
-
 ## Implantation des nouvelles installations
 
 Le port, le chantier naval, la pêcherie maritime et la base des profondeurs se construisent désormais sur une case `COAST` ou `SEA` directement voisine d’une **plage**. Aucune case d’eau intermédiaire : le chantier touche la plage. La batterie côtière reste sur une plage, plaine, colline ou ruine directement voisine de la mer.
@@ -74,3 +73,40 @@ Un paysan ou ingénieur actif doit se tenir sur une plage voisine du chantier, n
 La sélection d’une case d’eau admissible ouvre le catalogue Construire ; les cases possibles s’allument autour du bâtisseur. Les constructions terrestres restent interdites en mer. Les restrictions d’occupation, d’expédition, de développement et de ressources restent applicables. Les bots préparent le chantier depuis une plage également.
 
 Les bâtiments côtiers existants sont conservés sur leurs cases : leur recrutement, production, amélioration et démolition continuent de fonctionner. Aucun déplacement automatique ni changement de terrain de la sauvegarde.
+
+## Archipels et exploration libre
+
+La génération ajoute désormais des groupes déterministes de **2 à 3 îles**, uniquement dans des zones de pleine mer assez grandes. Une grille de candidats espacés de 144 hexagones évite de transformer les mers en chapelets continus ; un candidat est rejeté si une île et sa marge navigable rencontrent un continent. Cela ne garantit pas une île dans chaque mer. L’île principale a un rayon irrégulier d’environ 9 à 11 cases ; ses voisines, de 5 à 6 cases, restent séparées par de l’eau. Les plages de 2 à 3 cases, les eaux côtières et les transitions visuelles existantes s’appliquent également aux nouvelles îles.
+
+Les intérieurs conservent le biome régional, avec plaines, forêts, collines et montagnes. Les îles de prospecteurs privilégient les minerais. Un paysan peut débarquer, récolter, puis fonder un avant-poste selon les règles ordinaires : aucun royaume ou bâtiment producteur n’est offert automatiquement. Les nouveaux joueurs et bots ne commencent pas sur ces archipels ; ils sont réservés à la découverte et à la colonisation.
+
+Chaque île accueille une découverte permanente, indépendante des missions :
+
+| Lieu                     | Butin unique                                        |
+| ------------------------ | --------------------------------------------------- |
+| Phare abandonné          | 1 200 or, 600 bois, 200 fer et une lentille-relique |
+| Port en ruine            | 600 or, 1 400 bois, 400 fer, 500 vivres             |
+| Réserve des prospecteurs | 500 or, 1 800 pierre, 1 000 fer                     |
+
+Une unité placée sur le lieu peut le fouiller pour **1 PA**, avec **1 à 6 PA** supplémentaires au butin, selon le même tirage déterministe que les anomalies. Les gains peuvent dépasser le stockage ; ils ne sont pas perdus. Le butin est unique pour le monde, sauvegardé comme épuisé, sans trophée de mission. Le lieu reste visible comme « fouillé » et son île reste colonisable. Une case inconnue ne révèle aucun lieu. L’interface affiche le contenu avant la fouille. Les illustrations existantes de phare, cité portuaire et mine sont réutilisées à l’échelle d’une case, sous les unités et sans décor superposé sur leur terrain.
+
+Une migration JSON idempotente protège les régions déjà explorées, les terrains enregistrés, les constructions, unités, archives, missions, caravanes et frappes en cours. Les nouveaux archipels n’apparaissent que dans les espaces restés inconnus et libres ; les exclusions sont ensuite figées pour que l’exploration ne déplace jamais une île. Ni réinitialisation de monde ni migration SQL.
+
+Les rencontres maritimes temporaires restent séparées : essai toutes les 10 minutes par secteur de 32 × 32 cases parcouru par un navire d’un joueur connecté, 45 % de probabilité sous réserve de place, maximum de 12 rencontres actives et aucune nouvelle rencontre à moins de 20 cases d’une autre près du navire. Durée de vie : une heure. Les quatre rencontres offrent des ressources et parfois une relique, plus 1 à 6 PA lors de leur récupération.
+
+La pêche n’exige pas de banc de poissons : un navire doté de la capacité de pêche peut récolter des vivres sur une case de mer ou d’eaux côtières neutre ou possédée par son royaume, pour 1 PA. Le rendement dépend du navire. Les navires de guerre et transports ne pêchent pas.
+
+## Pêche automatique et butin comparé
+
+Chaque bateau de pêche vivant, non embarqué, sur une case `SEA` ou `COAST` neutre ou à son royaume produit automatiquement le quart de sa prise manuelle par minute : **10 / 40 / 90 / 160 / 250 vivres/min**, selon son époque. Ces montants sont bruts avant l’entretien de l’équipage. Aucun PA ni carburant n’est dépensé ; la pêche manuelle reste cumulable. La production rejoint le revenu habituel : présence et délai de grâce, stockage respecté, aucun rattrapage hors ligne. Le bandeau du navire et le bilan des vivres l’expliquent.
+
+Les quatre événements maritimes donnent exactement **2× les ressources et les PA** d’un événement terrestre comparable (même tirage de PA, donc 2–12 en mer contre 1–6 sur terre). Les reliques restent uniques. Correspondances :
+
+| Maritime              | Référence terrestre | Ressources maritimes |
+| --------------------- | ------------------- | -------------------- |
+| Épave des serments    | Forteresse sans nom | 240 or, 140 bois     |
+| Obélisque englouti    | Monolithe de Veille | 160 or, 60 fer       |
+| Cargaison à la dérive | Caravane royale     | 200 or, 130 vivres   |
+| Secret du bathyscaphe | Chute d’une étoile  | 180 fer, 90 or       |
+
+Les prix proviennent d’une référence partagée (`event-loot.ts`) ; les anciennes épaves non fouillées affichent et versent aussi ces montants, sans multiplier deux fois après sauvegarde. Ce choix exact réduit certains anciens lots maritimes supérieurs à 2×. Les récompenses des missions, des expéditions et des sites permanents des archipels restent distinctes.

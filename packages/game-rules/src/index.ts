@@ -1,3 +1,7 @@
+import { passiveFishingYield } from './naval';
+import { isMaritimeEncounter } from '@voidmarch/config';
+import { archipelagoAt } from './archipelagos';
+export * from './archipelagos';
 export * from './foundations';
 export * from './development';
 import type { DevelopmentProgress } from '@voidmarch/config';
@@ -264,7 +268,10 @@ export const tileAt = (s: GameState, p: Hex): Tile => {
     : (() => {
         const t = generateTile(s.seed, p),
           terrain = oceanTerrain(s, p);
-        return terrain ? { ...t, terrain, poi: undefined } : t;
+        if (!terrain) return t;
+        const island = archipelagoAt(s, p);
+        const discovery = island && island.q === p.q && island.r === p.r ? island.kind : undefined;
+        return { ...t, terrain, poi: discovery ? 'RARE' : undefined, islandDiscovery: discovery };
       })();
 };
 export function writeTile(s: GameState, p: Hex, patch: Partial<Tile>): Tile {
@@ -438,6 +445,13 @@ export const realmBuildings = (s: GameState, id: string) =>
   Object.values(s.buildings).filter((b) => b.ownerId === id);
 export const realmTiles = (s: GameState, id: string) =>
   Object.values(s.tiles).filter((t) => t.ownerId === id);
+export function fishingIncome(s: GameState, id: string) {
+  return realmUnits(s, id).reduce(
+    (sum, unit) =>
+      sum + (UNIT_PROFILES[unit.kind].fishing ? passiveFishingYield(unit, tileAt(s, unit)) : 0),
+    0,
+  );
+}
 export function income(s: GameState, id: string): Wallet {
   const out = zeroWallet(),
     buildings = realmBuildings(s, id),
@@ -457,6 +471,7 @@ export function income(s: GameState, id: string): Wallet {
       if (site.kind === 'MINE') out.IRON += 8;
       if (site.kind === 'SANCTUARY') out.GOLD += 5;
     }
+  out.FOOD += fishingIncome(s, id);
   for (const unit of units) transfer(out, unitUpkeep(unit.kind), -1);
   out.GOLD -= tiles.length * 0.04 * territoryMultiplier(tiles.length);
   out.FOOD -= buildings.reduce((a, b) => a + b.population, 0) * 0.015;
@@ -465,7 +480,13 @@ export function income(s: GameState, id: string): Wallet {
 export function foodBalance(s: GameState, id: string, net = income(s, id).FOOD) {
   const army = allRealmUnits(s, id).reduce((sum, u) => sum + (unitUpkeep(u.kind).FOOD ?? 0), 0);
   const civilians = realmBuildings(s, id).reduce((sum, b) => sum + b.population, 0) * 0.015;
-  return { production: Math.max(0, net + army + civilians), army, civilians, net };
+  return {
+    production: Math.max(0, net + army + civilians),
+    fishing: fishingIncome(s, id),
+    army,
+    civilians,
+    net,
+  };
 }
 export const storage = (s: GameState, id: string) =>
   800 + realmBuildings(s, id).reduce((sum, b) => sum + storageBonus(b.kind, b.level), 0);
@@ -574,6 +595,7 @@ export function observe(s: GameState, r: Realm, now: number) {
       road: t.road,
       roadOwnerId: t.roadOwnerId,
       poi: t.poi,
+      islandDiscovery: t.islandDiscovery,
       exhausted: t.exhausted,
       capture: t.capture ? { ...t.capture } : undefined,
       building: b ? { ...b } : undefined,
@@ -669,6 +691,10 @@ export function movementAPCost(
 /** Stable 1–6 AP reward, shared by previews and collection; reloads cannot reroll it. */
 export function anomalyAPReward(seed: string, identity: string) {
   return 1 + Math.floor(hash(`${seed}:anomaly-ap:${identity}`) * 6);
+}
+/** Sea encounters grant the same stable draw at twice the terrestrial amount. */
+export function eventAPReward(seed: string, event: { id: string; kind: string }) {
+  return anomalyAPReward(seed, event.id) * (isMaritimeEncounter(event.kind) ? 2 : 1);
 }
 /** Traverse connected roads and closed enclosures without a movement-budget or chunk limit. */
 export function roadPaths(
@@ -1069,6 +1095,7 @@ export function publicTile(
     road: t.road,
     roadOwnerId: t.roadOwnerId,
     poi: t.poi,
+    islandDiscovery: t.islandDiscovery,
     exhausted: t.exhausted,
     capture: t.capture,
   };

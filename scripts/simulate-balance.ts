@@ -1,7 +1,6 @@
 import {
   developmentMissing,
   constructionDevelopmentStage,
-  upgradeDevelopmentStage,
   BUILDING_REQUIREMENTS,
 } from '@voidmarch/config';
 import { randomUUID, createHash } from 'node:crypto';
@@ -35,11 +34,12 @@ import {
   attackCost,
 } from '@voidmarch/game-rules';
 import { addPlayer, execute } from '../apps/server/src/engine';
+import { createMissionTrophy } from '../apps/server/src/mission-trophies';
 import { actionSchema } from '@voidmarch/protocol';
 import type { Unit } from '@voidmarch/shared';
 
 /** Ideal uninterrupted development: no opponent, travel after the first six moves excluded.
- * Economic benchmark only: trophy acquisition time is excluded (legacy access assumed).
+ * Economic benchmark only: trophy acquisition time is excluded (fifty personal trophies assumed).
  * Every construction and upgrade is paid through the real server engine, with storage and PA.
  * Thirteen initial gathers + first free peasant + six moves use 20 of the starting 40 PA.
  */
@@ -49,7 +49,31 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
     state = createState('balance-development', now),
     sequence = 0;
   const initial = addPlayer(state, 'sim', 'Simulation', 'MASK', now);
-  initial.trophyDevelopment = { version: 1, grandfatheredLevel: 5 };
+  // Synthetic medals only for this in-memory economic benchmark; never applied to live realms.
+  const simulationBoard = ((state.missions ??= {}).sim ??= { generation: 0 });
+  simulationBoard.trophies = Array.from({ length: 50 }, (_, i) =>
+    createMissionTrophy(
+      {
+        id: `simulation:${i}`,
+        title: 'Préparation économique',
+        difficulty: 'Escarmouche',
+        level: 1,
+        objective: 'BUILDING',
+        units: [],
+        buildings: [],
+        abandonmentCost: {},
+        ...initial.capital,
+        realmId: 'sim',
+        ownerId: 'mission:simulation',
+        objectiveId: 'simulation',
+        startedAt: now - 1,
+        distance: 20,
+      },
+      now,
+      { units: 0, buildings: 0, walls: 0 },
+      {},
+    ),
+  );
   initial.ap = RULES.startingAP - 20;
   initial.wallet = { GOLD: 48, WOOD: 96, STONE: 40, IRON: 32, FOOD: 48 };
   const ruins = { q: initial.capital.q - 1, r: initial.capital.r };
@@ -162,7 +186,6 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
     while (state.buildings[building.id].level < target) {
       const b = state.buildings[building.id],
         quote = buildingUpgrade(kind, b.level)!;
-      ensureStage(upgradeDevelopmentStage(kind, quote.level));
       buy('UPGRADE', b.id, {}, quote.cost);
       record(`${BUILDINGS[kind].name} niveau ${quote.level}`);
     }

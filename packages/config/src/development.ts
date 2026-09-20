@@ -4,6 +4,7 @@ import {
   UNIT_PROFILES,
   UNIT_TIERS,
   isWall,
+  WALL_KINDS,
   type BuildingKind,
   type UnitKind,
 } from './index';
@@ -54,6 +55,7 @@ export function developmentMissing(sites: readonly Site[], stage: number) {
 export const DEVELOPMENT_TROPHIES = [0, 0, 1, 5, 20, 50] as const;
 export interface DevelopmentProgress {
   trophies: number;
+  bot?: boolean;
   /** Pre-update access is exempt from the new trophy condition only. */
   grandfatheredLevel?: number;
 }
@@ -112,6 +114,7 @@ export function constructionDevelopmentStage(kind: BuildingKind) {
   const tier = BUILDING_ECONOMIC_TIERS[kind];
   return tier >= 7 ? 5 : tier >= 5 ? 4 : tier >= 4 ? 3 : 1;
 }
+/** Legacy infrastructure progression retained for bots, which do not earn trophies. */
 export function upgradeDevelopmentStage(kind: BuildingKind, nextLevel: number) {
   if (kind === 'LOGISTICS_CENTER') return Math.min(5, nextLevel);
   // Producer investment and logistical capacity can precede military advancement.
@@ -130,3 +133,25 @@ export const EXPEDITION_GOLD = [0, 300, 900, 3000, 9000, 24000] as const;
 export const expeditionSearchCost = (level: number) => ({
   FOOD: [0, 40, 120, 400, 1000, 2500][Math.max(1, Math.min(5, level))],
 });
+
+/** Walls encode their displayed level in their material, not their stored level. */
+export const buildingUpgradeLevel = (target: { kind: BuildingKind; level: number }) =>
+  isWall(target.kind) ? WALL_KINDS.indexOf(target.kind) + 1 : target.level;
+
+/** Personal trophies unlock building levels, without requiring that level's infrastructure. */
+export function upgradeTrophyReason(level: number, progress: DevelopmentProgress) {
+  const required = developmentTrophyRequirement(level);
+  return progress.bot || progress.trophies >= required
+    ? ''
+    : `Niveau ${level} : trophées ${progress.trophies}/${required} requis (missions et expéditions). Les trophées ne sont pas dépensés.`;
+}
+export function buildingUpgradeReason(
+  sites: readonly Site[],
+  currentKind: BuildingKind,
+  target: { kind: BuildingKind; level: number },
+  progress: DevelopmentProgress,
+) {
+  return progress.bot
+    ? developmentReason(sites, upgradeDevelopmentStage(currentKind, target.level), progress)
+    : upgradeTrophyReason(buildingUpgradeLevel(target), progress);
+}

@@ -1,3 +1,4 @@
+import { migrateArchipelagos } from '@voidmarch/game-rules';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { createState, migrateOceans } from '@voidmarch/game-rules';
 import { RULES } from '@voidmarch/config';
@@ -8,6 +9,7 @@ import { ensureHeroes } from './heroes';
 export function freshWorld(seed: string, now = Date.now()) {
   const state = createState(seed, now);
   migrateOceans(state);
+  migrateArchipelagos(state);
   initialEvents(state, now);
   new BotDirector().reconcile(state, now, 0);
   ensureHeroes(state, now);

@@ -1,3 +1,7 @@
+import { eventResourceReward } from '@voidmarch/config';
+import { eventAPReward } from '@voidmarch/game-rules';
+import { archipelagoAt } from '@voidmarch/game-rules';
+import { ISLAND_DISCOVERIES } from '@voidmarch/config';
 import { isOffshoreBuilding } from '@voidmarch/config';
 import { offshoreAccessReason } from '@voidmarch/game-rules';
 import { canFoundOutpost } from '@voidmarch/game-rules';
@@ -25,7 +29,8 @@ import {
 import {
   developmentReason,
   constructionDevelopmentStage,
-  upgradeDevelopmentStage,
+  buildingUpgradeReason,
+  upgradeTrophyReason,
 } from '@voidmarch/config';
 import { movementAPCost, anomalyAPReward, expeditionDistance } from '@voidmarch/game-rules';
 import { isSea } from '@voidmarch/config';
@@ -221,6 +226,7 @@ export function spawnPosition(
     if (
       near ||
       !allowed(p) ||
+      !!archipelagoAt(s, p) ||
       disk(p, 3).some((t) => tileAt(s, t).ownerId) ||
       disk(p, 8).some((t) => isSea(tileAt(s, t).terrain) || tileAt(s, t).terrain === 'SCORCHED')
     )
@@ -1043,7 +1049,12 @@ export function applyAction(
       requireRule(!reason, reason);
       spendAction();
       pay(r, TERRAFORM_COST);
-      writeTile(s, t, { terrain: 'PLAIN', poi: undefined, exhausted: t.poi ? true : t.exhausted });
+      writeTile(s, t, {
+        terrain: 'PLAIN',
+        poi: undefined,
+        islandDiscovery: undefined,
+        exhausted: t.poi ? true : t.exhausted,
+      });
       if (t.terrain === 'SCORCHED' && s.strategy) delete s.strategy.fallout[key(t)];
       message = `Terrassement terminé : ${TERRAINS[t.terrain].name} → Plaine · 2 PA, 20 bois et 10 fer. Propriété et routes conservées.`;
       log(s, message, 'ECONOMY', now, [id], t);
@@ -1228,6 +1239,8 @@ export function applyAction(
       const reason = turretUpgradeReason(b, id, Object.values(s.units));
       requireRule(!reason, reason);
       const next = nextTurretLevel(b)!;
+      const trophyError = upgradeTrophyReason(next, developmentProgress(s, id));
+      requireRule(!trophyError, trophyError);
       spendAction();
       pay(r, TURRETS[next].cost);
       if (!b.turretLevel) b.turretConstructionCost = { ...TURRETS[1].cost };
@@ -1242,9 +1255,10 @@ export function applyAction(
       const b = ownedBuilding(s, r, a.actorId);
       const upgrade = buildingUpgrade(b.kind, b.level);
       requireRule(upgrade, 'Ce bâtiment ne peut plus évoluer.');
-      const developmentError = developmentReason(
+      const developmentError = buildingUpgradeReason(
         realmBuildings(s, id),
-        upgradeDevelopmentStage(b.kind, upgrade.level),
+        b.kind,
+        upgrade,
         developmentProgress(s, id),
       );
       requireRule(!developmentError, developmentError);
@@ -1411,8 +1425,9 @@ export function applyAction(
           'Un navire est nécessaire pour explorer cette découverte maritime.',
         );
         e.claimedBy = id;
+        e.reward = eventResourceReward(e);
         transfer(r.wallet, e.reward);
-        const apReward = anomalyAPReward(s.seed, e.id);
+        const apReward = eventAPReward(s.seed, e);
         r.ap += apReward;
         if (e.relic) r.relics.push(e.relic);
         message = `${e.title} : ${rewardText(e.reward)} · +${apReward} PA${e.relic ? ` · Relique : ${e.relic}` : ''}.`;
@@ -1422,11 +1437,19 @@ export function applyAction(
         requireRule(t.poi && !t.exhausted, 'Aucune découverte disponible ici.');
         spendAction();
         writeTile(s, t, { exhausted: true });
-        transfer(r.wallet, { GOLD: t.poi === 'MYTHIC' ? 100 : 35, IRON: 15 });
-        if (t.poi === 'MYTHIC' || t.poi === 'RARE') r.relics.push(`Fragment de ${key(u)}`);
+        const discovery = t.islandDiscovery ? ISLAND_DISCOVERIES[t.islandDiscovery] : undefined;
+        const reward = discovery?.reward ?? { GOLD: t.poi === 'MYTHIC' ? 100 : 35, IRON: 15 };
+        const relic = discovery
+          ? discovery.relic
+          : t.poi === 'MYTHIC' || t.poi === 'RARE'
+            ? `Fragment de ${key(u)}`
+            : undefined;
+        transfer(r.wallet, reward);
+        if (relic) r.relics.push(relic);
         const apReward = anomalyAPReward(s.seed, key(t));
         r.ap += apReward;
-        message = `Ruines explorées : +${apReward} PA · +${t.poi === 'MYTHIC' ? 100 : 35} or · +15 fer${t.poi === 'MYTHIC' || t.poi === 'RARE' ? ' · Fragment antique obtenu' : ''}.`;
+        message = `${discovery?.name ?? 'Ruines explorées'} : +${apReward} PA · ${rewardText(reward)}${relic ? ` · Relique : ${relic}` : ''}.`;
+        log(s, message, 'WORLD', now, [id], t);
       }
       break;
     }
@@ -1830,9 +1853,9 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     caravans: Object.values(s.caravans).filter(
       (c) => c.ownerId === id || c.partnerId === id || visible.has(key(c)),
     ),
-    events: Object.values(s.events).filter(
-      (e) => !e.claimedBy && e.endsAt > now && (e.global || visible.has(key(e))),
-    ),
+    events: Object.values(s.events)
+      .filter((e) => !e.claimedBy && e.endsAt > now && (e.global || visible.has(key(e))))
+      .map((e) => ({ ...e, reward: eventResourceReward(e) })),
     journal: s.journal
       .filter((j) =>
         j.realmIds ? j.realmIds.includes(id) : j.q === undefined || visible.has(key(j as Hex)),

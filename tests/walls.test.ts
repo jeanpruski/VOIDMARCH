@@ -1,3 +1,4 @@
+import { prepareTrophies } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { BUILDINGS, WALL_KINDS, UNITS, buildingUpgrade, type UnitKind } from '@voidmarch/config';
@@ -24,6 +25,7 @@ function fixture() {
   const s = createState('walls', now);
   const a = addPlayer(s, 'a', 'Cité', 'MASK', now);
   a.wallet = { GOLD: 1000, WOOD: 1000, STONE: 1000, IRON: 1000, FOOD: 1000 };
+  prepareTrophies(s, 'a', 3, now);
   a.protectedUntil = 0;
   const b = createRealm('b', 'Assiégeants', 'IRON', { q: 6, r: 0 }, now);
   b.protectedUntil = 0;

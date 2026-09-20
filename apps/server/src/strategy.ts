@@ -770,7 +770,12 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
       if (strike.scorchesTerrain) burned.add(key(p));
       writeTile(s, p, {
         ...(strike.scorchesTerrain && !isSea(t.terrain)
-          ? { terrain: 'SCORCHED' as const, poi: undefined, exhausted: true }
+          ? {
+              terrain: 'SCORCHED' as const,
+              poi: undefined,
+              islandDiscovery: undefined,
+              exhausted: true,
+            }
           : {}),
         road: undefined,
         roadOwnerId: undefined,
@@ -799,6 +804,7 @@ export function tickStrategy(s: GameState, now: number, connected: Set<string>) 
         memory.terrain = tile.terrain;
         memory.poi = tile.poi;
         memory.exhausted = tile.exhausted;
+        memory.islandDiscovery = tile.islandDiscovery;
         memory.ownerId = tile.ownerId;
         memory.enclosureOwnerId = tile.enclosureOwnerId;
         memory.building = tile.buildingId ? s.buildings[tile.buildingId] : undefined;

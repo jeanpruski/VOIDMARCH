@@ -1,5 +1,5 @@
-import { prepareDevelopment } from './fixtures/development';
-import { upgradeDevelopmentStage } from '@voidmarch/config';
+import { prepareTrophies } from './fixtures/development';
+import { buildingUpgradeLevel } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -29,12 +29,7 @@ function fixture(kind: BuildingKind, level = 1) {
   writeTile(state, building, { terrain: 'PLAIN' });
   building.level = level;
   building.population = 1000;
-  prepareDevelopment(
-    state,
-    realm.id,
-    upgradeDevelopmentStage(kind, buildingUpgrade(kind, level)!.level),
-    now,
-  );
+  prepareTrophies(state, realm.id, buildingUpgradeLevel(buildingUpgrade(kind, level)!), now);
   const command = actionSchema.parse({
     type: 'UPGRADE',
     actorId: building.id,

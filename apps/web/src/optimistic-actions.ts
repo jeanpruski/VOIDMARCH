@@ -1,3 +1,6 @@
+import { eventResourceReward } from '@voidmarch/config';
+import { eventAPReward } from '@voidmarch/game-rules';
+import { ISLAND_DISCOVERIES } from '@voidmarch/config';
 import { isOffshoreBuilding } from '@voidmarch/config';
 import { offshoreAccessReason } from '@voidmarch/game-rules';
 import { constructionSiteReason } from './construction';
@@ -8,7 +11,8 @@ import { movementAPCost, anomalyAPReward } from '@voidmarch/game-rules';
 import {
   developmentReason,
   constructionDevelopmentStage,
-  upgradeDevelopmentStage,
+  buildingUpgradeReason,
+  upgradeTrophyReason,
 } from '@voidmarch/config';
 import {
   navalConstructionReason,
@@ -281,6 +285,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
         t.terrain = 'PLAIN';
         if (t.poi) t.exhausted = true;
         t.poi = undefined;
+        t.islandDiscovery = undefined;
       } else {
         const remove = action.type === 'REMOVE_ROAD';
         if (
@@ -376,7 +381,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       )
         return;
       const next = nextTurretLevel(building)!;
-      if (!pay(TURRETS[next].cost)) return;
+      if (upgradeTrophyReason(next, developmentProgress(world)) || !pay(TURRETS[next].cost)) return;
       if (!building.turretLevel) building.turretConstructionCost = { ...TURRETS[1].cost };
       building.turretLevel = next;
       building.updatedAt = now;
@@ -389,11 +394,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       if (
         !upgrade ||
         (building.lastDamagedAt !== undefined && now - building.lastDamagedAt < 90000) ||
-        developmentReason(
-          buildings,
-          upgradeDevelopmentStage(building.kind, upgrade.level),
-          developmentProgress(world),
-        ) ||
+        buildingUpgradeReason(buildings, building.kind, upgrade, developmentProgress(world)) ||
         building.population < upgrade.population ||
         !pay(upgrade.cost)
       )
@@ -431,6 +432,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
     case 'INTERACT': {
       if (!unit || action.payload.caravanId || action.payload.expeditionId) return;
       let reward: Partial<Wallet>, relic: string | undefined;
+      let apReward = anomalyAPReward(world.seed, key(unit));
       if (action.payload.eventId) {
         const event = world.events.find((e) => e.id === action.payload.eventId);
         if (
@@ -441,20 +443,26 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
           tiles.get(key(event))?.visibility !== 'VISIBLE'
         )
           return;
-        reward = event.reward;
+        reward = eventResourceReward(event);
+        apReward = eventAPReward(world.seed, event);
         relic = event.relic;
         world.events = world.events.filter((e) => e.id !== event.id);
       } else {
         const t = tiles.get(key(unit));
         if (!t?.poi || t.exhausted) return;
-        reward = { GOLD: t.poi === 'MYTHIC' ? 100 : 35, IRON: 15 };
-        if (t.poi === 'MYTHIC' || t.poi === 'RARE') relic = `Fragment de ${key(unit)}`;
+        const discovery = t.islandDiscovery ? ISLAND_DISCOVERIES[t.islandDiscovery] : undefined;
+        reward = discovery?.reward ?? { GOLD: t.poi === 'MYTHIC' ? 100 : 35, IRON: 15 };
+        relic = discovery
+          ? discovery.relic
+          : t.poi === 'MYTHIC' || t.poi === 'RARE'
+            ? `Fragment de ${key(unit)}`
+            : undefined;
         t.exhausted = true;
       }
       if (!pay()) return;
       for (const [resource, value] of Object.entries(reward))
         player.wallet[resource as keyof Wallet] += value;
-      player.ap += anomalyAPReward(world.seed, action.payload.eventId ?? key(unit));
+      player.ap += apReward;
       if (relic) player.relics.push(relic);
       break;
     }

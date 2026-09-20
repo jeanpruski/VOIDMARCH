@@ -1,3 +1,4 @@
+import { drawIslandDiscoveries } from './island-art';
 import { installMapPinch } from './map-pinch';
 import { drawExpeditionSites, expeditionSceneryClearings } from './expedition-art';
 import { isSea } from '@voidmarch/config';
@@ -1123,7 +1124,7 @@ class WorldScene extends Phaser.Scene {
         continue;
       }
       // Keep the coloured ground, ownership and grid; omit landscape beneath landmarks.
-      if (expeditionClearings.has(key(t))) continue;
+      if (expeditionClearings.has(key(t)) || (t.islandDiscovery && t.poi && !t.building)) continue;
       if (t.terrain === 'SCORCHED') {
         // Irregular ash patches and broken seams, kept inside the hexagon.
         for (let i = 0; i < 4; i++) {
@@ -1683,6 +1684,7 @@ class WorldScene extends Phaser.Scene {
       this.pieces.push(label);
     }
     this.pieces.push(...drawStrategicOperations(this, world, false));
+    this.pieces.push(...drawIslandDiscoveries(this, world, () => this.renderMap()));
     this.pieces.push(...drawExpeditionSites(this, world, () => this.renderMap()));
     for (const caravan of showUnits ? world.caravans : []) {
       const p = hexToPixel(caravan),

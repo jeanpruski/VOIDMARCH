@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { UNIT_PROFILES, isSea } from '@voidmarch/config';
+import { UNIT_PROFILES, isSea, eventResourceReward } from '@voidmarch/config';
 import { disk, distance, hash, key, tileAt } from '@voidmarch/game-rules';
 import type { GameState, WorldEvent } from '@voidmarch/shared';
 const encounters: Pick<WorldEvent, 'kind' | 'title' | 'description' | 'reward' | 'relic'>[] = [
@@ -8,27 +8,27 @@ const encounters: Pick<WorldEvent, 'kind' | 'title' | 'description' | 'reward' |
     title: 'L’épave des serments',
     description:
       'Une coque brisée dérive dans la brume. Approchez un navire pour récupérer sa cargaison.',
-    reward: { GOLD: 300, WOOD: 240, IRON: 100 },
+    reward: {},
   },
   {
     kind: 'SEA_OBELISK',
     title: 'L’obélisque englouti',
     description:
       'Une lueur ancienne pulse sous les vagues. Une expédition navale peut en rapporter un fragment.',
-    reward: { GOLD: 400, IRON: 160 },
+    reward: {},
     relic: 'Fragment des marées noires',
   },
   {
     kind: 'DRIFTING_CARGO',
     title: 'La cargaison à la dérive',
     description: 'Des caisses encore scellées flottent autour d’un canot abandonné.',
-    reward: { FOOD: 600, WOOD: 200, GOLD: 150 },
+    reward: {},
   },
   {
     kind: 'SUB_WRECK',
     title: 'Le secret du bathyscaphe',
     description: 'Le cœur d’un submersible oublié brille encore sous l’eau.',
-    reward: { IRON: 500, GOLD: 250 },
+    reward: {},
     relic: 'Sceau du bathyscaphe',
   },
 ];
@@ -64,6 +64,14 @@ export function tickMaritimeEvents(s: GameState, now: number, connected: Set<str
     const p = sites[Math.floor(hash(seed + ':site') * sites.length)];
     const event = encounters[Math.floor(hash(seed + ':kind') * encounters.length)];
     const id = randomUUID();
-    s.events[id] = { ...event, ...p, id, startsAt: now, endsAt: now + 3600000, global: false };
+    s.events[id] = {
+      ...event,
+      reward: eventResourceReward(event),
+      ...p,
+      id,
+      startsAt: now,
+      endsAt: now + 3600000,
+      global: false,
+    };
   }
 }

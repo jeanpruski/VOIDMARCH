@@ -1,3 +1,4 @@
+import { prepareTrophies } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -74,6 +75,7 @@ function fixture() {
   const s = createState('army-support', now),
     r = addPlayer(s, 'a', 'Soutien', 'ASH', now);
   r.wallet = { GOLD: 1e7, WOOD: 1e7, STONE: 1e7, IRON: 1e7, FOOD: 1e7 };
+  prepareTrophies(s, 'a', 3, now);
   r.unlimitedAP = true;
   s.units = {};
   for (const p of disk({ q: 0, r: 0 }, 14))

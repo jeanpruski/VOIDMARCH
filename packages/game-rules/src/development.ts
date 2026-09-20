@@ -13,6 +13,7 @@ export function developmentProgress(
     'player' in source ? source.missions?.trophies : source.missions?.[id!]?.trophies;
   return {
     trophies: trophies?.length ?? 0,
+    bot: realm?.bot === true,
     grandfatheredLevel: realm?.bot ? 5 : (realm?.trophyDevelopment?.grandfatheredLevel ?? 1),
   };
 }

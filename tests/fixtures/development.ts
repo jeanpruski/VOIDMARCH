@@ -6,7 +6,7 @@ import { addBuilding } from '../../apps/server/src/engine';
 /** Synthetic technology infrastructure for tests of a different, local recruitment rule.
  * Does not fund the kingdom, bypass the server, or add any combat recruiter beyond
  * the milestones actually required by the requested stage. */
-export function prepareDevelopment(s: GameState, id: string, stage: number, now: number) {
+export function prepareTrophies(s: GameState, id: string, stage: number, now: number) {
   const realm = s.realms[id];
   const board = ((s.missions ??= {})[id] ??= { generation: 0 });
   const trophies = (board.trophies ??= []);
@@ -35,6 +35,10 @@ export function prepareDevelopment(s: GameState, id: string, stage: number, now:
         {},
       ),
     );
+}
+export function prepareDevelopment(s: GameState, id: string, stage: number, now: number) {
+  prepareTrophies(s, id, stage, now);
+  const realm = s.realms[id];
   for (let level = 2; level <= stage; level++) {
     for (const req of DEVELOPMENT_REQUIREMENTS[level]) {
       let b = Object.values(s.buildings).find(

@@ -246,7 +246,7 @@ export const NAVAL_UNITS = {
 export type NavalKind = keyof typeof NAVAL_UNITS;
 export const NAVAL_PROFILES: Record<NavalKind, UnitProfile> = {
   FISHING_CUTTER: {
-    role: 'Pêche en mer : 40 vivres pour 1 PA. Aucune arme.',
+    role: 'Pêche en mer : +10 vivres/min automatiquement et 40 vivres par pêche manuelle pour 1 PA. Eaux neutres ou à vous, pendant votre présence. Aucune arme.',
     recruitAt: ['NAVAL_FISHERY'],
     requires: [],
     naval: true,
@@ -282,7 +282,7 @@ export const NAVAL_PROFILES: Record<NavalKind, UnitProfile> = {
     population: 4,
   },
   FISHING_SCHOONER: {
-    role: 'Pêche en mer : 160 vivres pour 1 PA. Aucune arme.',
+    role: 'Pêche en mer : +40 vivres/min automatiquement et 160 vivres par pêche manuelle pour 1 PA. Eaux neutres ou à vous, pendant votre présence. Aucune arme.',
     recruitAt: ['NAVAL_FISHERY'],
     requires: [],
     naval: true,
@@ -318,7 +318,7 @@ export const NAVAL_PROFILES: Record<NavalKind, UnitProfile> = {
     population: 6,
   },
   FISHING_TRAWLER: {
-    role: 'Pêche en mer : 360 vivres pour 1 PA. Aucune arme.',
+    role: 'Pêche en mer : +90 vivres/min automatiquement et 360 vivres par pêche manuelle pour 1 PA. Eaux neutres ou à vous, pendant votre présence. Aucune arme.',
     recruitAt: ['NAVAL_FISHERY'],
     requires: [],
     naval: true,
@@ -362,7 +362,7 @@ export const NAVAL_PROFILES: Record<NavalKind, UnitProfile> = {
     mechanical: true,
   },
   AUTO_FISHER: {
-    role: 'Pêche en mer : 640 vivres pour 1 PA. Aucune arme.',
+    role: 'Pêche en mer : +160 vivres/min automatiquement et 640 vivres par pêche manuelle pour 1 PA. Eaux neutres ou à vous, pendant votre présence. Aucune arme.',
     recruitAt: ['NAVAL_FISHERY'],
     requires: ['RADIO'],
     naval: true,
@@ -406,7 +406,7 @@ export const NAVAL_PROFILES: Record<NavalKind, UnitProfile> = {
     mechanical: true,
   },
   ATOMIC_HARVESTER: {
-    role: 'Pêche en mer : 1000 vivres pour 1 PA. Aucune arme.',
+    role: 'Pêche en mer : +250 vivres/min automatiquement et 1000 vivres par pêche manuelle pour 1 PA. Eaux neutres ou à vous, pendant votre présence. Aucune arme.',
     recruitAt: ['NAVAL_FISHERY'],
     requires: ['NUCLEAR_REACTOR'],
     naval: true,

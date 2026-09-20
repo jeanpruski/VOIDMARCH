@@ -39,6 +39,7 @@ export interface Tile extends Hex {
   /** Builder of the road; does not grant ownership or vision of the land. */
   roadOwnerId?: string;
   poi?: 'COMMON' | 'UNCOMMON' | 'RARE' | 'MYTHIC';
+  islandDiscovery?: import('@voidmarch/config').IslandDiscoveryKind;
   capture?: { by: string; points: number };
   exhausted?: boolean;
 }
@@ -56,6 +57,7 @@ export interface ViewTile extends Hex {
   road?: boolean;
   roadOwnerId?: string;
   poi?: Tile['poi'];
+  islandDiscovery?: Tile['islandDiscovery'];
   exhausted?: boolean;
   capture?: Tile['capture'];
 }
@@ -294,6 +296,9 @@ export interface GameState {
   /** Stable additional seas created to guarantee nearby coasts for inland capitals. */
   coastalSeas?: CoastalSea[];
   oceanVersion?: 1;
+  archipelagoVersion?: 1;
+  /** Fixed 16-cell exclusions captured once when islands are introduced. */
+  archipelagoPreserved?: Record<string, true>;
   /** Legacy explored regions protected from ocean generation, in 16-hex cells. */
   protectedLand?: Record<string, true>;
   missions?: Record<string, MissionBoard>;
@@ -356,7 +361,13 @@ export interface PlayerState extends Omit<
 > {
   nextAPAt: number;
   income: Wallet;
-  foodBalance?: { production: number; army: number; civilians: number; net: number };
+  foodBalance?: {
+    production: number;
+    fishing?: number;
+    army: number;
+    civilians: number;
+    net: number;
+  };
   capacity: number;
   population: number;
   realmValue: number;

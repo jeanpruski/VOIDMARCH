@@ -30,7 +30,7 @@ import { addPlayer, addBuilding, execute, worldView } from '../apps/server/src/e
 import { expeditionOffers } from '../apps/server/src/expeditions';
 import { predictAction } from '../apps/web/src/optimistic-actions';
 import { actionSchema } from '@voidmarch/protocol';
-import { prepareDevelopment } from './fixtures/development';
+import { prepareDevelopment, prepareTrophies } from './fixtures/development';
 import { simulateSkirmish } from '../scripts/simulate-balance';
 import type { Unit } from '@voidmarch/shared';
 const now = 1900000000000;
@@ -87,14 +87,14 @@ describe('équilibrage v0.8 : progression sans raccourci', () => {
       'Atelier',
     );
   });
-  it('bloque une construction avancée et une amélioration militaire sans leurs jalons, sans débit', () => {
+  it('bloque une amélioration militaire sans ses trophées, sans débit', () => {
     const s = state(),
       r = s.realms.a;
     const barracks = addBuilding(s, r, { q: r.capital.q + 1, r: r.capital.r }, 'BARRACKS', now, 3);
     const command = order('UPGRADE', barracks.id);
     expect(execute(s, 'a', command, now).state).toBe(s);
     expect(predictAction(worldView(s, 'a', now), command)).toBeUndefined();
-    prepareDevelopment(s, 'a', 3, now);
+    prepareTrophies(s, 'a', 4, now);
     expect(execute(s, 'a', command, now).result.accepted).toBe(true);
   });
   it('rend l’investissement industriel compétitif à débit égal sans renchérir la première scierie', () => {
@@ -152,6 +152,7 @@ describe('équilibrage v0.8 : progression sans raccourci', () => {
     const s = state();
     s.realms.b = createRealm('b', 'B', 'MASK', { q: 5, r: 0 }, now);
     s.realms.b.protectedUntil = 0;
+    prepareTrophies(s, 'b', 5, now);
     for (const p of disk({ q: 0, r: 0 }, 5)) writeTile(s, p, { terrain: 'PLAIN' });
     const wall = addBuilding(s, s.realms.b, { q: 1, r: 0 }, 'CONCRETE_WALL', now);
     s.units.unit = { ...troop('FIELD_GUN'), trainingBonus: 60 };

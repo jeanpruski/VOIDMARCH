@@ -6,6 +6,7 @@ import {
   developmentStage,
   developmentTrophyRequirement,
   developmentTrophiesMet,
+  upgradeTrophyReason,
 } from '@voidmarch/config';
 import { useGame } from './store';
 
@@ -22,6 +23,11 @@ export function Development() {
       <p>
         Vos bâtiments et les trophées gagnés en missions et expéditions débloquent les nouvelles
         technologies. Les trophées sont cumulés et ne sont jamais dépensés.
+      </p>
+      <p>
+        Améliorations des bâtiments : niveau 2 → 1 trophée ; niveau 3 → 5 ; niveau 4 → 20 ; niveau 5
+        → 50. Ces améliorations ne demandent pas les infrastructures du prochain palier
+        technologique.
       </p>
       {stage < 5 ? (
         <>
@@ -57,11 +63,34 @@ export function DevelopmentTrophies({ stage }: { stage: number }) {
         <strong>
           Trophées : {progress.trophies}/{required}
         </strong>{' '}
-        · {met ? 'Condition acquise' : 'À obtenir'} pour le niveau {stage}
+        · {met ? 'Condition acquise' : 'À obtenir'} pour le palier technologique {stage}
       </p>
       <p className="muted">
         Missions et expéditions réunies · total cumulé, sans dépense.
         {retained && ' Palier antérieur conservé : ce seuil ne vous bloque pas.'}
+      </p>
+    </div>
+  );
+}
+
+export function BuildingTrophies({ level }: { level: number }) {
+  const world = useGame((s) => s.world)!;
+  const progress = developmentProgress(world);
+  const required = developmentTrophyRequirement(level);
+  if (!required || progress.bot) return null;
+  const met = !upgradeTrophyReason(level, progress);
+  return (
+    <div className="development-trophies">
+      <p className={met ? 'positive' : 'negative'}>
+        <strong>
+          Trophées : {progress.trophies}/{required}
+        </strong>{' '}
+        · {met ? 'Niveau' : 'À obtenir pour le niveau'} {level}
+        {met ? ' débloqué' : ''}
+      </p>
+      <p className="muted">
+        Total personnel des missions et expéditions. Ce seuil débloque ce niveau pour tous vos
+        bâtiments ; les trophées ne sont pas dépensés.
       </p>
     </div>
   );

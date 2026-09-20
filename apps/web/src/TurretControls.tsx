@@ -1,3 +1,6 @@
+import { upgradeTrophyReason } from '@voidmarch/config';
+import { developmentProgress } from '@voidmarch/game-rules';
+import { BuildingTrophies } from './Development';
 import { ActionButton } from './ActionButton';
 import { format } from './ui';
 import { useState } from 'react';
@@ -22,7 +25,9 @@ export function TurretControls({ building: b }: { building: Building }) {
   const current = turretStats(b),
     next = nextTurretLevel(b),
     upgrade = next && TURRETS[next];
-  const reason = turretUpgradeReason(b, world.player.id, world.units);
+  const reason =
+    turretUpgradeReason(b, world.player.id, world.units) ||
+    (next ? upgradeTrophyReason(next, developmentProgress(world)) : '');
   const enoughAP = world.player.unlimitedAP || world.player.ap >= 2;
   const affordable = upgrade && canAfford(world.player.wallet, upgrade.cost);
   return (
@@ -68,6 +73,7 @@ export function TurretControls({ building: b }: { building: Building }) {
                 Arme fixe posée sur ce rempart. Tir à distance uniquement, sur votre ordre :{' '}
                 <strong>1 PA par tir</strong>.
               </p>
+              <BuildingTrophies level={next} />
               <ul>
                 <li>
                   Attaque : {current ? `${format(current.attack)} → ` : ''}

@@ -1,3 +1,4 @@
+export * from './event-loot';
 export * from './secret-codes';
 export * from './alliance-projects';
 export * from './mobility';
@@ -2232,3 +2233,5 @@ export const populationCapacity = (kind: BuildingKind, level: number) =>
   (kind === 'VILLAGE' ? level + 1 : 2 * productionMultiplier(kind, level));
 
 export * from './expeditions';
+
+export * from './island-discoveries';

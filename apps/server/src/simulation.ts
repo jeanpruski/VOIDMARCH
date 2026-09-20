@@ -1,3 +1,4 @@
+import { LAND_EVENT_REWARDS } from '@voidmarch/config';
 import { tickMaritimeEvents } from './maritime-events';
 import { isSea } from '@voidmarch/config';
 import { refreshWorldTraining } from '@voidmarch/game-rules';
@@ -39,7 +40,7 @@ export function initialEvents(s: GameState, now: number) {
     startsAt: now,
     endsAt: now + 7 * 86_400_000,
     global: false,
-    reward: { GOLD: 80, IRON: 30 },
+    reward: { ...LAND_EVENT_REWARDS.MONOLITH },
     relic: 'Éclat du Monolithe',
   };
   writeTile(s, s.events[id], { terrain: 'ALIEN', poi: 'MYTHIC' });
@@ -49,7 +50,7 @@ const eventTypes: Pick<WorldEvent, 'kind' | 'title' | 'description' | 'reward' |
     kind: 'METEOR',
     title: 'La chute d’une étoile',
     description: 'Du verre noir fume au creux d’un cratère. Les prospecteurs se mettent en route.',
-    reward: { IRON: 90, GOLD: 45 },
+    reward: { ...LAND_EVENT_REWARDS.METEOR },
     relic: 'Fer céleste',
   },
   {
@@ -57,14 +58,14 @@ const eventTypes: Pick<WorldEvent, 'kind' | 'title' | 'description' | 'reward' |
     title: 'La forteresse sans nom',
     description:
       'Une citadelle émerge de la brume. Ses couloirs semblent plus vastes que la colline qui les porte.',
-    reward: { GOLD: 120, WOOD: 70 },
+    reward: { ...LAND_EVENT_REWARDS.FORTRESS },
   },
   {
     kind: 'RED_MOON',
     title: 'La lune de sang',
     description:
       'Les cloches sonnent sans mains pour les mouvoir. Un fragment attend ses découvreurs.',
-    reward: { GOLD: 70 },
+    reward: { ...LAND_EVENT_REWARDS.RED_MOON },
     relic: 'Sceau de la lune rouge',
   },
   {
@@ -72,13 +73,13 @@ const eventTypes: Pick<WorldEvent, 'kind' | 'title' | 'description' | 'reward' |
     title: 'La brume inversée',
     description:
       'La pluie remonte vers le ciel. Des voix inconnues répondent dans les postes de radio éteints.',
-    reward: { FOOD: 100, GOLD: 35 },
+    reward: { ...LAND_EVENT_REWARDS.MIST },
   },
   {
     kind: 'PORTAL',
     title: 'La Porte Aveugle',
     description: 'À travers l’arche, les étoiles ne sont pas les nôtres.',
-    reward: { GOLD: 110, IRON: 35 },
+    reward: { ...LAND_EVENT_REWARDS.PORTAL },
     relic: 'Clé du ciel absent',
   },
   {
@@ -86,14 +87,14 @@ const eventTypes: Pick<WorldEvent, 'kind' | 'title' | 'description' | 'reward' |
     title: 'Le réveil du Colosse',
     description:
       'Les collines se soulèvent au rythme d’une respiration. Les instruments indiquent une profondeur impossible.',
-    reward: { IRON: 150 },
+    reward: { ...LAND_EVENT_REWARDS.COLOSSUS },
     relic: 'Cœur du Colosse',
   },
   {
     kind: 'ROYAL_CARAVAN',
     title: 'La caravane royale',
     description: 'Une caravane de royaumes lointains cherche un protecteur.',
-    reward: { GOLD: 100, FOOD: 65 },
+    reward: { ...LAND_EVENT_REWARDS.ROYAL_CARAVAN },
   },
 ];
 export function tickWorld(

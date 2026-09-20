@@ -1,3 +1,4 @@
+import { prepareTrophies } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { BUILDINGS, TURRETS, type TurretLevel } from '@voidmarch/config';
@@ -25,6 +26,7 @@ function fixture() {
   const s = createState('turrets', now),
     r = addPlayer(s, 'a', 'A', 'MASK', now);
   r.wallet = { GOLD: 5000, WOOD: 5000, STONE: 5000, IRON: 5000, FOOD: 5000 };
+  prepareTrophies(s, 'a', 3, now);
   r.protectedUntil = 0;
   s.realms.b = createRealm('b', 'B', 'ASH', { q: 4, r: 0 }, now);
   s.realms.b.protectedUntil = 0;

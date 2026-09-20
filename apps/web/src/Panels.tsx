@@ -1,7 +1,7 @@
 import { isOffshoreBuilding, isSea } from '@voidmarch/config';
 import { isCoastalBuilder } from '@voidmarch/game-rules';
 import { developmentProgress } from '@voidmarch/game-rules';
-import { anomalyAPReward } from '@voidmarch/game-rules';
+import { eventAPReward } from '@voidmarch/game-rules';
 import { Development } from './Development';
 import { developmentReason, constructionDevelopmentStage } from '@voidmarch/config';
 import { IdentityEditor, RealmPreview } from './RealmIdentity';
@@ -471,9 +471,9 @@ function Economy() {
   return (
     <>
       <p className="panel-intro">
-        La production de vos bâtiments, après entretien. Revendiquer une terre ne récolte pas
-        automatiquement ses ressources. La production est calculée pendant votre présence et le
-        délai de grâce de trois minutes.
+        La production de vos bâtiments et de vos bateaux de pêche, après entretien. Revendiquer une
+        terre ne récolte pas automatiquement ses ressources. La production est calculée pendant
+        votre présence et le délai de grâce de trois minutes.
       </p>
       {p.foodBalance && (
         <section className="inset food-balance" aria-label="Bilan des vivres">
@@ -488,6 +488,12 @@ function Economy() {
             · habitants <strong>−{format(p.foodBalance.civilians)}</strong> · troupes et équipages{' '}
             <strong>−{format(p.foodBalance.army)}</strong>.
           </p>
+          {!!p.foodBalance.fishing && (
+            <p>
+              Pêche automatique : <strong>+{format(p.foodBalance.fishing)} vivres/min</strong>, déjà
+              incluse dans la production ci-dessus. Aucun PA dépensé.
+            </p>
+          )}
           <p>
             Les vivres servent aussi au recrutement, aux soins et aux provisions de campagne :
             sélectionnez une troupe puis ouvrez « Provisions ». Les passagers d’un transport gardent
@@ -945,7 +951,7 @@ function Events() {
               <h3>{e.title}</h3>
               <p>{e.description}</p>
               <Cost cost={e.reward} />
-              <p>+{anomalyAPReward(w.seed, e.id)} PA · conservés même au-delà de 20</p>
+              <p>+{eventAPReward(w.seed, e)} PA · conservés même au-delà de 20</p>
               <small>
                 Disparaît dans <Duration until={e.endsAt} />
               </small>

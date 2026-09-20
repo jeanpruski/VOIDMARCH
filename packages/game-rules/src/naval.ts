@@ -85,9 +85,15 @@ export const fishingYield = (
   unit: Unit,
   tile: { terrain?: Terrain; ownerId?: string } | undefined,
 ) =>
-  isSea(tile?.terrain) && (!tile?.ownerId || tile.ownerId === unit.ownerId)
+  unit.hp > 0 &&
+  !unit.carrierId &&
+  isSea(tile?.terrain) &&
+  (!tile?.ownerId || tile.ownerId === unit.ownerId)
     ? (UNIT_PROFILES[unit.kind].fishing ?? 0)
     : 0;
+/** Gross food per minute, using the same water and ownership rules as manual fishing. */
+export const passiveFishingYield = (unit: Unit, tile: Parameters<typeof fishingYield>[1]) =>
+  fishingYield(unit, tile) / 4;
 /** Visibility of the hex alone never discloses a submerged enemy. */
 export function submarineVisible(s: GameState, viewerId: string, unit: Unit, now: number) {
   if (!UNIT_PROFILES[unit.kind].submarine || unit.ownerId === viewerId) return true;

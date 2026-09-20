@@ -1,3 +1,4 @@
+import { prepareTrophies } from './fixtures/development';
 import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
@@ -76,6 +77,7 @@ describe('cinq niveaux et époques', () => {
     };
     s.units.soldier.hp = unitStats(s.units.soldier).hp / 2;
     prepareDevelopment(s, r.id, 4, now);
+    prepareTrophies(s, r.id, 5, now);
     for (const level of [4, 5]) {
       const result = execute(s, r.id, order('UPGRADE', b.id), now);
       expect(result.result.accepted, result.result.reason).toBe(true);
@@ -104,6 +106,7 @@ describe('cinq niveaux et époques', () => {
   it('remparts et tourelles : cinq matériaux, sans construction directe des paliers avancés', () => {
     const s = createState('walls-ages', now),
       r = addPlayer(s, 'p', 'Défenses', 'MASK', now);
+    prepareTrophies(s, r.id, 5, now);
     r.wallet = { GOLD: 100000, WOOD: 100000, STONE: 100000, IRON: 100000, FOOD: 100000 };
     const b = addBuilding(s, r, { q: 1, r: 0 }, 'STEEL_WALL', now);
     b.turretLevel = 3;

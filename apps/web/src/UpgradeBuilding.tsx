@@ -7,7 +7,8 @@ import {
   MOBILITY_NAMES,
 } from '@voidmarch/config';
 import { logisticsDiscount, LOGISTICS_RECIPES } from '@voidmarch/config';
-import { developmentReason, upgradeDevelopmentStage } from '@voidmarch/config';
+import { buildingUpgradeReason, buildingUpgradeLevel } from '@voidmarch/config';
+import { BuildingTrophies } from './Development';
 import { TrainingUpgrade } from './ArmySupport';
 import { recruitmentLevel, type UnitKind } from '@voidmarch/config';
 import { ActionButton } from './ActionButton';
@@ -47,9 +48,10 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
     t.building?.ownerId === world.player.id ? [t.building] : [],
   );
   const developmentError = upgrade
-    ? developmentReason(
+    ? buildingUpgradeReason(
         world.tiles.flatMap((t) => (t.building?.ownerId === world.player.id ? [t.building] : [])),
-        upgradeDevelopmentStage(b.kind, upgrade.level),
+        b.kind,
+        upgrade,
         developmentProgress(world),
       )
     : '';
@@ -133,8 +135,9 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                 </figure>
               </div>
               <p>Ce bâtiment évolue sur sa case actuelle.</p>
-              {(developmentError || combatError) && (
-                <p className="negative">{developmentError || combatError}</p>
+              <BuildingTrophies level={buildingUpgradeLevel(upgrade)} />
+              {(combatError || (world.player.bot && developmentError)) && (
+                <p className="negative">{combatError || developmentError}</p>
               )}
               {b.turretLevel && (
                 <p>
