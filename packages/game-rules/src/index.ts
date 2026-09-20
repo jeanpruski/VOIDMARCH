@@ -1,3 +1,5 @@
+export * from './development';
+import type { DevelopmentProgress } from '@voidmarch/config';
 export * from './sea-access';
 import { siteOperational, strategicBonuses } from './strategic-control';
 export * from './strategic-control';
@@ -66,6 +68,7 @@ export function recruitmentRequirement(
   kind: UnitKind,
   building: Building,
   owned: readonly Building[],
+  progress: DevelopmentProgress,
 ): string {
   const profile = UNIT_PROFILES[kind];
   if (profile.hero) return 'Le héros est unique et ne peut pas être recruté.';
@@ -81,6 +84,7 @@ export function recruitmentRequirement(
     : developmentReason(
         owned.filter((b) => b.ownerId === building.ownerId),
         unitDevelopmentStage(kind),
+        progress,
       );
 }
 export const unkey = (s: string): Hex => {
@@ -1006,6 +1010,7 @@ export function createRealm(
     protectedUntil: bot ? 0 : now + RULES.protection,
     capital,
     explored: {},
+    trophyDevelopment: { version: 1, grandfatheredLevel: 1 },
     progression: { exploration: 0, battles: 0, commerce: 0, development: 0 },
     relics: [],
     settings: {

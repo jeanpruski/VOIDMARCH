@@ -86,7 +86,7 @@ describe('progression locale du recrutement', () => {
         expect(required).toBeGreaterThanOrEqual(1);
         expect(required).toBeLessThanOrEqual(5);
         for (let level = 1; level <= 5; level++) {
-          const message = recruitmentRequirement(kind, template(b, level), owned);
+          const message = recruitmentRequirement(kind, template(b, level), owned, { trophies: 50 });
           if (level < required) expect(message).toContain(`niveau ${required}`);
           else expect(message).toBe('');
         }
@@ -96,6 +96,7 @@ describe('progression locale du recrutement', () => {
               kind,
               template(b),
               owned.filter((x) => x.kind !== missing),
+              { trophies: 50 },
             ),
           ).toContain(BUILDINGS[missing].name);
         }

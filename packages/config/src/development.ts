@@ -51,9 +51,28 @@ export function developmentMissing(sites: readonly Site[], stage: number) {
     (req) => !sites.some((b) => b.hp > 0 && b.level >= req.level && req.kinds.includes(b.kind)),
   );
 }
-export function developmentStage(sites: readonly Site[]) {
+export const DEVELOPMENT_TROPHIES = [0, 0, 1, 5, 20, 50] as const;
+export interface DevelopmentProgress {
+  trophies: number;
+  /** Pre-update access is exempt from the new trophy condition only. */
+  grandfatheredLevel?: number;
+}
+export const developmentTrophyRequirement = (stage: number) =>
+  DEVELOPMENT_TROPHIES[Math.max(1, Math.min(5, stage))];
+export function developmentTrophiesMet(stage: number, progress: DevelopmentProgress) {
+  return (
+    stage <= (progress.grandfatheredLevel ?? 1) ||
+    progress.trophies >= developmentTrophyRequirement(stage)
+  );
+}
+export function developmentStage(sites: readonly Site[], progress: DevelopmentProgress) {
   let stage = 1;
-  while (stage < 5 && !developmentMissing(sites, stage + 1).length) stage++;
+  while (
+    stage < 5 &&
+    !developmentMissing(sites, stage + 1).length &&
+    developmentTrophiesMet(stage + 1, progress)
+  )
+    stage++;
   return stage;
 }
 export const missionRecruiters = () => [
@@ -70,13 +89,23 @@ export function militaryDevelopmentLevel(sites: readonly Site[]) {
     ...sites.filter((b) => b.hp > 0 && recruiters.includes(b.kind)).map((b) => b.level),
   );
 }
-export function conquestDevelopmentLevel(sites: readonly Site[]) {
-  return Math.min(developmentStage(sites), militaryDevelopmentLevel(sites));
+export function conquestDevelopmentLevel(sites: readonly Site[], progress: DevelopmentProgress) {
+  return Math.min(developmentStage(sites, progress), militaryDevelopmentLevel(sites));
 }
-export function developmentReason(sites: readonly Site[], stage: number) {
-  const missing = developmentMissing(sites, stage);
+export function developmentReason(
+  sites: readonly Site[],
+  stage: number,
+  progress: DevelopmentProgress,
+) {
+  const missing = developmentMissing(sites, stage).map(
+    (r) => `${r.kinds.map((k) => BUILDINGS[k].name).join(' ou ')} niveau ${r.level}`,
+  );
+  if (!developmentTrophiesMet(stage, progress))
+    missing.push(
+      `trophées ${progress.trophies}/${developmentTrophyRequirement(stage)} (missions et expéditions)`,
+    );
   return missing.length
-    ? `Palier ${DEVELOPMENT_STAGES[stage - 1]} : ${missing.map((r) => `${r.kinds.map((k) => BUILDINGS[k].name).join(' ou ')} niveau ${r.level}`).join(' ; ')} nécessaire(s).`
+    ? `Palier ${DEVELOPMENT_STAGES[stage - 1]} : ${missing.join(' ; ')} nécessaire(s).`
     : '';
 }
 export function constructionDevelopmentStage(kind: BuildingKind) {

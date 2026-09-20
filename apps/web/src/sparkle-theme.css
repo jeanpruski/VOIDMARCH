@@ -1,0 +1,498 @@
+/* Opt-in light palette. No hue rotation or inversion: heraldry and artwork keep their colours. */
+:root[data-theme='sparkle'] {
+  color-scheme: light;
+  --gold: #a72c77;
+  --gold-light: #8e2867;
+  --text: #402643;
+  --muted: #715675;
+  --line: #d9b6cf;
+  --panel: #fff8fc;
+  color: var(--text);
+  background: #fff3f8;
+}
+:root[data-theme='sparkle'] body {
+  background: #fff3f8;
+  color: var(--text);
+}
+:root[data-theme='sparkle']
+  :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    p,
+    li,
+    dt,
+    dd,
+    label,
+    summary,
+    strong,
+    b,
+    em,
+    span,
+    small,
+    th,
+    td,
+    a,
+    button,
+    input,
+    textarea,
+    select,
+    kbd
+  ) {
+  color: var(--text);
+  text-shadow: none;
+}
+:root[data-theme='sparkle']
+  :is(small, .muted, .eyebrow, .panel-intro, .selection-owner, .realm-subtitle) {
+  color: var(--muted);
+}
+:root[data-theme='sparkle'] :is(.topbar, .left-sidebar, .right-sidebar, .bottom-bar) {
+  background: linear-gradient(135deg, #fff9ef, #ffe7f2 65%, #f1e8ff);
+  border-color: var(--line);
+  box-shadow: 0 3px 18px #8a3b7914;
+}
+:root[data-theme='sparkle'] .topbar {
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, #ec80aa, #f5b36c, #f0d97d, #80cab2, #8bbce3, #b49adb) 1;
+}
+:root[data-theme='sparkle'] :is(.wordmark, .wordmark span, .runes .full) {
+  color: #902462;
+  text-shadow: none;
+}
+:root[data-theme='sparkle'] .wordmark::after {
+  content: ' ✦';
+  color: #b53983;
+  font-size: 0.65em;
+}
+:root[data-theme='sparkle']
+  :is(.top-resources svg, .left-sidebar nav button svg, .cost svg, .stat-grid svg) {
+  color: #9c367e;
+}
+:root[data-theme='sparkle'] :is(.left-sidebar nav button:hover, .left-sidebar nav button.active) {
+  background: #f7d8ed;
+  border-color: #b83b8b;
+}
+:root[data-theme='sparkle']
+  :is(
+    .modal,
+    .selection-panel,
+    .road-tools,
+    .vigie-controls,
+    .map-loading,
+    .loading-screen,
+    .connection-notice,
+    .toast,
+    .order-progress
+  ) {
+  background: linear-gradient(135deg, #fffdf9, #fff2fa);
+  color: var(--text);
+  border-color: var(--line);
+  box-shadow: 0 12px 40px #6732532b;
+}
+:root[data-theme='sparkle'] .modal {
+  border-radius: 16px;
+  overflow: hidden;
+}
+:root[data-theme='sparkle'] .modal > header {
+  background: linear-gradient(110deg, #ffe4f0, #f0e7ff);
+  border-color: var(--line);
+}
+:root[data-theme='sparkle'] .modal-scrim {
+  background: #59406666;
+}
+:root[data-theme='sparkle']
+  :is(
+    .inset,
+    .stat-grid,
+    .hero-controls,
+    .hero-creator,
+    .identity-preview,
+    .mission-card,
+    .mission-active,
+    .mission-progression,
+    .mission-progression-checklist,
+    .mission-briefing,
+    .mission-reward,
+    .mission-objective,
+    .logistics-quota,
+    .mobility-progression,
+    .supply-details,
+    .food-balance,
+    .tutorial-step,
+    .context-help,
+    .featured-event,
+    .newcomer-protection,
+    .kingdom-protection,
+    .event-card,
+    .medal-detail,
+    .catalog-context,
+    .catalog-toolbar,
+    .catalog-footer,
+    .catalog-resources,
+    .recruitment-building,
+    .upgrade-preview,
+    .transport-controls,
+    .army-support,
+    .biome-adaptation,
+    .terrain-affinities,
+    .unit-training-details,
+    .nuclear-controls
+  ) {
+  background: #fff7fc;
+  border-color: var(--line);
+  color: var(--text);
+  box-shadow: none;
+}
+:root[data-theme='sparkle']
+  :is(
+    .catalog article,
+    .expedition-album article,
+    .logistics-costs > div,
+    .stat-grid > div,
+    .mission-offers article,
+    .trophy-card,
+    .settings-section,
+    .creation-steps button,
+    .faction-choice,
+    .flag-choices button,
+    .identity-palettes button
+  ) {
+  background: #fff8fc;
+  border-color: var(--line);
+}
+:root[data-theme='sparkle']
+  :is(
+    .catalog article.catalog-ready,
+    .catalog article.catalog-ready:hover,
+    .mission-card:hover,
+    .expedition-album .discovered
+  ) {
+  background: #fff9e9;
+  border-color: #c583a4;
+}
+:root[data-theme='sparkle']
+  :is(input:not([type='color']):not([type='checkbox']):not([type='range']), textarea, select) {
+  background: #fffdfd;
+  border-color: #b594b5;
+  color: var(--text);
+}
+:root[data-theme='sparkle'] :is(input, textarea)::placeholder {
+  color: #806481;
+  opacity: 1;
+}
+:root[data-theme='sparkle'] :is(button.primary, button.enter-button) {
+  background: #a62c75;
+  color: #fff;
+  border-color: #a62c75;
+  border-radius: 7px;
+}
+:root[data-theme='sparkle'] :is(button.primary, button.enter-button) :is(span, small, strong, kbd) {
+  color: #fff;
+}
+:root[data-theme='sparkle'] :is(button.primary, button.enter-button):hover:not(:disabled) {
+  background: #84225e;
+  color: #fff;
+}
+:root[data-theme='sparkle']
+  :is(
+    .secondary,
+    .icon-button,
+    .sidebar-toggle,
+    .catalog-tabs button,
+    .catalog-ownership-filter button,
+    .mission-category-tabs button,
+    .catalog-reset,
+    .map-tools,
+    .map-tools button,
+    .minimap,
+    .mobility-counters,
+    .identity-hero strong,
+    .road-confirm,
+    .group-movement,
+    .nuclear-alerts,
+    .capital-marker,
+    .radar-capital,
+    .radar-mission,
+    .action-key
+  ) {
+  background: #fff0f8;
+  color: var(--text);
+  border-color: #cfacc9;
+  text-shadow: none;
+}
+:root[data-theme='sparkle']
+  :is(
+    .secondary,
+    .icon-button,
+    .catalog-tabs button,
+    .mission-category-tabs button,
+    .map-tools button
+  ):hover:not(:disabled) {
+  background: #eedaf6;
+  color: #60295c;
+}
+:root[data-theme='sparkle']
+  :is(
+    button[aria-selected='true'],
+    button[aria-pressed='true'],
+    button.chosen,
+    .login-tabs .active
+  ) {
+  background: #eedbf8;
+  color: #6d245d;
+  border-color: #a54888;
+}
+:root[data-theme='sparkle']
+  :is(
+    .cost,
+    .cost > span,
+    .catalog-status,
+    .badge,
+    .count,
+    .resource-gold,
+    .resource-wood,
+    .resource-iron,
+    .resource-food
+  ) {
+  color: #74315f;
+}
+:root[data-theme='sparkle']
+  :is(.modal th, .modal td, .modal tr, .catalog article, .catalog-resources > div) {
+  border-color: var(--line);
+}
+:root[data-theme='sparkle'] .modal tr.you {
+  background: #eedcf7;
+}
+:root[data-theme='sparkle']
+  :is(.positive, .positive *, .fulfilled, .catalog-ready .catalog-status) {
+  color: #24654e !important;
+}
+:root[data-theme='sparkle']
+  :is(
+    .negative,
+    .negative *,
+    .cost .cost-insufficient,
+    .cost .cost-insufficient *,
+    .recruitment-missing,
+    .upgrade-missing,
+    .upgrade-missing td,
+    .form-error,
+    .mission-error,
+    .group-movement-error,
+    .requirement-error,
+    .toast.error,
+    .toast.error span
+  ) {
+  color: #ac2448 !important;
+}
+:root[data-theme='sparkle'] .toast.error {
+  background: #fff0f1;
+  border-color: #c24e6a;
+}
+:root[data-theme='sparkle'] :is(.toast > svg, .toast.error > svg) {
+  color: currentColor;
+}
+:root[data-theme='sparkle'] :is(button, a, input, select, textarea):focus-visible {
+  outline-color: #8c307c;
+}
+:root[data-theme='sparkle'] :is(.live-dot, .presence-dot.online) {
+  background: #29765b;
+  box-shadow: none;
+}
+:root[data-theme='sparkle'] .game-canvas canvas {
+  filter: brightness(1.22) saturate(0.94);
+}
+:root[data-theme='sparkle'] .map-shading {
+  box-shadow: inset 0 0 80px #fbd4ec16;
+  background: linear-gradient(#ffe3ef0a, transparent 30%, transparent 85%, #ffe3ef0a);
+}
+:root[data-theme='sparkle'] .map-shading::before {
+  display: none;
+}
+:root[data-theme='sparkle'] :is(.map-legend, .coordinate-bar) {
+  background: #fff3f0df;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+:root[data-theme='sparkle'] .map-legend > span {
+  color: #402643;
+  text-shadow: none;
+}
+:root[data-theme='sparkle'] .login {
+  background: #fff2f8;
+}
+:root[data-theme='sparkle'] .login-art {
+  opacity: 0.2;
+  filter: brightness(1.35);
+}
+:root[data-theme='sparkle'] :is(.login-content, .art-loading) {
+  background: linear-gradient(125deg, #fff9efee, #ffe9f6ee);
+}
+:root[data-theme='sparkle'] .expedition-description img {
+  background: radial-gradient(ellipse, #efdff166, transparent 70%);
+}
+:root[data-theme='sparkle'] ::selection {
+  background: #e3bae9;
+  color: #402643;
+}
+:root[data-theme='sparkle'] ::-webkit-scrollbar-track {
+  background: #f9eaf4;
+}
+:root[data-theme='sparkle'] ::-webkit-scrollbar-thumb {
+  background: #c19abc;
+}
+:root[data-theme='sparkle'] .sigil {
+  background: linear-gradient(145deg, #fff5df, #f1ddf8);
+}
+.sparkle-confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  overflow: hidden;
+}
+.sparkle-confetti span {
+  position: absolute;
+  left: var(--sparkle-x);
+  top: var(--sparkle-y);
+  font-size: 19px;
+  color: #be4191 !important;
+  opacity: 0.55;
+  animation: sparkle-twinkle 5s var(--sparkle-delay) ease-in-out infinite;
+}
+.sparkle-confetti span:nth-child(3n) {
+  color: #c68a27 !important;
+  font-size: 25px;
+}
+.sparkle-confetti span:nth-child(3n + 1) {
+  color: #7e4baf !important;
+}
+.sparkle-switch {
+  position: fixed;
+  top: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid #d59abe;
+  border-radius: 30px;
+  background: #fff6fbee;
+  box-shadow: 0 3px 16px #65345620;
+  color: #652754;
+  font-size: 11px;
+}
+.sparkle-switch > span:first-child {
+  font-size: 25px;
+  line-height: 1;
+}
+.sparkle-switch > span:last-child {
+  font-size: 18px;
+}
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0) scale(0.8);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-5px) scale(1.1);
+  }
+}
+body.reduced-motion .sparkle-confetti span {
+  animation: none;
+  opacity: 0.4;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sparkle-confetti span {
+    animation: none;
+    opacity: 0.4;
+  }
+}
+@media (max-width: 700px) {
+  .sparkle-switch {
+    top: auto;
+    bottom: max(34px, env(safe-area-inset-bottom));
+    left: auto;
+    right: 10px;
+    transform: none;
+    padding: 5px 9px;
+  }
+  .sparkle-switch > span:nth-child(2) {
+    display: none;
+  }
+  .sparkle-confetti span {
+    font-size: 13px;
+  }
+}
+
+.sparkle-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+/* Secondary surfaces and compact controls use the same light palette. */
+:root[data-theme='sparkle'] button {
+  background-color: #fff0f8;
+  border-color: #cfacc9;
+}
+:root[data-theme='sparkle']
+  :is(
+    .catalog-search-box,
+    .catalog-pagination button,
+    .economy-cards > div,
+    .treaty-form,
+    .damage-estimate,
+    .login form,
+    .next-step,
+    .rare-explanation,
+    .npc-info,
+    .radar-target,
+    .radar-empty,
+    .atomic-filter,
+    .alliance-chat,
+    .entity-group,
+    .entity-group > summary:hover,
+    .beginner-tutorial .tutorial-tip,
+    .combat-terrain-bonuses,
+    .trophy-detail-heading,
+    .victory-report,
+    .training-upgrade,
+    .banner-preview,
+    .protection-box,
+    .modal th
+  ) {
+  background: #fff3f9;
+  border-color: var(--line);
+}
+:root[data-theme='sparkle'] :is(.catalog-resources svg, .catalog-help svg, .protection-box svg) {
+  color: #973d7c;
+}
+:root[data-theme='sparkle'] .board {
+  background: #ece1e9;
+}
+:root[data-theme='sparkle'] .realm-banner::after {
+  content: '🦄 ✧ 🌈';
+  display: block;
+  font-size: 22px;
+  margin-top: 14px;
+  letter-spacing: 8px;
+}
+:root[data-theme='sparkle'] .settlement-progress i {
+  background: #b03c86;
+}
+:root[data-theme='sparkle'] body.high-contrast {
+  --text: #29132e;
+  --muted: #533659;
+  --line: #9c6191;
+}

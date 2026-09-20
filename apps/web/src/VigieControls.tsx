@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BUILDINGS, UNITS, developmentStage } from '@voidmarch/config';
+import { BUILDINGS, UNITS } from '@voidmarch/config';
 import type { Hex } from '@voidmarch/shared';
 import { api, focusMap, notify, useGame } from './store';
 
@@ -66,7 +66,7 @@ export function VigieControls() {
         <>
           <small>
             {buildings.length} bâtiments · {units.length} unités visibles · développement{' '}
-            {developmentStage(buildings)}/5
+            {target.developmentLevel ?? 1}/5
           </small>
           <small>Observation en direct · ordres suspendus · aucune exploration conservée</small>
           {selectedBuilding && (

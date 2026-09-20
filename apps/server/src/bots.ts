@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { submarineVisible } from '@voidmarch/game-rules';
 import { botDevelopment, botRecruitmentSite, type BotIntent } from './bot-development';
 import { allRealmUnits, attackCost, income, recruitmentRequirement } from '@voidmarch/game-rules';
@@ -280,7 +281,9 @@ export class BotDirector {
           !UNIT_PROFILES[kind].builder &&
           !UNIT_PROFILES[kind].hero &&
           !UNIT_PROFILES[kind].transport &&
-          buildings.some((b) => !recruitmentRequirement(kind, b, buildings)),
+          buildings.some(
+            (b) => !recruitmentRequirement(kind, b, buildings, developmentProgress(s, r.id)),
+          ),
       );
       const latestTier = Math.max(1, ...unlocked.map((kind) => UNIT_TIERS[kind]));
       const choices = unlocked

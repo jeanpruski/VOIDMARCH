@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { navalMissionFleet } from '../apps/server/src/naval-missions';
 import { describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
@@ -55,11 +56,15 @@ describe('missions exceptionnelles et accès normal', () => {
     const s = fixture(),
       r = s.realms.a;
     const b = addBuilding(s, r, { q: 1, r: 0 }, 'BARRACKS', now, 5);
-    expect(conquestDevelopmentLevel(Object.values(s.buildings))).toBe(1);
+    expect(conquestDevelopmentLevel(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(
+      1,
+    );
     prepareDevelopment(s, 'a', 2, now);
-    expect(conquestDevelopmentLevel(Object.values(s.buildings))).toBe(2);
+    expect(conquestDevelopmentLevel(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(
+      2,
+    );
     b.hp = 0;
-    expect(developmentStage(Object.values(s.buildings))).toBe(2);
+    expect(developmentStage(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(2);
   });
   it('conserve le tirage, le prix et le niveau de la conquête après acceptation et rechargement', () => {
     const s = fixture(),
@@ -90,7 +95,10 @@ describe('missions exceptionnelles et accès normal', () => {
     delete result.state.units[mission.objectiveId];
     reconcileMissions(result.state, at);
     expect(
-      developmentStage(Object.values(result.state.buildings).filter((b) => b.ownerId === 'a')),
+      developmentStage(
+        Object.values(result.state.buildings).filter((b) => b.ownerId === 'a'),
+        developmentProgress(result.state, 'a'),
+      ),
     ).toBe(1);
   });
   it('applique l’époque exceptionnelle au butin et au coût de récupération de l’expédition', () => {
@@ -128,7 +136,12 @@ describe('missions exceptionnelles et accès normal', () => {
       exceptional: true,
       reward: offer.reward,
     });
-    expect(developmentStage(Object.values(result.state.buildings))).toBe(1);
+    expect(
+      developmentStage(
+        Object.values(result.state.buildings),
+        developmentProgress(result.state, 'a'),
+      ),
+    ).toBe(1);
   });
   it('conserve le défi supérieur lors du remplacement de la troisième offre par une mission navale', () => {
     const s = fixture(),

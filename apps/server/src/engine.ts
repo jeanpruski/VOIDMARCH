@@ -1,3 +1,5 @@
+import { migrateTrophyDevelopment } from '@voidmarch/game-rules';
+import { developmentProgress } from '@voidmarch/game-rules';
 import { ensureSeaAccess } from '@voidmarch/game-rules';
 import { projectAction, tickAllianceProjects } from './alliance-projects';
 import { strategicBonuses } from '@voidmarch/game-rules';
@@ -517,6 +519,7 @@ export function applyAction(
 ): ActionResult {
   const r = s.realms[id];
   requireRule(r, 'Royaume introuvable.');
+  migrateTrophyDevelopment(s);
   requireRule(!r.vigieTargetId, 'Quittez l’observation vigie avant de donner un ordre.');
   refreshWorldTraining(s, now);
   refreshAP(r, now, options.apInterval);
@@ -570,9 +573,13 @@ export function applyAction(
         `Cette recette demande un centre de niveau ${recipe.level}.`,
       );
       const sites = realmBuildings(s, id);
-      const reason = developmentReason(sites, recipe.stage);
+      const reason = developmentReason(sites, recipe.stage, developmentProgress(s, id));
       requireRule(!reason, reason);
-      const quota = logisticsQuota(developmentStage(sites), r.logisticsReceipts, now);
+      const quota = logisticsQuota(
+        developmentStage(sites, developmentProgress(s, id)),
+        r.logisticsReceipts,
+        now,
+      );
       requireRule(
         a.payload.amount <= quota.remaining,
         `Quota logistique : ${quota.remaining} PA disponibles sur ${quota.limit} par heure.`,
@@ -978,6 +985,7 @@ export function applyAction(
       const developmentError = developmentReason(
         realmBuildings(s, id),
         constructionDevelopmentStage(p.kind),
+        developmentProgress(s, id),
       );
       requireRule(!developmentError, developmentError);
       requireRule(!t.buildingId, 'Un bâtiment occupe déjà cet hexagone.');
@@ -1055,7 +1063,12 @@ export function applyAction(
     }
     case 'RECRUIT': {
       const b = ownedBuilding(s, r, a.actorId);
-      const recruitmentError = recruitmentRequirement(a.payload.kind, b, realmBuildings(s, id));
+      const recruitmentError = recruitmentRequirement(
+        a.payload.kind,
+        b,
+        realmBuildings(s, id),
+        developmentProgress(s, id),
+      );
       requireRule(!recruitmentError, recruitmentError);
       const freePeasant =
         a.payload.kind === 'PEASANT' && !allRealmUnits(s, id).some((u) => u.kind === 'PEASANT');
@@ -1215,6 +1228,7 @@ export function applyAction(
       const developmentError = developmentReason(
         realmBuildings(s, id),
         upgradeDevelopmentStage(b.kind, upgrade.level),
+        developmentProgress(s, id),
       );
       requireRule(!developmentError, developmentError);
       requireRule(
@@ -1672,6 +1686,7 @@ export function execute(
 export function worldView(s: GameState, id: string, now: number, chunks: Hex[] = []): WorldView {
   const r = s.realms[id];
   requireRule(r, 'Royaume introuvable.');
+  migrateTrophyDevelopment(s);
   const observed = r.vigie && r.vigieTargetId ? s.realms[r.vigieTargetId] : undefined;
   const visible = vision(s, r);
   // Display-only visibility. Never write this into explored terrain or gameplay vision.
@@ -1721,6 +1736,7 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     miniFlagShape: x.settings.miniFlagShape,
     defeated: !!x.defeatedAt,
     trophyCount: s.missions?.[x.id]?.trophies?.length ?? 0,
+    developmentLevel: developmentStage(realmBuildings(s, x.id), developmentProgress(s, x.id)),
     onMission: !!s.missions?.[x.id]?.active,
     stats: {
       territory: realmTiles(s, x.id).length,

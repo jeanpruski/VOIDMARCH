@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
@@ -92,9 +93,9 @@ describe('Projet Glocke', () => {
     expect(rejected.result.reason).toContain('Réacteur noir');
     expect(rejected.state.realms.a.wallet).toEqual(r.wallet);
     const camp = Object.values(s.buildings).find((x) => x.kind === 'CAMP')!;
-    expect(recruitmentRequirement(kind, camp, Object.values(s.buildings))).toContain(
-      'Complexe des cloches',
-    );
+    expect(
+      recruitmentRequirement(kind, camp, Object.values(s.buildings), developmentProgress(s, 'a')),
+    ).toContain('Complexe des cloches');
   });
   it.each(kinds)('%s est recrutée avec le niveau, coût et entraînement attendus', (kind) => {
     const { s, r, b } = fixture();

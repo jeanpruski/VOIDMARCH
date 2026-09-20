@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { randomUUID } from 'node:crypto';
 import {
   NPCS,
@@ -128,7 +129,10 @@ export function npcEncounterLevel(s: GameState, position: Hex): number {
   return neighbours.length
     ? Math.min(
         ...neighbours.map((r) =>
-          developmentStage(Object.values(s.buildings).filter((b) => b.ownerId === r.id)),
+          developmentStage(
+            Object.values(s.buildings).filter((b) => b.ownerId === r.id),
+            developmentProgress(s, r.id),
+          ),
         ),
       )
     : 1;

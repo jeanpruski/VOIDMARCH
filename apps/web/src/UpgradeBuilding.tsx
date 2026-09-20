@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import {
   mobilityLevel,
   mobilityLimits,
@@ -49,6 +50,7 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
     ? developmentReason(
         world.tiles.flatMap((t) => (t.building?.ownerId === world.player.id ? [t.building] : [])),
         upgradeDevelopmentStage(b.kind, upgrade.level),
+        developmentProgress(world),
       )
     : '';
   const combatError =

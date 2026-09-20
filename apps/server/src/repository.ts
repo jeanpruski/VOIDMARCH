@@ -1,3 +1,4 @@
+import { migrateTrophyDevelopment } from '@voidmarch/game-rules';
 import { migrateBotLand } from './bot-land-migration';
 import { ensureHeroes } from './heroes';
 import { createHash } from 'node:crypto';
@@ -42,6 +43,7 @@ export class WorldRepository {
                 : createState(process.env.WORLD_SEED ?? 'voidmarch-vhal-01', Date.now());
             migrateResourceWallets(state);
             migrateProgression(state);
+            migrateTrophyDevelopment(state);
             migrateOceans(state);
             migrateBotLand(state, Date.now());
             ensureWorldSeaAccess(state, Date.now());

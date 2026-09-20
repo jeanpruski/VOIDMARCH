@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { anomalyAPReward } from '@voidmarch/game-rules';
 import { Development } from './Development';
 import { developmentReason, constructionDevelopmentStage } from '@voidmarch/config';
@@ -1084,6 +1085,7 @@ function Build() {
         developmentReason(
           w.tiles.flatMap((t) => (t.building?.ownerId === w.player.id ? [t.building] : [])),
           constructionDevelopmentStage(kind),
+          developmentProgress(w),
         ) ||
         siteReason ||
         (tile
@@ -1449,7 +1451,12 @@ function Recruit() {
   const recruitReason = (kind: UnitKind) => {
     const free = kind === 'PEASANT' && !ownUnits.some((u) => u.kind === 'PEASANT');
     if (!building || building.ownerId !== w.player.id) return 'Sélectionnez votre bâtiment';
-    const requirement = recruitmentRequirement(kind, building, ownedBuildings);
+    const requirement = recruitmentRequirement(
+      kind,
+      building,
+      ownedBuildings,
+      developmentProgress(w),
+    );
     if (requirement) return requirement;
     if (!free && mobilized + unitPopulation(kind) > capacity) return 'Population insuffisante';
     if (!free && !canAfford(w.player.wallet, UNITS[kind].cost)) return 'Ressources insuffisantes';

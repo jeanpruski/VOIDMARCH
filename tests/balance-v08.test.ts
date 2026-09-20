@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import {
@@ -57,23 +58,34 @@ describe('équilibrage v0.8 : progression sans raccourci', () => {
     expect([RULES.startingAP, RULES.maxAP, RULES.apInterval]).toEqual([40, 20, 30000]);
     addBuilding(s, s.realms.a, { q: 1, r: 0 }, 'WELL', now, 5);
     addBuilding(s, s.realms.a, { q: 2, r: 0 }, 'BARRACKS', now, 5);
-    expect(developmentStage(Object.values(s.buildings))).toBe(1);
+    expect(developmentStage(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(1);
     const offers = expeditionOffers(s, 'a', now);
     expect(offers.length).toBeGreaterThan(0);
     expect(offers.every((o) => o.level === 1 && o.reward!.GOLD! < 2000)).toBe(true);
     const b = Object.values(s.buildings).find((b) => b.kind === 'BARRACKS')!;
-    expect(recruitmentRequirement('RIFLEMAN', b, Object.values(s.buildings))).not.toBe('');
+    expect(
+      recruitmentRequirement(
+        'RIFLEMAN',
+        b,
+        Object.values(s.buildings),
+        developmentProgress(s, 'a'),
+      ),
+    ).not.toBe('');
   });
   it('chaque palier nécessite les infrastructures des paliers précédents, même après chargement', () => {
     const s = state();
     for (let level = 2; level <= 5; level++) {
       prepareDevelopment(s, 'a', level, now);
-      expect(developmentStage(Object.values(structuredClone(s).buildings))).toBe(level);
+      expect(
+        developmentStage(Object.values(structuredClone(s).buildings), developmentProgress(s, 'a')),
+      ).toBe(level);
     }
     const workshop = Object.values(s.buildings).find((b) => b.kind === 'WORKSHOP')!;
     workshop.hp = 0;
-    expect(developmentStage(Object.values(s.buildings))).toBe(1);
-    expect(developmentReason(Object.values(s.buildings), 5)).toContain('Atelier');
+    expect(developmentStage(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(1);
+    expect(developmentReason(Object.values(s.buildings), 5, developmentProgress(s, 'a'))).toContain(
+      'Atelier',
+    );
   });
   it('bloque une construction avancée et une amélioration militaire sans leurs jalons, sans débit', () => {
     const s = state(),

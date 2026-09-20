@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { movementPayment } from '@voidmarch/config';
 import { movementAPCost, anomalyAPReward } from '@voidmarch/game-rules';
 import {
@@ -164,7 +165,11 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       if (!t?.terrain || t.visibility !== 'VISIBLE' || t.building || !isBuildable(p.kind)) return;
       const nearby = unit && UNIT_PROFILES[unit.kind].builder && distance(unit, p) <= 1;
       if (
-        !!developmentReason(buildings, constructionDevelopmentStage(p.kind)) ||
+        !!developmentReason(
+          buildings,
+          constructionDevelopmentStage(p.kind),
+          developmentProgress(world),
+        ) ||
         (t.enclosureOwnerId && !nearby) ||
         (t.ownerId !== id &&
           !(
@@ -199,7 +204,11 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
     }
     case 'RECRUIT': {
       const kind = action.payload.kind;
-      if (!building || recruitmentRequirement(kind, building, buildings)) return;
+      if (
+        !building ||
+        recruitmentRequirement(kind, building, buildings, developmentProgress(world))
+      )
+        return;
       const free =
         kind === 'PEASANT' &&
         !allUnits(world.units).some((u) => u.ownerId === id && u.kind === 'PEASANT');
@@ -361,7 +370,11 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
       if (
         !upgrade ||
         (building.lastDamagedAt !== undefined && now - building.lastDamagedAt < 90000) ||
-        developmentReason(buildings, upgradeDevelopmentStage(building.kind, upgrade.level)) ||
+        developmentReason(
+          buildings,
+          upgradeDevelopmentStage(building.kind, upgrade.level),
+          developmentProgress(world),
+        ) ||
         building.population < upgrade.population ||
         !pay(upgrade.cost)
       )

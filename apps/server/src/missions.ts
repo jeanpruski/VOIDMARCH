@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { placementOrder, completedMissionTitles } from './mission-placement';
 import { conquestDevelopmentLevel } from '@voidmarch/config';
 import { exceptionalOfferIndex } from './exceptional-missions';
@@ -98,7 +99,7 @@ export function missionOffers(s: GameState, realmId: string, now: number): Missi
   if (s.missions?.[realmId]?.active || (s.missions?.[realmId]?.availableAt ?? 0) > now) return [];
   const generation = s.missions?.[realmId]?.generation ?? 0;
   const sites = realmBuildings(s, realmId);
-  const baseLevel = conquestDevelopmentLevel(sites);
+  const baseLevel = conquestDevelopmentLevel(sites, developmentProgress(s, realmId));
   const fleet = Object.values(s.units).filter(
     (u) =>
       u.ownerId === realmId && u.hp > 0 && UNIT_PROFILES[u.kind].naval && UNITS[u.kind].attack > 0,
@@ -109,7 +110,7 @@ export function missionOffers(s: GameState, realmId: string, now: number): Missi
     (fleet.length > 0 ||
       hash(`${s.seed}:${realmId}:maritime:${generation}:${anchor}:${slot}`) < 0.5);
   const navalBaseLevel = Math.min(
-    developmentStage(sites),
+    developmentStage(sites, developmentProgress(s, realmId)),
     Math.max(1, ...fleet.map((u) => UNIT_PROFILES[u.kind].minRecruitLevel ?? 1)),
   );
   const levels = [baseLevel, baseLevel, naval ? navalBaseLevel : baseLevel];

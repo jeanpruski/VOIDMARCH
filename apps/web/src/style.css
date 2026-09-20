@@ -5108,3 +5108,6 @@ button.radar-target {
 .alliance-projects progress { width: 100%; accent-color: #c6a567; }
 .project-resources { display: grid; gap: 6px; }
 .project-resources > div { display: flex; justify-content: space-between; gap: 16px; }
+
+.development-trophies { margin: 14px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; }
+.development-trophies p + p { margin-top: 5px; }

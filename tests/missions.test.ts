@@ -157,7 +157,7 @@ describe('missions de campagne', () => {
       delete accepted.state.units[m.objectiveId];
       delete accepted.state.buildings[m.objectiveId];
       reconcileMissions(accepted.state, at + 1);
-      const trophy = accepted.state.missions!.a.trophies![0];
+      const trophy = accepted.state.missions!.a.trophies!.find((t) => t.id === m.id)!;
       expect(trophy.medal.metal).toBe('gold');
       expect(trophy.mission.difficulty).toBe('Grande campagne');
       expect(trophy.mission.wallRadius).toBe(4);
@@ -173,7 +173,7 @@ describe('missions de campagne', () => {
     prepareDevelopment(s, 'a', 5, now);
     const at = now + 600000;
     for (let generation = 0; generation < 200; generation += 2) {
-      (s.missions ??= {}).a = { generation };
+      (s.missions ??= {}).a = { ...s.missions?.a, generation };
       if (missionOffers(s, 'a', at)[2].units.length === 30) break;
     }
     const offer = missionOffers(s, 'a', at)[2];

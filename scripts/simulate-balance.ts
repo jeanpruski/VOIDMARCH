@@ -39,6 +39,7 @@ import { actionSchema } from '@voidmarch/protocol';
 import type { Unit } from '@voidmarch/shared';
 
 /** Ideal uninterrupted development: no opponent, travel after the first six moves excluded.
+ * Economic benchmark only: trophy acquisition time is excluded (legacy access assumed).
  * Every construction and upgrade is paid through the real server engine, with storage and PA.
  * Thirteen initial gathers + first free peasant + six moves use 20 of the starting 40 PA.
  */
@@ -48,6 +49,7 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
     state = createState('balance-development', now),
     sequence = 0;
   const initial = addPlayer(state, 'sim', 'Simulation', 'MASK', now);
+  initial.trophyDevelopment = { version: 1, grandfatheredLevel: 5 };
   initial.ap = RULES.startingAP - 20;
   initial.wallet = { GOLD: 48, WOOD: 96, STONE: 40, IRON: 32, FOOD: 48 };
   const ruins = { q: initial.capital.q - 1, r: initial.capital.r };

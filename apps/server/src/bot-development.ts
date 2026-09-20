@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import {
   developmentStage,
   developmentMissing,
@@ -115,7 +116,7 @@ export function botRecruitmentSite(
     return;
   return buildings.find(
     (b) =>
-      !recruitmentRequirement(kind, b, buildings) &&
+      !recruitmentRequirement(kind, b, buildings, developmentProgress(s, r.id)) &&
       [b, ...neighbors(b)].some((p) => {
         const t = tileAt(s, p);
         return (
@@ -171,7 +172,7 @@ export function botDevelopment(
         projects.push({ kind: producer.kind, upgrade: producer, score: 150 });
       else projects.push({ kind: producers[resource], score: 150 });
     }
-  const technology = developmentStage(buildings);
+  const technology = developmentStage(buildings, developmentProgress(s, r.id));
   for (const req of developmentMissing(buildings, Math.min(5, technology + 1))) {
     const existing = buildings.find((b) => req.kinds.includes(b.kind));
     if (existing) projects.push({ kind: existing.kind, upgrade: existing, score: 114 });
@@ -302,6 +303,7 @@ export function botDevelopment(
         upgrade
           ? upgradeDevelopmentStage(project.kind, upgrade.level)
           : constructionDevelopmentStage(project.kind),
+        developmentProgress(s, r.id),
       )
     )
       continue;

@@ -1,3 +1,5 @@
+import { DevelopmentTrophies } from './Development';
+import { developmentProgress } from '@voidmarch/game-rules';
 import {
   BUILDINGS,
   DEVELOPMENT_STAGES,
@@ -15,8 +17,8 @@ export function MissionProgression({ expedition = false }: { expedition?: boolea
   const sites = world.tiles.flatMap((t) =>
     t.building?.ownerId === world.player.id && t.building.hp > 0 ? [t.building] : [],
   );
-  const stage = developmentStage(sites);
-  const level = expedition ? stage : conquestDevelopmentLevel(sites);
+  const stage = developmentStage(sites, developmentProgress(world));
+  const level = expedition ? stage : conquestDevelopmentLevel(sites, developmentProgress(world));
   const next = Math.min(5, level + 1);
   const requirements = developmentMissing([], next);
   const military = militaryDevelopmentLevel(sites);
@@ -36,6 +38,7 @@ export function MissionProgression({ expedition = false }: { expedition?: boolea
               Pour débloquer {expedition ? 'l’époque' : 'le niveau'} {next} :
             </strong>
           </p>
+          <DevelopmentTrophies stage={next} />
           <ul className="mission-progression-checklist">
             {requirements.map((req) => {
               const current = Math.max(

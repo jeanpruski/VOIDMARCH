@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { placementOrder, completedExpeditionSites } from './mission-placement';
 import { exceptionalOfferIndex } from './exceptional-missions';
 import { developmentStage, EXPEDITION_GOLD, expeditionSearchCost } from '@voidmarch/config';
@@ -47,7 +48,7 @@ export function expeditionOffers(s: GameState, id: string, now: number): Mission
   if (!r || board?.active || (board?.availableAt ?? 0) > now) return [];
   const anchor = Math.max(r.createdAt, board?.lastResult?.at ?? 0);
   const slot = Math.floor(Math.max(0, now - anchor) / 600000);
-  const baseLevel = developmentStage(realmBuildings(s, id));
+  const baseLevel = developmentStage(realmBuildings(s, id), developmentProgress(s, id));
   const exceptionalIndex = exceptionalOfferIndex(
     `${worldIdentity(s, id)}:${id}:expedition:${board?.generation ?? 0}:${anchor}:${slot}`,
     [baseLevel, baseLevel, baseLevel],

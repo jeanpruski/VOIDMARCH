@@ -132,6 +132,8 @@ export interface SavedArmy {
   updatedAt: number;
 }
 export interface Realm {
+  /** One-time migration; only old trophy requirements are waived, never infrastructure. */
+  trophyDevelopment?: { version: 1; grandfatheredLevel: number };
   /** Accumulated active minutes without enough food; no offline accrual. */
   foodShortageMinutes?: number;
   armies?: SavedArmy[];
@@ -317,6 +319,7 @@ export interface GameState {
   revision: number;
 }
 export interface PublicRealm {
+  developmentLevel?: number;
   connectedSince?: number;
   onMission?: boolean;
   /** Public total; the mission history remains private. Optional for older snapshots. */

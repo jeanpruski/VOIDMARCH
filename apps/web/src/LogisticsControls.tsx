@@ -1,3 +1,4 @@
+import { developmentProgress } from '@voidmarch/game-rules';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Zap } from 'lucide-react';
@@ -30,7 +31,7 @@ export function LogisticsControls({ building }: { building: Building }) {
   const sites = world.tiles.flatMap((t) =>
     t.building?.ownerId === world.player.id ? [t.building] : [],
   );
-  const stage = developmentStage(sites);
+  const stage = developmentStage(sites, developmentProgress(world));
   const quota = logisticsQuota(stage, world.player.logisticsReceipts, now);
   const cost = logisticsCost(
     recipe,
@@ -42,7 +43,7 @@ export function LogisticsControls({ building }: { building: Building }) {
   const lock =
     building.level < definition.level
       ? `Centre logistique de niveau ${definition.level} requis.`
-      : developmentReason(sites, definition.stage);
+      : developmentReason(sites, definition.stage, developmentProgress(world));
   const error =
     lock ||
     (amount > quota.remaining ? `Il reste ${quota.remaining} PA dans votre quota horaire.` : '') ||
