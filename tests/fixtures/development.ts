@@ -38,6 +38,7 @@ export function prepareTrophies(s: GameState, id: string, stage: number, now: nu
 }
 export function prepareDevelopment(s: GameState, id: string, stage: number, now: number) {
   prepareTrophies(s, id, stage, now);
+  s.realms[id].era = { version: 1, level: stage };
   const realm = s.realms[id];
   for (let level = 2; level <= stage; level++) {
     for (const req of DEVELOPMENT_REQUIREMENTS[level]) {

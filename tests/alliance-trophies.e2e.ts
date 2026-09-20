@@ -1,6 +1,6 @@
 import { strategy } from '../apps/server/src/strategy';
 import { awardMissionTrophy, createMissionTrophy } from '../apps/server/src/mission-trophies';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { NAVAL_SHEETS, UNITS, isSea } from '@voidmarch/config';
 import {
   createState,

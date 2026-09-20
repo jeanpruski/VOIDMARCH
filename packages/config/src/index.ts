@@ -72,6 +72,7 @@ export { NPCS, NPC_RULES, NPC_LEVELS, type NpcKind } from './npcs';
 export { BALANCE_VERSION, UNIT_TIERS, TIER_NAMES } from './progression';
 export * from './ages';
 export * from './development';
+export * from './epochs';
 export { formatNumber } from './format';
 export { UNIT_ERAS } from './epoch-units';
 export const GAME_NAME = 'VOIDMARCH';
@@ -100,6 +101,7 @@ export const MAX_GROUP_UNITS = 10;
 export const MAX_MOVE_STEPS = 20; // Includes long-range cargo aircraft and mounted faction bonuses.
 
 export const ACTION_COST = {
+  ADVANCE_ERA: 5,
   CONVERT_AP: 0,
   PRODUCE_MOBILITY: 0,
   EMBARK: 1,
@@ -1678,7 +1680,7 @@ export const BUILDING_REQUIREMENTS: Partial<Record<BuildingKind, BuildingKind[]>
   GLOCKE_COMPLEX: ['NUCLEAR_REACTOR', 'ATOMIC_FOUNDRY', 'BLACK_OBSERVATORY'],
   ISOTOPE_LAB: ['OCCULT_LAB', 'MUNITIONS'],
   NUCLEAR_REACTOR: ['ISOTOPE_LAB', 'REFINERY'],
-  HELIPAD: ['ISOTOPE_LAB', 'GARAGE', 'RADIO'],
+  HELIPAD: ['OCCULT_LAB', 'GARAGE', 'RADIO'],
   ATOMIC_FOUNDRY: ['NUCLEAR_REACTOR', 'TANK_FACTORY'],
   AERODROME: ['GARAGE', 'RADIO'],
   AIRSHIP_YARD: ['AERODROME', 'REFINERY'],
@@ -2236,3 +2238,5 @@ export const populationCapacity = (kind: BuildingKind, level: number) =>
 export * from './expeditions';
 
 export * from './island-discoveries';
+export * from './adventure-rewards';
+export * from './adventure-rewards';

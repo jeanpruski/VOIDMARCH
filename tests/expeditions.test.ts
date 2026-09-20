@@ -1,4 +1,5 @@
 import { prepareDevelopment } from './fixtures/development';
+import { ensureHeroes } from '../apps/server/src/heroes';
 import { describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { EXPEDITION_SITES, UNITS, isSea, expeditionSearchCost } from '@voidmarch/config';
@@ -220,6 +221,37 @@ describe('expéditions et aventures', () => {
       expect(run(r.state, 'INTERACT', 'scout', { expeditionId: m.id }).result.accepted).toBe(false);
     },
   );
+  it('un royaume médiéval gagne son premier trophée avec son héros, sans ressources ni époque avancée', () => {
+    const s = createState('adventures-test', now);
+    addPlayer(s, 'a', 'Débutant', 'MASK', now);
+    ensureHeroes(s, now);
+    const o = expeditionOffers(s, 'a', now).find(
+      (o) => o.expedition!.mode === 'RECON' && o.expedition!.route === 'LAND',
+    )!;
+    expect(o).toBeDefined();
+    const accepted = run(s, 'MISSION_ACCEPT', 'a', { offerId: o.id });
+    expect(accepted.result.accepted, accepted.result.reason).toBe(true);
+    const next = accepted.state;
+    const m = next.missions!.a.active!;
+    const hero = Object.values(next.units).find((u) => u.ownerId === 'a' && u.kind === 'HERO')!;
+    expect(hero).toBeDefined();
+    // Arrival fixture: movement/pathfinding is covered separately; test the real completion action.
+    hero.q = m.q;
+    hero.r = m.r;
+    next.realms.a.wallet = { GOLD: 0, WOOD: 0, STONE: 0, IRON: 0, FOOD: 0 };
+    const completed = run(next, 'INTERACT', hero.id, { expeditionId: m.id });
+    expect(completed.result.accepted, completed.result.reason).toBe(true);
+    expect(completed.state.missions!.a.trophies).toHaveLength(1);
+    expect(completed.state.realms.a.era?.level).toBe(1);
+    for (const [resource, value] of Object.entries(o.reward!))
+      expect(
+        completed.state.realms.a.wallet[resource as keyof typeof o.reward],
+      ).toBeGreaterThanOrEqual(value);
+    const repeated = run(completed.state, 'INTERACT', hero.id, { expeditionId: m.id });
+    expect(repeated.result.accepted).toBe(false);
+    expect(repeated.state.realms.a.wallet).toEqual(completed.state.realms.a.wallet);
+    expect(repeated.state.missions!.a.trophies).toHaveLength(1);
+  });
   it('la récupération facture ses vivres, sans avancer la quête si la réserve ou les PA manquent', () => {
     const s = fixture(),
       m = active(s, 'RECOVER');

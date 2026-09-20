@@ -26,6 +26,7 @@ function fixture() {
   const a = addPlayer(s, 'a', 'Cité', 'MASK', now);
   a.wallet = { GOLD: 1000, WOOD: 1000, STONE: 1000, IRON: 1000, FOOD: 1000 };
   prepareTrophies(s, 'a', 3, now);
+  s.realms['a'].era = { version: 1, level: 3 };
   a.protectedUntil = 0;
   const b = createRealm('b', 'Assiégeants', 'IRON', { q: 6, r: 0 }, now);
   b.protectedUntil = 0;

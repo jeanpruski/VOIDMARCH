@@ -9,7 +9,14 @@ export const RECRUITMENT_TRACKS: Partial<Record<BuildingKind, readonly (readonly
     ['MISSILE_ESCORT'],
     ['NUCLEAR_DREADNOUGHT'],
   ],
-  SUBMARINE_BASE: [[], [], ['BLACK_SUBMARINE'], ['HUNTER_SUBMARINE'], ['ABYSSAL_SUBMARINE']],
+  // Surface patrol and escort first; stealth submarines retain their levels 3–5.
+  SUBMARINE_BASE: [
+    ['SONAR_DESTROYER'],
+    ['MISSILE_ESCORT'],
+    ['BLACK_SUBMARINE'],
+    ['HUNTER_SUBMARINE'],
+    ['ABYSSAL_SUBMARINE'],
+  ],
   BARRACKS: [
     [],
     ['BERSERKER'],
@@ -24,7 +31,7 @@ export const RECRUITMENT_TRACKS: Partial<Record<BuildingKind, readonly (readonly
     ['RAIL_SNIPER'],
     ['ISOTOPE_SNIPER'],
   ],
-  STABLE: [['MOUNTED_OUTRIDER'], ['KNIGHT', 'LIGHT_CAVALRY'], [], [], []],
+  STABLE: [['MOUNTED_OUTRIDER', 'KNIGHT', 'LIGHT_CAVALRY'], ['CUIRASSIER'], [], [], []],
   WORKSHOP: [['RAM', 'SIEGE'], [], ['ASSAULT_SAPPER'], ['DRONE_OPERATOR'], ['ATOMIC_SAPPER']],
   MONASTERY: [['HEALER'], ['PALADIN'], ['VOID_ACOLYTE'], ['TESLA_TROOPER'], ['GAMMA_PALADIN']],
   FORT: [

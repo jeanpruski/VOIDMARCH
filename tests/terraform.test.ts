@@ -133,6 +133,8 @@ describe('terrassement', () => {
       actionId: randomUUID(),
       clientTimestamp: now,
     });
+    expect(execute(s, r.id, command, now).result.reason).toContain('Époque 3');
+    r.era = { version: 1, level: 3 };
     const { state, result } = execute(s, r.id, command, now);
     expect(result.accepted).toBe(true);
     expect(Object.values(state.units).filter((u) => u.kind === 'TERRAFORMER')).toHaveLength(2);

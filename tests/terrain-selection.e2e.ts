@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { createState, writeTile, key } from '@voidmarch/game-rules';
 import { UNITS } from '@voidmarch/config';
 import { actionSchema } from '@voidmarch/protocol';

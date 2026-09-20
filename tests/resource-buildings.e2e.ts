@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import {
   BUILDINGS,
   RESOURCE_BUILDINGS,

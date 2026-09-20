@@ -1,5 +1,5 @@
 import type { WorldView } from '@voidmarch/shared';
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures/game-test';
 async function moveWorkerToResource(page: Page, terrain: 'FOREST' | 'RUINS') {
   await page.evaluate(async (terrain) => {
     // @ts-expect-error Browser source module served by Vite.

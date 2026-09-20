@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { createState } from '@voidmarch/game-rules';
 import { addPlayer, worldView } from '../apps/server/src/engine';
 import { beginCodeSession } from '../apps/server/src/code-session';

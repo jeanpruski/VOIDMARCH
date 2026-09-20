@@ -1,5 +1,5 @@
 import { prepareTrophies } from './fixtures/development';
-import { buildingUpgradeLevel } from '@voidmarch/config';
+import { BUILDING_MIN_ERA, buildingUpgradeLevel } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
@@ -30,6 +30,10 @@ function fixture(kind: BuildingKind, level = 1) {
   building.level = level;
   building.population = 1000;
   prepareTrophies(state, realm.id, buildingUpgradeLevel(buildingUpgrade(kind, level)!), now);
+  realm.era = {
+    version: 1,
+    level: Math.max(BUILDING_MIN_ERA[kind], buildingUpgradeLevel(buildingUpgrade(kind, level)!)),
+  };
   const command = actionSchema.parse({
     type: 'UPGRADE',
     actorId: building.id,

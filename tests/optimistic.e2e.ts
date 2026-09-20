@@ -1,5 +1,5 @@
 import type { WorldView } from '@voidmarch/shared';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { createState, disk, writeTile } from '@voidmarch/game-rules';
 import {
   addBuilding,

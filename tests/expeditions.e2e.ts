@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { EXPEDITION_SITES, UNITS } from '@voidmarch/config';
 import {
   createState,

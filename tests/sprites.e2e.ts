@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { resolve } from 'node:path';
 
 test('les 167 figurines restent isolées et alignées sur ordinateur et mobile', async ({ page }) => {

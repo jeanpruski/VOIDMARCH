@@ -1,3 +1,4 @@
+import { SeasonBanner } from './Season';
 import { IslandDiscoveryInfo } from './IslandDiscoveryInfo';
 import { createSecretCodeInput, SPARKLE_TOGGLE_EVENT } from './secret-codes';
 import { FoundBase } from './FoundBase';
@@ -145,7 +146,7 @@ export function App() {
     world = useGame((s) => s.world),
     toast = useGame((s) => s.toast),
     panel = useGame((s) => s.panel),
-    onboarded = useRef(false),
+    onboarded = useRef<string | null>(null),
     lastJournal = useRef<string | undefined>(undefined),
     lastWorldEvent = useRef<string | undefined>(undefined);
   const [collapsedSides, setCollapsedSides] = useState(() => {
@@ -267,9 +268,9 @@ export function App() {
       document.body.classList.toggle('reduced-motion', world.player.settings.reducedMotion);
       document.body.classList.toggle('high-contrast', world.player.settings.highContrast);
       document.body.classList.toggle('touch-controls', world.player.settings.input === 'touch');
-      if (!onboarded.current) {
-        onboarded.current = true;
-        if (!world.player.settings.tutorialCompleted) useGame.setState({ panel: 'help' });
+      if (onboarded.current !== world.player.id) {
+        onboarded.current = world.player.id;
+        useGame.setState({ panel: 'season' });
       }
       const latest = world.events.at(-1);
       if (
@@ -291,7 +292,7 @@ export function App() {
       )
         notify(entry.text, entry.kind === 'COMBAT');
       lastJournal.current = entry?.id;
-    }
+    } else onboarded.current = null;
   }, [world]);
   if (clientUpdateRequired)
     return (
@@ -312,7 +313,8 @@ export function App() {
       <div className="loading-screen">
         <div className="wordmark">VOIDMARCH</div>
         <LoaderCircle className="spin" />
-        <p>Les Marches s’éveillent…</p>
+        <SeasonBanner compact />
+        <p>L’Aube Noire se lève sur les Marches…</p>
       </div>
     );
   if (!world)
@@ -322,6 +324,7 @@ export function App() {
       <div className="loading-screen art-loading">
         <div className="wordmark">VOIDMARCH</div>
         <LoaderCircle className="spin" />
+        <SeasonBanner compact />
         <h2>Votre royaume vous attend</h2>
         <p>Les bannières se lèvent dans la brume.</p>
         <button
@@ -560,6 +563,10 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
           </div>
         )}
         <nav className="sidebar-help" aria-label="Aide du jeu">
+          <button onClick={() => useGame.setState({ panel: 'season', menuOpen: false })}>
+            <Sparkles size={17} />
+            <span>Saison 0 · L’Aube Noire</span>
+          </button>
           <button onClick={() => useGame.setState({ panel: 'help', menuOpen: false })}>
             <CircleHelp size={17} />
             <span>Aide & règles</span>

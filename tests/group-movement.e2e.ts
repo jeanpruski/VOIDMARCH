@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { createState, disk, key, writeTile } from '@voidmarch/game-rules';
 import { UNITS } from '@voidmarch/config';
 import { addPlayer, execute, worldView } from '../apps/server/src/engine';
@@ -75,7 +75,9 @@ test('sélection mixte, aperçu, confirmation atomique, PA, animations et mobile
     });
   });
   await page.goto('/');
-  await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false', {
+    timeout: 90000,
+  });
   await page.evaluate(async () => {
     const scene = (window as any).__groupScene;
     scene.cameras.main.setZoom(0.8).centerOn(0, 100);

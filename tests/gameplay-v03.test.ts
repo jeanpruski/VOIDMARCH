@@ -24,6 +24,7 @@ function fixture() {
   const s = createState('gameplay-v03', now);
   const r = addPlayer(s, 'player', 'Test', 'MASK', now);
   prepareTrophies(s, 'player', 3, now);
+  s.realms['player'].era = { version: 1, level: 3 };
   r.wallet = { GOLD: 5000, WOOD: 5000, STONE: 5000, IRON: 5000, FOOD: 5000 };
   s.units.worker = {
     id: 'worker',

@@ -30,26 +30,28 @@ function fixture(kind: BuildingKind, level: number) {
   });
   return { s, r, b, command, trophies: [...s.missions!.p.trophies!] };
 }
-describe('seuils universels des améliorations de bâtiments', () => {
+describe('plafond d’époque des améliorations de bâtiments', () => {
   const ordinary = (
     ['LUMBER', 'WORKSHOP', 'MARKET', 'VILLAGE', 'BARRACKS', 'LOGISTICS_CENTER', 'PORT'] as const
   ).flatMap((kind) => [1, 2, 3, 4].map((level) => ({ kind, level })));
   const walls = WALL_KINDS.slice(0, -1).map((kind) => ({ kind: kind as BuildingKind, level: 1 }));
   it.each([...ordinary, ...walls])(
-    '$kind $level : seuil exact sans infrastructure préalable, serveur et aperçu identiques',
+    '$kind $level : époque acquise sans infrastructure préalable, serveur et aperçu identiques',
     ({ kind, level }) => {
       const { s, r, b, command, trophies } = fixture(kind, level);
       const target = buildingUpgrade(kind, level)!;
       const required = developmentTrophyRequirement(buildingUpgradeLevel(target));
+      r.era = { version: 1, level: buildingUpgradeLevel(target) - 1 };
       // A historical technology exemption must not bypass the new personal upgrade rule.
       r.trophyDevelopment = { version: 1, grandfatheredLevel: 5 };
       s.missions!.p.trophies = trophies.slice(0, required - 1);
       const before = JSON.stringify(s);
       const rejected = execute(s, 'p', command, now);
       expect(rejected.result.accepted).toBe(false);
-      expect(rejected.result.reason).toContain(`trophées ${required - 1}/${required}`);
+      expect(rejected.result.reason).toContain(`Époque ${buildingUpgradeLevel(target)}`);
       expect(JSON.stringify(s)).toBe(before);
       expect(predictAction(worldView(s, 'p', now), command)).toBeUndefined();
+      r.era.level = buildingUpgradeLevel(target);
       s.missions!.p.trophies = trophies.slice(0, required);
       expect(Object.keys(s.buildings)).toHaveLength(1);
       const predicted = predictAction(worldView(s, 'p', now), command);
@@ -73,13 +75,14 @@ describe('seuils universels des améliorations de bâtiments', () => {
       expect(execute(s, 'p', command, now).result.accepted).toBe(true);
     },
   );
-  it('trois trophées permettent le niveau 2, mais pas le niveau 3', () => {
+  it('à l’époque 2, trois trophées ne permettent pas le niveau 3', () => {
     const { s, b, command, trophies } = fixture('QUARRY', 1);
     s.missions!.p.trophies = trophies.slice(0, 3);
+    s.realms.p.era = { version: 1, level: 2 };
     expect(execute(s, 'p', command, now).result.accepted).toBe(true);
     b.level = 2;
     b.hp = BUILDINGS.QUARRY.hp * 2;
-    expect(execute(s, 'p', command, now).result.reason).toContain('trophées 3/5');
+    expect(execute(s, 'p', command, now).result.reason).toContain('Époque 3');
     expect(b.level).toBe(2);
   });
   it('les bots gardent les prérequis technologiques mais ne gagnent pas de faux trophées', () => {
@@ -87,7 +90,7 @@ describe('seuils universels des améliorations de bâtiments', () => {
     r.bot = true;
     s.missions!.p.trophies = [];
     expect(execute(s, 'p', command, now).result.accepted).toBe(false);
-    prepareDevelopment(s, 'p', 3, now);
+    prepareDevelopment(s, 'p', 4, now);
     s.missions!.p.trophies = [];
     const result = execute(s, 'p', command, now);
     expect(result.result.accepted, result.result.reason).toBe(true);
@@ -104,9 +107,11 @@ describe('seuils universels des améliorations de bâtiments', () => {
       actionId: randomUUID(),
       clientTimestamp: now,
     });
+    s.realms.p.era = { version: 1, level: next - 1 };
     s.missions!.p.trophies = trophies.slice(0, required - 1);
     expect(execute(s, 'p', command, now).result.accepted).toBe(false);
     expect(predictAction(worldView(s, 'p', now), command)).toBeUndefined();
+    s.realms.p.era = { version: 1, level: next };
     s.missions!.p.trophies = trophies.slice(0, required);
     expect(execute(s, 'p', command, now).result.accepted).toBe(true);
     expect(predictAction(worldView(s, 'p', now), command)).toBeDefined();

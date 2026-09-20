@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { resolve } from 'node:path';
 
 test('les 54 bâtiments disposent de quatre évolutions distinctes, transparentes et sans débordement', async ({

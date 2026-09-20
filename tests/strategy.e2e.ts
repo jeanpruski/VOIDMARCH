@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {

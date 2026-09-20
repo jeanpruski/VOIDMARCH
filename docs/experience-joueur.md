@@ -17,3 +17,11 @@ Sur un bâtiment, D ouvre uniquement la confirmation de démolition. Les actions
 La surbrillance des chantiers autour d’un bâtisseur suit les mêmes règles que le bouton « Construire » et le catalogue : terrain connu et libre, portée de construction, présence du bâtisseur si nécessaire, exclusion des sites stratégiques et terres brûlées. Cliquer sur une case éclairée sélectionne le terrain même si une unité amie s’y trouve ; Échap permet de quitter le choix du chantier et de sélectionner ensuite cette unité.
 
 Le choix d’un chantier conserve le bâtisseur actif : les cases constructibles restent éclairées lorsque l’on passe d’une case à l’autre dans sa zone ou lorsque le monde se synchronise. La construction confirmée, une sélection hors de cette zone, la fermeture de la sélection ou Échap arrêtent cette surbrillance. Échap l’arrête aussi depuis le catalogue. La dernière case choisie reste la cible du bouton Construire / C. Si le bâtisseur disparaît ou se déplace, le contexte est abandonné.
+
+Le raccourci Espace confirme une attaque dans sa fenêtre ou un déplacement groupé préparé. La carte ne capture que les quatre flèches de déplacement, pour ne pas intercepter Espace. La saisie dans un champ, les modificateurs clavier, les répétitions et les ordres en attente ne doivent pas déclencher une nouvelle confirmation.
+
+### Recrutement et époques
+
+Le niveau du bâtiment formateur et l’époque du royaume sont distincts. Les conditions d’époque sont désormais de vrais verrous de construction, recrutement et amélioration. Les passages sont volontaires et payants dans Royaume ; voir [Époques du royaume](kingdom-eras.md) pour les seuils, coûts et règles de reprise des anciennes sauvegardes.
+
+« Disponibles maintenant » est coché à chaque ouverture du recrutement et lors de la réinitialisation des filtres. Décochez-le pour consulter les futures unités et leurs prérequis. Le filtre de niveau porte explicitement sur le bâtiment recruteur. La construction conserve son réglage précédent.

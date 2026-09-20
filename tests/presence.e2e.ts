@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { createState } from '@voidmarch/game-rules';
 import { addPlayer, worldView } from '../apps/server/src/engine';
 import { PlayerPresence } from '../apps/server/src/presence';

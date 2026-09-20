@@ -76,6 +76,7 @@ function fixture() {
     r = addPlayer(s, 'a', 'Soutien', 'ASH', now);
   r.wallet = { GOLD: 1e7, WOOD: 1e7, STONE: 1e7, IRON: 1e7, FOOD: 1e7 };
   prepareTrophies(s, 'a', 3, now);
+  s.realms['a'].era = { version: 1, level: 3 };
   r.unlimitedAP = true;
   s.units = {};
   for (const p of disk({ q: 0, r: 0 }, 14))

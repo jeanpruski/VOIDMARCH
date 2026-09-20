@@ -1,3 +1,4 @@
+import { ERA_REQUIREMENTS, ERA_COSTS, ACTION_COST } from '@voidmarch/config';
 import {
   developmentMissing,
   constructionDevelopmentStage,
@@ -98,7 +99,7 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
       throw new Error('Development stalled beyond seven active days');
   };
   const buy = (
-    type: 'BUILD' | 'UPGRADE',
+    type: 'BUILD' | 'UPGRADE' | 'ADVANCE_ERA',
     actorId: string,
     payload: object,
     cost: Partial<Wallet>,
@@ -108,7 +109,7 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
       const warehouses = Object.values(state.buildings).filter((b) => b.kind === 'WAREHOUSE');
       const next = warehouses.find(
         (b) =>
-          b.level < 5 &&
+          b.level < state.realms.sim.era!.level &&
           Math.max(...Object.values(buildingUpgrade(b.kind, b.level)!.cost)) <=
             storage(state, 'sim'),
       );
@@ -138,7 +139,7 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
     }
     while (
       RESOURCES.some((r) => state.realms.sim.wallet[r] + 1e-6 < (cost[r] ?? 0)) ||
-      state.realms.sim.ap < (type === 'BUILD' ? 1 : 2)
+      state.realms.sim.ap < ACTION_COST[type]
     )
       wait();
     const result = execute(
@@ -158,15 +159,26 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
       rates: income(state, 'sim'),
     });
   const ensureStage = (stage: number) => {
-    for (const req of developmentMissing(Object.values(state.buildings), stage)) {
-      let site = Object.values(state.buildings).find((b) => req.kinds.includes(b.kind));
-      if (!site) {
-        build(req.kinds[0]);
-        site = Object.values(state.buildings).find((b) => b.kind === req.kinds[0])!;
+    while (state.realms.sim.era!.level < stage) {
+      const target = state.realms.sim.era!.level + 1;
+      for (const req of ERA_REQUIREMENTS[target]) {
+        let site = Object.values(state.buildings).find((b) => req.kinds.includes(b.kind));
+        if (!site) {
+          build(req.kinds[0]);
+          site = Object.values(state.buildings).find((b) => b.kind === req.kinds[0])!;
+        }
+        upgrade(site.kind, req.level, site.id);
       }
-      upgrade(site.kind, req.level, site.id);
+      buy('ADVANCE_ERA', 'sim', { era: target }, ERA_COSTS[target]);
+      record(`Époque ${target}`);
+      // Invest progressively after each passage instead of trying to rush one level-5
+      // producer while the rest of the economy is still medieval.
+      for (const kind of ['LUMBER', 'QUARRY', 'MINE', 'FARM', 'MARKET'] as const)
+        if (Object.values(state.buildings).some((b) => b.kind === kind))
+          upgrade(kind, Math.min(producerLevel, target));
     }
   };
+
   const build = (kind: BuildingKind) => {
     if (kind !== 'WAREHOUSE' && Object.values(state.buildings).some((b) => b.kind === kind)) return;
     for (const parent of BUILDING_REQUIREMENTS[kind] ?? [])
@@ -179,6 +191,7 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
     record(BUILDINGS[kind].name);
   };
   const upgrade = (kind: BuildingKind, target: number, id?: string) => {
+    ensureStage(target);
     const building = Object.values(state.buildings).find((b) =>
       id ? b.id === id : b.kind === kind,
     )!;

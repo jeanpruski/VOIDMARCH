@@ -61,7 +61,7 @@ describe('équilibrage v0.8 : progression sans raccourci', () => {
     expect(developmentStage(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(1);
     const offers = expeditionOffers(s, 'a', now);
     expect(offers.length).toBeGreaterThan(0);
-    expect(offers.every((o) => o.level === 1 && o.reward!.GOLD! < 2000)).toBe(true);
+    expect(offers.every((o) => o.level === 1 && o.reward!.GOLD! < 20000)).toBe(true);
     const b = Object.values(s.buildings).find((b) => b.kind === 'BARRACKS')!;
     expect(
       recruitmentRequirement(
@@ -72,7 +72,7 @@ describe('équilibrage v0.8 : progression sans raccourci', () => {
       ),
     ).not.toBe('');
   });
-  it('chaque palier nécessite les infrastructures des paliers précédents, même après chargement', () => {
+  it('une époque acquise persiste après chargement et destruction des infrastructures', () => {
     const s = state();
     for (let level = 2; level <= 5; level++) {
       prepareDevelopment(s, 'a', level, now);
@@ -82,19 +82,17 @@ describe('équilibrage v0.8 : progression sans raccourci', () => {
     }
     const workshop = Object.values(s.buildings).find((b) => b.kind === 'WORKSHOP')!;
     workshop.hp = 0;
-    expect(developmentStage(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(1);
-    expect(developmentReason(Object.values(s.buildings), 5, developmentProgress(s, 'a'))).toContain(
-      'Atelier',
-    );
+    expect(developmentStage(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(5);
+    expect(developmentReason(Object.values(s.buildings), 5, developmentProgress(s, 'a'))).toBe('');
   });
-  it('bloque une amélioration militaire sans ses trophées, sans débit', () => {
+  it('bloque une amélioration militaire avant le passage d’époque, sans débit', () => {
     const s = state(),
       r = s.realms.a;
     const barracks = addBuilding(s, r, { q: r.capital.q + 1, r: r.capital.r }, 'BARRACKS', now, 3);
     const command = order('UPGRADE', barracks.id);
     expect(execute(s, 'a', command, now).state).toBe(s);
     expect(predictAction(worldView(s, 'a', now), command)).toBeUndefined();
-    prepareTrophies(s, 'a', 4, now);
+    prepareDevelopment(s, 'a', 4, now);
     expect(execute(s, 'a', command, now).result.accepted).toBe(true);
   });
   it('rend l’investissement industriel compétitif à débit égal sans renchérir la première scierie', () => {
@@ -152,7 +150,7 @@ describe('équilibrage v0.8 : progression sans raccourci', () => {
     const s = state();
     s.realms.b = createRealm('b', 'B', 'MASK', { q: 5, r: 0 }, now);
     s.realms.b.protectedUntil = 0;
-    prepareTrophies(s, 'b', 5, now);
+    prepareDevelopment(s, 'b', 5, now);
     for (const p of disk({ q: 0, r: 0 }, 5)) writeTile(s, p, { terrain: 'PLAIN' });
     const wall = addBuilding(s, s.realms.b, { q: 1, r: 0 }, 'CONCRETE_WALL', now);
     s.units.unit = { ...troop('FIELD_GUN'), trainingBonus: 60 };

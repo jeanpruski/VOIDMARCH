@@ -1,3 +1,5 @@
+import { SeasonOverview, SEASON_TITLE } from './Season';
+import { BUILDING_MIN_ERA, eraName } from '@voidmarch/config';
 import { isOffshoreBuilding, isSea } from '@voidmarch/config';
 import { isCoastalBuilder } from '@voidmarch/game-rules';
 import { developmentProgress } from '@voidmarch/game-rules';
@@ -20,7 +22,7 @@ import { OnlinePlayers } from './OnlinePlayers';
 import { Missions } from './Missions';
 import { TerrainAffinities } from './TerrainAffinities';
 import { terrainCombatBonus } from '@voidmarch/game-rules';
-import { recruitmentLevel, UNIT_TERRAIN_AFFINITIES } from '@voidmarch/config';
+import { recruitmentLevel, unitTechnologyLevel, UNIT_TERRAIN_AFFINITIES } from '@voidmarch/config';
 import { CatalogToolbar, CatalogDetails, useCatalogPage } from './CatalogBrowser';
 import { UNIT_FAMILIES, unitUniverse } from '@voidmarch/config';
 import { constructionSiteReason } from './construction';
@@ -122,6 +124,7 @@ export function Panels() {
   if (target) return <Combat />;
   if (!panel) return null;
   const titles = {
+    season: SEASON_TITLE,
     online: 'Joueurs connectés',
     missions: 'Missions',
     trophies: 'Salle des trophées',
@@ -140,14 +143,33 @@ export function Panels() {
   };
   return (
     <Modal
+      key={panel}
       title={titles[panel]}
-      className={['build', 'recruit'].includes(panel) ? 'catalog-modal' : undefined}
+      className={
+        panel === 'season'
+          ? 'season-modal'
+          : ['build', 'recruit'].includes(panel)
+            ? 'catalog-modal'
+            : undefined
+      }
       toolbar={['build', 'recruit'].includes(panel) ? <CatalogResources /> : undefined}
-      wide={['trophies', 'missions', 'trade', 'economy', 'build', 'recruit', 'rank'].includes(
-        panel,
-      )}
+      wide={[
+        'season',
+        'trophies',
+        'missions',
+        'trade',
+        'economy',
+        'build',
+        'recruit',
+        'rank',
+      ].includes(panel)}
     >
-      {panel === 'online' ? (
+      {panel === 'season' ? (
+        <SeasonOverview
+          onContinue={() => useGame.setState({ panel: null })}
+          onHelp={() => useGame.setState({ panel: 'help' })}
+        />
+      ) : panel === 'online' ? (
         <OnlinePlayers />
       ) : panel === 'trophies' ? (
         <TrophyRoom />
@@ -1314,8 +1336,11 @@ function Build() {
                     : 'Terrain incompatible'
                   : 'Prêt à construire'}
               </span>
-              <Miniature frame={BUILDING_FRAMES[kind]} size={80} />
+              <Miniature frame={BUILDING_FRAMES[kind]} building={{ kind, level: 1 }} size={80} />
               <h4>{b.name}</h4>
+              <span className="building-stage">
+                Époque {BUILDING_MIN_ERA[kind]} · {eraName(BUILDING_MIN_ERA[kind])}
+              </span>
               <small>
                 {kind === 'CAMP' || kind === 'OUTPOST'
                   ? 'Fondation du village'
@@ -1453,7 +1478,7 @@ function Build() {
 function Recruit() {
   const [family, setFamily] = useState<'all' | keyof typeof UNIT_FAMILIES>('all');
   const [query, setQuery] = useState('');
-  const [readyOnly, setReadyOnly] = useState(false);
+  const [readyOnly, setReadyOnly] = useState(true);
   const [level, setLevel] = useState('all');
   const [sort, setSort] = useState('progression');
   const [category, setCategory] = useState<UnitTab>('Toutes');
@@ -1503,7 +1528,7 @@ function Recruit() {
     setFamily('all');
     setCategory('Toutes');
     setAtomicOnly(false);
-    setReadyOnly(false);
+    setReadyOnly(true);
     setLevel('all');
     setSort('progression');
   };
@@ -1559,8 +1584,8 @@ function Recruit() {
         · Mobilisation : {format(mobilized)}/{format(capacity)}
       </p>
       <p className="catalog-context">
-        Les filières militaires débloquent de nouvelles recrues à chaque niveau. Les niveaux
-        précédents restent disponibles ; les infrastructures requises restent nécessaires.
+        Chaque niveau du bâtiment ouvre de nouvelles formations. L’époque requise est indiquée
+        séparément ; ses prérequis restent nécessaires.
       </p>
       <CatalogToolbar
         query={query}
@@ -1607,9 +1632,9 @@ function Recruit() {
           </select>
         </label>
         <label>
-          Niveau requis
+          Niveau du bâtiment
           <select
-            aria-label="Niveau requis"
+            aria-label="Niveau du bâtiment"
             value={level}
             onChange={(e) => setLevel(e.target.value)}
           >
@@ -1658,9 +1683,10 @@ function Recruit() {
           chance d’être rare, avec +10 à +30 % de PV, attaque et défense.
         </p>
         <p>
-          Unités recrutables immédiatement en premier, puis les autres. Dans chaque groupe : civils,
-          combattants par force croissante, puis véhicules. La portée, la défense et les capacités
-          spéciales comptent aussi dans un combat.
+          « Disponibles maintenant » est activé à l’ouverture. Décochez-le pour voir aussi les
+          unités verrouillées et leurs prérequis. Dans chaque groupe : civils, combattants par force
+          croissante, puis véhicules. La portée, la défense et les capacités spéciales comptent
+          aussi dans un combat.
         </p>
         <p>
           PV : résistance aux dégâts. ATQ : attaque. DÉF : défense. MOUV : budget de déplacement ;
@@ -1673,7 +1699,11 @@ function Recruit() {
         </p>
       </ContextHelp>
       {!catalogue.length && (
-        <p className="empty-line">Aucune unité ne correspond à ces filtres dans ce bâtiment.</p>
+        <p className="empty-line">
+          {readyOnly
+            ? 'Aucune unité disponible avec ces filtres. Décochez « Disponibles maintenant » pour consulter les prérequis.'
+            : 'Aucune unité ne correspond à ces filtres dans ce bâtiment.'}
+        </p>
       )}
       <div className="catalog catalog-compact">
         {pagination.items.map(([kind, u]) => {
@@ -1691,9 +1721,12 @@ function Recruit() {
               <Miniature frame={UNIT_FRAMES[kind]} size={90} />
               <h4>{u.name}</h4>
               <span className="building-stage">
+                Époque {unitTechnologyLevel(kind)} · {eraName(unitTechnologyLevel(kind))}
+              </span>
+              <span className="building-stage">
                 {kind in UNIT_ERAS
-                  ? `${BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1]}`
-                  : `${UNIT_TIERS[kind] ? `Palier ${UNIT_TIERS[kind]} · ` : ''}${TIER_NAMES[UNIT_TIERS[kind]]}`}
+                  ? `Style : ${BUILDING_AGES[UNIT_ERAS[kind as keyof typeof UNIT_ERAS] - 1]}`
+                  : TIER_NAMES[UNIT_TIERS[kind]]}
               </span>
               {unitUniverse(kind) && (
                 <span className="elite-family-badge" data-family={unitUniverse(kind)!.family}>
@@ -1709,9 +1742,9 @@ function Recruit() {
                       : 'building-stage'
                   }
                 >
-                  {building.level === recruitmentLevel(kind, building.kind)
-                    ? 'Nouveauté de ce niveau'
-                    : `Débloqué au niveau ${recruitmentLevel(kind, building.kind)}`}
+                  {BUILDINGS[building.kind].name} · niveau {recruitmentLevel(kind, building.kind)}
+                  {building.level === recruitmentLevel(kind, building.kind) &&
+                    ' · Nouvelle formation'}
                 </span>
               )}
               <p className="catalog-brief">{profile.role}</p>
@@ -1740,7 +1773,12 @@ function Recruit() {
               )}
 
               <CatalogDetails>
-                <p>{profile.role}</p>{' '}
+                <p>{profile.role}</p>
+                <p>
+                  Époque {unitTechnologyLevel(kind)} requise pour votre royaume. Le niveau du
+                  bâtiment recruteur est une condition distincte. Les anciennes formations restent
+                  accessibles après un changement d’époque.
+                </p>{' '}
                 {trainedStats.attack > 0 && (
                   <p>Attaque contre les bâtiments : {format(trainedStats.buildingAttack)}.</p>
                 )}
@@ -1848,8 +1886,9 @@ function Combat() {
       event.preventDefault();
       if (!event.repeat && !button.disabled && button.checkVisibility()) button.click();
     };
-    window.addEventListener('keydown', keyboard);
-    return () => window.removeEventListener('keydown', keyboard);
+    // Handle the dialog confirmation before the canvas keyboard listeners.
+    window.addEventListener('keydown', keyboard, true);
+    return () => window.removeEventListener('keydown', keyboard, true);
   }, []);
   const w = useGame((s) => s.world)!,
     selection = useGame((s) => s.selection),
@@ -2291,8 +2330,9 @@ function Help() {
           <div>
             <strong>Fondez votre civilisation</strong>
             <p>
-              Votre campement démarre sans stock ni armée. Sélectionnez-le, puis « Recruter » et «
-              Former le paysan ». Ce premier paysan ne coûte aucune ressource.
+              Votre campement démarre avec votre héros et 500 d’or, de bois, de pierre et de fer.
+              Sélectionnez-le, puis « Recruter » et « Former le paysan ». Ce premier paysan ne coûte
+              aucune ressource.
             </p>
           </div>
         </li>
@@ -2303,8 +2343,9 @@ function Help() {
             <p>
               Déplacez le paysan sur une forêt pour récolter du bois, sur une colline pour le fer ou
               la pierre, et sur une montagne pour la pierre. Une récolte de bois permet de
-              construire une chaumière. Les paysans bâtissent aussi sur une case neutre adjacente à
-              votre territoire et revendiquent les terres inoccupées.
+              construire une chaumière. Un bâtisseur doit rester près du chantier : vous pouvez
+              bâtir à trois cases de vos bâtiments ou dans une enceinte fermée. Un avant-poste
+              permet de fonder une base éloignée.
             </p>
           </div>
         </li>
@@ -2340,9 +2381,9 @@ function Help() {
           indique que son niveau maximal est atteint.
         </p>
         <p>
-          Pour les remparts : 1 = bois, 2 = pierre, 3 = acier. Les tourelles s’améliorent
-          séparément. Les indicateurs disparaissent avec les bâtiments masqués et dans la vue
-          stratégique au dézoom maximal.
+          Pour les remparts : 1 = bois, 2 = pierre, 3 = acier, 4 = béton, 5 = atomique. Les
+          tourelles s’améliorent séparément. Les indicateurs disparaissent avec les bâtiments
+          masqués et dans la vue stratégique au dézoom maximal.
         </p>
       </ContextHelp>
       <ContextHelp title="Comment les remparts protègent-ils mes troupes ?">
@@ -2366,7 +2407,8 @@ function Help() {
         </p>
         <p>
           La production normale fonctionne pendant votre présence, avec trois minutes de grâce après
-          votre départ. Les PA continuent à se régénérer hors ligne : 1 par minute, jusqu’à 15.
+          votre départ. Les PA continuent à se régénérer hors ligne : 1 toutes les{' '}
+          {RULES.apInterval / 1000} secondes, jusqu’à {RULES.maxAP}.
         </p>
       </ContextHelp>
       <ContextHelp title="Pourquoi ma population ne grandit-elle plus ?">

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { createState, disk, writeTile } from '@voidmarch/game-rules';
 import { NPCS, UNITS, type NpcKind } from '@voidmarch/config';
 import { addPlayer, execute, worldView } from '../apps/server/src/engine';

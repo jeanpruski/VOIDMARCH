@@ -1,6 +1,6 @@
 import { navalMissionSite } from '../apps/server/src/naval-missions';
 import { distance } from '@voidmarch/game-rules';
-import { isSea } from '@voidmarch/config';
+import { isSea, EXPEDITION_REWARD_BOOST } from '@voidmarch/config';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { EXPEDITION_SITES, EXPEDITION_GOLD, UNITS } from '@voidmarch/config';
@@ -194,7 +194,7 @@ describe('exploration rémunérée et déplacements gratuits', () => {
 });
 
 describe('offres, historique personnel et repli de placement', () => {
-  it('garde les frais d’abandon et augmente les nouveaux butins de 30 %', () => {
+  it('garde les frais d’abandon et applique les primes d’aventure aux nouveaux butins', () => {
     const s = fixture();
     for (const offer of expeditionOffers(s, 'a', now)) {
       const e = offer.expedition!;
@@ -203,7 +203,7 @@ describe('offres, historique personnel et repli de placement', () => {
         (0.65 + e.targetDistance / 150) *
         { RECON: 1, RECOVER: 1.4, EXTRACT: 2.2 }[e.mode] *
         (e.route === 'SEA' ? 1.25 : 1);
-      expect(offer.reward!.GOLD).toBe(Math.round(base * 1.3));
+      expect(offer.reward!.GOLD).toBe(Math.round(base * 1.3) * EXPEDITION_REWARD_BOOST[e.mode]);
       expect(offer.abandonmentCost.GOLD).toBe(Math.round(Math.round(base) / 5));
     }
   });

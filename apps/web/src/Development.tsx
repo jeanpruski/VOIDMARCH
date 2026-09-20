@@ -1,51 +1,83 @@
 import { developmentProgress } from '@voidmarch/game-rules';
 import {
   BUILDINGS,
-  DEVELOPMENT_STAGES,
-  developmentMissing,
   developmentStage,
   developmentTrophyRequirement,
   developmentTrophiesMet,
   upgradeTrophyReason,
 } from '@voidmarch/config';
-import { useGame } from './store';
+import { useGame, send } from './store';
+import { Cost, StorageHint } from './ui';
+import { canAfford } from '@voidmarch/game-rules';
+import {
+  ERA_COSTS,
+  ERA_AP_COST,
+  ERA_REQUIREMENTS,
+  eraAdvanceReason,
+  eraName,
+} from '@voidmarch/config';
 
 export function Development() {
   const w = useGame((s) => s.world)!;
+  const pending = useGame((s) => s.pending);
   const sites = w.tiles.flatMap((t) => (t.building?.ownerId === w.player.id ? [t.building] : []));
-  const stage = developmentStage(sites, developmentProgress(w));
-  const next = developmentMissing(sites, Math.min(5, stage + 1));
+  const progress = developmentProgress(w);
+  const stage = developmentStage(sites, progress);
+  const target = stage + 1;
+  const reason = stage < 5 ? eraAdvanceReason(sites, progress, target) : '';
+  const cost = ERA_COSTS[target];
+  const enoughAP = w.player.unlimitedAP || w.player.ap >= ERA_AP_COST;
+  const affordable = cost && canAfford(w.player.wallet, cost);
   return (
     <section className="inset" aria-label="Progression du royaume">
       <h4>
-        Développement · {DEVELOPMENT_STAGES[stage - 1]} ({stage}/5)
+        Époque {stage}/5 · {eraName(stage)}
       </h4>
       <p>
-        Vos bâtiments et les trophées gagnés en missions et expéditions débloquent les nouvelles
-        technologies. Les trophées sont cumulés et ne sont jamais dépensés.
-      </p>
-      <p>
-        Améliorations des bâtiments : niveau 2 → 1 trophée ; niveau 3 → 5 ; niveau 4 → 20 ; niveau 5
-        → 50. Ces améliorations ne demandent pas les infrastructures du prochain palier
-        technologique.
+        Votre époque ouvre les bâtiments et unités de cette période et fixe le niveau maximal de vos
+        bâtiments. Les anciennes formations restent disponibles.
       </p>
       {stage < 5 ? (
         <>
-          <DevelopmentTrophies stage={stage + 1} />
-          <details>
-            <summary>Prochain palier : {DEVELOPMENT_STAGES[stage]}</summary>
-            {!next.length && <p>Bâtiments requis : acquis.</p>}
-            <ul>
-              {next.map((r, i) => (
-                <li key={i}>
-                  {r.kinds.map((k) => BUILDINGS[k].name).join(' ou ')} · niveau {r.level}
+          <h5>Prochaine époque : {eraName(target)}</h5>
+          <DevelopmentTrophies stage={target} />
+          <ul>
+            {ERA_REQUIREMENTS[target].map((req, i) => {
+              const met = sites.some(
+                (b) => b.hp > 0 && b.level >= req.level && req.kinds.includes(b.kind),
+              );
+              return (
+                <li key={i} className={met ? 'positive' : 'negative'}>
+                  {req.kinds.map((k) => BUILDINGS[k].name).join(' ou ')} · niveau {req.level}{' '}
+                  {met ? '✓' : '(requis)'}
                 </li>
-              ))}
-            </ul>
-          </details>
+              );
+            })}
+          </ul>
+          <p>Investissement unique pour tout le royaume :</p>
+          <Cost cost={cost} wallet={w.player.wallet} />
+          <StorageHint cost={cost} wallet={w.player.wallet} capacity={w.player.capacity} />
+          <p>
+            Les trophées sont conservés. Le passage ne remplace pas les améliorations individuelles.
+          </p>
+          {reason && <p className="negative">{reason}</p>}
+          {!enoughAP && <p className="negative">{ERA_AP_COST} PA nécessaires.</p>}
+          {!reason && affordable && enoughAP && (
+            <button
+              disabled={pending}
+              onClick={() =>
+                void send({ type: 'ADVANCE_ERA', actorId: w.player.id, payload: { era: target } })
+              }
+            >
+              Passer à l’époque {target} · {ERA_AP_COST} PA
+            </button>
+          )}
         </>
       ) : (
-        <p>Tous les paliers de développement sont accessibles.</p>
+        <p>
+          Votre royaume a atteint l’ère atomique. Tous les niveaux d’amélioration sont ouverts ; les
+          conditions propres à chaque formation restent nécessaires.
+        </p>
       )}
     </section>
   );
@@ -63,12 +95,19 @@ export function DevelopmentTrophies({ stage }: { stage: number }) {
         <strong>
           Trophées : {progress.trophies}/{required}
         </strong>{' '}
-        · {met ? 'Condition acquise' : 'À obtenir'} pour le palier technologique {stage}
+        · {met ? 'Condition acquise' : 'À obtenir'} pour le passage à l’époque {stage}
       </p>
       <p className="muted">
         Missions et expéditions réunies · total cumulé, sans dépense.
         {retained && ' Palier antérieur conservé : ce seuil ne vous bloque pas.'}
       </p>
+      {!met && (
+        <p>
+          Encore {Math.max(0, required - progress.trophies)} trophée(s) : chaque mission ou
+          expédition réussie, par vous ou un allié actuel, en rapporte un. Les ressources seules ne
+          débloquent pas l’époque.
+        </p>
+      )}
     </div>
   );
 }
@@ -76,6 +115,18 @@ export function DevelopmentTrophies({ stage }: { stage: number }) {
 export function BuildingTrophies({ level }: { level: number }) {
   const world = useGame((s) => s.world)!;
   const progress = developmentProgress(world);
+  if (progress.era !== undefined)
+    return (
+      <div className="development-trophies">
+        <p className={progress.era >= level ? 'positive' : 'negative'}>
+          Époque du royaume : {progress.era}/5 · Époque {level} requise pour ce niveau.
+        </p>
+        <p className="muted">
+          Le passage d’époque se prépare dans Royaume. Les trophées servent à changer d’époque, pas
+          à payer chaque amélioration.
+        </p>
+      </div>
+    );
   const required = developmentTrophyRequirement(level);
   if (!required || progress.bot) return null;
   const met = !upgradeTrophyReason(level, progress);

@@ -1,6 +1,6 @@
+import { BUILDING_MIN_ERA } from './epochs';
 import { isNavalBuilding } from './naval';
 import type { BuildingKind } from './index';
-import { BUILDING_ECONOMIC_TIERS } from './economy';
 
 export const BUILDING_AGES = [
   'Fondations médiévales',
@@ -20,11 +20,13 @@ export function buildingEra(kind: BuildingKind, level: number): string {
     'ATOMIC_WALL',
   ].indexOf(kind);
   if (wallTier >= 0) return BUILDING_AGES[wallTier];
-  if (isNavalBuilding(kind)) return BUILDING_AGES[Math.min(4, Math.max(0, level - 1))];
-  const tier = BUILDING_ECONOMIC_TIERS[kind];
-  const first = tier >= 5 ? 4 : tier >= 3 || kind === 'RAIL_DEPOT' ? 2 : 0;
-  return BUILDING_AGES[Math.min(4, first + Math.max(0, level - 1))];
+  return BUILDING_AGES[Math.min(4, Math.max(BUILDING_MIN_ERA[kind], level) - 1)];
 }
 export function hasBuildingEvolutionArt(kind: BuildingKind): boolean {
   return !kind.endsWith('_WALL') && kind !== 'CAMP' && kind !== 'OUTPOST';
+}
+
+/** Naval sheets depict world eras; a submarine base must never use the medieval port art. */
+export function buildingVisualLevel(kind: BuildingKind, level: number) {
+  return isNavalBuilding(kind) ? Math.max(BUILDING_MIN_ERA[kind], level) : level;
 }

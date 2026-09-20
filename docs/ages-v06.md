@@ -1,3 +1,5 @@
+> La progression courante est décrite dans [Époques du royaume](kingdom-eras.md). Les règles de déblocage automatique ci-dessous décrivent la version antérieure.
+
 # Les cinq âges de VOIDMARCH
 
 > Note historique : les coûts, statistiques et rendements ci-dessous décrivent cette version. Pour les valeurs actuelles, voir [l’équilibrage v0.7](balance-v07.md) et [l’audit du catalogue](balance-audit.md).
@@ -23,14 +25,14 @@ Béton : 900 PV, défense 20. Atomique : 1 600 PV, défense 32. Deux nouvelles t
 
 ## Six unités supplémentaires
 
-| Unité | Recrutement | Prérequis supplémentaires |
-| --- | --- | --- |
-| Mousquetaire impérial | Caserne niveau 2 | Forge |
-| Grenadier des cendres | Caserne niveau 2 | Forge |
-| Cuirassier du crépuscule | Écurie niveau 2 | Forge |
-| Commando de l’éclipse | Caserne ou arsenal niveau 4 | Relais radio |
-| Escouade de drones spectres | Atelier niveau 4 | Relais radio et manufacture de munitions |
-| Garde à neutrons | Caserne ou caserne des revenants niveau 5 | Réacteur noir |
+| Unité                       | Recrutement                               | Prérequis supplémentaires                |
+| --------------------------- | ----------------------------------------- | ---------------------------------------- |
+| Mousquetaire impérial       | Caserne niveau 2                          | Forge                                    |
+| Grenadier des cendres       | Caserne niveau 2                          | Forge                                    |
+| Cuirassier du crépuscule    | Écurie niveau 2                           | Forge                                    |
+| Commando de l’éclipse       | Caserne ou arsenal niveau 4               | Relais radio                             |
+| Escouade de drones spectres | Atelier niveau 4                          | Relais radio et manufacture de munitions |
+| Garde à neutrons            | Caserne ou caserne des revenants niveau 5 | Réacteur noir                            |
 
 Chaque unité a sa propre figurine. Les 85 unités précédentes sont conservées. Les grenades et drones passent les remparts par une trajectoire indirecte ; mousquets, fusils et rayons respectent les obstacles des tirs directs.
 

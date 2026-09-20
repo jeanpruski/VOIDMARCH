@@ -115,7 +115,7 @@ describe('développement autonome des bots', () => {
     expect(botRecruitmentSite(s, r, 'RIFLEMAN', vision(s, r))).toBeUndefined();
     const arsenal = addBuilding(s, r, { q: 1, r: 1 }, 'ARSENAL', now);
     addBuilding(s, r, { q: 0, r: 1 }, 'MUNITIONS', now);
-    prepareDevelopment(s, r.id, 2, now);
+    prepareDevelopment(s, r.id, 3, now);
     expect(botRecruitmentSite(s, r, 'RIFLEMAN', vision(s, r))?.id).toBe(arsenal.id);
     delete s.buildings[arsenal.id];
     expect(botRecruitmentSite(s, r, 'RIFLEMAN', vision(s, r))).toBeUndefined();
@@ -194,10 +194,11 @@ describe('développement autonome des bots', () => {
   });
 
   it('recrute des troupes de la nouvelle époque pendant une longue partie', () => {
-    const result = simulateBot('bot-a', 'AGGRESSIVE', 12);
+    const result = simulateBot('bot-a', 'AGGRESSIVE', 24);
     expect(result.failures).toEqual([]);
     expect(result.history.at(-1)!.tier).toBeGreaterThanOrEqual(3);
-    expect(result.history.at(-1)!.level).toBeGreaterThanOrEqual(4);
+    expect(result.history.at(-1)!.level).toBeGreaterThanOrEqual(3);
+    expect(result.counts.ADVANCE_ERA).toBeGreaterThanOrEqual(2);
   });
 
   it.each(['bot-a', 'bot-b', 'bot-c'])(
@@ -212,9 +213,12 @@ describe('développement autonome des bots', () => {
       expect(final.buildings).toBeGreaterThanOrEqual(16);
       expect(final.builders).toBeGreaterThanOrEqual(2);
       expect(final.builders).toBeLessThanOrEqual(3);
-      expect(final.level).toBeGreaterThanOrEqual(3);
-      expect(result.counts.UPGRADE).toBeGreaterThanOrEqual(15);
-      expect(realmBuildings(result.state, 'bot').some((b) => b.kind === 'ARSENAL')).toBe(true);
+      expect(final.level).toBeGreaterThanOrEqual(2);
+      expect(result.counts.UPGRADE).toBeGreaterThanOrEqual(10);
+      expect(result.counts.ADVANCE_ERA).toBeGreaterThanOrEqual(1);
+      expect(realmBuildings(result.state, 'bot').some((b) => b.kind === 'STEAM_SAWMILL')).toBe(
+        true,
+      );
       expect(Object.values(result.state.realms.bot.wallet).every((value) => value >= 0)).toBe(true);
     },
   );

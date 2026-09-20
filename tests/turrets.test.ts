@@ -27,6 +27,7 @@ function fixture() {
     r = addPlayer(s, 'a', 'A', 'MASK', now);
   r.wallet = { GOLD: 5000, WOOD: 5000, STONE: 5000, IRON: 5000, FOOD: 5000 };
   prepareTrophies(s, 'a', 3, now);
+  s.realms['a'].era = { version: 1, level: 3 };
   r.protectedUntil = 0;
   s.realms.b = createRealm('b', 'B', 'ASH', { q: 4, r: 0 }, now);
   s.realms.b.protectedUntil = 0;

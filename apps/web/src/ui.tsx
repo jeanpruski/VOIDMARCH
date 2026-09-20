@@ -1,3 +1,4 @@
+import { buildingVisualLevel } from '@voidmarch/config';
 import { emblemIcon } from './emblems';
 export { symbols } from './emblems';
 import {
@@ -482,7 +483,11 @@ export function Miniature({
   gate?: boolean;
 }) {
   if (heroAppearance) return <HeroPortrait appearance={heroAppearance} size={size} />;
-  if (building && building.level > 1 && hasBuildingEvolutionArt(building.kind))
+  if (
+    building &&
+    buildingVisualLevel(building.kind, building.level) > 1 &&
+    hasBuildingEvolutionArt(building.kind)
+  )
     return <EvolvedBuildingMiniature building={building} size={size} fallback={frame} />;
   const wall = WALL_KINDS[frame - 84];
   return wall ? (
@@ -522,7 +527,7 @@ function EvolvedBuildingMiniature({
         height: size,
         backgroundImage: `url(${atlas.url})`,
         backgroundSize: '400% 100%',
-        backgroundPosition: `${(buildingEvolutionFrame(building.level) * 100) / 3}% 0%`,
+        backgroundPosition: `${(buildingEvolutionFrame(buildingVisualLevel(building.kind, building.level)) * 100) / 3}% 0%`,
       }}
     />
   );

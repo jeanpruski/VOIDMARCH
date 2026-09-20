@@ -1,5 +1,5 @@
 import { prepareDevelopment } from './fixtures/development';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { resolve } from 'node:path';
 import { createState, disk, writeTile } from '@voidmarch/game-rules';
 import { addBuilding, addPlayer, execute, worldView } from '../apps/server/src/engine';
@@ -76,13 +76,20 @@ test('catalogues : pagination, filtres, détails, ressources fixes et achats sur
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/catalog-browser');
+  const ready = page.getByLabel('Disponibles maintenant', { exact: false });
+  await expect(ready).toBeChecked();
+  await expect(page.locator('.catalog-locked')).toHaveCount(0);
+  await ready.uncheck();
+  await page.getByRole('button', { name: 'Réinitialiser les filtres' }).click();
+  await expect(ready).toBeChecked();
+  await ready.uncheck();
   const cards = page.locator('.catalog article');
   await expect(cards).toHaveCount(18);
   await page.getByRole('button', { name: 'Page suivante' }).click();
   await expect(page.getByRole('navigation', { name: 'Pages du catalogue' })).toContainText(
     'Page 2',
   );
-  await page.getByLabel('Niveau requis', { exact: true }).selectOption('3');
+  await page.getByLabel('Niveau du bâtiment', { exact: true }).selectOption('3');
   await expect(page.getByRole('navigation', { name: 'Pages du catalogue' })).toHaveCount(0);
   await page.getByLabel('Univers', { exact: true }).selectOption('blood');
   await expect(cards).toHaveCount(3);
@@ -136,7 +143,7 @@ test('catalogues : pagination, filtres, détails, ressources fixes et achats sur
   await page.getByRole('button', { name: 'Réinitialiser les filtres' }).click();
   await page.getByLabel('Production', { exact: true }).selectOption('WOOD');
   await expect(cards).toHaveCount(3);
-  await expect(page.locator('.catalog-results-bar strong')).toHaveText('2');
+  await expect(page.locator('.catalog-results-bar strong')).toHaveText('1');
   await expect
     .poll(() =>
       cards
@@ -168,6 +175,8 @@ test('catalogues : pagination, filtres, détails, ressources fixes et achats sur
     animations: 'disabled',
     path: 'test-results/catalog-recruitment-desktop.png',
   });
+  await expect(ready).toBeChecked();
+  await ready.uncheck();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('searchbox').fill('electromagnetique');
   await expect(cards).not.toHaveCount(0);
@@ -184,13 +193,20 @@ test('catalogues : pagination, filtres, détails, ressources fixes et achats sur
     (selection) => (window as any).catalogStore.setState({ selection, panel: 'recruit' }),
     { kind: 'building', id: observatory.id, q: observatory.q, r: observatory.r },
   );
-  await page.getByLabel('Niveau requis', { exact: true }).selectOption('3');
+  await expect(ready).toBeChecked();
+  await ready.uncheck();
+  await page.getByLabel('Niveau du bâtiment', { exact: true }).selectOption('3');
   await expect(cards).toHaveCount(1);
   await expect(cards.first()).toContainText('Observatoire noir niveau 3 nécessaire');
-  await page.getByLabel('Niveau requis', { exact: true }).selectOption('2');
+  state.realms.a.era = { version: 1, level: 4 };
+  await page.evaluate(async () =>
+    (window as any).catalogStore.setState({ world: await (window as any).fixtureSnapshot() }),
+  );
+  await page.getByLabel('Niveau du bâtiment', { exact: true }).selectOption('2');
   await expect(cards).toHaveCount(1);
   await expect(cards.first()).toContainText('Commando');
-  await expect(cards.first()).toContainText('Nouveauté de ce niveau');
+  await expect(cards.first()).toContainText('Époque 4 · Technologie occulte');
+  await expect(cards.first()).toContainText('Nouvelle formation');
   await expect(cards.first()).toContainText('Prêt à recruter');
   await cards.first().getByText('Détails et prérequis', { exact: true }).click();
   await expect(cards.first()).toContainText('Observatoire noir · niveau 2');

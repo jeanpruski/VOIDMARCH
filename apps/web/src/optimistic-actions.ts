@@ -1,3 +1,4 @@
+import { ERA_COSTS, eraAdvanceReason } from '@voidmarch/config';
 import { eventResourceReward } from '@voidmarch/config';
 import { eventAPReward } from '@voidmarch/game-rules';
 import { ISLAND_DISCOVERIES } from '@voidmarch/config';
@@ -118,6 +119,16 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
   const now = action.clientTimestamp;
   let movement: ActionResult['movement'];
   switch (action.type) {
+    case 'ADVANCE_ERA': {
+      if (
+        action.actorId !== id ||
+        eraAdvanceReason(buildings, developmentProgress(world), action.payload.era) ||
+        !pay(ERA_COSTS[action.payload.era])
+      )
+        return;
+      player.era = { version: 1, level: action.payload.era };
+      break;
+    }
     case 'MOVE':
     case 'MOVE_ROAD': {
       if (!unit) return;

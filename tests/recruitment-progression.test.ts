@@ -67,7 +67,7 @@ describe('progression locale du recrutement', () => {
     for (const b of combatRecruiters) {
       expect(RECRUITMENT_TRACKS[b], b).toBeDefined();
       const recruits = kinds.filter((k) => UNIT_PROFILES[k].recruitAt.includes(b));
-      for (const level of b === 'SUBMARINE_BASE' ? [3, 4, 5] : [1, 2, 3, 4, 5]) {
+      for (const level of [1, 2, 3, 4, 5]) {
         expect(
           recruits.filter((k) => recruitmentLevel(k, b) === level).length,
           `${b} niveau ${level}`,

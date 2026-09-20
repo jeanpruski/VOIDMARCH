@@ -1,3 +1,4 @@
+import { ERA_COSTS, eraAdvanceReason, eraName } from '@voidmarch/config';
 import { STARTING_RESOURCES } from '@voidmarch/config';
 import { eventResourceReward } from '@voidmarch/config';
 import { eventAPReward } from '@voidmarch/game-rules';
@@ -6,7 +7,7 @@ import { ISLAND_DISCOVERIES } from '@voidmarch/config';
 import { isOffshoreBuilding } from '@voidmarch/config';
 import { offshoreAccessReason } from '@voidmarch/game-rules';
 import { canFoundOutpost } from '@voidmarch/game-rules';
-import { migrateTrophyDevelopment } from '@voidmarch/game-rules';
+import { migrateTrophyDevelopment, migrateKingdomEras } from '@voidmarch/game-rules';
 import { developmentProgress } from '@voidmarch/game-rules';
 import { ensureSeaAccess } from '@voidmarch/game-rules';
 import { projectAction, tickAllianceProjects } from './alliance-projects';
@@ -273,7 +274,7 @@ export function settle(s: GameState, r: Realm, now: number) {
   const at = (q: number, r0: number) => ({ q: r.capital.q + q, r: r.capital.r + r0 });
   for (const p of disk(r.capital, 2))
     writeTile(s, p, { ownerId: r.id, terrain: 'PLAIN', road: distance(r.capital, p) <= 1 });
-  addBuilding(s, r, r.capital, 'VILLAGE', now, 3);
+  addBuilding(s, r, r.capital, 'VILLAGE', now, r.era?.level ?? 3);
   addBuilding(s, r, at(-2, 1), 'FARM', now);
   writeTile(s, at(2, -1), { terrain: 'HILL' });
   addBuilding(s, r, at(2, -1), 'MINE', now);
@@ -530,6 +531,7 @@ export function applyAction(
   const r = s.realms[id];
   requireRule(r, 'Royaume introuvable.');
   migrateTrophyDevelopment(s);
+  migrateKingdomEras(s);
   requireRule(!r.vigieTargetId, 'Quittez l’observation vigie avant de donner un ordre.');
   refreshWorldTraining(s, now);
   refreshAP(r, now, options.apInterval);
@@ -543,6 +545,22 @@ export function applyAction(
   let movements: ActionResult['movements'];
   const spendAction = (override?: number) => spend(r, override ?? ACTION_COST[a.type]);
   switch (a.type) {
+    case 'ADVANCE_ERA': {
+      requireRule(a.actorId === id, 'Ce royaume ne vous appartient pas.');
+      const reason = eraAdvanceReason(
+        realmBuildings(s, id),
+        developmentProgress(s, id),
+        a.payload.era,
+      );
+      requireRule(!reason, reason);
+      spendAction();
+      pay(r, ERA_COSTS[a.payload.era]);
+      r.era = { version: 1, level: a.payload.era };
+      r.progression.development++;
+      message = `Votre royaume entre dans l’époque ${a.payload.era} — ${eraName(a.payload.era)}. Nouveaux bâtiments, unités et améliorations débloqués.`;
+      log(s, message, 'REALM', now, [id], r.capital);
+      break;
+    }
     case 'PRODUCE_MOBILITY': {
       const b = ownedBuilding(s, r, a.actorId);
       const { resource, amount } = a.payload;
@@ -1728,6 +1746,7 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
   const r = s.realms[id];
   requireRule(r, 'Royaume introuvable.');
   migrateTrophyDevelopment(s);
+  migrateKingdomEras(s);
   const observed = r.vigie && r.vigieTargetId ? s.realms[r.vigieTargetId] : undefined;
   const visible = vision(s, r);
   // Display-only visibility. Never write this into explored terrain or gameplay vision.

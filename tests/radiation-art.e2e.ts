@@ -1,5 +1,5 @@
 import { ensureHeroes } from '../apps/server/src/heroes';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { createState, createRealm, disk, writeTile, observe, key } from '@voidmarch/game-rules';
 import { strategy } from '../apps/server/src/strategy';
 import { addBuilding, worldView } from '../apps/server/src/engine';

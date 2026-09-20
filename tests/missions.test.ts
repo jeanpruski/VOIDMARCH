@@ -574,15 +574,19 @@ describe('missions de campagne', () => {
     expect(tileAt(s, objective).terrain).toBe('SCORCHED');
   });
   it.each([
-    [0, 2],
-    [1, 2.5],
-    [2, 3],
+    [0, 10],
+    [1, 15],
+    [2, 24],
   ])('annonce et verse le multiplicateur de la mission %i', (index, multiplier) => {
     let s = fixture();
     addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'BARRACKS', now, 5);
     prepareDevelopment(s, 'a', 5, now);
     const offer = missionOffers(s, 'a', now)[index];
+    const gold = Math.round(offer.abandonmentCost.GOLD! * multiplier * 1.3 * 10) / 10;
     expect(offer.reward).toEqual({
+      WOOD: Math.round(gold * 0.6),
+      STONE: Math.round(gold * 0.4),
+      IRON: Math.round(gold * 0.3),
       GOLD: Math.round(offer.abandonmentCost.GOLD! * multiplier * 1.3 * 10) / 10,
       FOOD: Math.round(offer.abandonmentCost.FOOD! * multiplier * 1.3 * 10) / 10,
     });
@@ -610,7 +614,7 @@ describe('missions de campagne', () => {
     delete m.reward; // Save from before mission loot existed.
     m.abandonmentCost = { GOLD: 100, FOOD: 60 };
     const quote = missionsView(s, 'a', now).active!.reward!;
-    expect(quote).toEqual({ GOLD: 250, FOOD: 150 });
+    expect(quote).toEqual({ GOLD: 1500, FOOD: 900, WOOD: 900, STONE: 600, IRON: 450 });
     addBuilding(s, s.realms.a, { q: 3, r: 0 }, 'BARRACKS', now, 5);
     prepareDevelopment(s, 'a', 5, now);
     expect(missionsView(s, 'a', now).active!.reward).toEqual(quote);
@@ -618,8 +622,8 @@ describe('missions de campagne', () => {
     delete s.units[m.objectiveId];
     delete s.buildings[m.objectiveId];
     reconcileMissions(s, now);
-    expect(s.realms.a.wallet.GOLD).toBe(before.GOLD + 250);
-    expect(s.realms.a.wallet.FOOD).toBe(before.FOOD + 150);
+    expect(s.realms.a.wallet.GOLD).toBe(before.GOLD + 1500);
+    expect(s.realms.a.wallet.FOOD).toBe(before.FOOD + 900);
   });
   it('renouvelle les offres à dix minutes exactement sans créer de forteresse', () => {
     const s = fixture(),

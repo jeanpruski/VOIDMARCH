@@ -1,3 +1,4 @@
+import { EXPEDITION_REWARD_BOOST } from '@voidmarch/config';
 import { developmentProgress } from '@voidmarch/game-rules';
 import { navalMissionFleet } from '../apps/server/src/naval-missions';
 import { describe, it, expect } from 'vitest';
@@ -115,7 +116,7 @@ describe('missions exceptionnelles et accès normal', () => {
       (0.65 + exp.targetDistance / 150) *
       { RECON: 1, RECOVER: 1.4, EXTRACT: 2.2 }[exp.mode] *
       (exp.route === 'SEA' ? 1.25 : 1);
-    expect(offer.reward!.GOLD).toBe(Math.round(factor * 1.3));
+    expect(offer.reward!.GOLD).toBe(Math.round(factor * 1.3) * EXPEDITION_REWARD_BOOST[exp.mode]);
     expect(expeditionSearchCost(offer.level).FOOD).toBe(120);
     expect(expeditionOffers(JSON.parse(JSON.stringify(s)), 'a', at + 599999)).toEqual(offers);
     const result = execute(

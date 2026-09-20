@@ -1,3 +1,5 @@
+import { SeasonBanner, SeasonOverview, SEASON_TITLE } from './Season';
+import { Modal } from './ui';
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Shield, LoaderCircle } from 'lucide-react';
 import { HeroCreator } from './Hero';
@@ -20,7 +22,8 @@ export function Login() {
     [faction, setFaction] = useState<Faction>('ASH'),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [step, setStep] = useState(0);
+    [step, setStep] = useState(0),
+    [showSeason, setShowSeason] = useState(false);
   const [initial] = useState(() => randomRealmIdentity(''));
   const [heroAppearance, setHeroAppearance] = useState(initial.heroAppearance);
   const [identity, setIdentity] = useState<RealmIdentity>(() => {
@@ -67,6 +70,16 @@ export function Login() {
   return (
     <main className="login">
       <div className="login-art" />
+      {showSeason && (
+        <Modal
+          title={SEASON_TITLE}
+          className="season-modal"
+          wide
+          onClose={() => setShowSeason(false)}
+        >
+          <SeasonOverview onContinue={() => setShowSeason(false)} />
+        </Modal>
+      )}
       <header className="login-header">
         <a className="wordmark" href="/">
           V<span>O</span>IDMARCH
@@ -75,6 +88,12 @@ export function Login() {
       <div
         className={`login-content ${registration ? 'hero-registration realm-registration' : ''}`}
       >
+        <section className="login-season" aria-label={SEASON_TITLE}>
+          <SeasonBanner compact />
+          <button type="button" className="secondary" onClick={() => setShowSeason(true)}>
+            Découvrir la Saison 0
+          </button>
+        </section>
         <form onSubmit={submit}>
           <div className="login-tabs">
             {(

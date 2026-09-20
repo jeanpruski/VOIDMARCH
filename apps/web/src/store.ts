@@ -26,6 +26,7 @@ export type Command = Action extends infer A
     : never
   : never;
 export type Panel =
+  | 'season'
   | 'online'
   | 'missions'
   | 'trophies'

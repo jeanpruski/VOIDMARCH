@@ -1,7 +1,12 @@
 import { developmentProgress } from '@voidmarch/game-rules';
 import { placementOrder, completedExpeditionSites } from './mission-placement';
 import { exceptionalOfferIndex } from './exceptional-missions';
-import { developmentStage, EXPEDITION_GOLD, expeditionSearchCost } from '@voidmarch/config';
+import {
+  developmentStage,
+  EXPEDITION_GOLD,
+  expeditionSearchCost,
+  expeditionReward,
+} from '@voidmarch/config';
 import { expeditionHabitatMatches } from './expedition-habitats';
 import { randomUUID } from 'node:crypto';
 import {
@@ -73,13 +78,7 @@ export function expeditionOffers(s: GameState, id: string, now: number): Mission
             (0.65 + targetDistance / 150) *
             [1, 1.4, 2.2][i] *
             (site.environment === 'SEA' ? 1.25 : 1);
-          const reward = {
-            GOLD: Math.round(factor * 1.3),
-            WOOD: Math.round(0.8 * factor * 1.3),
-            STONE: Math.round(0.65 * factor * 1.3),
-            IRON: Math.round(0.5 * factor * 1.3),
-            FOOD: Math.round(0.9 * factor * 1.3),
-          };
+          const reward = expeditionReward(factor, mode);
           return {
             position,
             offer: {

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { resolve } from 'node:path';
 
 test('les cinq matériaux couvrent les 64 raccords sans dépasser de leur image', async ({

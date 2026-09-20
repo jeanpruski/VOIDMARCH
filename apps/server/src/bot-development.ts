@@ -1,10 +1,9 @@
+import { eraMissing, ERA_COSTS, eraAdvanceReason, buildingUpgradeReason } from '@voidmarch/config';
 import { developmentProgress } from '@voidmarch/game-rules';
 import {
   developmentStage,
-  developmentMissing,
   developmentReason,
   constructionDevelopmentStage,
-  upgradeDevelopmentStage,
 } from '@voidmarch/config';
 import {
   BUILDINGS,
@@ -175,7 +174,7 @@ export function botDevelopment(
       else projects.push({ kind: producers[resource], score: 150 });
     }
   const technology = developmentStage(buildings, developmentProgress(s, r.id));
-  for (const req of developmentMissing(buildings, Math.min(5, technology + 1))) {
+  for (const req of eraMissing(buildings, technology + 1)) {
     const existing = buildings.find((b) => req.kinds.includes(b.kind));
     if (existing) projects.push({ kind: existing.kind, upgrade: existing, score: 114 });
     else ensure(req.kinds[0], 113);
@@ -305,19 +304,38 @@ export function botDevelopment(
       }
   }
   let reserve: Partial<Wallet> = {};
+  if (
+    technology < 5 &&
+    !eraAdvanceReason(buildings, developmentProgress(s, r.id), technology + 1)
+  ) {
+    const cost = ERA_COSTS[technology + 1];
+    reserve = cost;
+    if (canAfford(r.wallet, cost))
+      intents.push({
+        command: { type: 'ADVANCE_ERA', actorId: r.id, payload: { era: technology + 1 } },
+        score: 160,
+      });
+    else {
+      const harvest = gather(cost);
+      if (harvest) intents.push({ command: harvest, score: 120 });
+      if (Math.max(...Object.values(cost)) > cap) {
+        const warehouse = buildings.find((b) => b.kind === 'WAREHOUSE' && b.level < technology);
+        if (warehouse) projects.unshift({ kind: 'WAREHOUSE', upgrade: warehouse, score: 155 });
+        else projects.unshift({ kind: 'WAREHOUSE', score: 155 });
+      }
+    }
+  }
   for (const project of projects) {
     const upgrade = project.upgrade && buildingUpgrade(project.kind, project.upgrade.level);
     if (project.upgrade && (!upgrade || project.upgrade.population < upgrade.population)) continue;
-    if (
-      developmentReason(
-        buildings,
-        upgrade
-          ? upgradeDevelopmentStage(project.kind, upgrade.level)
-          : constructionDevelopmentStage(project.kind),
-        developmentProgress(s, r.id),
-      )
-    )
-      continue;
+    const blocked = upgrade
+      ? buildingUpgradeReason(buildings, project.kind, upgrade, developmentProgress(s, r.id))
+      : developmentReason(
+          buildings,
+          constructionDevelopmentStage(project.kind),
+          developmentProgress(s, r.id),
+        );
+    if (blocked) continue;
     if (
       project.upgrade?.lastDamagedAt !== undefined &&
       project.upgrade.lastDamagedAt > r.lastSeen - 90000
@@ -329,7 +347,11 @@ export function botDevelopment(
       // Grow storage before saving for an investment above the current ceiling.
       const warehouse = owned('WAREHOUSE').find((b) => {
         const u = buildingUpgrade(b.kind, b.level);
-        return u && Math.max(...Object.values(u.cost)) <= cap;
+        return (
+          u &&
+          !buildingUpgradeReason(buildings, b.kind, u, developmentProgress(s, r.id)) &&
+          Math.max(...Object.values(u.cost)) <= cap
+        );
       });
       if (warehouse) {
         cost = buildingUpgrade(warehouse.kind, warehouse.level)!.cost;

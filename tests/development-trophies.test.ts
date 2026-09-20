@@ -6,6 +6,8 @@ import {
   conquestDevelopmentLevel,
   DEVELOPMENT_TROPHIES,
   logisticsQuota,
+  eraAdvanceReason,
+  ERA_REQUIREMENTS,
 } from '@voidmarch/config';
 import {
   createState,
@@ -43,21 +45,27 @@ describe('développement par trophées', () => {
     [20, 4],
     [49, 4],
     [50, 5],
-  ])('%i trophées débloquent au plus le niveau %i', (count, level) => {
+  ])('%i trophées autorisent au plus le passage à l’époque %i', (count, level) => {
     const { s, trophies } = fixture();
     s.missions!.a.trophies = trophies.slice(0, count);
-    expect(stageOf(s)).toBe(level);
-    expect(stageOf(JSON.parse(JSON.stringify(s)))).toBe(level);
+    s.realms.a.era = { version: 1, level: 1 };
+    const sites = Object.entries(ERA_REQUIREMENTS).flatMap(([, reqs]) =>
+      reqs.map((req) => ({ kind: req.kinds[0], level: req.level, hp: 1 })),
+    );
+    for (const target of [2, 3, 4, 5]) {
+      const reason = eraAdvanceReason(sites, { trophies: count, era: target - 1 }, target);
+      expect(reason === '').toBe(target <= level);
+    }
+    expect(stageOf(s)).toBe(1);
+    expect(stageOf(JSON.parse(JSON.stringify(s)))).toBe(1);
     expect(s.missions!.a.trophies).toHaveLength(count);
   });
-  it('ne remplace pas les infrastructures, même avec cinquante trophées', () => {
+  it('ne retire pas une époque acquise après destruction des infrastructures', () => {
     const { s } = fixture();
     const workshop = Object.values(s.buildings).find((b) => b.kind === 'WORKSHOP')!;
     workshop.hp = 0;
-    expect(stageOf(s)).toBe(1);
-    expect(developmentReason(Object.values(s.buildings), 5, developmentProgress(s, 'a'))).toContain(
-      'Atelier',
-    );
+    expect(stageOf(s)).toBe(5);
+    expect(developmentReason(Object.values(s.buildings), 5, developmentProgress(s, 'a'))).toBe('');
   });
   it('cumule conquêtes et expéditions personnelles sans utiliser celles des alliés', () => {
     const { s, trophies } = fixture();
@@ -69,7 +77,7 @@ describe('développement par trophées', () => {
       targetDistance: 70,
     };
     s.missions!.ally = { generation: 0, trophies };
-    expect(stageOf(s)).toBe(3);
+    expect(stageOf(s)).toBe(5);
     expect(developmentProgress(s, 'a').trophies).toBe(5);
     expect(developmentProgress(worldView(s, 'a', now))).toEqual(developmentProgress(s, 'a'));
   });
@@ -77,6 +85,7 @@ describe('développement par trophées', () => {
     const { s, r } = fixture(3);
     s.missions!.a.trophies = [];
     delete r.trophyDevelopment;
+    delete r.era;
     const buildings = Object.values(s.buildings);
     s.archives.a = {
       realm: structuredClone(r),
@@ -93,6 +102,7 @@ describe('développement par trophées', () => {
     expect(stageOf(s)).toBe(3);
     expect(s.archives.a.realm.trophyDevelopment?.grandfatheredLevel).toBe(3);
     prepareDevelopment(s, 'a', 5, now);
+    delete r.era;
     s.missions!.a.trophies = [];
     expect(migrateTrophyDevelopment(s)).toBe(false);
     expect(stageOf(s)).toBe(3);
@@ -103,7 +113,7 @@ describe('développement par trophées', () => {
     const { s, r } = fixture();
     s.missions!.a.trophies = [];
     expect(migrateTrophyDevelopment(s)).toBe(false);
-    expect(stageOf(s)).toBe(1);
+    expect(stageOf(s)).toBe(5);
     expect(
       createRealm('new', 'Neuf', 'ASH', { q: 0, r: 0 }, now).trophyDevelopment?.grandfatheredLevel,
     ).toBe(1);
@@ -114,6 +124,7 @@ describe('développement par trophées', () => {
   it('refuse une amélioration militaire au niveau 4 sans ses vingt trophées, côté serveur et aperçu, sans débit', () => {
     const { s, r, b, trophies } = fixture();
     s.missions!.a.trophies = trophies.slice(0, 19);
+    r.era = { version: 1, level: 3 };
     const cmd = actionSchema.parse({
       type: 'UPGRADE',
       actorId: b.id,
@@ -123,10 +134,11 @@ describe('développement par trophées', () => {
     });
     const rejected = execute(s, 'a', cmd, now);
     expect(rejected.result.accepted).toBe(false);
-    expect(rejected.result.reason).toContain('trophées 19/20');
+    expect(rejected.result.reason).toContain('Époque 4');
     expect(rejected.state).toBe(s);
     expect(predictAction(worldView(s, 'a', now), cmd)).toBeUndefined();
     s.missions!.a.trophies = trophies.slice(0, 20);
+    r.era = { version: 1, level: 4 };
     const accepted = execute(s, 'a', cmd, now);
     expect(accepted.result.accepted, accepted.result.reason).toBe(true);
     expect(accepted.state.missions!.a.trophies).toEqual(trophies.slice(0, 20));
@@ -135,6 +147,7 @@ describe('développement par trophées', () => {
   it('applique le seuil aux recrues et conversions de PA avancées', () => {
     const { s, r, b, trophies } = fixture();
     s.missions!.a.trophies = [];
+    r.era = { version: 1, level: 1 };
     addBuilding(s, r, { q: 3, r: 0 }, 'ARSENAL', now, 3);
     addBuilding(s, r, { q: 4, r: 0 }, 'MUNITIONS', now, 3);
     expect(
@@ -144,7 +157,7 @@ describe('développement par trophées', () => {
         Object.values(s.buildings),
         developmentProgress(s, 'a'),
       ),
-    ).toContain('trophées');
+    ).toContain('Époque 3');
     const center = addBuilding(s, r, { q: 2, r: 0 }, 'LOGISTICS_CENTER', now, 2);
     const cmd = actionSchema.parse({
       type: 'CONVERT_AP',
@@ -153,8 +166,9 @@ describe('développement par trophées', () => {
       actionId: randomUUID(),
       clientTimestamp: now,
     });
-    expect(execute(s, 'a', cmd, now).result.reason).toContain('trophées 0/1');
+    expect(execute(s, 'a', cmd, now).result.reason).toContain('Époque 2');
     s.missions!.a.trophies = trophies.slice(0, 1);
+    s.realms.a.era = { version: 1, level: 2 };
     expect(execute(s, 'a', cmd, now).result.accepted).toBe(true);
     expect(logisticsQuota(stageOf(s), [], now).limit).toBe(15);
   });
@@ -162,6 +176,7 @@ describe('développement par trophées', () => {
     const { s, b, trophies } = fixture();
     b.level = 5;
     s.missions!.a.trophies = trophies.slice(0, 1);
+    s.realms.a.era = { version: 1, level: 2 };
     expect(conquestDevelopmentLevel(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(
       2,
     );

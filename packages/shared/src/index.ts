@@ -134,6 +134,8 @@ export interface SavedArmy {
   updatedAt: number;
 }
 export interface Realm {
+  /** Persisted, monotonic historical era; absence identifies a pre-epoch save. */
+  era?: { version: 1; level: number };
   /** One-time migration; only old trophy requirements are waived, never infrastructure. */
   trophyDevelopment?: { version: 1; grandfatheredLevel: number };
   /** Accumulated active minutes without enough food; no offline accrual. */

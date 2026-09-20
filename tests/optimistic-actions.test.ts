@@ -12,6 +12,7 @@ function fixture() {
   const state = createState('prediction', now),
     realm = addPlayer(state, 'p', 'Test', 'MASK', now);
   prepareTrophies(state, 'p', 2, now);
+  state.realms['p'].era = { version: 1, level: 3 };
   realm.wallet = { GOLD: 200, WOOD: 200, STONE: 200, IRON: 200, FOOD: 200 };
   for (const p of disk({ q: 0, r: 0 }, 4))
     writeTile(state, p, { terrain: 'PLAIN', ownerId: realm.id, road: false });

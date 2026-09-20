@@ -1,4 +1,4 @@
-import { STARTING_RESOURCES } from '@voidmarch/config';
+import { STARTING_RESOURCES, conquestReward } from '@voidmarch/config';
 import { passiveFishingYield } from './naval';
 import { isMaritimeEncounter } from '@voidmarch/config';
 import { archipelagoAt } from './archipelagos';
@@ -286,23 +286,15 @@ export const canAfford = (wallet: Wallet, cost: Partial<Wallet>) =>
 export function transfer(wallet: Wallet, amount: Partial<Wallet>, sign = 1) {
   for (const [k, v] of Object.entries(amount)) wallet[k as keyof Wallet] += v * sign;
 }
-/** Honour accepted quotes; legacy campaigns receive the same reward as new offers. */
 export const missionWallCount = (offer: Pick<MissionOffer, 'wall' | 'wallRadius'>) =>
   offer.wall ? 6 * (offer.wallRadius ?? 2) : 0;
+/** Never reprice an accepted quote; saves predating loot receive a calculated reward. */
 export function missionReward(
   offer: Pick<MissionOffer, 'difficulty' | 'abandonmentCost' | 'reward'>,
   bonus = 1,
 ): Partial<Wallet> {
   if (offer.reward) return { ...offer.reward };
-  const multiplier = { Escarmouche: 2, Assaut: 2.5, Siège: 3, 'Grande campagne': 3 }[
-    offer.difficulty
-  ];
-  return Object.fromEntries(
-    Object.entries(offer.abandonmentCost).map(([resource, cost]) => [
-      resource,
-      Math.round(cost * multiplier * bonus * 10) / 10,
-    ]),
-  );
+  return conquestReward(offer.difficulty, offer.abandonmentCost, bonus);
 }
 export const amount = (w: Partial<Wallet>) => Object.values(w).reduce((a, b) => a + b, 0);
 export function missionAbandonPlan(wallet: Wallet, cost: Partial<Wallet>) {
@@ -1040,6 +1032,7 @@ export function createRealm(
     protectedUntil: bot ? 0 : now + RULES.protection,
     capital,
     explored: {},
+    era: { version: 1, level: 1 },
     trophyDevelopment: { version: 1, grandfatheredLevel: 1 },
     progression: { exploration: 0, battles: 0, commerce: 0, development: 0 },
     relics: [],

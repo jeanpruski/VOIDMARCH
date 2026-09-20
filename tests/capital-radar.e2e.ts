@@ -1,5 +1,5 @@
 import { beginCodeSession } from '../apps/server/src/code-session';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { createState, createRealm } from '@voidmarch/game-rules';
 import { addPlayer, worldView } from '../apps/server/src/engine';
 

@@ -1,3 +1,5 @@
+> La progression courante est décrite dans [Époques du royaume](kingdom-eras.md). Les règles de déblocage automatique ci-dessous décrivent la version antérieure.
+
 # Développement et trophées
 
 Les niveaux de développement 2, 3, 4 et 5 exigent respectivement **1, 5, 20 et 50 trophées au total**. Missions de conquête et expéditions réussies comptent dans le même historique personnel. Les trophées ne sont jamais dépensés ; un abandon, une découverte seule, les médailles d’un allié et le prestige des guerres ne comptent pas. Les conditions cumulatives d’infrastructure restent nécessaires ; les conquêtes conservent également leur condition de recruteur.

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { resolve } from 'node:path';
 import { createState } from '@voidmarch/game-rules';
 import { addPlayer, worldView } from '../apps/server/src/engine';

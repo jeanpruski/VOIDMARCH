@@ -4,6 +4,7 @@ import type { Hex, WorldView } from '@voidmarch/shared';
 import type { Prediction } from './optimistic-actions';
 
 const labels: Record<Action['type'], string> = {
+  ADVANCE_ERA: 'Passage à l’époque suivante',
   PRODUCE_MOBILITY: 'Production des réserves de déplacement',
   CONVERT_AP: 'Conversion des ressources en PA',
   EMBARK: 'Embarquement en cours',

@@ -1,3 +1,5 @@
+import { SeasonBanner } from './Season';
+import { buildingVisualLevel } from '@voidmarch/config';
 import { drawIslandDiscoveries } from './island-art';
 import { installMapPinch } from './map-pinch';
 import { drawExpeditionSites, expeditionSceneryClearings } from './expedition-art';
@@ -128,7 +130,7 @@ class WorldScene extends Phaser.Scene {
       }[];
     }
   >();
-  private panKey?: Phaser.Types.Input.Keyboard.CursorKeys;
+  private panKey?: Pick<Phaser.Types.Input.Keyboard.CursorKeys, 'up' | 'down' | 'left' | 'right'>;
   private centerSet = false;
   private strategic = false;
   private strategicWorld?: WorldView;
@@ -248,7 +250,15 @@ class WorldScene extends Phaser.Scene {
       .setDepth(17001)
       .setName('pending-site-label')
       .setVisible(false);
-    this.panKey = this.input.keyboard?.createCursorKeys();
+    // createCursorKeys also captures Space/Shift, stealing confirmation keys from HTML dialogs.
+    const keyboard = this.input.keyboard;
+    if (keyboard)
+      this.panKey = {
+        up: keyboard.addKey('UP'),
+        down: keyboard.addKey('DOWN'),
+        left: keyboard.addKey('LEFT'),
+        right: keyboard.addKey('RIGHT'),
+      };
     this.input.mouse?.disableContextMenu();
     this.unsubscribe = useGame.subscribe((s, previous) => {
       if (!this.sys.isActive() || !this.cameras.main) return;
@@ -1344,7 +1354,8 @@ class WorldScene extends Phaser.Scene {
           continue;
         }
         const ageTexture = buildingTextureKey(b.kind);
-        const evolved = b.level > 1 && hasBuildingEvolutionArt(b.kind);
+        const visualLevel = buildingVisualLevel(b.kind, b.level);
+        const evolved = visualLevel > 1 && hasBuildingEvolutionArt(b.kind);
         if (evolved && !this.textures.exists(ageTexture) && !this.loadingBuildingArt.has(b.kind)) {
           this.loadingBuildingArt.add(b.kind);
           void buildingAtlas(b.kind)
@@ -1365,7 +1376,7 @@ class WorldScene extends Phaser.Scene {
             p.x,
             p.y - 17,
             useAge ? ageTexture : miniatureTexture(frame),
-            useAge ? buildingEvolutionFrame(b.level) : miniatureFrame(frame),
+            useAge ? buildingEvolutionFrame(visualLevel) : miniatureFrame(frame),
           )
           .setDisplaySize(size, size)
           .setDepth(depth(5000, p.y))
@@ -2108,6 +2119,7 @@ export function GameMap() {
       />
       {loading && (
         <div className="map-loading" role={loadError ? 'alert' : 'status'} aria-live="polite">
+          <SeasonBanner compact />
           {!loadError && (
             <LoaderCircle className="spin" size={36} strokeWidth={1.5} aria-hidden="true" />
           )}

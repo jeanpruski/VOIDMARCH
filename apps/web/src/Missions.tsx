@@ -101,7 +101,8 @@ function MissionRewards({ offer }: { offer: MissionOffer }) {
       <Cost cost={missionReward(offer)} />
       <small>
         Une médaille, le butin garanti et les unités, bâtiments et remparts survivants. Les troupes
-        ralliées comptent dans ta population et ton entretien.
+        ralliées comptent dans ta population et ton entretien. Le butin finance aussi les
+        constructions et améliorations de ta ville.
       </small>
     </div>
   );

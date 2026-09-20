@@ -1,8 +1,7 @@
+import { BUILDING_MIN_ERA, unitRequiredEra, eraAccessReason } from './epochs';
 import {
   BUILDINGS,
-  BUILDING_ECONOMIC_TIERS,
   UNIT_PROFILES,
-  UNIT_TIERS,
   isWall,
   WALL_KINDS,
   type BuildingKind,
@@ -55,6 +54,7 @@ export function developmentMissing(sites: readonly Site[], stage: number) {
 export const DEVELOPMENT_TROPHIES = [0, 0, 1, 5, 20, 50] as const;
 export interface DevelopmentProgress {
   trophies: number;
+  era?: number;
   bot?: boolean;
   /** Pre-update access is exempt from the new trophy condition only. */
   grandfatheredLevel?: number;
@@ -68,6 +68,7 @@ export function developmentTrophiesMet(stage: number, progress: DevelopmentProgr
   );
 }
 export function developmentStage(sites: readonly Site[], progress: DevelopmentProgress) {
+  if (progress.era !== undefined) return progress.era;
   let stage = 1;
   while (
     stage < 5 &&
@@ -99,6 +100,7 @@ export function developmentReason(
   stage: number,
   progress: DevelopmentProgress,
 ) {
+  if (progress.era !== undefined) return eraAccessReason(progress.era, stage);
   const missing = developmentMissing(sites, stage).map(
     (r) => `${r.kinds.map((k) => BUILDINGS[k].name).join(' ou ')} niveau ${r.level}`,
   );
@@ -111,10 +113,9 @@ export function developmentReason(
     : '';
 }
 export function constructionDevelopmentStage(kind: BuildingKind) {
-  const tier = BUILDING_ECONOMIC_TIERS[kind];
-  return tier >= 7 ? 5 : tier >= 5 ? 4 : tier >= 4 ? 3 : 1;
+  return BUILDING_MIN_ERA[kind];
 }
-/** Legacy infrastructure progression retained for bots, which do not earn trophies. */
+/** Historical fallback for snapshots predating persisted kingdom eras. */
 export function upgradeDevelopmentStage(kind: BuildingKind, nextLevel: number) {
   if (kind === 'LOGISTICS_CENTER') return Math.min(5, nextLevel);
   // Producer investment and logistical capacity can precede military advancement.
@@ -124,10 +125,7 @@ export function upgradeDevelopmentStage(kind: BuildingKind, nextLevel: number) {
   return !isWall(kind) && military ? (nextLevel >= 5 ? 4 : nextLevel >= 4 ? 3 : 1) : 1;
 }
 export function unitDevelopmentStage(kind: UnitKind) {
-  if (UNIT_PROFILES[kind].hero || UNIT_PROFILES[kind].builder || UNIT_PROFILES[kind].healer)
-    return 1;
-  const tier = UNIT_TIERS[kind];
-  return tier >= 6 ? 5 : tier >= 5 ? 4 : tier >= 4 ? 3 : tier >= 3 ? 2 : 1;
+  return unitRequiredEra(kind);
 }
 export const EXPEDITION_GOLD = [0, 300, 900, 3000, 9000, 24000] as const;
 export const expeditionSearchCost = (level: number) => ({
@@ -138,8 +136,9 @@ export const expeditionSearchCost = (level: number) => ({
 export const buildingUpgradeLevel = (target: { kind: BuildingKind; level: number }) =>
   isWall(target.kind) ? WALL_KINDS.indexOf(target.kind) + 1 : target.level;
 
-/** Personal trophies unlock building levels, without requiring that level's infrastructure. */
+/** Epoch cap for current worlds; trophy-only fallback for historical snapshots. */
 export function upgradeTrophyReason(level: number, progress: DevelopmentProgress) {
+  if (progress.era !== undefined) return eraAccessReason(progress.era, level);
   const required = developmentTrophyRequirement(level);
   return progress.bot || progress.trophies >= required
     ? ''
@@ -151,7 +150,15 @@ export function buildingUpgradeReason(
   target: { kind: BuildingKind; level: number },
   progress: DevelopmentProgress,
 ) {
+  if (progress.era !== undefined)
+    return eraAccessReason(
+      progress.era,
+      Math.max(buildingUpgradeLevel(target), BUILDING_MIN_ERA[target.kind]),
+    );
   return progress.bot
     ? developmentReason(sites, upgradeDevelopmentStage(currentKind, target.level), progress)
     : upgradeTrophyReason(buildingUpgradeLevel(target), progress);
 }
+
+/** Historical era, separate from the local recruiter level. */
+export const unitTechnologyLevel = unitRequiredEra;

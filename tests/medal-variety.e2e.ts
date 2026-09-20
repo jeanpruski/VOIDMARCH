@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { resolve } from 'node:path';
 import { createMissionTrophy } from '../apps/server/src/mission-trophies';
 import type { ActiveMission } from '@voidmarch/shared';

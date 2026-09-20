@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { WALL_KINDS } from '@voidmarch/config';
 import { createState, disk, distance, key, tileAt, writeTile } from '@voidmarch/game-rules';
 import { addBuilding, addPlayer, execute, worldView } from '../apps/server/src/engine';

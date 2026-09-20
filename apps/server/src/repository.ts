@@ -1,5 +1,5 @@
 import { migrateArchipelagos } from '@voidmarch/game-rules';
-import { migrateTrophyDevelopment } from '@voidmarch/game-rules';
+import { migrateTrophyDevelopment, migrateKingdomEras } from '@voidmarch/game-rules';
 import { migrateBotLand } from './bot-land-migration';
 import { ensureHeroes } from './heroes';
 import { createHash } from 'node:crypto';
@@ -45,6 +45,7 @@ export class WorldRepository {
             migrateResourceWallets(state);
             migrateProgression(state);
             migrateTrophyDevelopment(state);
+            migrateKingdomEras(state);
             migrateOceans(state);
             migrateArchipelagos(state);
             migrateBotLand(state, Date.now());

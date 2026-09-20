@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 test('création en trois étapes : identité assortie, aperçu, retour et inscription', async ({
   page,
 }) => {

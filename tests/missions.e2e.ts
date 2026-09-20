@@ -1,6 +1,6 @@
 import { prepareDevelopment } from './fixtures/development';
 import { strategy } from '../apps/server/src/strategy';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/game-test';
 import { resolve } from 'node:path';
 import { UNITS, formatNumber } from '@voidmarch/config';
 import { createState, createRealm } from '@voidmarch/game-rules';

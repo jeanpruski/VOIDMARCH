@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/game-test';
 import { UNITS, BIOMES, type Biome, type UnitKind } from '@voidmarch/config';
 import { createState, disk, key, writeTile, refreshWorldTraining } from '@voidmarch/game-rules';
 import { addPlayer, addBuilding, execute, worldView } from '../apps/server/src/engine';

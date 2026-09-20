@@ -166,7 +166,8 @@ describe('partage des trophées de l’alliance', () => {
     expect(s.missions.offline.generation).toBe(7);
     expect(s.missions.outsider).toBeUndefined();
     expect(s.missions.deleted).toBeUndefined();
-    expect(upgradeTrophyReason(2, developmentProgress(s, 'offline'))).toBe('');
+    expect(developmentProgress(s, 'offline').trophies).toBe(1);
+    expect(upgradeTrophyReason(2, developmentProgress(s, 'offline'))).toContain('Époque 2');
     shared.medal.name = 'copie indépendante';
     expect(s.missions.a.trophies![0].medal.name).toBe(trophy.medal.name);
   });
