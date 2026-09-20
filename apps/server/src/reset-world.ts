@@ -15,7 +15,7 @@ export function freshWorld(seed: string, now = Date.now()) {
   ensureHeroes(state, now);
   const realms = Object.values(state.realms);
   if (realms.length !== RULES.botCount || realms.some((r) => !r.bot))
-    throw new Error('Le nouveau monde ne contient pas exactement trois bots.');
+    throw new Error(`Le nouveau monde ne contient pas exactement ${RULES.botCount} bots.`);
   return state;
 }
 

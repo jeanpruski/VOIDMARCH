@@ -14,12 +14,12 @@ import { settle } from '../apps/server/src/engine';
 import { migrateBotLand, smallStartingIsland } from '../apps/server/src/bot-land-migration';
 const now = 1900000000000;
 describe('départs terrestres et migration des bots isolés', () => {
-  it('installe les trois bots sur une région terrestre avec huit cases de marge', () => {
+  it('installe les deux bots sur une région terrestre avec huit cases de marge', () => {
     const s = createState('voidmarch-vhal-01', now);
     migrateOceans(s);
     new BotDirector().reconcile(s, now, 0);
     const bots = Object.values(s.realms);
-    expect(bots).toHaveLength(3);
+    expect(bots).toHaveLength(2);
     for (const b of bots) {
       expect(disk(b.capital, 8).every((p) => !isSea(tileAt(s, p).terrain))).toBe(true);
       expect(smallStartingIsland(s, b.capital)).toBe(false);

@@ -4,9 +4,9 @@ import { freshWorld, resetWorld } from '../apps/server/src/reset-world';
 import { BotDirector } from '../apps/server/src/bots';
 
 describe('remise à zéro complète', () => {
-  it('recrée un monde sans humain ni historique, avec trois bots durables', () => {
+  it('recrée un monde sans humain ni historique, avec deux bots durables', () => {
     const s = freshWorld('reset-test', 1900000000000);
-    expect(Object.values(s.realms)).toHaveLength(3);
+    expect(Object.values(s.realms)).toHaveLength(2);
     expect(Object.values(s.realms).every((r) => r.bot && !r.temporary)).toBe(true);
     expect(s.archives).toEqual({});
     expect(s.proposals).toEqual({});
@@ -16,7 +16,7 @@ describe('remise à zéro complète', () => {
     expect(Object.values(s.buildings).every((b) => s.realms[b.ownerId]?.bot)).toBe(true);
     for (const humans of [0, 1, 2, 20, 0]) {
       new BotDirector().reconcile(s, 1900000000001, humans);
-      expect(Object.values(s.realms)).toHaveLength(3);
+      expect(Object.values(s.realms)).toHaveLength(2);
     }
   });
   const fixture = () => {
@@ -80,12 +80,12 @@ describe('remise à zéro complète', () => {
       'users',
       'worlds',
     ]);
-    expect(result).toEqual({ backupPath: '.data/backups/test.json', deletedUsers: 1, bots: 3 });
+    expect(result).toEqual({ backupPath: '.data/backups/test.json', deletedUsers: 1, bots: 2 });
     const created = tx.worldState.create.mock.calls[0][0] as {
       data: { id: string; data: { realms: Record<string, { bot: boolean }> } };
     };
     expect(created.data.id).toBe('main');
-    expect(Object.values(created.data.data.realms)).toHaveLength(3);
+    expect(Object.values(created.data.data.realms)).toHaveLength(2);
     expect(Object.values(created.data.data.realms).every((r) => r.bot)).toBe(true);
     expect(tx.$executeRaw).toHaveBeenCalledTimes(2);
   });

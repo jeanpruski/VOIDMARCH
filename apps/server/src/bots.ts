@@ -89,7 +89,7 @@ export class BotDirector {
         );
       r.landSpawnVersion = 1;
       r.personality = personalities[i % personalities.length];
-      r.temporary = bots.length >= 3;
+      r.temporary = false;
       r.nextBotAt = now + this.options.botInterval * (0.85 + hash(id) * 0.3);
       settle(s, r, now);
       bots.push(r);
