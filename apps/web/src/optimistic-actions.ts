@@ -1,3 +1,5 @@
+import { isOffshoreBuilding } from '@voidmarch/config';
+import { offshoreAccessReason } from '@voidmarch/game-rules';
 import { constructionSiteReason } from './construction';
 import { canFoundOutpost } from '@voidmarch/game-rules';
 import { developmentProgress } from '@voidmarch/game-rules';
@@ -172,6 +174,12 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
         constructionSiteReason(world, t, p.kind)
       )
         return;
+      const offshore = isOffshoreBuilding(p.kind);
+      if (
+        offshore &&
+        offshoreAccessReason(p, id, buildings, unit ? [unit] : [], (x) => tiles.get(key(x)))
+      )
+        return;
       const nearby = unit && UNIT_PROFILES[unit.kind].builder && distance(unit, p) <= 1;
       if (
         !!developmentReason(
@@ -180,7 +188,8 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
           developmentProgress(world),
         ) ||
         (t.enclosureOwnerId && !nearby) ||
-        (t.ownerId !== id &&
+        (!offshore &&
+          t.ownerId !== id &&
           !canFoundOutpost(p.kind, id, t, unit) &&
           !(
             nearby &&

@@ -1713,15 +1713,15 @@ export const BUILDING_POPULATION: Partial<Record<BuildingKind, number>> = {
   OUTPOST: 10,
 };
 export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
-  PORT: 'Sur la côte : forme les transports maritimes et ravitaille les flottes à deux cases. Un nouveau transport se place sur une eau voisine libre.',
+  PORT: 'Dans l’eau, directement contre une plage : forme les transports maritimes et ravitaille les flottes à deux cases. Un bâtisseur doit travailler depuis la plage voisine. Les navires apparaissent sur une case d’eau libre du port ou de ses voisines.',
   SHIPYARD:
-    'Sur la côte : construit éclaireurs, frégates, destroyers et cuirassés selon son niveau. Entraîne les équipages.',
+    'Dans l’eau, directement contre une plage : construit éclaireurs, frégates, destroyers et cuirassés selon son niveau. Entraîne les équipages.',
   NAVAL_FISHERY:
-    'Sur la côte : produit des vivres et forme les bateaux de pêche. La pêche active en mer coûte 1 PA.',
+    'Dans l’eau, directement contre une plage : produit des vivres et forme les bateaux de pêche. La pêche active en mer coûte 1 PA.',
   SUBMARINE_BASE:
-    'Sur la côte : sous-marins aux niveaux 3 à 5. Sonar à partir du niveau 3, portée niveau moins un.',
+    'Dans l’eau, directement contre une plage : sous-marins aux niveaux 3 à 5. Sonar à partir du niveau 3, portée niveau moins un.',
   COASTAL_BATTERY:
-    'Sur la côte : artillerie défensive commandée, 1 PA par tir. Puissance et portée augmentent à chaque niveau. Sonar à partir du niveau 3.',
+    'À terre, directement contre la mer : artillerie défensive commandée, 1 PA par tir. Puissance et portée augmentent à chaque niveau. Sonar à partir du niveau 3.',
   STEAM_SAWMILL:
     'Exploitation industrielle du bois : 48 bois/min, uniquement en forêt. Exige une scierie et un atelier. Débloque la scierie des ombres. Production +80 % au niveau 2, +200 % au niveau 3, +400 % au niveau 4 et +700 % au niveau 5 ; stockage local dès le niveau 2.',
   MECHANIZED_QUARRY:

@@ -151,14 +151,15 @@ describe('flottes et côtes', () => {
     const s = fixture();
     const r = s.realms.p;
     expect(run(s, 'BUILD', 'p', { q: -2, r: 0, kind: 'PORT' }).result.accepted).toBe(false);
-    const build = run(s, 'BUILD', 'p', { q: 2, r: 0, kind: 'PORT' });
+    unit(s, 'builder', 'PEASANT', { q: 2, r: 0 });
+    const build = run(s, 'BUILD', 'builder', { q: 3, r: 0, kind: 'PORT' });
     expect(build.result.accepted, build.result.reason).toBe(true);
     const b = Object.values(build.state.buildings).find((b) => b.kind === 'PORT')!;
     const recruit = run(build.state, 'RECRUIT', b.id, { kind: 'TROOP_FERRY' });
     expect(recruit.result.accepted, recruit.result.reason).toBe(true);
     const ship = Object.values(recruit.state.units).find((u) => u.kind === 'TROOP_FERRY')!;
     expect(isSea(tileAt(recruit.state, ship).terrain)).toBe(true);
-    expect(tileAt(recruit.state, ship).ownerId).toBeUndefined();
+    expect([undefined, 'p']).toContain(tileAt(recruit.state, ship).ownerId);
     expect(recruit.state.realms.p.wallet.GOLD).toBe(
       build.state.realms.p.wallet.GOLD - UNITS.TROOP_FERRY.cost.GOLD,
     );

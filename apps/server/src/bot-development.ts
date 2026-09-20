@@ -8,6 +8,7 @@ import {
 } from '@voidmarch/config';
 import {
   BUILDINGS,
+  isOffshoreBuilding,
   BUILDING_REQUIREMENTS,
   UNIT_PROFILES,
   UNITS,
@@ -23,6 +24,7 @@ import {
 } from '@voidmarch/config';
 import {
   navalConstructionReason,
+  isCoastalBuilder,
   recruitmentTileAllowed,
   allRealmUnits,
   armyPopulation,
@@ -265,13 +267,22 @@ export function botDevelopment(
         return cost(a) - cost(b) || key(a).localeCompare(key(b));
       });
     for (const p of possible) {
-      const builder = builders.find((u) => distance(u, p) <= 1);
+      const builder = builders.find((u) =>
+        isOffshoreBuilding(kind)
+          ? isCoastalBuilder(u, p, r.id, (x) => tileAt(s, x))
+          : distance(u, p) <= 1,
+      );
       if (builder) return { type: 'BUILD', actorId: builder.id, payload: { ...p, kind } };
     }
     // Route to a work position, not necessarily onto an impassable mountain quarry.
     for (const p of possible.slice(0, 12))
       for (const u of builders.slice().sort((a, b) => distance(a, p) - distance(b, p)))
         for (const work of [p, ...neighbors(p)].sort((a, b) => distance(u, a) - distance(u, b))) {
+          if (
+            isOffshoreBuilding(kind) &&
+            (tileAt(s, work).terrain !== 'BEACH' || distance(work, p) !== 1)
+          )
+            continue;
           const move = moveToward(u, work);
           if (move) return move;
         }

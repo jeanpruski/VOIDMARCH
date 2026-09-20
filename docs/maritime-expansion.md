@@ -12,7 +12,7 @@ Le départ garantit huit cases de terre autour d’une capitale. La mer demeure 
 
 ## Installations : cinq niveaux et cinq illustrations
 
-Toutes les installations maritimes se construisent sur une plage, une plaine, une colline ou des ruines directement voisines de la mer, avec les mêmes règles de propriété et de bâtisseur que les autres chantiers.
+Les ports, chantiers navals, pêcheries maritimes et bases des profondeurs se construisent dans l’eau directement voisine d’une plage, avec un bâtisseur sur cette plage. La batterie côtière reste sur une plage, une plaine, une colline ou des ruines directement voisines de la mer.
 
 | Installation         | Utilité                                                    | Prérequis supplémentaires |
 | -------------------- | ---------------------------------------------------------- | ------------------------- |
@@ -34,7 +34,7 @@ Les niveaux appliquent les coûts croissants, les gains de production et l’ent
 | 4 · Avancée      | Collecteur pélagique      | Transport amphibie Bastion | Frégate lance-missiles  | Sous-marin Spectre         |
 | 5 · Atomique     | Moissonneur des abysses   | Arche de la nuit liquide   | Cuirassé du soleil noyé | Léviathan submersible      |
 
-Les navires apparaissent sur une eau adjacente libre, qui peut être neutre. Ils naviguent uniquement en mer et eaux côtières, pour 1 PA par déplacement dans la limite de leur mouvement. Les routes et terres possédées ne donnent aucun mouvement illimité en mer. Les aéronefs survolent l’eau ; les unités terrestres doivent embarquer.
+Les navires apparaissent sur une case d’eau libre du bâtiment ou de ses voisines, neutre ou à leur royaume. Ils naviguent uniquement en mer et eaux côtières, pour 1 PA par déplacement dans la limite de leur mouvement. Les routes et terres possédées ne donnent aucun mouvement illimité en mer. Les aéronefs survolent l’eau ; les unités terrestres doivent embarquer.
 
 La pêche est une action de 1 PA : 40 / 160 / 360 / 640 / 1 000 vivres selon l’époque, limitée au stockage disponible. Les bateaux de pêche ne combattent pas. Les transports gardent une vision de 2, avec 4 / 8 / 12 / 16 / 24 places. Fantassin : 1 ; cavalerie : 2 ; moto ou voiture légère : 4 ; blindé lourd ou siège : 8 dans les transports qui les acceptent. Le bac initial ne prend que les fantassins. Les navires et aéronefs ne s’embarquent pas.
 
@@ -63,3 +63,14 @@ Images générées avec l’outil intégré **imagegen**, puis intégrées dans 
 Prompts : [cinq époques](naval-art-prompts.json), [découvertes](naval-event-art-prompt.txt). La planche Empire a été corrigée pour imposer trois images par rangée ; les découvertes ont reçu une correction de transparence. Aucun drapeau ou insigne de régime réel n’est utilisé.
 
 Tests : `tests/naval.test.ts` couvre migration, stabilité, géographie, mouvement, recrutement sur l’eau, pêche, transport, naufrage, tirs, furtivité, missions et commerce. `tests/naval.e2e.ts` vérifie les six atlas, les variantes de bâtiments, la carte et les commandes dans Chrome. Les suites existantes contrôlent également recrutement, projectiles, économie, missions et transports.
+
+
+## Implantation des nouvelles installations
+
+Le port, le chantier naval, la pêcherie maritime et la base des profondeurs se construisent désormais sur une case `COAST` ou `SEA` directement voisine d’une **plage**. Aucune case d’eau intermédiaire : le chantier touche la plage. La batterie côtière reste sur une plage, plaine, colline ou ruine directement voisine de la mer.
+
+Un paysan ou ingénieur actif doit se tenir sur une plage voisine du chantier, neutre ou à soi. Il reste sur la rive : les troupes terrestres ne marchent pas dans l’eau. Le chantier marin doit être à trois cases d’un bâtiment du royaume, ou être accessible depuis la plage déjà revendiquée du bâtisseur (ou être sur une case déjà possédée). L’installation revendique uniquement sa case ; ni la mer alentour ni la plage ne sont capturées automatiquement.
+
+La sélection d’une case d’eau admissible ouvre le catalogue Construire ; les cases possibles s’allument autour du bâtisseur. Les constructions terrestres restent interdites en mer. Les restrictions d’occupation, d’expédition, de développement et de ressources restent applicables. Les bots préparent le chantier depuis une plage également.
+
+Les bâtiments côtiers existants sont conservés sur leurs cases : leur recrutement, production, amélioration et démolition continuent de fonctionner. Aucun déplacement automatique ni changement de terrain de la sauvegarde.

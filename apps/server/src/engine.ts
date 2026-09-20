@@ -1,3 +1,5 @@
+import { isOffshoreBuilding } from '@voidmarch/config';
+import { offshoreAccessReason } from '@voidmarch/game-rules';
 import { canFoundOutpost } from '@voidmarch/game-rules';
 import { migrateTrophyDevelopment } from '@voidmarch/game-rules';
 import { developmentProgress } from '@voidmarch/game-rules';
@@ -965,6 +967,17 @@ export function applyAction(
       const coastReason = navalConstructionReason(p.kind, p, (x) => tileAt(s, x));
       requireRule(!coastReason, coastReason);
       const builder = s.units[a.actorId];
+      const offshore = isOffshoreBuilding(p.kind);
+      if (offshore) {
+        const access = offshoreAccessReason(
+          p,
+          id,
+          realmBuildings(s, id),
+          builder ? [builder] : [],
+          (x) => tileAt(s, x),
+        );
+        requireRule(!access, access);
+      }
       const nearbyBuilder =
         builder?.ownerId === id && UNIT_PROFILES[builder.kind].builder && distance(builder, p) <= 1;
       requireRule(
@@ -976,7 +989,7 @@ export function applyAction(
         !t.ownerId &&
         realmBuildings(s, id).some((b) => distance(b, p) <= RULES.constructionRadius);
       requireRule(
-        t.ownerId === id || frontier || canFoundOutpost(p.kind, id, t, builder),
+        offshore || t.ownerId === id || frontier || canFoundOutpost(p.kind, id, t, builder),
         'Construisez sur vos terres ou à 3 cases maximum de vos bâtiments. Pour fonder une base éloignée, placez un paysan sur une terre neutre et construisez un avant-poste.',
       );
       const missing = (BUILDING_REQUIREMENTS[p.kind] ?? []).find(

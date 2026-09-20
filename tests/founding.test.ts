@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import {
   isNavalBuilding,
+  isOffshoreBuilding,
   BUILDINGS,
   BUILDING_REQUIREMENTS,
   UNITS,
@@ -153,13 +154,27 @@ describe('catalogue étendu', () => {
       r = s.realms.founder,
       p = { q: 8, r: 0 };
     r.wallet = { ...BUILDINGS[kind].cost };
-    if (isNavalBuilding(kind)) writeTile(s, neighbors(p)[0], { terrain: 'COAST' });
+    let actorId = r.id;
+    if (isOffshoreBuilding(kind)) {
+      const shore = neighbors(p)[0];
+      writeTile(s, shore, { terrain: 'BEACH', ownerId: r.id });
+      actorId = 'dock-builder';
+      s.units[actorId] = {
+        id: actorId,
+        ownerId: r.id,
+        kind: 'PEASANT',
+        ...shore,
+        hp: 12,
+        createdAt: now,
+        updatedAt: now,
+      };
+    } else if (isNavalBuilding(kind)) writeTile(s, neighbors(p)[0], { terrain: 'COAST' });
     writeTile(s, p, { terrain: BUILDINGS[kind].terrains[0] as Terrain, ownerId: r.id });
     (BUILDING_REQUIREMENTS[kind] ?? []).forEach((k, i) =>
       addBuilding(s, r, { q: 12 + i, r: 0 }, k, now),
     );
     prepareDevelopment(s, r.id, constructionDevelopmentStage(kind), now);
-    const result = execute(s, r.id, action('BUILD', r.id, { ...p, kind }), now);
+    const result = execute(s, r.id, action('BUILD', actorId, { ...p, kind }), now);
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(
       realmBuildings(result.state, r.id).some((b) => b.kind === kind && b.q === p.q && b.r === p.r),

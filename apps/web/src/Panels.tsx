@@ -1,3 +1,5 @@
+import { isOffshoreBuilding, isSea } from '@voidmarch/config';
+import { isCoastalBuilder } from '@voidmarch/game-rules';
 import { developmentProgress } from '@voidmarch/game-rules';
 import { anomalyAPReward } from '@voidmarch/game-rules';
 import { Development } from './Development';
@@ -1065,7 +1067,13 @@ function Build() {
       w.units.find(
         (u) => u.ownerId === w.player.id && UNIT_PROFILES[u.kind].builder && distance(u, tile) <= 1,
       ));
+  const coastalBuilder =
+    tile &&
+    w.units.find((u) =>
+      isCoastalBuilder(u, tile, w.player.id, (p) => w.tiles.find((t) => key(t) === key(p))),
+    );
   const siteReason = constructionSiteReason(w, tile);
+  const offshoreSiteReason = constructionSiteReason(w, tile, 'PORT');
   const ordinarySiteReason = constructionSiteReason(w, tile, 'CAMP');
   const buildable = (
     Object.entries(BUILDINGS) as [BuildingKind, (typeof BUILDINGS)[BuildingKind]][]
@@ -1091,7 +1099,11 @@ function Build() {
           constructionDevelopmentStage(kind),
           developmentProgress(w),
         ) ||
-        (kind === 'OUTPOST' ? siteReason : ordinarySiteReason) ||
+        (isOffshoreBuilding(kind)
+          ? offshoreSiteReason
+          : kind === 'OUTPOST'
+            ? constructionSiteReason(w, tile, kind)
+            : ordinarySiteReason) ||
         (tile
           ? navalConstructionReason(kind, tile, (p) => w.tiles.find((t) => key(t) === key(p)))
           : '') ||
@@ -1167,6 +1179,13 @@ function Build() {
           : 'Sélectionnez un terrain'}{' '}
         · Construction : 1 PA
       </p>
+      {isSea(tile?.terrain) && (
+        <p className="catalog-context">
+          Chantier sur l’eau, directement contre une plage. Gardez un paysan ou un ingénieur sur
+          cette plage ; si vous êtes loin de vos bâtiments, revendiquez-la d’abord. La batterie
+          côtière se construit à terre.
+        </p>
+      )}
       <CatalogToolbar
         query={query}
         onQuery={setQuery}
@@ -1391,7 +1410,8 @@ function Build() {
                   tile &&
                   void send({
                     type: 'BUILD',
-                    actorId: builder?.id ?? w.player.id,
+                    actorId:
+                      (isOffshoreBuilding(kind) ? coastalBuilder : builder)?.id ?? w.player.id,
                     payload: { q: tile.q, r: tile.r, kind },
                   })
                 }

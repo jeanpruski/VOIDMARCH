@@ -540,7 +540,7 @@ export const NAVAL_BUILDINGS = {
     capture: 4,
     cost: { GOLD: 100, WOOD: 150, STONE: 60, IRON: 20, FOOD: 0 },
     production: {},
-    terrains: ['BEACH', 'PLAIN', 'HILL', 'RUINS'],
+    terrains: ['COAST', 'SEA'],
   },
   SHIPYARD: {
     name: 'Chantier naval',
@@ -548,7 +548,7 @@ export const NAVAL_BUILDINGS = {
     capture: 4,
     cost: { GOLD: 250, WOOD: 200, STONE: 100, IRON: 90, FOOD: 0 },
     production: {},
-    terrains: ['BEACH', 'PLAIN', 'HILL', 'RUINS'],
+    terrains: ['COAST', 'SEA'],
   },
   NAVAL_FISHERY: {
     name: 'Pêcherie maritime',
@@ -556,7 +556,7 @@ export const NAVAL_BUILDINGS = {
     capture: 4,
     cost: { GOLD: 100, WOOD: 120, STONE: 30, IRON: 10, FOOD: 0 },
     production: { FOOD: 8 },
-    terrains: ['BEACH', 'PLAIN', 'HILL', 'RUINS'],
+    terrains: ['COAST', 'SEA'],
   },
   SUBMARINE_BASE: {
     name: 'Base des profondeurs',
@@ -564,7 +564,7 @@ export const NAVAL_BUILDINGS = {
     capture: 4,
     cost: { GOLD: 700, WOOD: 100, STONE: 300, IRON: 500, FOOD: 0 },
     production: {},
-    terrains: ['BEACH', 'PLAIN', 'HILL', 'RUINS'],
+    terrains: ['COAST', 'SEA'],
   },
   COASTAL_BATTERY: {
     name: 'Batterie côtière',
@@ -600,3 +600,6 @@ export const NAVAL_BUILDING_FRAMES = {
 export const isSea = (terrain?: string) => terrain === 'SEA' || terrain === 'COAST';
 export const isNavalBuilding = (kind: string): kind is NavalBuildingKind =>
   Object.hasOwn(NAVAL_BUILDINGS, kind);
+
+export const isOffshoreBuilding = (kind: string) =>
+  isNavalBuilding(kind) && kind !== 'COASTAL_BATTERY';
