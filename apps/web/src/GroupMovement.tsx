@@ -1,3 +1,4 @@
+import { movementPaymentLabel } from '@voidmarch/config';
 import { ArmyEditor } from './SavedArmies';
 import { Supplies } from './Supplies';
 import { ArrowUpRight, Users, X } from 'lucide-react';
@@ -53,7 +54,7 @@ export function GroupMovement() {
         </button>
         <ActionButton shortcut="D" className="primary" disabled={pending} onClick={start}>
           <ArrowUpRight size={16} /> Déplacer{' '}
-          <small>Gratuit sur routes / enceintes · sinon 1 PA par troupe</small>
+          <small>Routes / enceintes gratuites · réserves avant les PA</small>
         </ActionButton>
         {plan && (
           <ActionButton
@@ -69,7 +70,8 @@ export function GroupMovement() {
                 });
             }}
           >
-            Confirmer{plan.cost > 0 ? ` · ${plan.cost} PA` : ''}
+            Confirmer ·{' '}
+            {movementPaymentLabel({ ap: plan.cost, fuel: plan.fuel, pervitin: plan.pervitin })}
           </ActionButton>
         )}
         <button
@@ -108,7 +110,12 @@ export function GroupMovement() {
         <>
           <p role="status">
             {plan.orders.length} troupe(s) avanceront · {plan.stationary.length} resteront sur place
-            · <strong>{plan.cost} PA au total</strong>.
+            ·{' '}
+            <strong>
+              {movementPaymentLabel({ ap: plan.cost, fuel: plan.fuel, pervitin: plan.pervitin })} au
+              total
+            </strong>
+            .
             {!enough && (
               <span className="group-movement-error">
                 {' '}

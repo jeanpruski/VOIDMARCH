@@ -1,3 +1,11 @@
+import {
+  mobilityLevel,
+  mobilityLimits,
+  mobilitySources,
+  mobilityCost,
+  MOBILITY_NAMES,
+} from '@voidmarch/config';
+import { logisticsDiscount, LOGISTICS_RECIPES } from '@voidmarch/config';
 import { developmentReason, upgradeDevelopmentStage } from '@voidmarch/config';
 import { TrainingUpgrade } from './ArmySupport';
 import { recruitmentLevel, type UnitKind } from '@voidmarch/config';
@@ -34,6 +42,9 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
   const pending = useGame((s) => s.pending);
   const now = useGame((s) => s.now);
   const upgrade = buildingUpgrade(b.kind, b.level);
+  const owned = world.tiles.flatMap((t) =>
+    t.building?.ownerId === world.player.id ? [t.building] : [],
+  );
   const developmentError = upgrade
     ? developmentReason(
         world.tiles.flatMap((t) => (t.building?.ownerId === world.player.id ? [t.building] : [])),
@@ -130,6 +141,49 @@ export function UpgradeBuilding({ building: b }: { building: NonNullable<ViewTil
                 </p>
               )}
               <ul>
+                {mobilitySources(b.kind).map((resource) => {
+                  const current = mobilityLevel(owned, resource);
+                  const next = mobilityLevel(
+                    owned.map((site) => (site.id === b.id ? { ...site, ...upgrade } : site)),
+                    resource,
+                  );
+                  const before = mobilityLimits(current),
+                    after = mobilityLimits(next);
+                  const oldCost = mobilityCost(b.kind, current, resource, 1),
+                    newCost = mobilityCost(upgrade.kind, next, resource, 1);
+                  return (
+                    <li key={resource}>
+                      {MOBILITY_NAMES[resource]} : stockage partagé {before.capacity} →{' '}
+                      {after.capacity} ; quota partagé {before.hourly} → {after.hourly} points/h.{' '}
+                      Tarif par point :{' '}
+                      {RESOURCES.filter((r) => (oldCost[r] ?? 0) > 0)
+                        .map((r) => `${RESOURCE_NAMES[r]} ${oldCost[r]} → ${newCost[r]}`)
+                        .join(', ')}
+                      .{' '}
+                      {next === current
+                        ? 'Un autre producteur fixe déjà le niveau de cette filière.'
+                        : 'Ce niveau fixe également les tarifs dans vos autres producteurs de cette ressource.'}
+                    </li>
+                  );
+                })}
+
+                {b.kind === 'LOGISTICS_CENTER' && (
+                  <>
+                    <li>
+                      Réduction sur les conversions : {logisticsDiscount(b.level)} % →{' '}
+                      {logisticsDiscount(upgrade.level)} %. Le quota reste partagé et dépend du
+                      développement du royaume.
+                    </li>
+                    {Object.values(LOGISTICS_RECIPES)
+                      .filter((r) => r.level === upgrade.level)
+                      .map((r) => (
+                        <li key={r.name}>
+                          Nouvelle recette : {r.name} (développement {r.stage} requis).
+                        </li>
+                      ))}
+                  </>
+                )}
+
                 <li>
                   Solidité : {format(BUILDINGS[b.kind].hp * b.level)} →{' '}
                   {format(BUILDINGS[upgrade.kind].hp * upgrade.level)} PV maximum. Le bâtiment est

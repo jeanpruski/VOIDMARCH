@@ -18,6 +18,43 @@ export function buildingAtlas(kind: BuildingKind): Promise<HTMLCanvasElement> {
   let request = atlases.get(kind);
   if (!request) {
     request = (async () => {
+      if (kind === 'LOGISTICS_CENTER') {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+        await Promise.all(
+          [2, 3, 4, 5].map(async (level, i) => {
+            const img = new Image();
+            img.src = `/assets/logistics-center-${level}.png`;
+            await img.decode();
+            const input = document.createElement('canvas');
+            input.width = img.naturalWidth;
+            input.height = img.naturalHeight;
+            const source = input.getContext('2d', { willReadFrequently: true })!;
+            source.drawImage(img, 0, 0);
+            const [frame] = isolateSprites(
+              source.getImageData(0, 0, input.width, input.height).data,
+              input.width,
+              input.height,
+              1,
+              1,
+            );
+            const tile = document.createElement('canvas');
+            tile.width = frame.width;
+            tile.height = frame.height;
+            const output = tile.getContext('2d')!;
+            const pixels = output.createImageData(frame.width, frame.height);
+            pixels.data.set(frame.pixels);
+            output.putImageData(pixels, 0, 0);
+            const scale = Math.min(216 / frame.width, 216 / frame.height);
+            const w = frame.width * scale,
+              h = frame.height * scale;
+            ctx.drawImage(tile, i * 256 + (256 - w) / 2, 236 - h, w, h);
+          }),
+        );
+        return canvas;
+      }
       if (isNavalBuilding(kind)) {
         const canvas = document.createElement('canvas');
         canvas.width = 1024;

@@ -1,3 +1,4 @@
+import { movementPayment } from '@voidmarch/config';
 import { movementAPCost, anomalyAPReward } from '@voidmarch/game-rules';
 import {
   developmentReason,
@@ -70,7 +71,7 @@ export interface Prediction {
 /** Visual prediction only, using the player's visible information. Never grants vision,
  * rolls rare units, resolves combat or changes the authoritative state. */
 export function predictAction(source: WorldView, action: Action): Prediction | undefined {
-  if (source.player.defeatedAt) return;
+  if (source.player.defeatedAt || source.player.vigieTargetId) return;
   if (action.type === 'MOVE_GROUP') {
     if (
       action.actorId !== source.player.id ||
@@ -134,6 +135,11 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
         cost += movementCost({ ...p, terrain: tile.terrain, road: tile.road }, unit.kind);
         cursor = { ...unit, ...p };
       }
+      const payment = movementPayment(
+        unit.kind,
+        movementAPCost(unit, path, (p) => tiles.get(key(p)), id, unit.kind),
+        player,
+      );
       if (
         blocked.has(key(cursor)) ||
         (action.type === 'MOVE' &&
@@ -143,12 +149,11 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
               movementBiome(world.seed, tiles.get(key(unit))),
               player.faction,
             )) ||
-        !pay(
-          {},
-          movementAPCost(unit, path, (p) => tiles.get(key(p)), id, unit.kind),
-        )
+        !pay({}, payment.ap)
       )
         return;
+      player.fuel = (player.fuel ?? 0) - payment.fuel;
+      player.pervitin = (player.pervitin ?? 0) - payment.pervitin;
       movement = { unitId: unit.id, from: { q: unit.q, r: unit.r }, path };
       Object.assign(unit, path.at(-1), { updatedAt: now });
       break;

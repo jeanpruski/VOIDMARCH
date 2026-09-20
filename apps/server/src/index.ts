@@ -1,3 +1,4 @@
+import { toggleVigie, setVigieTarget } from './vigie';
 import { beginCodeSession } from './code-session';
 import { PlayerPresence } from './presence';
 import Fastify from 'fastify';
@@ -337,6 +338,38 @@ app.post(
     });
     broadcast();
     return { enabled };
+  },
+);
+app.post(
+  '/api/admin/vigie',
+  { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+  async (request, reply) => {
+    const who = await identity(request);
+    const body = request.body as { code?: unknown; enabled?: unknown } | null;
+    if (body?.enabled !== false && body?.code !== (process.env.ADMIN_VIGIE_CODE || 'vigie'))
+      return reply.code(403).send({ error: 'Code incorrect.' });
+    const enabled = await repository.mutate((s) =>
+      toggleVigie(s, who.sub, body?.enabled === false ? false : undefined),
+    );
+    broadcast();
+    return { enabled };
+  },
+);
+app.post(
+  '/api/admin/vigie/target',
+  { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+  async (request, reply) => {
+    const who = await identity(request);
+    const body = request.body as { realmId?: unknown } | null;
+    try {
+      const position = await repository.mutate((s) => setVigieTarget(s, who.sub, body?.realmId));
+      broadcast();
+      return { position };
+    } catch (e) {
+      return reply
+        .code(403)
+        .send({ error: e instanceof Error ? e.message : 'Observation impossible.' });
+    }
   },
 );
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist');

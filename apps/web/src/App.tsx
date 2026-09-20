@@ -1,3 +1,5 @@
+import { VigieControls } from './VigieControls';
+import { MobilityControls, MobilityCounters, movementHint } from './MobilityControls';
 import { anomalyAPReward } from '@voidmarch/game-rules';
 import { ExpeditionInteraction } from './Expeditions';
 import { fishingYield, coastlineHelp } from '@voidmarch/game-rules';
@@ -92,6 +94,7 @@ import { Panels } from './Panels';
 import { RoadAction } from './RoadAction';
 import { RoadTools } from './RoadTools';
 import { TerraformTools } from './TerraformTools';
+import { LogisticsControls } from './LogisticsControls';
 import { UpgradeBuilding } from './UpgradeBuilding';
 import { DemolishBuilding } from './DemolishBuilding';
 import { BeginnerTutorial, ContextHelp } from './Experience';
@@ -187,24 +190,32 @@ export function App() {
         return;
       if (document.querySelector('[role="dialog"]')) return;
       if (Date.now() - lastKeyAt > 5000) code = '';
-      if (['y', 'h'].includes(e.key.toLowerCase())) code = '';
+      if (['y', 'h', 'v'].includes(e.key.toLowerCase())) code = '';
       lastKeyAt = Date.now();
-      if (e.key === 'Enter' && code.length === 5 && /^[yh]/.test(code)) {
+      if (e.key === 'Enter' && code.length === 5 && /^[yhv]/.test(code)) {
         e.preventDefault();
         e.stopPropagation();
         const radar = code.startsWith('h');
-        void api<{ enabled: boolean }>(radar ? '/admin/capital-radar' : '/admin/unlimited-ap', {
-          code,
-        })
+        const vigie = code.startsWith('v');
+        void api<{ enabled: boolean }>(
+          vigie ? '/admin/vigie' : radar ? '/admin/capital-radar' : '/admin/unlimited-ap',
+          {
+            code,
+          },
+        )
           .then(({ enabled }) =>
             notify(
-              radar
+              vigie
                 ? enabled
-                  ? 'Repérage des capitales activé.'
-                  : 'Repérage des capitales désactivé.'
-                : enabled
-                  ? 'PA illimités activés.'
-                  : 'PA illimités désactivés.',
+                  ? 'Vigie activée : choisissez un royaume à observer.'
+                  : 'Vigie désactivée.'
+                : radar
+                  ? enabled
+                    ? 'Repérage des capitales activé.'
+                    : 'Repérage des capitales désactivé.'
+                  : enabled
+                    ? 'PA illimités activés.'
+                    : 'PA illimités désactivés.',
             ),
           )
           .catch(() => {});
@@ -212,7 +223,11 @@ export function App() {
       } else if (/^[a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey)
         code = (code + e.key.toLowerCase()).slice(-6);
 
-      if ((code.startsWith('y') || code.startsWith('h')) && /^[a-z]$/i.test(e.key)) return;
+      if (
+        (code.startsWith('y') || code.startsWith('h') || code.startsWith('v')) &&
+        /^[a-z]$/i.test(e.key)
+      )
+        return;
       if (e.key === 'Escape')
         useGame.setState({
           selectedUnitIds: [],
@@ -327,8 +342,9 @@ export function App() {
           <MapLegend />
           <Minimap />
           <CapitalRadar />
+          <VigieControls />
           <NuclearAlerts />
-          <SelectionPanel />
+          {!world.player.vigieTargetId && <SelectionPanel />}
           <div className="coordinate-bar">
             <Map size={12} />
             <TileHint />
@@ -408,6 +424,7 @@ function Topbar() {
           );
         })}
       </div>
+      <MobilityCounters />
       <div className="action-points">
         <div>
           <span className="eyebrow">POINTS D’ACTION</span>
@@ -946,7 +963,9 @@ function SelectionPanel() {
                 >
                   <ArrowUpRight size={16} />
                   {mode === 'move' ? 'Choisir une destination' : 'Déplacer'}
-                  <small>Gratuit sur routes / enceintes · sinon 1 PA</small>
+                  <small>
+                    Gratuit sur routes / enceintes · sinon {movementHint(u.kind, w.player)}
+                  </small>
                 </ActionButton>
                 <button
                   disabled={pending}
@@ -1264,6 +1283,8 @@ function SelectionPanel() {
                   <Users size={15} /> Recruter
                 </ActionButton>
                 <UpgradeBuilding key={b.id} building={b} />
+                <LogisticsControls key={`logistics-${b.id}`} building={b} />
+                <MobilityControls key={`mobility-${b.id}`} building={b} />
                 {(isWall(b.kind) || b.kind === 'COASTAL_BATTERY') && (
                   <TurretControls key={`turret-${b.id}`} building={b} />
                 )}

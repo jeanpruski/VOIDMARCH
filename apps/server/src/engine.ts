@@ -1,4 +1,20 @@
 import {
+  mobilityLevel,
+  mobilityLimits,
+  mobilityQuota,
+  MOBILITY_NAMES,
+  mobilitySources,
+  mobilityCost,
+  movementPayment,
+  movementPaymentLabel,
+} from '@voidmarch/config';
+import {
+  developmentStage,
+  logisticsCost,
+  logisticsQuota,
+  LOGISTICS_RECIPES,
+} from '@voidmarch/config';
+import {
   developmentReason,
   constructionDevelopmentStage,
   upgradeDevelopmentStage,
@@ -490,6 +506,7 @@ export function applyAction(
 ): ActionResult {
   const r = s.realms[id];
   requireRule(r, 'Royaume introuvable.');
+  requireRule(!r.vigieTargetId, 'Quittez l’observation vigie avant de donner un ordre.');
   refreshWorldTraining(s, now);
   refreshAP(r, now, options.apInterval);
   accrueEconomy(s, r, now, options.grace);
@@ -502,6 +519,60 @@ export function applyAction(
   let movements: ActionResult['movements'];
   const spendAction = (override?: number) => spend(r, override ?? ACTION_COST[a.type]);
   switch (a.type) {
+    case 'PRODUCE_MOBILITY': {
+      const b = ownedBuilding(s, r, a.actorId);
+      const { resource, amount } = a.payload;
+      requireRule(
+        b.hp > 0 && mobilitySources(b.kind).includes(resource),
+        'Ce bâtiment ne produit pas ces points.',
+      );
+      const level = mobilityLevel(realmBuildings(s, id), resource);
+      const { capacity } = mobilityLimits(level);
+      const quota = mobilityQuota(level, r.mobilityReceipts?.[resource], now);
+      requireRule(
+        (r[resource] ?? 0) + amount <= capacity,
+        `Stockage maximal : ${capacity} points de ${MOBILITY_NAMES[resource].toLowerCase()}. Choisissez un lot plus petit.`,
+      );
+      requireRule(
+        amount <= quota.remaining,
+        `Quota de ${MOBILITY_NAMES[resource].toLowerCase()} : ${quota.remaining} points disponibles sur ${quota.limit} par heure.`,
+      );
+      pay(r, mobilityCost(b.kind, level, resource, amount));
+      r[resource] = (r[resource] ?? 0) + amount;
+      r.mobilityReceipts = {
+        ...r.mobilityReceipts,
+        [resource]: [...quota.recent, { at: now, amount }],
+      };
+      message = `${MOBILITY_NAMES[resource]} : +${amount} points (${r[resource]}/${capacity}). Quota restant : ${quota.remaining - amount}/${quota.limit}.`;
+      log(s, message, 'ECONOMY', now, [id], b);
+      break;
+    }
+    case 'CONVERT_AP': {
+      const b = ownedBuilding(s, r, a.actorId);
+      requireRule(
+        b.kind === 'LOGISTICS_CENTER' && b.hp > 0,
+        'Sélectionnez un centre logistique en activité.',
+      );
+      const recipe = LOGISTICS_RECIPES[a.payload.recipe];
+      requireRule(
+        b.level >= recipe.level,
+        `Cette recette demande un centre de niveau ${recipe.level}.`,
+      );
+      const sites = realmBuildings(s, id);
+      const reason = developmentReason(sites, recipe.stage);
+      requireRule(!reason, reason);
+      const quota = logisticsQuota(developmentStage(sites), r.logisticsReceipts, now);
+      requireRule(
+        a.payload.amount <= quota.remaining,
+        `Quota logistique : ${quota.remaining} PA disponibles sur ${quota.limit} par heure.`,
+      );
+      pay(r, logisticsCost(a.payload.recipe, a.payload.amount, b.level));
+      r.logisticsReceipts = [...quota.recent, { at: now, amount: a.payload.amount }];
+      r.ap += a.payload.amount;
+      message = `${recipe.name} : +${a.payload.amount} PA. Quota restant : ${quota.remaining - a.payload.amount}/${quota.limit}.`;
+      log(s, message, 'ECONOMY', now, [id], b);
+      break;
+    }
     case 'MOVE_GROUP': {
       requireRule(a.actorId === id, 'Cet ordre doit appartenir à votre royaume.');
       const orders = a.payload.orders;
@@ -513,23 +584,24 @@ export function applyAction(
         new Set(orders.map((o) => o.actorId)).size === orders.length,
         'Une troupe ne peut se déplacer qu’une fois par ordre.',
       );
-      const totalCost = orders.reduce(
-        (total, o) =>
-          total +
-          (o.type === 'MOVE'
-            ? movementAPCost(
-                ownedUnit(s, r, o.actorId),
-                o.payload.path,
-                (p) => tileAt(s, p),
-                id,
-                ownedUnit(s, r, o.actorId).kind,
-              )
-            : ACTION_COST[o.type]),
-        0,
-      );
+      const reserves = { fuel: r.fuel ?? 0, pervitin: r.pervitin ?? 0 };
+      const total = { ap: 0, fuel: 0, pervitin: 0 };
+      for (const order of orders) {
+        const u = ownedUnit(s, r, order.actorId);
+        const base =
+          order.type === 'MOVE'
+            ? movementAPCost(u, order.payload.path, (p) => tileAt(s, p), id, u.kind)
+            : 0;
+        const payment = movementPayment(u.kind, base, reserves);
+        reserves.fuel -= payment.fuel;
+        reserves.pervitin -= payment.pervitin;
+        total.ap += payment.ap;
+        total.fuel += payment.fuel;
+        total.pervitin += payment.pervitin;
+      }
       requireRule(
-        r.unlimitedAP || r.ap >= totalCost,
-        `Ce déplacement groupé demande ${totalCost} PA. Aucune troupe n’a bougé.`,
+        r.unlimitedAP || r.ap >= total.ap,
+        `Ce déplacement groupé demande ${movementPaymentLabel(total)}. Aucune troupe n’a bougé.`,
       );
       movements = [];
       for (const order of orders) {
@@ -542,7 +614,7 @@ export function applyAction(
         );
         if (result.movement) movements.push(result.movement);
       }
-      message = `${orders.length} troupe(s) déplacée(s) · ${totalCost} PA.`;
+      message = `${orders.length} troupe(s) déplacée(s) · ${movementPaymentLabel(total)}.`;
       break;
     }
     case 'MOVE_ROAD': {
@@ -617,11 +689,18 @@ export function applyAction(
         );
         cursor = p;
       }
-      spendAction(movementAPCost(u, a.payload.path, (p) => tileAt(s, p), id, u.kind));
+      const payment = movementPayment(
+        u.kind,
+        movementAPCost(u, a.payload.path, (p) => tileAt(s, p), id, u.kind),
+        r,
+      );
+      spendAction(payment.ap);
+      r.fuel = (r.fuel ?? 0) - payment.fuel;
+      r.pervitin = (r.pervitin ?? 0) - payment.pervitin;
       movement = { unitId: u.id, from: { q: u.q, r: u.r }, path: a.payload.path };
       Object.assign(u, cursor, { updatedAt: now });
       syncCargo(u, now);
-      message = `${UNITS[u.kind].name} en position.`;
+      message = `${UNITS[u.kind].name} en position · ${movementPaymentLabel(payment)}.`;
       break;
     }
     case 'GATHER': {
@@ -1572,7 +1651,11 @@ export function execute(
 export function worldView(s: GameState, id: string, now: number, chunks: Hex[] = []): WorldView {
   const r = s.realms[id];
   requireRule(r, 'Royaume introuvable.');
+  const observed = r.vigie && r.vigieTargetId ? s.realms[r.vigieTargetId] : undefined;
   const visible = vision(s, r);
+  // Display-only visibility. Never write this into explored terrain or gameplay vision.
+  const observation = observed && !observed.defeatedAt ? vision(s, observed) : new Set<string>();
+  for (const k of observation) visible.add(k);
   const selectedChunks = chunks.length
     ? chunks
     : [{ q: Math.floor(r.capital.q / 32), r: Math.floor(r.capital.r / 32) }];
@@ -1580,6 +1663,10 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
   for (const c of selectedChunks)
     for (let q = c.q * 32; q < (c.q + 1) * 32; q++)
       for (let z = c.r * 32; z < (c.r + 1) * 32; z++) positions.set(key({ q, r: z }), { q, r: z });
+  for (const k of observation) {
+    const [q, r] = k.split(',').map(Number);
+    positions.set(k, { q, r });
+  }
   // Own assets remain selectable even when the camera subscribes to distant chunks.
   for (const p of [...realmUnits(s, id), ...realmTiles(s, id)])
     positions.set(key(p), { q: p.q, r: p.r });
@@ -1653,7 +1740,13 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
       population: Math.floor(realmBuildings(s, id).reduce((a, b) => a + b.population, 0)),
       realmValue: realmValue(s, id),
     },
-    overview: Object.values(r.explored).map((p) => {
+    overview: [
+      ...new Map(
+        [...Object.values(r.explored), ...[...observation].map((k) => positions.get(k)!)].map(
+          (p) => [key(p), p],
+        ),
+      ).values(),
+    ].map((p) => {
       const t = publicTile(s, p, visible, r.explored);
       return {
         q: t.q,
@@ -1666,7 +1759,12 @@ export function worldView(s: GameState, id: string, now: number, chunks: Hex[] =
     }),
     tiles: [...positions.values()].map((p) => publicTile(s, p, visible, r.explored)),
     units: Object.values(s.units)
-      .filter((u) => u.ownerId === id || (visible.has(key(u)) && submarineVisible(s, id, u, now)))
+      .filter(
+        (u) =>
+          u.ownerId === id ||
+          (visible.has(key(u)) &&
+            (u.ownerId === observed?.id || submarineVisible(s, observed?.id ?? id, u, now))),
+      )
       .map((u) => {
         if (u.ownerId === id || !u.cargo) return u;
         const { cargo, ...publicUnit } = u;

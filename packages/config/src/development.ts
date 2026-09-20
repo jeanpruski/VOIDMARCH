@@ -84,6 +84,7 @@ export function constructionDevelopmentStage(kind: BuildingKind) {
   return tier >= 7 ? 5 : tier >= 5 ? 4 : tier >= 4 ? 3 : 1;
 }
 export function upgradeDevelopmentStage(kind: BuildingKind, nextLevel: number) {
+  if (kind === 'LOGISTICS_CENTER') return Math.min(5, nextLevel);
   // Producer investment and logistical capacity can precede military advancement.
   const military = Object.values(UNIT_PROFILES).some(
     (p) => !p.builder && !p.healer && p.recruitAt.includes(kind),

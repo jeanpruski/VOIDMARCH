@@ -1,3 +1,5 @@
+export * from './mobility';
+export * from './logistics';
 import {
   NAVAL_UNITS,
   NAVAL_PROFILES,
@@ -94,6 +96,8 @@ export const MAX_GROUP_UNITS = 10;
 export const MAX_MOVE_STEPS = 20; // Includes long-range cargo aircraft and mounted faction bonuses.
 
 export const ACTION_COST = {
+  CONVERT_AP: 0,
+  PRODUCE_MOBILITY: 0,
   EMBARK: 1,
   DISEMBARK: 1,
   OPERATION_CREATE: 0,
@@ -993,6 +997,14 @@ const BUILDING_BASE_CATALOG = {
     production: {},
     terrains: ['PLAIN', 'HILL', 'RUINS'],
   },
+  LOGISTICS_CENTER: {
+    name: 'Centre logistique',
+    hp: 160,
+    capture: 3,
+    cost: { STONE: 80, GOLD: 100, WOOD: 140, IRON: 35, FOOD: 0 },
+    production: {},
+    terrains: ['PLAIN', 'HILL', 'RUINS'],
+  },
   RAIL_DEPOT: {
     name: 'Dépôt ferroviaire',
     hp: 195,
@@ -1680,6 +1692,7 @@ export const BUILDING_REQUIREMENTS: Partial<Record<BuildingKind, BuildingKind[]>
   GUN_BATTERY: ['MUNITIONS'],
   OCCULT_LAB: ['LIBRARY', 'FORGE'],
   ROCKET_SILO: ['TANK_FACTORY', 'OCCULT_LAB'],
+  LOGISTICS_CENTER: ['MARKET', 'GRANARY'],
   RAIL_DEPOT: ['WORKSHOP', 'WAREHOUSE'],
 
   STABLE: ['BARRACKS'],
@@ -1756,7 +1769,7 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   MARKET: 'Permet de proposer des échanges de ressources par caravane.',
   WAREHOUSE: 'Ajoute 1 000 places de stockage pour chaque ressource.',
   WORKSHOP:
-    'Forme ingénieurs, terrassiers, engins de siège et balistes ; débloque forge et garage. Avec un réacteur noir : sapeurs atomiques.',
+    'Produit des points de carburant contre or, bois et fer (stockage partagé de 10 à 50, quota de 10 à 25 points/h selon le meilleur producteur). Forme ingénieurs, terrassiers, engins de siège et balistes ; débloque forge et garage. Avec un réacteur noir : sapeurs atomiques.',
   BARRACKS: 'Forme les premières troupes et les éclaireurs ; base de la filière militaire.',
   FORT: 'Fortification qui forme les troupes de caserne et sécurise un point de passage. Avec un réacteur noir : sentinelles de cobalt.',
   TOWER: 'Poste de surveillance : vision de 7 cases autour de la tour.',
@@ -1771,13 +1784,17 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
     'Produit motos et automitrailleuses. Avec un réacteur noir : 6 motos atomiques et l’automitrailleuse au radium.',
   TANK_FACTORY:
     'Assemble chars, canons et batteries de fusées, puis semi-chenillés cobalt et chasseurs de chars isotopiques avec un réacteur noir.',
-  REFINERY: 'Soutient l’industrie : +6 or par minute ; débloque les blindés.',
+  REFINERY:
+    'Convertit or, bois et fer en carburant, avec 20 % de réduction par rapport à l’atelier (stockage partagé de 10 à 50, quota de 10 à 25 points/h selon le meilleur producteur). Soutient l’industrie : +6 or par minute ; débloque les blindés.',
   MUNITIONS: 'Débloque les armes lourdes ; le fer nécessaire doit être extrait ou acheté.',
   RADIO: 'Observe le terrain dans un rayon de 10 cases.',
-  FIELD_HOSPITAL: 'Forme les guérisseuses et accélère la croissance de population.',
+  FIELD_HOSPITAL:
+    'Convertit or et vivres en points de pervitine, avec 20 % de réduction par rapport au monastère (stockage partagé de 10 à 50, quota de 10 à 25 points/h selon le meilleur producteur). Forme les guérisseuses et accélère la croissance de population.',
   GUN_BATTERY: 'Position défensive (+3) qui produit les canons de campagne.',
   OCCULT_LAB: 'Unit la forge et les savoirs interdits : chevaliers mécaniques et acolytes.',
   ROCKET_SILO: `Assemble les batteries de fusées à longue portée. Au niveau 5, avec un réacteur de niveau 5 : frappe atomique de ${hexArea(STRATEGY.nuclearRadius)} cases, alerte 5 minutes avant impact. Terres brûlées sans ressources, à restaurer au terrassier avant construction. Coût : 10 PA et 1 000 000 de chaque ressource (or, bois, pierre, fer, vivres) ; recharge 6 heures.`,
+  LOGISTICS_CENTER:
+    'Convertit vos ressources en 1, 5 ou 10 PA, sans dépenser de PA. Quota partagé : 10 à 30 PA sur une heure glissante selon le développement du royaume. Niveaux 2 et 4 : nouvelles recettes avec l’époque correspondante ; chaque amélioration réduit les coûts de 5 %, jusqu’à 20 %. Les PA gagnés peuvent dépasser 20.',
   RAIL_DEPOT: 'Logistique industrielle : +1 500 de stockage et +5 or par minute.',
 
   CAMP: 'Premier paysan gratuit si vous n’en avez aucun. Produit or et vivres ; le bois se récolte en forêt.',
@@ -1790,7 +1807,7 @@ export const BUILDING_ROLES: Partial<Record<BuildingKind, string>> = {
   ARCHERY:
     'Filière de précision : archers au niveau 1, arbalétriers au niveau 2, tireurs au niveau 3, fusils électromagnétiques au niveau 4 et tireurs isotopiques au niveau 5. Les armes avancées exigent leurs infrastructures.',
   MONASTERY:
-    'Filière spirituelle sur cinq niveaux : guérisseuses, paladins, acolytes du Vide, voltigeurs Tesla, puis paladins gamma ; accélère la croissance de population. Les unités avancées exigent les infrastructures occultes ou atomiques.',
+    'Produit des points de pervitine contre or et vivres (stockage partagé de 10 à 50, quota de 10 à 25 points/h selon le meilleur producteur). Filière spirituelle sur cinq niveaux : guérisseuses, paladins, acolytes du Vide, voltigeurs Tesla, puis paladins gamma ; accélère la croissance de population. Les unités avancées exigent les infrastructures occultes ou atomiques.',
   FORGE:
     'Transforme les équipements et débloque les troupes lourdement équipées ; le fer vient des mines.',
   LIBRARY:
@@ -2032,6 +2049,7 @@ export const BUILDING_CATEGORY: Record<BuildingKind, BuildingTab> = {
   LIBRARY: 'Savoir & logistique',
   OCCULT_LAB: 'Savoir & logistique',
   RADIO: 'Savoir & logistique',
+  LOGISTICS_CENTER: 'Savoir & logistique',
   RAIL_DEPOT: 'Savoir & logistique',
   WAREHOUSE: 'Savoir & logistique',
   GRANARY: 'Savoir & logistique',

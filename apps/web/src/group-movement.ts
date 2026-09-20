@@ -1,3 +1,5 @@
+import { movementPayment } from '@voidmarch/config';
+import { movementAPCost } from '@voidmarch/game-rules';
 import { movementBiome, unitMovementBudget } from '@voidmarch/game-rules';
 import {
   ACTION_COST,
@@ -26,6 +28,8 @@ export interface GroupMovePlan {
   journeys: { unitId: string; from: Hex; path: Hex[]; network: boolean }[];
   stationary: { unitId: string; reason: string }[];
   cost: number;
+  fuel: number;
+  pervitin: number;
 }
 /** Shared traversal for the movement plan and its pre-selection range. */
 function movementSearch(world: WorldView, units: Unit[], selectedIds = new Set<string>()) {
@@ -87,7 +91,14 @@ export function planGroupMovement(
   target: Hex,
   formation: ArmyFormation = 'COMPACT',
 ): GroupMovePlan {
-  const result: GroupMovePlan = { orders: [], journeys: [], stationary: [], cost: 0 };
+  const result: GroupMovePlan = {
+    orders: [],
+    journeys: [],
+    stationary: [],
+    cost: 0,
+    fuel: 0,
+    pervitin: 0,
+  };
   const units = world.units.map((u) => ({ ...u }));
   const selected = units
     .filter((u) => ids.includes(u.id) && u.ownerId === world.player.id && u.hp > 0)
@@ -156,7 +167,25 @@ export function planGroupMovement(
       path,
       network: chosen.network,
     });
-    result.cost += ACTION_COST[order.type];
+    const payment = movementPayment(
+      unit.kind,
+      chosen.network
+        ? 0
+        : movementAPCost(
+            unit,
+            path,
+            (p) => world.tiles.find((t) => key(t) === key(p)),
+            world.player.id,
+            unit.kind,
+          ),
+      {
+        fuel: (world.player.fuel ?? 0) - result.fuel,
+        pervitin: (world.player.pervitin ?? 0) - result.pervitin,
+      },
+    );
+    result.cost += payment.ap;
+    result.fuel += payment.fuel;
+    result.pervitin += payment.pervitin;
     Object.assign(unit, endpoint);
   }
   return result;

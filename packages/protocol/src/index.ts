@@ -30,6 +30,26 @@ const building = z.enum(
 const id = z.string().min(1).max(80);
 export const commandSchema = z.discriminatedUnion('type', [
   z.object({
+    type: z.literal('PRODUCE_MOBILITY'),
+    actorId: id,
+    payload: z
+      .object({
+        resource: z.enum(['fuel', 'pervitin']),
+        amount: z.union([z.literal(1), z.literal(5), z.literal(10)]),
+      })
+      .strict(),
+  }),
+  z.object({
+    type: z.literal('CONVERT_AP'),
+    actorId: id,
+    payload: z
+      .object({
+        recipe: z.enum(['RATIONS', 'INDUSTRY', 'OCCULT']),
+        amount: z.union([z.literal(1), z.literal(5), z.literal(10)]),
+      })
+      .strict(),
+  }),
+  z.object({
     type: z.literal('RESUPPLY'),
     actorId: id,
     payload: z.object({ unitIds: z.array(id).min(1).max(MAX_GROUP_UNITS) }).strict(),

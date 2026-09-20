@@ -5064,3 +5064,30 @@ button.radar-target {
   .modal > header { padding: 18px 16px; gap: 12px; }
   .button-row > button { flex: 1 1 auto; }
 }
+
+/* Resource-to-AP conversion: readable quotes on desktop and narrow screens. */
+.logistics-panel { display: grid; gap: 16px; }
+.logistics-panel p { margin: 0; line-height: 1.55; }
+.logistics-panel label { display: grid; gap: 8px; }
+.logistics-panel select { width: 100%; min-width: 0; padding: 12px; }
+.logistics-quota { display: grid; gap: 8px; padding: 16px; border: 1px solid #aa966654; border-radius: 8px; background: #aa96660c; line-height: 1.5; }
+.logistics-quota strong { color: #e8ce88; font-size: 18px; }
+.logistics-amounts { display: flex; gap: 10px; }
+.logistics-amounts button { flex: 1; padding: 12px; }
+.logistics-costs { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 10px; }
+.logistics-costs > div { display: grid; gap: 5px; padding: 12px; background: #ffffff06; border: 1px solid #ffffff14; border-radius: 6px; }
+
+.mobility-counters { display:flex; gap:12px; align-items:center; padding:6px 10px; flex-wrap:wrap; }
+.mobility-counters > span { display:flex; gap:5px; align-items:center; white-space:nowrap; font-size:12px; }
+.mobility-counters small { color:var(--muted); }
+.vigie-controls { position:fixed; top:125px; left:50%; transform:translateX(-50%); z-index:45; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; padding:12px 16px; width:min(680px, calc(100vw - 24px)); max-height:45vh; overflow-y:auto; border:1px solid #b59e65; background:#15221ff5; box-shadow:0 8px 30px #0008; }
+.vigie-controls select { min-width:120px; max-width:230px; padding:8px; }
+.vigie-controls button { padding:8px 12px; }
+.vigie-controls small { flex-basis:100%; text-align:center; }
+@media (max-width:700px) { .mobility-counters { position:fixed; top:66px; left:8px; z-index:42; background:#15221ff5; border:1px solid #aa966654; border-radius:4px; gap:10px; padding:6px 8px; } .mobility-counters small { display:none; } .vigie-controls { top:105px; font-size:12px; } }
+
+.mobility-progression { border:1px solid #aa966654; border-radius:6px; padding:12px; }
+.mobility-progression summary { cursor:pointer; line-height:1.5; }
+.mobility-progression table { width:100%; margin-top:10px; border-collapse:collapse; font-size:12px; }
+.mobility-progression th, .mobility-progression td { padding:8px 5px; text-align:left; }
+.mobility-progression tr[aria-current="true"] { background:#aa966622; color:#e8ce88; }

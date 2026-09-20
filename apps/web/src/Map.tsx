@@ -610,7 +610,8 @@ class WorldScene extends Phaser.Scene {
       const c = this.cameras.main,
         p = c.getWorldPoint(this.scale.width / 2, this.scale.height / 2),
         hex = pixelToHex(p.x, p.y);
-      void api('/settings', { lastCameraQ: hex.q, lastCameraR: hex.r }, 'PATCH').catch(() => {});
+      if (!useGame.getState().world?.player.vigieTargetId)
+        void api('/settings', { lastCameraQ: hex.q, lastCameraR: hex.r }, 'PATCH').catch(() => {});
     }, 1500);
     const c = this.cameras.main;
     const chunks = viewportChunks(cameraViewport(c.scrollX, c.scrollY, c.width, c.height, c.zoom));

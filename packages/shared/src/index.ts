@@ -153,6 +153,14 @@ export interface Realm {
   codeSessionId?: string;
   unlimitedAP?: boolean;
   capitalRadar?: boolean;
+  vigie?: boolean;
+  vigieTargetId?: string;
+  fuel?: number;
+  pervitin?: number;
+  /** Resource conversions in the last rolling hour, persisted across reconnects. */
+  logisticsReceipts?: import('@voidmarch/config').LogisticsReceipt[];
+  /** Per-resource production in the last rolling hour; shared across all owned producers. */
+  mobilityReceipts?: import('@voidmarch/config').MobilityReceipts;
   apAt: number;
   economyAt: number;
   lastSeen: number;

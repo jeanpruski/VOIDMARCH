@@ -1,6 +1,6 @@
 import type { Realm } from '@voidmarch/shared';
 
-/** A fresh page starts with both modes off, before any snapshot or order is served.
+/** A fresh page starts with secret modes off, before any snapshot or order is served.
  * Keeping the page ID in memory on the client preserves modes during token refresh
  * or a brief socket reconnection. Older clients without an ID always start off. */
 export function beginCodeSession(realm: Realm, pageId: unknown) {
@@ -11,6 +11,8 @@ export function beginCodeSession(realm: Realm, pageId: unknown) {
   if (validId && realm.codeSessionId === validId) return false;
   realm.unlimitedAP = false;
   realm.capitalRadar = false;
+  realm.vigie = false;
+  realm.vigieTargetId = undefined;
   realm.codeSessionId = validId;
   return true;
 }

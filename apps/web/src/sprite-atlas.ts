@@ -113,6 +113,7 @@ export const SPRITE_ATLASES: Record<string, { columns: number; rows: number }> =
   'mine-iron': { columns: 1, rows: 1 },
   'mine-stone': { columns: 1, rows: 1 },
   'mine-gold': { columns: 1, rows: 1 },
+  'logistics-center-1': { columns: 1, rows: 1 },
   'resource-buildings': { columns: 3, rows: 2 },
   'glocke-vril': { columns: 1, rows: 1 },
   'glocke-nacht': { columns: 1, rows: 1 },

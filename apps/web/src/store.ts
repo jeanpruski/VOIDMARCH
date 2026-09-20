@@ -370,6 +370,10 @@ export function subscribe(chunks: Hex[]) {
 export async function send(command: Command) {
   const state = useGame.getState();
   if (state.pending || activeOrder || state.status !== 'online' || !state.world || !socket) return;
+  if (state.world.player.vigieTargetId) {
+    notify('Quittez l’observation vigie avant de donner un ordre.', true);
+    return;
+  }
   // Provisional entities cannot issue orders until their real server ID arrives.
   if (command.actorId.startsWith('preview:')) return;
   const action: Action = { ...command, actionId: crypto.randomUUID(), clientTimestamp: Date.now() };
