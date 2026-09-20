@@ -1,3 +1,7 @@
+import { createState, createRealm, developmentProgress } from '@voidmarch/game-rules';
+import { upgradeTrophyReason } from '@voidmarch/config';
+import { strategy } from '../apps/server/src/strategy';
+import { awardMissionTrophy } from '../apps/server/src/mission-trophies';
 import { EMBLEM_IDS } from '@voidmarch/config';
 import { settingsSchema } from '@voidmarch/protocol';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -124,5 +128,70 @@ describe('médailles de campagne', () => {
       expect(
         createMissionTrophy({ ...mission, difficulty }, now, captured, reward).medal.metal,
       ).toBe(metal);
+  });
+});
+
+describe('partage des trophées de l’alliance', () => {
+  function fixture() {
+    const s = createState('alliance-awards', now);
+    for (const id of ['a', 'offline', 'outsider', 'late'])
+      s.realms[id] = createRealm(id, id, 'ASH', { q: 0, r: 0 }, now);
+    s.realms.offline.lastSeen = now - 86400000;
+    s.realms.offline.offlineAt = now - 86400000;
+    strategy(s, now).alliances.team = {
+      id: 'team',
+      name: 'Les Alliés',
+      leaderId: 'a',
+      members: ['a', 'offline', 'deleted'],
+      createdAt: now,
+      emblem: 'eye',
+      messages: [],
+      markers: [],
+    };
+    return s;
+  }
+  it('remet une copie identique au membre hors ligne sans partager son butin ni changer sa mission', () => {
+    const s = fixture();
+    const active = { ...mission, id: 'other-mission', realmId: 'offline' };
+    s.missions = { offline: { generation: 7, active } };
+    const wallet = structuredClone(s.realms.offline.wallet);
+    const trophy = createMissionTrophy(mission, now, captured, reward);
+    expect(awardMissionTrophy(s, 'a', trophy)).toEqual(['a', 'offline']);
+    const shared = s.missions.offline.trophies![0];
+    expect(shared.medal).toEqual(trophy.medal);
+    expect(shared.id).toBe(trophy.id);
+    expect(shared.sharedFrom).toEqual({ realmId: 'a', realmName: 'a', allianceName: 'Les Alliés' });
+    expect(s.realms.offline.wallet).toEqual(wallet);
+    expect(s.missions.offline.active).toBe(active);
+    expect(s.missions.offline.generation).toBe(7);
+    expect(s.missions.outsider).toBeUndefined();
+    expect(s.missions.deleted).toBeUndefined();
+    expect(upgradeTrophyReason(2, developmentProgress(s, 'offline'))).toBe('');
+    shared.medal.name = 'copie indépendante';
+    expect(s.missions.a.trophies![0].medal.name).toBe(trophy.medal.name);
+  });
+  it('ne duplique pas un trophée et ne le remet pas rétroactivement aux nouveaux membres', () => {
+    const s = fixture(),
+      trophy = createMissionTrophy(mission, now, captured, reward);
+    awardMissionTrophy(s, 'a', trophy);
+    s.strategy!.alliances.team.members.push('late');
+    expect(awardMissionTrophy(s, 'a', trophy)).toEqual([]);
+    expect(s.missions!.a.trophies).toHaveLength(1);
+    expect(s.missions!.offline.trophies).toHaveLength(1);
+    expect(s.missions!.late).toBeUndefined();
+    s.strategy!.alliances.team.members = ['a', 'late'];
+    const next = createMissionTrophy({ ...mission, id: 'next' }, now, captured, reward);
+    expect(awardMissionTrophy(s, 'a', next)).toEqual(['a', 'late']);
+    const restored = JSON.parse(JSON.stringify(s));
+    expect(restored.missions.offline.trophies).toHaveLength(1);
+    expect(developmentProgress(restored, 'offline').trophies).toBe(1);
+  });
+  it('sans alliance, la médaille revient uniquement au vainqueur', () => {
+    const s = fixture();
+    s.strategy!.alliances = {};
+    expect(awardMissionTrophy(s, 'a', createMissionTrophy(mission, now, captured, reward))).toEqual(
+      ['a'],
+    );
+    expect(s.missions!.offline).toBeUndefined();
   });
 });

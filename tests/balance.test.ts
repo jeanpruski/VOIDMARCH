@@ -78,7 +78,7 @@ describe('récoltes sur le terrain occupé', () => {
     const result = harvest(s, resource);
     expect(result.result.accepted).toBe(allowed);
     expect(result.state.realms.p.ap).toBe(allowed ? RULES.startingAP - 1 : RULES.startingAP);
-    expect(result.state.realms.p.wallet[resource] > 0).toBe(allowed);
+    expect(result.state.realms.p.wallet[resource] > s.realms.p.wallet[resource]).toBe(allowed);
   });
   it('refuse la forêt voisine et une forêt appartenant à un adversaire', () => {
     const s = fixture();

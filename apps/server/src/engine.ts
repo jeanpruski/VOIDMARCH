@@ -1,3 +1,4 @@
+import { STARTING_RESOURCES } from '@voidmarch/config';
 import { eventResourceReward } from '@voidmarch/config';
 import { eventAPReward } from '@voidmarch/game-rules';
 import { archipelagoAt } from '@voidmarch/game-rules';
@@ -303,7 +304,7 @@ export function settle(s: GameState, r: Realm, now: number) {
 }
 export function settleFounding(s: GameState, r: Realm, now: number) {
   s.realms[r.id] = r;
-  r.wallet = zeroWallet();
+  r.wallet = r.bot ? zeroWallet() : { ...STARTING_RESOURCES };
   writeTile(s, r.capital, {
     terrain: 'PLAIN',
     ownerId: r.id,

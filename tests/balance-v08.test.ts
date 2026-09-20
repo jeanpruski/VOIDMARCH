@@ -55,7 +55,7 @@ function state() {
 describe('équilibrage v0.8 : progression sans raccourci', () => {
   it('préserve les PA et empêche un puits ou une caserne isolée de débloquer les expéditions atomiques', () => {
     const s = state();
-    expect([RULES.startingAP, RULES.maxAP, RULES.apInterval]).toEqual([40, 20, 30000]);
+    expect([RULES.startingAP, RULES.maxAP, RULES.apInterval]).toEqual([40, 20, 10000]);
     addBuilding(s, s.realms.a, { q: 1, r: 0 }, 'WELL', now, 5);
     addBuilding(s, s.realms.a, { q: 2, r: 0 }, 'BARRACKS', now, 5);
     expect(developmentStage(Object.values(s.buildings), developmentProgress(s, 'a'))).toBe(1);

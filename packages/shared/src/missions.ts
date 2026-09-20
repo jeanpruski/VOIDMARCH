@@ -115,6 +115,8 @@ export interface MissionMedal {
   metal: 'bronze' | 'silver' | 'gold';
 }
 export interface MissionTrophy {
+  /** Present on an ally's copy; rewards and surviving troops still belong to the victor. */
+  sharedFrom?: { realmId: string; realmName: string; allianceName: string };
   /** Same id as the completed mission; awards cannot duplicate. */
   id: string;
   medal: MissionMedal;

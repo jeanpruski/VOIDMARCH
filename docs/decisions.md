@@ -38,7 +38,7 @@ Les instructions données dans la conversation priment sur les documents origina
 
 - Le premier prototype conserve le périmètre fonctionnel demandé ; les six unités et les systèmes économiques, militaires, sociaux et de persistance sont implémentés.
 - Le royaume et ses frontières restent à leur emplacement à la déconnexion. Le snapshot est une sauvegarde, pas un mécanisme de téléportation. La reconstruction ailleurs est réservée à la défaite, avec perte de 25 % de valeur et délai de dix minutes.
-- La présence est récompensée : 1 PA toutes les 30 secondes, réserve de 20 et production normale en présence seulement. Une grâce de trois minutes couvre les coupures réseau. Les PA se régénèrent également hors ligne, jusqu'au plafond.
+- La présence est récompensée : 1 PA toutes les 10 secondes, réserve de 20 et production normale en présence seulement. Une grâce de trois minutes couvre les coupures réseau. Les PA se régénèrent également hors ligne, jusqu'au plafond.
 - Par défaut le royaume reste attaquable hors ligne (configurable via OFFLINE_PROTECTION). Les trêves bilatérales restent actives hors ligne.
 - Tribut : proposition libre de GOLD/WOOD/IRON/FOOD et durée de 1 minute à 7 jours ; contre-proposition, acceptation, refus ou annulation. À l'acceptation, les ressources sont prélevées une seule fois et la trêve réciproque interdit attaque et capture jusqu'à son échéance. Une proposition seule ne protège pas. Les bots évaluent les propositions selon leur personnalité et leur puissance.
 - Un seul processus simule un monde. PostgreSQL est la source de vérité ; verrou transactionnel du monde et idempotence des commandes. Redis peut distribuer les notifications, mais plusieurs simulateurs ne sont pas autorisés.
@@ -54,3 +54,7 @@ Les instructions données dans la conversation priment sur les documents origina
 - 17 septembre 2026 : enceinte fermée = prise automatique des terres neutres intérieures. À l’ouverture, toutes ses cases sans bâtiment redeviennent neutres ; les parcelles bâties restent possédées. Construction intérieure avec paysan ou ingénieur à une case maximum, sans limite de distance aux bâtiments. Ces trois règles ont été confirmées par le joueur. Les terrains et bâtiments adverses restent exclus de la prise automatique. Voir [remparts.md](remparts.md).
 
 - 18 septembre 2026 : réserve régénérable portée à 20 PA, un PA toutes les 30 secondes, premier départ humain à 40 PA. Le surplus initial ne régénère pas ; aucun nouveau bonus pour les royaumes existants. Sur le serveur, régler `AP_INTERVAL_MS=30000` dans `.env` puis redémarrer.
+
+- 20 septembre 2026 : un PA toutes les 10 secondes, plafond 20 et départ à 40 conservés. Départ humain avec 500 or, bois, pierre et fer, 0 vivres ; aucun crédit rétroactif aux comptes existants. Régler `AP_INTERVAL_MS=10000` sur le serveur.
+- Chaque nouvelle victoire de mission ou d’expédition remet le même trophée à tous les membres de l’alliance au moment de la victoire, y compris hors ligne. Les copies comptent pour les déblocages, restent après un départ et ne partagent ni ressources ni troupes. Aucun partage rétroactif à l’entrée dans une alliance, aucun doublon. Le carnet indique le vainqueur d’origine.
+- Déplacements groupés : carburant des machines et pervitine des troupes terrestres consommés avant les PA ; routes et enceintes fermées restent entièrement gratuites.

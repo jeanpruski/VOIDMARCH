@@ -427,7 +427,7 @@ describe('missions de campagne', () => {
     expect(result.state.realms.a.wallet.GOLD).toBe(ownerGold + missionReward(m).GOLD!);
     expect(result.state.realms.ally.wallet).toEqual(allyWallet);
     expect(missionsView(result.state, 'a', now).trophies).toHaveLength(1);
-    expect(missionsView(result.state, 'ally', now).trophies).toHaveLength(0);
+    expect(missionsView(result.state, 'ally', now).trophies).toHaveLength(1);
     expect(
       Object.values(result.state.buildings)
         .filter((b) => distance(b, m) <= 2)

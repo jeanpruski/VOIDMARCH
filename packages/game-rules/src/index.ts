@@ -1,3 +1,4 @@
+import { STARTING_RESOURCES } from '@voidmarch/config';
 import { passiveFishingYield } from './naval';
 import { isMaritimeEncounter } from '@voidmarch/config';
 import { archipelagoAt } from './archipelagos';
@@ -1029,7 +1030,9 @@ export function createRealm(
     faction,
     bot,
     createdAt: now,
-    wallet: { STONE: 0, GOLD: 320, WOOD: 240, IRON: 140, FOOD: 200 },
+    wallet: bot
+      ? { STONE: 0, GOLD: 320, WOOD: 240, IRON: 140, FOOD: 200 }
+      : { ...STARTING_RESOURCES },
     ap: bot ? RULES.maxAP : RULES.startingAP,
     apAt: now,
     economyAt: now,

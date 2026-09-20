@@ -31,7 +31,7 @@ import {
 } from '@voidmarch/game-rules';
 import type { GameState, Hex, MissionOffer, ActiveMission, Unit } from '@voidmarch/shared';
 import { requireRule, log } from './engine';
-import { createMissionTrophy } from './mission-trophies';
+import { createMissionTrophy, awardMissionTrophy } from './mission-trophies';
 
 const MODES = ['RECON', 'RECOVER', 'EXTRACT'] as const;
 
@@ -504,7 +504,7 @@ export function expeditionInteraction(
   transfer(s.realms[m.realmId].wallet, reward);
   const board = s.missions![m.realmId],
     trophy = createMissionTrophy(m, now, { units: 0, buildings: 0, walls: 0 }, reward);
-  (board.trophies ??= []).push(trophy);
+  const trophyRecipients = awardMissionTrophy(s, m.realmId, trophy);
   board.active = undefined;
   board.generation++;
   board.lastResult = {
@@ -523,7 +523,7 @@ export function expeditionInteraction(
     .map(([k, v]) => `${formatNumber(v!)} ${RESOURCE_NAMES[k as keyof Wallet].toLowerCase()}`)
     .join(
       ' · ',
-    )}.${Object.keys(bonus).length ? ' Trésor surprise : +25 % inclus !' : ''} Une médaille rejoint votre carnet.`;
+    )}.${Object.keys(bonus).length ? ' Trésor surprise : +25 % inclus !' : ''} Une médaille rejoint votre carnet${trophyRecipients.length > 1 ? ` et celui de ${trophyRecipients.length - 1} membre(s) de votre alliance` : ''}.`;
   log(s, message, 'REALM', now, [m.realmId, ...alliedRealmIds(s, m.realmId)], m).victory = {
     expedition: { siteId: exp.siteId, mode: exp.mode },
     id: m.id,

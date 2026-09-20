@@ -26,7 +26,7 @@ Le catalogue affiche le palier et les statistiques réellement obtenues après e
 
 ## Économie
 
-Le départ à zéro reste accessible : campement, premier paysan gratuit, 40 PA initiaux, puis plafond de régénération à 20 et un PA toutes les 30 secondes. Scierie, carrière, mine, caserne et archerie ne demandent plus de fer pour lancer ces premières filières. La carrière ne demande pas de pierre ; le milicien et l’archer ne demandent pas de fer.
+Le départ à zéro reste accessible : campement, premier paysan gratuit, 40 PA initiaux, puis plafond de régénération à 20 et un PA toutes les 10 secondes. Scierie, carrière, mine, caserne et archerie ne demandent plus de fer pour lancer ces premières filières. La carrière ne demande pas de pierre ; le milicien et l’archer ne demandent pas de fer.
 
 La récolte manuelle donne 24 bois, 20 pierre, 16 fer, 24 vivres ou 16 or par action, toujours sur le terrain compatible occupé par le paysan. Les producteurs donnent davantage, avec une progression ×1 / ×1,6 / ×2,4 aux niveaux 1 / 2 / 3. Par exemple, une mine sur colline donne 5 / 8 / 12 fer par minute de production active. Les villages conservent leur multiplicateur propre par niveau. Les limites de production hors ligne restent inchangées.
 

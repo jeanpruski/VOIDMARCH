@@ -46,6 +46,13 @@ function TrophyDetails({ trophy, back }: { trophy: MissionTrophy; back: () => vo
           </span>
           <h3>{trophy.medal.name}</h3>
           <p>Décernée le {date(trophy.completedAt)}</p>
+          {trophy.sharedFrom && (
+            <p className="muted">
+              Trophée d’alliance · victoire de {trophy.sharedFrom.realmName} (
+              {trophy.sharedFrom.allianceName}). Compte pour vos déblocages ; le butin et les
+              ralliements reviennent au vainqueur.
+            </p>
+          )}
           <span className={`mission-difficulty-badge mission-difficulty-${difficulty.tone}`}>
             {difficulty.label} · {m.difficulty}
           </span>
@@ -119,7 +126,9 @@ function TrophyDetails({ trophy, back }: { trophy: MissionTrophy; back: () => vo
         )}
       </details>
       <div className="mission-rewards">
-        <strong>Butin reçu</strong>
+        <strong>
+          {trophy.sharedFrom ? `Butin reçu par ${trophy.sharedFrom.realmName}` : 'Butin reçu'}
+        </strong>
         <Cost cost={trophy.reward} />
       </div>
       <button onClick={() => focusMap(m)}>
@@ -181,9 +190,9 @@ export function TrophyRoom() {
           <Award size={48} />
           <h3>Ta première décoration t’attend</h3>
           <p>
-            Termine une mission pour recevoir une médaille. Son apparence est aléatoire et purement
-            décorative : bronze pour une escarmouche, argent pour un assaut, or pour un siège ou une
-            grande campagne.
+            Termine une mission ou une expédition, ou partage la victoire d’un membre de ton
+            alliance. Chaque trophée compte pour tes déblocages. Son apparence varie selon la
+            difficulté.
           </p>
           <button className="primary" onClick={() => useGame.setState({ panel: 'missions' })}>
             Choisir une mission
@@ -275,6 +284,7 @@ export function TrophyRoom() {
                   <MissionMedal medal={t.medal} level={t.mission.level} />
                   <strong>{t.medal.name}</strong>
                   <span>{t.mission.title}</span>
+                  {t.sharedFrom && <small>Alliance · victoire de {t.sharedFrom.realmName}</small>}
                   <span className={`mission-difficulty-badge mission-difficulty-${d.tone}`}>
                     {d.label} · Niv. {t.mission.level}
                   </span>

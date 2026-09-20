@@ -44,13 +44,13 @@ function command(type: Action['type'], actorId: string, payload: unknown): Actio
   return { type, actorId, payload, actionId: randomUUID(), clientTimestamp: now } as Action;
 }
 describe('hexagones et PA', () => {
-  it('récupère un PA à 30 secondes et plafonne à 20 même hors ligne', () => {
+  it('récupère un PA à 10 secondes et plafonne à 20 même hors ligne', () => {
     const r = { ap: 0, apAt: now };
-    refreshAP(r, now + 29999);
+    refreshAP(r, now + 9999);
     expect(r.ap).toBe(0);
-    refreshAP(r, now + 30000);
+    refreshAP(r, now + 10000);
     expect(r.ap).toBe(1);
-    refreshAP(r, now + 60000);
+    refreshAP(r, now + 20000);
     expect(r.ap).toBe(2);
     refreshAP(r, now + 3600000);
     expect(r.ap).toBe(20);
@@ -74,9 +74,9 @@ describe('hexagones et PA', () => {
   });
   it('régénère les PA après sérialisation et redémarrage', () => {
     const r = JSON.parse(JSON.stringify({ ap: 0, apAt: now }));
-    refreshAP(r, now + 60000);
+    refreshAP(r, now + 20000);
     expect(r.ap).toBe(2);
-    expect(r.apAt).toBe(now + 60000);
+    expect(r.apAt).toBe(now + 20000);
   });
   it('le pathfinding contourne une montagne et respecte le coût', () => {
     const path = findPath(
@@ -294,7 +294,7 @@ describe('visibilité, défaite et IA', () => {
     expect(result.result.accepted).toBe(true);
     expect(result.state.realms.a.defeatedAt).toBeUndefined();
     expect(result.state.realms.a.capital).not.toEqual({ q: 0, r: 0 });
-    expect(result.state.realms.a.wallet.GOLD).toBe(240);
+    expect(result.state.realms.a.wallet.GOLD).toBe(375);
     const survivor = Object.values(result.state.units).find((u) => u.ownerId === 'a')!;
     expect(survivor.kind).toBe('INFANTRY');
     expect(survivor.hp).toBe(UNITS.INFANTRY.hp);

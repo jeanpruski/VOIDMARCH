@@ -1,6 +1,6 @@
 import { EMBLEM_IDS, EMBLEM_NAMES } from '@voidmarch/config';
 import { hash, missionWallCount } from '@voidmarch/game-rules';
-import type { ActiveMission, MissionMedal, MissionTrophy } from '@voidmarch/shared';
+import type { ActiveMission, MissionMedal, MissionTrophy, GameState } from '@voidmarch/shared';
 
 /** The server-created mission UUID randomises the design once; the stored award never rerolls. */
 export function createMissionTrophy(
@@ -139,4 +139,29 @@ export function createMissionTrophy(
     },
     reward: { ...reward },
   };
+}
+
+/** Award at victory time only: no retroactive sharing on joining, no duplicate or recursive awards. */
+export function awardMissionTrophy(s: GameState, ownerId: string, trophy: MissionTrophy): string[] {
+  const owner = s.realms[ownerId];
+  if (!owner) return [];
+  const boards = (s.missions ??= {});
+  const board = (boards[ownerId] ??= { generation: 0 });
+  if (board.trophies?.some((t) => t.id === trophy.id)) return [];
+  (board.trophies ??= []).push(structuredClone(trophy));
+  const alliance = Object.values(s.strategy?.alliances ?? {}).find((a) =>
+    a.members.includes(ownerId),
+  );
+  const recipients = [ownerId];
+  for (const id of new Set(alliance?.members ?? [])) {
+    if (id === ownerId || !s.realms[id]) continue;
+    const allyBoard = (boards[id] ??= { generation: 0 });
+    if (allyBoard.trophies?.some((t) => t.id === trophy.id)) continue;
+    (allyBoard.trophies ??= []).push({
+      ...structuredClone(trophy),
+      sharedFrom: { realmId: ownerId, realmName: owner.name, allianceName: alliance!.name },
+    });
+    recipients.push(id);
+  }
+  return recipients;
 }

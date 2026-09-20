@@ -15,7 +15,7 @@ import {
 import { consumeSupplies } from '@voidmarch/game-rules';
 import { destroyUnit } from './transports';
 import { missionRoster, missionPlacementOrder } from './mission-rosters';
-import { createMissionTrophy } from './mission-trophies';
+import { createMissionTrophy, awardMissionTrophy } from './mission-trophies';
 import { randomUUID } from 'node:crypto';
 import {
   formatNumber,
@@ -547,7 +547,7 @@ export function reconcileMissions(s: GameState, now: number) {
         { units: units.length, buildings: buildings.length - walls, walls },
         reward,
       );
-    if (!trophies.some((t) => t.id === m.id)) trophies.push(trophy);
+    const trophyRecipients = awardMissionTrophy(s, m.realmId, trophy);
     board.lastResult = {
       title: m.title,
       outcome: 'VICTORY',
@@ -566,7 +566,9 @@ export function reconcileMissions(s: GameState, now: number) {
         ([resource, value]) =>
           `+${formatNumber(value)} ${RESOURCE_NAMES[resource as Resource].toLowerCase()}`,
       )
-      .join(' · ')}. Médaille « ${trophy.medal.name} » décernée à ${r.name}.`;
+      .join(
+        ' · ',
+      )}. Médaille « ${trophy.medal.name} » décernée à ${r.name}${trophyRecipients.length > 1 ? ` et partagée avec ${trophyRecipients.length - 1} membre(s) de son alliance` : ''}.`;
     log(s, message, 'REALM', now, [m.realmId, ...alliedRealmIds(s, m.realmId)], m).victory = {
       id: m.id,
       title: m.title,

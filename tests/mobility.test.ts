@@ -189,6 +189,28 @@ describe('réserves de déplacement', () => {
     expect(execute(s, r.id, a, now).state).toBe(s);
     expect(r).toMatchObject({ fuel: 1, pervitin: 1 });
   });
+  it('déplace un groupe mixte avec zéro PA quand le carburant et la pervitine suffisent', () => {
+    const { s, r, unit } = fixture();
+    unit('a', 'INFANTRY', 0);
+    unit('b', 'FIGHTER', 0, 2);
+    unit('c', 'INFANTRY', 0, 4);
+    r.ap = 0;
+    r.fuel = 1;
+    r.pervitin = 2;
+    const view = worldView(s, r.id, now);
+    const plan = planGroupMovement(view, ['a', 'b', 'c'], { q: 3, r: 2 });
+    expect(plan.orders).toHaveLength(3);
+    expect({ ap: plan.cost, fuel: plan.fuel, pervitin: plan.pervitin }).toEqual({
+      ap: 0,
+      fuel: 1,
+      pervitin: 2,
+    });
+    const order = action('MOVE_GROUP', r.id, { orders: plan.orders });
+    const result = execute(s, r.id, order, now);
+    expect(result.result.accepted, result.result.reason).toBe(true);
+    expect(result.state.realms.p).toMatchObject({ ap: 0, fuel: 0, pervitin: 0 });
+    expect(predictAction(view, order)!.world.player).toMatchObject({ ap: 0, fuel: 0, pervitin: 0 });
+  });
   it('produit à 0 PA, plafonne à 10 au niveau 1 et ne paie pas un lot refusé', () => {
     const { s, r } = fixture();
     const b = addBuilding(s, r, { q: 2, r: 2 }, 'WORKSHOP', now);

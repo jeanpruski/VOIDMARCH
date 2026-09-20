@@ -40,7 +40,7 @@ function established() {
   return s;
 }
 
-describe('fondation sans ressources', () => {
+describe('fondation avec ressources de départ', () => {
   it('recommence uniquement le royaume désigné et archive ses anciens actifs', () => {
     const s = established();
     addPlayer(s, 'neighbor', 'Voisin', 'MASK', now, 'established');
@@ -49,16 +49,34 @@ describe('fondation sans ressources', () => {
     restartRealm(s, 'founder', now + 1000);
     expect(realmBuildings(s, 'founder').map((b) => b.kind)).toEqual(['CAMP']);
     expect(realmUnits(s, 'founder')).toHaveLength(0);
-    expect(s.realms.founder.wallet).toEqual(zeroWallet());
+    expect(s.realms.founder.wallet).toEqual({
+      GOLD: 500,
+      WOOD: 500,
+      STONE: 500,
+      IRON: 500,
+      FOOD: 0,
+    });
     expect(s.archives.founder.buildings).toHaveLength(previous);
     expect(JSON.stringify(s.realms.neighbor)).toBe(neighbor);
   });
-  it('commence avec un campement, une terre et aucun stock ni unité', () => {
+  it('commence avec un campement, une terre, 500 de chaque matériau et aucune unité', () => {
     const s = founding();
     expect(realmBuildings(s, 'founder').map((b) => b.kind)).toEqual(['CAMP']);
     expect(realmUnits(s, 'founder')).toHaveLength(0);
     expect(realmTiles(s, 'founder')).toHaveLength(1);
-    expect(s.realms.founder.wallet).toEqual(zeroWallet());
+    expect(s.realms.founder.wallet).toEqual({
+      GOLD: 500,
+      WOOD: 500,
+      STONE: 500,
+      IRON: 500,
+      FOOD: 0,
+    });
+  });
+  it('ne redonne pas les ressources après une reconnexion', () => {
+    const s = founding();
+    s.realms.founder.wallet.WOOD = 17;
+    const before = structuredClone(s.realms.founder.wallet);
+    expect(addPlayer(s, 'founder', 'Fondateur', 'ASH', now + 60000).wallet).toEqual(before);
   });
   it('forme gratuitement le paysan, récolte du bois et bâtit une chaumière à la frontière', () => {
     let s = founding();
@@ -66,7 +84,13 @@ describe('fondation sans ressources', () => {
     let result = execute(s, 'founder', action('RECRUIT', camp.id, { kind: 'PEASANT' }), now);
     expect(result.result.accepted).toBe(true);
     s = result.state;
-    expect(s.realms.founder.wallet).toEqual(zeroWallet());
+    expect(s.realms.founder.wallet).toEqual({
+      GOLD: 500,
+      WOOD: 500,
+      STONE: 500,
+      IRON: 500,
+      FOOD: 0,
+    });
     const peasant = realmUnits(s, 'founder')[0];
     result = execute(s, 'founder', action('MOVE', peasant.id, { path: [neighbors(camp)[0]] }), now);
     expect(result.result.accepted).toBe(true);
@@ -74,13 +98,13 @@ describe('fondation sans ressources', () => {
     result = execute(s, 'founder', action('GATHER', peasant.id, { resource: 'WOOD' }), now);
     expect(result.result.accepted).toBe(true);
     s = result.state;
-    expect(s.realms.founder.wallet.WOOD).toBe(24);
+    expect(s.realms.founder.wallet.WOOD).toBe(524);
     const p = neighbors(camp)[0];
     result = execute(s, 'founder', action('BUILD', peasant.id, { ...p, kind: 'HOUSE' }), now);
     expect(result.result.accepted).toBe(true);
     s = result.state;
     expect(realmBuildings(s, 'founder').map((b) => b.kind)).toEqual(['CAMP', 'HOUSE']);
-    expect(s.realms.founder.wallet.WOOD).toBe(6);
+    expect(s.realms.founder.wallet.WOOD).toBe(506);
     expect(s.realms.founder.ap).toBe(36);
     expect(realmTiles(s, 'founder')).toHaveLength(2);
   });
@@ -89,6 +113,7 @@ describe('fondation sans ressources', () => {
     const camp = realmBuildings(s, 'founder')[0];
     s = execute(s, 'founder', action('RECRUIT', camp.id, { kind: 'PEASANT' }), now).state;
     const u = realmUnits(s, 'founder')[0];
+    s.realms.founder.wallet = zeroWallet();
     writeTile(s, neighbors(camp)[0], { terrain: 'PLAIN', ownerId: 'founder' });
     expect(
       execute(s, 'founder', action('RECRUIT', camp.id, { kind: 'PEASANT' }), now).result.accepted,
@@ -107,7 +132,7 @@ describe('fondation sans ressources', () => {
     const result = execute(s, 'founder', action('GATHER', u.id, { resource: 'WOOD' }), now);
     expect(result.result.accepted).toBe(false);
     expect(result.state.realms.founder.ap).toBe(39);
-    expect(result.state.realms.founder.wallet.WOOD).toBe(0);
+    expect(result.state.realms.founder.wallet.WOOD).toBe(500);
   });
   it('fait évoluer le campement en avant-poste puis en village sans perdre la capitale', () => {
     let s = founding();

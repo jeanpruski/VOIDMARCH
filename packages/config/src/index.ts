@@ -76,12 +76,13 @@ export { formatNumber } from './format';
 export { UNIT_ERAS } from './epoch-units';
 export const GAME_NAME = 'VOIDMARCH';
 export * from './hero';
+export const STARTING_RESOURCES: Wallet = { GOLD: 500, WOOD: 500, STONE: 500, IRON: 500, FOOD: 0 };
 export const RULES = {
   maxAP: 20,
   startingAP: 40,
   constructionRadius: 3,
   guestLifetime: 24 * 60 * 60 * 1000,
-  apInterval: 30_000,
+  apInterval: 10_000,
   grace: 180_000,
   protection: 600_000,
   defeatCooldown: 600_000,

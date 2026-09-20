@@ -300,6 +300,9 @@ describe('expéditions et aventures', () => {
     expect(r.state.realms.a.wallet.GOLD).toBeGreaterThan(before);
     expect(r.state.realms.b.wallet.GOLD).toBe(other);
     expect(r.state.missions!.a.trophies![0].mission.expedition!.participants).toContain('b');
+    expect(r.state.missions!.b.trophies).toHaveLength(1);
+    expect(r.state.missions!.b.trophies![0].id).toBe(m.id);
+    expect(r.state.missions!.b.trophies![0].sharedFrom?.realmId).toBe('a');
   });
   it('l’abandon sans ressources impose un repos, supprime le site et préserve les troupes', () => {
     const s = fixture(),

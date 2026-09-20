@@ -102,7 +102,9 @@ export function AlliancePanel() {
   return (
     <section className="strategy-panel">
       <p className="panel-intro">
-        Cinq joueurs maximum. Une alliance acceptée partage les positions des capitales et autorise
+        Cinq joueurs maximum. Chaque nouvelle victoire de mission ou d’expédition donne un trophée à
+        tous les membres, même hors ligne, pour leurs déblocages. Les ressources et les troupes
+        restent au vainqueur. Une alliance acceptée partage les positions des capitales et autorise
         le passage des remparts. Vos troupes restent sous votre contrôle. Les flèches mesurent la
         distance depuis le centre de votre écran.
       </p>

@@ -54,7 +54,7 @@ export function GroupMovement() {
         </button>
         <ActionButton shortcut="D" className="primary" disabled={pending} onClick={start}>
           <ArrowUpRight size={16} /> Déplacer{' '}
-          <small>Routes / enceintes gratuites · réserves avant les PA</small>
+          <small>Routes / enceintes gratuites · carburant et pervitine avant les PA</small>
         </ActionButton>
         {plan && (
           <ActionButton

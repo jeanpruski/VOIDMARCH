@@ -73,7 +73,7 @@ describe('héros permanent et apparence', () => {
       recruitBonus: () => 0,
     });
     expect(result.result.accepted, result.result.reason).toBe(true);
-    expect(result.state.realms.a.wallet).toEqual(zeroWallet());
+    expect(result.state.realms.a.wallet).toEqual(r.wallet);
     expect(result.state.realms.a.ap).toBe(39);
   });
   it('attend une case libre dans les quatre hexagones plutôt que de naître plus loin', () => {
