@@ -44,3 +44,7 @@ Validation effectuée : compilation réussie, 336 tests unitaires réussis (7 te
 Dès le clic, le navigateur commence à parcourir le trajet prévu. Le reçu d’un ordre `MOVE` ou `MOVE_ROAD` confirme au joueur émetteur l’origine et les étapes réellement validées, sans redémarrer une animation déjà lancée. Un refus rétablit la position serveur. La figurine parcourt cette ligne étape par étape, avec son ovale, son drapeau, sa barre de vie et son aura éventuelle. Le trajet n’est pas recalculé après l’arrivée, ce qui évite les raccourcis visuels à travers les virages.
 
 L’animation survit au déplacement de caméra, au zoom et aux snapshots intermédiaires. Les ordres successifs conservent les étapes visuelles encore à parcourir avant d’enchaîner. Les longs voyages sont accélérés pour limiter l’animation à six secondes ; le coût et les règles du déplacement sont inchangés. Avec la réduction des animations activée, la position finale est affichée immédiatement.
+
+## Rendu des carrefours
+
+Les trois cases routières mutuellement voisines fusionnent leur surface au croisement : le petit îlot triangulaire disparaît, avec ses bordures intérieures. La texture de gravier continue dans la jonction, et les traces de roues s’arrêtent avant le centre des carrefours pour ne pas s’y superposer. Les tronçons isolés, virages, ponts et connexions de déplacement conservent leurs règles. Ce changement visuel s’applique aussi aux routes déjà construites.

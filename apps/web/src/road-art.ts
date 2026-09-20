@@ -22,9 +22,23 @@ export function roadCanvas(
   }
   ctx.closePath();
   ctx.clip();
-  const branches = DIRECTIONS.flatMap((p, i) =>
-    connections & (1 << i) ? [{ x: hexToPixel(p).x / 2, y: hexToPixel(p).y / 2 }] : [],
-  );
+  const ends = DIRECTIONS.map((p) => ({ x: hexToPixel(p).x / 2, y: hexToPixel(p).y / 2 }));
+  const branches = ends.filter((_, i) => connections & (1 << i));
+  // Three mutually adjacent road hexes form a tiny triangular traffic island.
+  // Each tile fills its third of that triangle, up to their shared hex corner.
+  // Drawing every outline before every surface leaves only the exterior border.
+  const junctions = ends.flatMap((a, i) => {
+    const next = (i + 1) % 6;
+    if (!(connections & (1 << i)) || !(connections & (1 << next))) return [];
+    const b = ends[next];
+    return [[a, { x: ((a.x + b.x) * 2) / 3, y: ((a.y + b.y) * 2) / 3 }, b]];
+  });
+  const surface = new Path2D();
+  for (const corners of junctions) {
+    surface.moveTo(0, 0);
+    for (const p of corners) surface.lineTo(p.x, p.y);
+    surface.closePath();
+  }
   if (!branches.length) branches.push({ x: -12, y: 0 }, { x: 12, y: 0 });
   const trace = (width: number, ink: string) => {
     ctx.beginPath();
@@ -37,6 +51,12 @@ export function roadCanvas(
     ctx.lineWidth = width;
     ctx.strokeStyle = ink;
     ctx.stroke();
+    ctx.fillStyle = ink;
+    ctx.fill(surface);
+    if (width > 16 && junctions.length) {
+      ctx.lineWidth = width - 16;
+      ctx.stroke(surface);
+    }
   };
   trace(24, '#10191470');
   trace(20, bridge ? '#30291f' : '#423b2d');
@@ -72,6 +92,7 @@ export function roadCanvas(
       return seed / 4294967296;
     };
     const onPath = (x: number, y: number) =>
+      ctx.isPointInPath(surface, 128 + x * 2, 128 + y * 2) ||
       branches.some((p) => {
         const ratio = Math.max(0, Math.min(1, (x * p.x + y * p.y) / (p.x * p.x + p.y * p.y)));
         return Math.hypot(x - p.x * ratio, y - p.y * ratio) < 7.6;
@@ -97,7 +118,7 @@ export function roadCanvas(
       ctx.setLineDash([5, 3]);
       for (const side of [-3.5, 3.5]) {
         ctx.beginPath();
-        ctx.moveTo(5, side);
+        ctx.moveTo(junctions.length || branches.length > 2 ? 15 : 5, side);
         ctx.lineTo(length, side);
         ctx.stroke();
       }
