@@ -135,12 +135,15 @@ describe('pêche automatique et manuelle', () => {
     expect(moved.state.realms.p.wallet.FOOD).toBeCloseTo(100 + 2 * rate + 40);
   });
 });
-describe('butin maritime exactement double de son équivalent terrestre', () => {
+describe('butin maritime : épaves réduites, autres rencontres conservées', () => {
   it.each(Object.entries(MARITIME_LOOT_COUNTERPARTS))(
     '%s correspond à %s, sans cumul du multiplicateur',
     (sea, land) => {
       const base = LAND_EVENT_REWARDS[land];
-      const expected = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, v * 2]));
+      const multiplier = sea === 'SHIPWRECK' || sea === 'SUB_WRECK' ? 1 : 2;
+      const expected = Object.fromEntries(
+        Object.entries(base).map(([k, v]) => [k, v * multiplier]),
+      );
       expect(eventResourceReward({ kind: sea, reward: { GOLD: 99999 } })).toEqual(expected);
       expect(eventResourceReward({ kind: sea, reward: expected })).toEqual(expected);
       for (let i = 0; i < 50; i++) {

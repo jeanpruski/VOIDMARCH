@@ -3105,6 +3105,50 @@ input[type='color'] {
 /* Keep the overview above variable-height worker and building controls. */
 .board .minimap {
   bottom: var(--minimap-bottom, 40px);
+  height: auto;
+}
+.minimap-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 32px;
+  min-height: 32px;
+  margin-left: auto;
+  padding: 4px;
+  color: #ead9a4;
+  background: #ffffff0a;
+  border: 1px solid #ead9a433;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.minimap > div > span,
+.minimap small {
+  white-space: nowrap;
+}
+.minimap:not(.minimap-expanded) > div > svg,
+.minimap:not(.minimap-expanded) small {
+  display: none;
+}
+.minimap-toggle:hover,
+.minimap-toggle:focus-visible {
+  background: #ead9a422;
+  outline: 1px solid #ead9a4;
+}
+.board .minimap .minimap-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+.board .minimap.minimap-expanded {
+  width: min(420px, calc(100% - 26px));
+  z-index: 25;
+}
+.board .minimap-expanded > svg {
+  display: block;
+  height: clamp(110px, calc(100dvh - var(--minimap-bottom, 40px) - 160px), 257px);
+}
+.board .minimap-expanded > div {
+  font-size: 9px;
+  padding: 8px 10px;
 }
 .selection-panel {
   max-height: 48vh;

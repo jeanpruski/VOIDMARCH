@@ -6,6 +6,10 @@ Les territoires connus utilisent des aplats aux couleurs des bannières, avec un
 
 Les figurines, bâtiments, reliefs, routes, événements, drapeaux, barres de vie, grille et animations ne sont pas créés dans le rendu stratégique. Les projectiles en cours sont annulés visuellement à l’entrée. Les contours sont calculés une fois par état du monde, et seules les cases dans la fenêtre sont dessinées. Les images restent préchargées pour le retour instantané au détail : cette optimisation concerne le rendu, pas le téléchargement initial ni le protocole serveur.
 
+Les unités sont représentées par des croix aux couleurs de leur royaume (dorées pour les PNJ), avec un contour sombre et une taille constante à l’écran. Un seul dessin regroupe ces marqueurs. Les ennemis hors de la visibilité actuelle, les passagers et les unités neutralisées ne sont pas montrés. Le bouton de visibilité des unités masque aussi ces croix.
+
+Le bouton d’agrandissement dans l’en-tête de la mini-carte alterne entre la taille compacte et une largeur allant jusqu’à 420 px, adaptée à la largeur de l’écran. Le clic, le glissement et le cadre de caméra restent identiques dans les deux tailles, sur ordinateur et mobile. La taille est locale à la session du composant et n’affecte pas le zoom du plateau.
+
 Un clic dans cette vue rapproche la caméra à 0,60 et revient à l’inspection sans envoyer d’ordre de jeu. La molette, les boutons, le déplacement de caméra et la minicarte restent disponibles. La transition de couleur dure 160 ms, sauf si la réduction des animations est activée.
 
 Validation : tests des seuils, des frontières communes et du brouillard ; parcours navigateur sur ordinateur et mobile, contrôle de l’absence de sprites et d’effets au dézoom maximal, restauration du détail et de la grille, navigation par clic et minicarte.

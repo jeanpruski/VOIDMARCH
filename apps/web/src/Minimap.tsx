@@ -1,11 +1,12 @@
 import { biomeAppearance, blendedTerrainColor } from './biome-art';
-import { useMemo, useRef } from 'react';
-import { Compass } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { Compass, Maximize2, Minimize2 } from 'lucide-react';
 import { key } from '@voidmarch/game-rules';
 import { focusMap, useGame } from './store';
 import { hexToPixel, minimapProjection, SIZE, Y_SCALE } from './map-geometry';
 
 export function Minimap() {
+  const [expanded, setExpanded] = useState(false);
   const world = useGame((s) => s.world)!;
   const viewport = useGame((s) => s.cameraViewport);
   const tiles = world.overview ?? world.tiles.filter((t) => t.terrain);
@@ -51,11 +52,21 @@ export function Minimap() {
     focusMap((gesture.current ?? projection).unproject(point.x, point.y));
   };
   return (
-    <div className="minimap">
+    <div className={`minimap${expanded ? ' minimap-expanded' : ''}`}>
       <div>
         <Compass size={13} />
         <span>LES MARCHES</span>
         <small>N ↑</small>
+        <button
+          type="button"
+          className="minimap-toggle"
+          aria-label={expanded ? 'Réduire la mini-carte' : 'Agrandir la mini-carte'}
+          title={expanded ? 'Réduire la mini-carte' : 'Agrandir la mini-carte'}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </button>
       </div>
       <svg
         viewBox="0 0 180 110"

@@ -37,6 +37,23 @@ test('vue stratégique : territoires, rendu léger, zoom et navigation', async (
     building: original.get(key(p))?.building,
   }));
   world.overview = world.tiles;
+  const soldier = {
+    id: 'visible-enemy',
+    ownerId: 'b',
+    kind: 'INFANTRY' as const,
+    q: 3,
+    r: 0,
+    hp: 30,
+    createdAt: now,
+    updatedAt: now,
+  };
+  world.units.push(
+    soldier,
+    { ...soldier, id: 'hidden-enemy', q: 4 },
+    { ...soldier, id: 'passenger', q: 5, carrierId: 'transport' },
+    { ...soldier, id: 'fallen', q: 6, hp: 0 },
+  );
+  world.tiles.find((t) => t.q === 4 && t.r === 0)!.visibility = 'EXPLORED';
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route('**/api/**', (route) => route.fulfill({ json: {} }));
@@ -44,7 +61,7 @@ test('vue stratégique : territoires, rendu léger, zoom et navigation', async (
     const response = await route.fetch();
     const body = (await response.text()).replace(
       /\bcreate\(\)\s*\{/,
-      'create() { window.__strategyScene = this;',
+      'create() { window.__strategyScene = this; window.__strategyStore = useGame;',
     );
     await route.fulfill({ response, body });
   });
@@ -86,6 +103,7 @@ test('vue stratégique : territoires, rendu léger, zoom et navigation', async (
         grid: s.children.getByName('hex-grid').visible,
         zoom: s.cameras.main.zoom,
         settled: s.ground.alpha === 1,
+        units: s.children.getByName('strategic-units')?.getData('unitIds') ?? [],
       };
     });
   const detailed = await objects();
@@ -107,6 +125,14 @@ test('vue stratégique : territoires, rendu léger, zoom et navigation', async (
   expect(simple.labels).toContain('La Citadelle rouge');
   expect(simple.labels).not.toContain('Royaume inconnu');
   expect(simple.grid).toBe(false);
+  expect(simple.units).toContain('visible-enemy');
+  expect(simple.units).not.toContain('hidden-enemy');
+  expect(simple.units).not.toContain('passenger');
+  expect(simple.units).not.toContain('fallen');
+  await page.evaluate(() => (window as any).__strategyStore.setState({ showUnits: false }));
+  await expect.poll(async () => (await objects()).units.length).toBe(0);
+  await page.evaluate(() => (window as any).__strategyStore.setState({ showUnits: true }));
+  await expect.poll(async () => (await objects()).units).toContain('visible-enemy');
   await expect.poll(async () => (await objects()).settled).toBe(true);
   await page.screenshot({ path: 'test-results/strategic-map-desktop.png' });
   await page.evaluate(() => {

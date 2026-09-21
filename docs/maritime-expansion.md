@@ -100,13 +100,13 @@ La pêche n’exige pas de banc de poissons : un navire doté de la capacité de
 
 Chaque bateau de pêche vivant, non embarqué, sur une case `SEA` ou `COAST` neutre ou à son royaume produit automatiquement le quart de sa prise manuelle par minute : **10 / 40 / 90 / 160 / 250 vivres/min**, selon son époque. Ces montants sont bruts avant l’entretien de l’équipage. Aucun PA ni carburant n’est dépensé ; la pêche manuelle reste cumulable. La production rejoint le revenu habituel : présence et délai de grâce, stockage respecté, aucun rattrapage hors ligne. Le bandeau du navire et le bilan des vivres l’expliquent.
 
-Les quatre événements maritimes donnent exactement **2× les ressources et les PA** d’un événement terrestre comparable (même tirage de PA, donc 2–12 en mer contre 1–6 sur terre). Les reliques restent uniques. Correspondances :
+Les ressources des épaves de navire et de sous-marin sont réduites de **50 %** et correspondent désormais au butin terrestre comparable. L’obélisque et la cargaison à la dérive conservent leurs ressources ×2. Les quatre événements gardent **2× les PA** terrestres (même tirage, donc 2–12 en mer contre 1–6 sur terre). Les reliques restent uniques. Correspondances :
 
 | Maritime              | Référence terrestre | Ressources maritimes |
 | --------------------- | ------------------- | -------------------- |
-| Épave des serments    | Forteresse sans nom | 240 or, 140 bois     |
+| Épave des serments    | Forteresse sans nom | 120 or, 70 bois      |
 | Obélisque englouti    | Monolithe de Veille | 160 or, 60 fer       |
 | Cargaison à la dérive | Caravane royale     | 200 or, 130 vivres   |
-| Secret du bathyscaphe | Chute d’une étoile  | 180 fer, 90 or       |
+| Secret du bathyscaphe | Chute d’une étoile  | 90 fer, 45 or        |
 
-Les prix proviennent d’une référence partagée (`event-loot.ts`) ; les anciennes épaves non fouillées affichent et versent aussi ces montants, sans multiplier deux fois après sauvegarde. Ce choix exact réduit certains anciens lots maritimes supérieurs à 2×. Les récompenses des missions, des expéditions et des sites permanents des archipels restent distinctes.
+Les montants proviennent d’une référence partagée (`event-loot.ts`) ; les anciennes épaves non fouillées affichent et versent aussi ces montants, sans multiplier deux fois après sauvegarde. Les récompenses des missions, des expéditions et des sites permanents des archipels restent distinctes.

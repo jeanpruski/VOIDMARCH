@@ -1,6 +1,6 @@
 import type { Wallet } from './index';
 
-/** Maritime encounters share an explicit land counterpart: exactly twice its resources. */
+/** Wreck salvage now matches land loot; other maritime encounters retain their ×2 bonus. */
 export const LAND_EVENT_REWARDS = {
   MONOLITH: { GOLD: 80, IRON: 30 },
   METEOR: { IRON: 90, GOLD: 45 },
@@ -26,5 +26,8 @@ export function eventResourceReward(event: {
 }): Partial<Wallet> {
   if (!isMaritimeEncounter(event.kind)) return event.reward;
   const base = LAND_EVENT_REWARDS[MARITIME_LOOT_COUNTERPARTS[event.kind]];
-  return Object.fromEntries(Object.entries(base).map(([resource, value]) => [resource, value * 2]));
+  const multiplier = event.kind === 'SHIPWRECK' || event.kind === 'SUB_WRECK' ? 1 : 2;
+  return Object.fromEntries(
+    Object.entries(base).map(([resource, value]) => [resource, value * multiplier]),
+  );
 }

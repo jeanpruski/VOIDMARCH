@@ -956,19 +956,54 @@ class WorldScene extends Phaser.Scene {
         this.pieces.push(label);
       }
     }
+    // One lightweight batch of constant screen-size crosses, never sprites.
+    // Only current visibility may reveal an enemy; owned troops remain known.
+    if (useGame.getState().showUnits) {
+      const visible = new Set(world.tiles.filter((t) => t.visibility === 'VISIBLE').map(key));
+      const markers = this.add.graphics().setDepth(13002).setName('strategic-units');
+      const ids: string[] = [];
+      for (const unit of world.units) {
+        if (
+          unit.hp <= 0 ||
+          unit.carrierId ||
+          (unit.ownerId !== world.player.id && !visible.has(key(unit)))
+        )
+          continue;
+        const p = hexToPixel(unit);
+        if (!onScreen(p, 8 / c.zoom)) continue;
+        ids.push(unit.id);
+        const radius = 4.5 / c.zoom;
+        const ink = unit.npc ? 0xf2ce75 : (colors.get(unit.ownerId) ?? 0xe5ded0);
+        for (const [width, tint] of [
+          [5, 0x101713],
+          [2.5, ink],
+        ]) {
+          markers.lineStyle(width / c.zoom, tint, 1);
+          markers.lineBetween(p.x - radius, p.y, p.x + radius, p.y);
+          markers.lineBetween(p.x, p.y - radius, p.x, p.y + radius);
+        }
+      }
+      markers.setData('unitIds', ids);
+      this.pieces.push(markers);
+    }
     // Camera matrices update on the next frame; derive the screen anchor directly
     // so wheel events and resizes do not leave this hint displaced.
     const p = { x: view.x + 24 / c.zoom, y: view.y + 76 / c.zoom };
     const hint = this.add
-      .text(p.x, p.y, 'VUE STRATÉGIQUE\nCliquez pour vous rapprocher', {
-        fontFamily: 'sans-serif',
-        fontSize: '11px',
-        resolution: 2,
-        color: '#d5dfce',
-        backgroundColor: '#152019',
-        padding: { x: 10, y: 8 },
-        lineSpacing: 5,
-      })
+      .text(
+        p.x,
+        p.y,
+        'VUE STRATÉGIQUE\n+ Unités aux couleurs des royaumes\nCliquez pour vous rapprocher',
+        {
+          fontFamily: 'sans-serif',
+          fontSize: '11px',
+          resolution: 2,
+          color: '#d5dfce',
+          backgroundColor: '#152019',
+          padding: { x: 10, y: 8 },
+          lineSpacing: 5,
+        },
+      )
       .setScale(1 / c.zoom)
       .setDepth(15000)
       .setName('strategic-hint');

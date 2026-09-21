@@ -47,6 +47,13 @@ test('la mini-carte suit la caméra, le zoom et le mobile, et navigue par clic e
   await expect.poll(async () => (await bounds()).width).toBeLessThan(initial.width - 5);
   const zoomed = await bounds();
   const minimap = page.getByRole('img', { name: 'Minicarte du royaume' });
+  const compactWidth = (await minimap.boundingBox())!.width;
+  await page.getByRole('button', { name: 'Agrandir la mini-carte' }).click();
+  await expect(page.getByRole('button', { name: 'Réduire la mini-carte' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  expect((await minimap.boundingBox())!.width).toBeGreaterThan(compactWidth * 2);
   const screenPoint = (x: number, y: number) =>
     minimap.evaluate(
       (svg, p) => {
@@ -75,8 +82,20 @@ test('la mini-carte suit la caméra, le zoom et le mobile, et navigue par clic e
     })
     .toBeLessThan(5);
   await page.setViewportSize({ width: 390, height: 844 });
+  const expandedBounds = (await minimap.boundingBox())!;
+  expect(expandedBounds.x).toBeGreaterThanOrEqual(0);
+  expect(expandedBounds.x + expandedBounds.width).toBeLessThanOrEqual(390);
+  expect(expandedBounds.y).toBeGreaterThanOrEqual(0);
   await expect.poll(async () => (await bounds()).width).toBeCloseTo((zoomed.width * 390) / 1440, 0);
   await page.screenshot({ path: 'test-results/minimap-mobile.png' });
+  await page.getByRole('button', { name: 'Réduire la mini-carte' }).click();
+  expect((await minimap.boundingBox())!.width).toBeLessThan(expandedBounds.width / 2);
+  const compact = (await page.locator('.minimap').boundingBox())!;
+  const toggle = (await page
+    .getByRole('button', { name: 'Agrandir la mini-carte' })
+    .boundingBox())!;
+  expect(toggle.x + toggle.width).toBeLessThanOrEqual(compact.x + compact.width);
+  await page.screenshot({ path: 'test-results/minimap-mobile-compact.png' });
   const camera = () =>
     page.evaluate(async () => {
       // @ts-expect-error Vite source module.
