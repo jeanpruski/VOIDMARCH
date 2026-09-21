@@ -37,6 +37,13 @@ export function balanceProfiles(
       if (p.naval && !p.transport && !p.fishing)
         p.population = (p.population ?? 4) + Math.max(0, tier - 1) * (p.siege ? 2 : 1);
       if (kind === 'FLAK_CANNON') p.antiAir = 30;
+      // Torpedoes remain an accessible counter to capital ships after the faster
+      // combat cadence; reuse armour penetration rather than raising their HP.
+      if (kind === 'BLACK_SUBMARINE') p.antiArmor = 40;
+      if (kind === 'HUNTER_SUBMARINE') p.antiArmor = 60;
+      if (kind === 'ABYSSAL_SUBMARINE') p.antiArmor = 90;
+      if (p.submarine && p.antiArmor)
+        p.role += ` Torpilles perforantes : +${p.antiArmor} contre les navires blindés et 75 % de leur défense ignorée.`;
       if (tier >= 2 && tier < 7 && !p.builder && !p.healer && !p.transport && !p.naval) {
         const heavy = p.armored && p.mechanical && !p.flying;
         const base = heavy

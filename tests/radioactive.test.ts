@@ -1,3 +1,4 @@
+import { UNIT_IMPACT } from '../packages/game-rules/src/combat-pace';
 import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
@@ -152,7 +153,9 @@ describe('division atomique', () => {
     for (const kind of ['GAMMA_TRIKE', 'GAMMA_FLAK_CRAWLER', 'GAMMA_HELICOPTER'] as const) {
       const damage = estimateDamage(unit(kind), unit('RADIUM_RECON'), terrain);
       expect(damage.min).toBeGreaterThanOrEqual(
-        UNITS[kind].attack + UNIT_PROFILES[kind].antiAir! - UNITS.RADIUM_RECON.defense - 1,
+        (UNITS[kind].attack + UNIT_PROFILES[kind].antiAir!) * UNIT_IMPACT[kind] -
+          UNITS.RADIUM_RECON.defense -
+          1,
       );
       expect(UNITS[kind].attack).toBeLessThan(UNITS.MAUSOLEUM_TANK.attack);
     }

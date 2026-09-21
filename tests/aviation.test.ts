@@ -1,6 +1,7 @@
 import { prepareDevelopment } from './fixtures/development';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { UNIT_IMPACT } from '../packages/game-rules/src/combat-pace';
 import {
   BUILDINGS,
   UNITS,
@@ -121,13 +122,16 @@ describe('aviation et défense antiaérienne', () => {
       const damage = estimateDamage(attacker, target, { q: 0, r: 0, terrain: 'PLAIN' });
       expect(damage.min).toBe(
         Math.round(
-          UNITS[kind].attack + UNIT_PROFILES[kind].antiAir! - UNITS.RECON_PLANE.defense / 2,
+          (UNITS[kind].attack + UNIT_PROFILES[kind].antiAir!) * UNIT_IMPACT[kind] -
+            UNITS.RECON_PLANE.defense / 2,
         ) - 1,
       );
     }
     expect(
       estimateDamage(unit('FLAK_CANNON'), unit('INFANTRY'), { q: 0, r: 0, terrain: 'PLAIN' }).max,
-    ).toBeLessThan(10);
+    ).toBeLessThan(
+      estimateDamage(unit('FLAK_CANNON'), target, { q: 0, r: 0, terrain: 'PLAIN' }).min / 3,
+    );
   });
   it('les murs ne protègent ni une cible volante, ni les troupes au sol contre un bombardement', () => {
     const { s, b } = fixture('BOMBER');

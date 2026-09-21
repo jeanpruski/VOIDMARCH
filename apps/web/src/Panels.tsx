@@ -2042,6 +2042,10 @@ function Combat() {
           {format(estimate.min)}–{format(estimate.max)}
         </strong>
         <small>
+          Environ {Math.ceil(target.hp / estimate.max)}–{Math.ceil(target.hp / estimate.min)} coups
+          pour mettre cette cible hors combat, sans soin ni changement de position.
+        </small>
+        <small>
           {TERRAINS[terrain].name} · Défense du terrain : +{targetTerrainDefense(target, terrain)}
           {!('population' in target) && UNIT_PROFILES[target.kind].flying
             ? ' (cible aérienne)'
@@ -2384,6 +2388,20 @@ function Help() {
           Pour les remparts : 1 = bois, 2 = pierre, 3 = acier, 4 = béton, 5 = atomique. Les
           tourelles s’améliorent séparément. Les indicateurs disparaissent avec les bâtiments
           masqués et dans la vue stratégique au dézoom maximal.
+        </p>
+      </ContextHelp>
+      <ContextHelp title="Combien de coups faut-il pour gagner un combat ?">
+        <p>
+          Deux à quatre attaques entre combattants comparables, à entraînement égal et en terrain
+          neutre. Le terrain, les contres et les écarts de puissance changent cette estimation. Les
+          ingénieurs, soigneurs, appareils de reconnaissance et armes spécialisées restent peu
+          efficaces contre une cible inadaptée. Consultez les dégâts et le nombre de coups estimés
+          avant d’attaquer ; une riposte peut mettre votre unité hors combat avant la fin.
+        </p>
+        <p>
+          Les bâtiments gardent leurs points de vie. Les armes de siège restent les plus adaptées
+          pour ouvrir une brèche ; les torpilles perforantes permettent aux sous-marins de contrer
+          les grands navires blindés.
         </p>
       </ContextHelp>
       <ContextHelp title="Comment les remparts protègent-ils mes troupes ?">

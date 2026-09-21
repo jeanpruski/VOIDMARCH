@@ -1,4 +1,5 @@
 import { STARTING_RESOURCES, conquestReward } from '@voidmarch/config';
+import { UNIT_IMPACT } from './combat-pace';
 import { passiveFishingYield } from './naval';
 import { isMaritimeEncounter } from '@voidmarch/config';
 import { archipelagoAt } from './archipelagos';
@@ -976,14 +977,19 @@ export function estimateDamage(
           ['GUARD', 'PALADIN', 'KNIGHT'].includes(target.kind)
         ? 6 * counterMultiplier
         : 0;
+  const buildingTarget = 'population' in target;
+  const impact = buildingTarget
+    ? 1
+    : 'population' in attacker || attacker.npc
+      ? 2
+      : UNIT_IMPACT[attacker.kind];
   const base = Math.max(
     1,
     Math.round(
-      atk * (1 + aura(attacker)) +
-        bonus +
-        antiAir -
+      ((atk * (1 + aura(attacker)) + bonus + antiAir) * impact -
         defense * (1 + aura(target)) * (antiArmor ? 0.25 : antiAir > 0 ? 0.5 : 1) -
-        targetTerrainDefense(target, tile.terrain),
+        targetTerrainDefense(target, tile.terrain)) *
+        (buildingTarget ? 1.5 : 1),
     ),
   );
   return { min: Math.max(1, base - 1), max: base + 1 };

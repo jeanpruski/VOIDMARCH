@@ -1,3 +1,4 @@
+import { UNIT_IMPACT } from '../packages/game-rules/src/combat-pace';
 import { prepareDevelopment } from './fixtures/development';
 import { unitDevelopmentStage } from '@voidmarch/config';
 import { randomUUID } from 'node:crypto';
@@ -113,7 +114,8 @@ describe('renforts des cinq époques', () => {
       const target = unit('LIGHT_CAVALRY');
       expect(estimateDamage(unit(kind), target, tile).min).toBe(
         Math.round(
-          UNITS[kind].attack + UNIT_PROFILES[kind].antiCavalry! - UNITS.LIGHT_CAVALRY.defense,
+          (UNITS[kind].attack + UNIT_PROFILES[kind].antiCavalry!) * UNIT_IMPACT[kind] -
+            UNITS.LIGHT_CAVALRY.defense,
         ) - 1,
       );
     }
@@ -121,15 +123,17 @@ describe('renforts des cinq époques', () => {
       tank = unit('REACTOR_DREADNOUGHT');
     expect(estimateDamage(hunter, tank, tile).min).toBe(
       Math.round(
-        UNITS.CASEMATE_HUNTER.attack +
-          UNIT_PROFILES.CASEMATE_HUNTER.antiArmor! -
+        (UNITS.CASEMATE_HUNTER.attack + UNIT_PROFILES.CASEMATE_HUNTER.antiArmor!) *
+          UNIT_IMPACT.CASEMATE_HUNTER -
           UNITS.REACTOR_DREADNOUGHT.defense * 0.25,
       ) - 1,
     );
     hunter.trainingBonus = 100;
     expect(estimateDamage(hunter, tank, tile).min).toBe(
       Math.round(
-        (UNITS.CASEMATE_HUNTER.attack + UNIT_PROFILES.CASEMATE_HUNTER.antiArmor!) * 2 -
+        (UNITS.CASEMATE_HUNTER.attack + UNIT_PROFILES.CASEMATE_HUNTER.antiArmor!) *
+          2 *
+          UNIT_IMPACT.CASEMATE_HUNTER -
           UNITS.REACTOR_DREADNOUGHT.defense * 0.25,
       ) - 1,
     );

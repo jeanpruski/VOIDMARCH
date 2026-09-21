@@ -1147,6 +1147,11 @@ function SelectionPanel() {
                   <ActionButton
                     shortcut="R"
                     className="secondary"
+                    title={
+                      UNIT_PROFILES[u.kind].healer
+                        ? `Soigne les alliés biologiques à 2 cases : ${u.kind === 'HEALER' ? '20 % des PV maximum, minimum 6 PV' : '10 % des PV maximum, minimum 3 PV'}. Sous le feu, une cible ne peut être soignée ou réparée qu’une fois toutes les 30 secondes.`
+                        : undefined
+                    }
                     disabled={
                       pending ||
                       (!w.player.unlimitedAP &&

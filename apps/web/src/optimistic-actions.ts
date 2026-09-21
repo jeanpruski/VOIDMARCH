@@ -26,6 +26,7 @@ import {
   supplyCost,
   supplySource,
   repairPlan,
+  mendAmount,
   consumeSupplies,
   CAMPAIGN_SUPPLIES,
 } from '@voidmarch/game-rules';
@@ -500,7 +501,7 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
             u.ownerId === id &&
             distance(u, unit) <= 2 &&
             !UNIT_PROFILES[u.kind].mechanical &&
-            (!mend || u.hp < unitStats(u).hp),
+            (!mend || mendAmount(unit, u, now) > 0),
         );
         if (
           (mend && (!UNIT_PROFILES[unit.kind].healer || !targets.length)) ||
@@ -510,9 +511,12 @@ export function predictAction(source: WorldView, action: Action): Prediction | u
         for (const u of targets) {
           u.hp =
             Math.round(
-              Math.min(unitStats(u).hp, u.hp + (mend && unit.kind === 'HEALER' ? 6 : 3)) * 100,
+              Math.min(unitStats(u).hp, u.hp + (mend ? mendAmount(unit, u, now) : 3)) * 100,
             ) / 100;
-          if (mend) u.updatedAt = now;
+          if (mend) {
+            u.updatedAt = now;
+            u.lastRepairedAt = now;
+          }
         }
       }
       break;

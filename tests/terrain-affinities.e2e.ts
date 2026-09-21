@@ -90,6 +90,7 @@ test('affinités : recherche par terrain, fiches, estimation puis dégâts réel
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/terrain-affinity-review');
+  await page.getByRole('checkbox', { name: /Disponibles maintenant/ }).uncheck();
   await page.getByLabel('Univers', { exact: true }).selectOption('briar');
   const rifle = page.locator('.catalog article').filter({
     has: page.getByRole('heading', { name: unitStats(state.units.shooter).name, exact: true }),
@@ -121,6 +122,9 @@ test('affinités : recherche par terrain, fiches, estimation puis dégâts réel
   await expect(page.locator('.combat-terrain-bonuses')).toContainText('DÉF +20 %');
   await expect(page.locator('.damage-estimate strong')).toHaveText(
     `${formatNumber(estimate.min)}–${formatNumber(estimate.max)}`,
+  );
+  await expect(page.locator('.damage-estimate')).toContainText(
+    `Environ ${Math.ceil(state.units.target.hp / estimate.max)}–${Math.ceil(state.units.target.hp / estimate.min)} coups`,
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await expect

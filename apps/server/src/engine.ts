@@ -51,6 +51,7 @@ import {
   supplySource,
   consumeSupplies,
   repairPlan,
+  mendAmount,
   CAMPAIGN_SUPPLIES,
 } from '@voidmarch/game-rules';
 import { unitMovementBudget } from '@voidmarch/game-rules';
@@ -1342,16 +1343,15 @@ export function applyAction(
       requireRule(u.kind !== 'HERO', 'Utilisez les pouvoirs spécifiques de votre héros.');
       if (a.payload.ability === 'MEND') {
         requireRule(UNIT_PROFILES[u.kind].healer, 'Cette unité ne peut pas soigner les autres.');
-        const allies = realmUnits(s, id).filter(
-          (x) => distance(x, u) <= 2 && !UNIT_PROFILES[x.kind].mechanical && x.hp < unitStats(x).hp,
+        const allies = realmUnits(s, id).filter((x) => mendAmount(u, x, now) > 0);
+        requireRule(
+          allies.length,
+          'Aucun allié à soigner à proximité, ou soins sous le feu en recharge (30 s).',
         );
-        requireRule(allies.length, 'Aucun allié blessé à proximité.');
         spendAction(1);
         for (const ally of allies) {
-          ally.hp =
-            Math.round(
-              Math.min(unitStats(ally).hp, ally.hp + (u.kind === 'HEALER' ? 6 : 3)) * 100,
-            ) / 100;
+          ally.hp = Math.round((ally.hp + mendAmount(u, ally, now)) * 100) / 100;
+          ally.lastRepairedAt = now;
           ally.updatedAt = now;
         }
         message = 'Les alliés proches ont été soignés.';

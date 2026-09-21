@@ -58,7 +58,7 @@ describe('les remparts interceptent les attaques', () => {
       const result = fire(s);
       expect(result.result.accepted, result.result.reason).toBe(true);
       expect(result.state.units.target.hp).toBe(100);
-      expect(result.state.buildings[wall.id].hp).toBeLessThan(wall.hp);
+      expect(result.state.buildings[wall.id]?.hp ?? 0).toBeLessThan(wall.hp);
       expect(result.result.message).toContain('au rempart');
       expect(result.state.journal.filter((j) => j.kind === 'COMBAT').at(-1)).toMatchObject({
         q: 1,
@@ -106,7 +106,7 @@ describe('les remparts interceptent les attaques', () => {
     const result = fire(s);
     expect(result.result.accepted).toBe(true);
     expect(result.state.units.target.hp).toBe(100);
-    expect(result.state.buildings[wall.id].hp).toBeLessThan(wall.hp);
+    expect(result.state.buildings[wall.id]?.hp ?? 0).toBeLessThan(wall.hp);
   });
   it('la riposte d’un PNJ frappe le mur, sans blesser l’archer derrière', () => {
     const { s, wall } = fixture('ARCHER');
@@ -117,7 +117,7 @@ describe('les remparts interceptent les attaques', () => {
     const result = fire(s, 'shooter', npc.id);
     expect(result.result.accepted, result.result.reason).toBe(true);
     expect(result.state.units.shooter.hp).toBe(100);
-    expect(result.state.buildings[wall.id].hp).toBeLessThan(wall.hp);
+    expect(result.state.buildings[wall.id]?.hp ?? 0).toBeLessThan(wall.hp);
     expect(result.result.message).toContain('rempart qui intercepte');
     expect(result.state.journal.at(-1)?.damage).toMatchObject({
       amount: wall.hp - result.state.buildings[wall.id].hp,

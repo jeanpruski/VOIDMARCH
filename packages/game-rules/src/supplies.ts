@@ -71,6 +71,25 @@ export function consumeSupplies(u: Unit, now: number) {
     u.updatedAt = now;
   }
 }
+/** Group healing follows the recipient's progression. A shared repair timer
+ * prevents alternating several healers and repairs to erase incoming fire. */
+export function mendAmount(healer: Unit, target: Unit, now = Date.now()): number {
+  if (
+    !UNIT_PROFILES[healer.kind].healer ||
+    healer.ownerId !== target.ownerId ||
+    healer.hp <= 0 ||
+    target.hp <= 0 ||
+    healer.carrierId ||
+    target.carrierId ||
+    UNIT_PROFILES[target.kind].mechanical ||
+    distance(healer, target) > 2 ||
+    repairPlan(target, now).reason
+  )
+    return 0;
+  const max = unitStats(target).hp;
+  const amount = healer.kind === 'HEALER' ? Math.max(6, max * 0.2) : Math.max(3, max * 0.1);
+  return Math.max(0, Math.round(Math.min(max - target.hp, amount) * 10) / 10);
+}
 /** Repair price follows actual restored health; no full-price bill for a scratch. */
 export function repairPlan(target: Unit | Building, now = Date.now()) {
   const building = 'population' in target;

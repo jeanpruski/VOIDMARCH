@@ -42,7 +42,8 @@ import type { Unit } from '@voidmarch/shared';
 /** Ideal uninterrupted development: no opponent, travel after the first six moves excluded.
  * Economic benchmark only: trophy acquisition time is excluded (fifty personal trophies assumed).
  * Every construction and upgrade is paid through the real server engine, with storage and PA.
- * Thirteen initial gathers + first free peasant + six moves use 20 of the starting 40 PA.
+ * First free peasant + six moves use 7 of the starting 40 PA. Retain the real
+ * starting wallet; there is no longer any need to simulate thirteen gathers.
  */
 export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
   const start = 1_900_000_000_000;
@@ -75,8 +76,7 @@ export function simulateDevelopment(producerLevel: 3 | 5 = 3) {
       {},
     ),
   );
-  initial.ap = RULES.startingAP - 20;
-  initial.wallet = { GOLD: 48, WOOD: 96, STONE: 40, IRON: 32, FOOD: 48 };
+  initial.ap = RULES.startingAP - 7;
   const ruins = { q: initial.capital.q - 1, r: initial.capital.r };
   writeTile(state, ruins, { terrain: 'RUINS' });
   state.units.peasant = {
@@ -279,7 +279,9 @@ export function simulateSkirmish(
   opponent: UnitKind,
   opponentLevel: number,
   seed = 0,
+  contactDuel = false,
 ) {
+  if (contactDuel && count !== 1) throw new Error('Contact benchmark requires one unit per side.');
   const now = 1_900_000_000_000;
   let state = createState(`skirmish-${seed}`, now);
   for (const id of ['a', 'b']) {
@@ -309,7 +311,7 @@ export function simulateSkirmish(
     ...specimen(opponent, trainingBonusAt(UNIT_PROFILES[opponent].recruitAt[0], opponentLevel)),
     id: 'b0',
     ownerId: 'b',
-    q: 2,
+    q: contactDuel ? 1 : 2,
     r: 0,
   };
   // Coast/fleet scenarios retain legal terrain for each stationary participant.

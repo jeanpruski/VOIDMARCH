@@ -1629,7 +1629,7 @@ const BASE_UNIT_PROFILES: Record<UnitKind, UnitProfile> = {
     siege: true,
   },
   HEALER: {
-    role: 'Soigne de 6 PV les alliés blessés proches pour 1 PA.',
+    role: 'Soigne 20 % des PV maximum (minimum 6 PV) des alliés biologiques à 2 cases pour 1 PA. Sous le feu : 30 s entre deux soins sur une même cible.',
     recruitAt: ['MONASTERY', 'FIELD_HOSPITAL'],
     requires: ['MONASTERY'],
     healer: true,

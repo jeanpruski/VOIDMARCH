@@ -238,6 +238,6 @@ describe('catalogue étendu', () => {
     const mounted = estimateDamage(a, t, { q: 0, r: 0, terrain: 'PLAIN' });
     t.kind = 'CROSSBOW'; // Same defense, no mounted bonus.
     const foot = estimateDamage(a, t, { q: 0, r: 0, terrain: 'PLAIN' });
-    expect(mounted.max - foot.max).toBe(12);
+    expect(mounted.max - foot.max).toBe(24);
   });
 });

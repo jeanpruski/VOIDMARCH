@@ -1,3 +1,4 @@
+import { UNIT_IMPACT } from '../packages/game-rules/src/combat-pace';
 import { heroAura } from '@voidmarch/config';
 import { describe, expect, it } from 'vitest';
 import {
@@ -87,7 +88,7 @@ describe('affinités de terrain', () => {
     const a = unit('RANGER'),
       b = unit('GUARD', { ownerId: 'b' });
     const expected = Math.round(
-      unitCombatStats(a, 'FOREST').attack -
+      unitCombatStats(a, 'FOREST').attack * UNIT_IMPACT.RANGER -
         unitCombatStats(b, 'RUINS').defense -
         TERRAINS.RUINS.defense,
     );
@@ -105,7 +106,8 @@ describe('affinités de terrain', () => {
       hero = unit('HERO', { id: 'hero', q: 1 });
     const attack = unitCombatStats(a, 'HILL').attack * (1 + heroAura(undefined));
     const expected = Math.round(
-      attack + UNIT_PROFILES.BAZOOKA.antiArmor! * 2 - unitCombatStats(b, 'PLAIN').defense * 0.25,
+      (attack + UNIT_PROFILES.BAZOOKA.antiArmor! * 2) * UNIT_IMPACT.BAZOOKA -
+        unitCombatStats(b, 'PLAIN').defense * 0.25,
     );
     expect(estimateDamage(a, b, ground('PLAIN'), [hero], 'HILL').min).toBe(
       Math.max(1, expected - 1),

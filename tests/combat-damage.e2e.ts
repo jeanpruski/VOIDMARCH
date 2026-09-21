@@ -66,16 +66,13 @@ test('dégâts confirmés : attaque, riposte, doublons et mouvement réduit', as
       response,
       body: (await response.text()).replace(
         /\bcreate\(\)\s*\{/,
-        'create() { window.__damageScene = this;',
+        'create() { window.__damageScene = this; window.__damageStore = { useGame, send };',
       ),
     });
   });
   await page.goto('/');
   await expect(page.locator('.game-canvas')).toHaveAttribute('aria-busy', 'false');
   await page.evaluate(async () => {
-    // @ts-expect-error Vite source module.
-    const store = await import('/src/store.ts');
-    (window as any).__damageStore = store;
     const scene = (window as any).__damageScene;
     scene.cameras.main.setZoom(1.2).centerOn(0, 0);
     scene.renderMap();

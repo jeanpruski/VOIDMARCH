@@ -12,6 +12,7 @@ import {
   supplyCharges,
   supplySource,
   repairPlan,
+  mendAmount,
   foodBalance,
   income,
   estimateDamage,
@@ -45,6 +46,79 @@ function fixture() {
   const u = unit('troop');
   return { s, r, u, depot, unit };
 }
+
+describe('soins de groupe adaptés aux combats courts', () => {
+  it('conserve les soins de départ et suit les PV entraînés sans dépasser les blessures', () => {
+    const { unit } = fixture();
+    const healer = unit('medic', 'HEALER', 0),
+      target = unit('wounded');
+    target.hp = 1;
+    expect(mendAmount(healer, target, now)).toBe(6);
+    target.kind = 'OCCULT_DRAGON';
+    target.trainingBonus = 100;
+    expect(mendAmount(healer, target, now)).toBeCloseTo(unitStats(target).hp * 0.2, 1);
+    expect(mendAmount({ ...healer, kind: 'PALADIN' }, target, now)).toBeCloseTo(
+      unitStats(target).hp * 0.1,
+      1,
+    );
+    target.hp = unitStats(target).hp - 2;
+    expect(mendAmount(healer, target, now)).toBe(2);
+    target.hp = unitStats(target).hp;
+    expect(mendAmount(healer, target, now)).toBe(0);
+  });
+
+  it('ne soigne ni machines, ni passagers, ni ennemis, ni héros neutralisés', () => {
+    const { unit } = fixture();
+    const healer = unit('medic', 'HEALER', 0),
+      target = { ...unit('wounded'), hp: 1 };
+    for (const patch of [
+      { kind: 'TANK' as const },
+      { kind: 'HERO' as const, hp: 0 },
+      { carrierId: 'truck' },
+      { ownerId: 'enemy' },
+      { q: 3 },
+    ])
+      expect(mendAmount(healer, { ...target, ...patch }, now)).toBe(0);
+  });
+
+  it('synchronise client et serveur et empêche les chaînes de soins et réparations sous le feu', () => {
+    const { s, r, u, unit } = fixture();
+    const healer = unit('medic', 'HEALER', 0),
+      second = unit('secondMedic', 'HEALER', -1);
+    u.hp = 1;
+    u.lastDamagedAt = now;
+    const command = order('ABILITY', healer.id, { ability: 'MEND' });
+    const source = worldView(s, r.id, now),
+      backup = structuredClone(source);
+    const predicted = predictAction(source, command)!;
+    const healed = execute(s, r.id, command, now);
+    expect(healed.result.accepted).toBe(true);
+    expect(healed.state.units.troop.hp).toBe(7);
+    expect(healed.state.units.troop.lastRepairedAt).toBe(now);
+    expect(predicted.world.units.find((x) => x.id === u.id)).toEqual(healed.state.units.troop);
+    expect(predicted.world.player.ap).toBe(healed.state.realms.p.ap);
+    expect(source).toEqual(backup);
+    expect(healed.state.realms.p.ap).toBe(39);
+    const retry = order('ABILITY', second.id, { ability: 'MEND' });
+    const rejected = execute(healed.state, r.id, retry, now + 29999);
+    expect(rejected.result.accepted).toBe(false);
+    expect(rejected.state).toEqual(healed.state);
+    expect(predictAction(worldView(healed.state, r.id, now), retry)).toBeUndefined();
+    expect(repairPlan(healed.state.units.troop, now + 29999).reason).not.toBe('');
+    expect(mendAmount(second, healed.state.units.troop, now + 30000)).toBe(6);
+    const ready = execute(
+      healed.state,
+      r.id,
+      { ...retry, clientTimestamp: now + 30000 },
+      now + 30000,
+    );
+    expect(ready.result.accepted).toBe(true);
+    expect(ready.state.units.troop.hp).toBe(13);
+    expect(mendAmount(second, { ...u, lastRepairedAt: now }, now)).toBe(0);
+    // Once the battle has stopped for 90 seconds, field recovery is unrestricted.
+    expect(mendAmount(second, { ...u, lastRepairedAt: now + 89999 }, now + 90000)).toBe(6);
+  });
+});
 
 describe('vivres et intendance', () => {
   it('préserve le départ et rend une armée avancée plus coûteuse à nourrir', () => {
